@@ -1,13 +1,13 @@
-// Measured symmetry of the workspace chrome: the drawer's switcher on the
-// 10 / 20 grid, breadcrumb capsules with equal insets on one centre line,
-// the switcher sheet's cards and the browser's bottom button mirrored.
+// Measured symmetry of the workspace chrome: the 聊天 tab's workspace sheet
+// cards and the browser's bottom button mirrored. (The drawer's switcher row
+// and its 10 / 20 grid went away with the drawer; breadcrumb capsules are
+// checked in their own group.)
 //
 //   flutter test test/workspace/workspace_geometry_test.dart
 
 import 'package:dsh_app/ui/common/breadcrumb_row.dart';
 import 'package:dsh_app/ui/common/list_page_row.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
 import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:dsh_app/ui/workspace/directory_picker.dart';
 import 'package:dsh_app/ui/workspace/workspace_switcher.dart';
@@ -27,11 +27,11 @@ Future<void> _settle(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 400));
 }
 
-Future<void> _pumpDrawer(WidgetTester tester) async {
+Future<void> _pumpList(WidgetTester tester) async {
   usePhoneSurface(tester);
   await tester.pumpWidget(
     goldenApp(
-      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
       brightness: Brightness.light,
       overrides: workspaceOverrides(sampleWorkspaceHost()),
     ),
@@ -40,33 +40,6 @@ Future<void> _pumpDrawer(WidgetTester tester) async {
 }
 
 void main() {
-  group('drawer switcher', () {
-    testWidgets('glyph on the 20 line, highlight on the 10 line, 36 tall, one centre line', (tester) async {
-      await _pumpDrawer(tester);
-      final drawer = tester.getRect(find.byType(SessionsDrawer));
-      final switcher = find.byType(WorkspaceSwitcher);
-      final ink = tester.getRect(find.descendant(of: switcher, matching: find.byType(InkWell)));
-      final icons = find.descendant(of: switcher, matching: find.byType(Icon));
-      final glyph = tester.getRect(icons.first);
-      final chevron = tester.getRect(icons.last);
-      final label = tester.getRect(find.descendant(of: switcher, matching: find.text('dsh-app')));
-      final eyebrow = tester.getRect(find.text('今天'));
-      final tile = tester.getRect(find.byType(SessionTile).first);
-
-      expect(ink.left - drawer.left, _near(10));
-      expect(glyph.left - drawer.left, _near(20));
-      // The highlight hugs its content with the same 10 on both ends.
-      expect(ink.right - chevron.right, _near(glyph.left - ink.left));
-      expect(ink.height, _near(WorkspaceSwitcher.height));
-      expect(glyph.center.dy, _near(ink.center.dy));
-      expect(chevron.center.dy, _near(ink.center.dy));
-      expect(label.center.dy, closeTo(ink.center.dy, 0.75));
-      // Same text line as the day labels and the rows' highlight edge.
-      expect(eyebrow.left - drawer.left, _near(20));
-      expect(tile.left, _near(ink.left));
-    });
-  });
-
   group('breadcrumbs', () {
     testWidgets('capsules: equal insets, one height, one centre line; first on the page gutter', (tester) async {
       usePhoneSurface(tester);
@@ -106,8 +79,8 @@ void main() {
 
   group('switcher sheet', () {
     testWidgets('cards 20 in on both sides; rows share the glyph column', (tester) async {
-      await _pumpDrawer(tester);
-      await tester.tap(find.descendant(of: find.byType(WorkspaceSwitcher), matching: find.byType(InkWell)));
+      await _pumpList(tester);
+      await tester.tap(find.byTooltip('工作区')); // 标题行的「工作区」圆键。
       await _settle(tester);
       final sheet = tester.getRect(find.byType(WorkspaceSheet));
       final cards = find.descendant(of: find.byType(WorkspaceSheet), matching: find.byType(GlassSurface));

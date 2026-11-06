@@ -1,5 +1,6 @@
-// Golden screenshots of the drawer's folders, filters, multi-select and the
-// 已归档 undo notice, light and dark.
+// TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录
+// Golden screenshots of the 聊天 tab's list (the former drawer's content):
+// folders, filters, multi-select and the 已归档 undo notice, light and dark.
 //
 //   flutter test --update-goldens test/drawer/drawer_golden_test.dart
 
@@ -28,11 +29,11 @@ class _FakeChat extends StatelessWidget {
   Widget build(BuildContext context) => const SizedBox.expand();
 }
 
-Widget _shell() => HomeShell(chatBuilder: (_) => const _FakeChat(), initiallyOpen: true);
+/// 聊天 tab 的整页列表（旧抽屉的内容）；聊天页用替身，点开会话时才推入。
+Widget _shell() => HomeShell(chatBuilder: const _FakeChat());
 
 /// The golden harness' sample conversations on a connected in-memory host,
-/// so the workspace row (「全部对话」 and the list's options) shows as on a
-/// phone.
+/// so the page's device key and the list's options show as on a phone.
 List<Override> _drawer({
   bool empty = false,
   Map<String, Object> prefs = const {},

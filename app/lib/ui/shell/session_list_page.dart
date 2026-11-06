@@ -1,51 +1,48 @@
-// Structure derived from PiPilot (https://github.com/CikeSeven/pi_pilot), MIT, Copyright (c) 2026 CikeSeven. See THIRD_PARTY_NOTICES.md.
+// The 聊天 tab: the former sessions drawer's content as a full page.
+//
+// Title row (范围 / 搜索 / 更多 round keys beside the big title — the host
+// key lives on the shell's bottom bar now), the status filter pills, the
+// conversations (pinned, folders, then by day) and a floating 新对话
+// button. In multi-select the title row gives way to the selection header
+// and an action bar pins to the bottom.
 
 import 'dart:async';
 
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../../runtime/local_footprint.dart';
 import '../../runtime/runtime_bridge.dart';
 import '../../runtime/runtime_state.dart';
-import '../../runtime/local_footprint.dart';
 import '../../state/bots_state.dart';
 import '../../state/connection_state.dart';
+import '../../state/drawer_view_state.dart';
 import '../../state/engine_control.dart';
 import '../../state/hosts_state.dart';
-import '../../state/drawer_view_state.dart';
+import '../../state/read_list_identity.dart';
 import '../../state/session_attention_state.dart';
 import '../../state/session_deletion_state.dart';
 import '../../state/sessions_state.dart';
-import '../../state/read_list_identity.dart';
 import '../../state/workspaces_state.dart';
 import '../bots/bots_page.dart' show BotsPage, UnreadBadge;
 import '../chat/media/media_format.dart' show chatTitleShown;
 import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
 import '../common/empty_view.dart';
-import '../common/pressable.dart';
-import '../common/smooth_size.dart';
 import '../common/read_list_status.dart';
+import '../common/smooth_size.dart';
 import '../common/status_dot.dart';
 import '../onboarding/local_install.dart';
-import '../remote/host_status.dart';
-import '../remote/host_switcher.dart' show showHostSheet;
-import '../remote/network_details_sheet.dart' show showRemoteNetworkDetails;
 import '../safe_mode/engine_failure_card.dart';
 import '../safe_mode/safe_mode_banner.dart';
 import '../share/share_entry.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import '../web/mode_home.dart';
 import '../workspace/workspace_switcher.dart';
 import '../workspace/workspaces_page.dart';
 import 'adaptive/adaptive_layout.dart' show WindowClass;
-import 'brand_mark.dart';
 import 'drawer/drawer_actions.dart';
 import 'drawer/drawer_destination.dart';
 import 'drawer/archive_notice.dart';
@@ -53,6 +50,7 @@ import 'drawer/drawer_filter_bar.dart';
 import 'drawer/drawer_list.dart';
 import 'drawer/selection_bars.dart';
 import 'drawer/session_deletion.dart';
+import 'page_frame.dart' show GlassIconButton;
 import 'session_search_page.dart';
 
 export '../../state/drawer_view_state.dart' show SessionDay, sessionDayOf;
@@ -66,81 +64,71 @@ String sessionTitle(SessionSummary s) {
   return t == null || t.isEmpty ? appL10n.commonUntitledChat : chatTitleShown(t);
 }
 
-/// The soft fill behind the current conversation (drawer and search).
+/// The soft fill behind the current conversation (list and search).
 Color sessionSelectionColor(BuildContext context) {
   final scheme = Theme.of(context).colorScheme;
   return scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.18 : 0.09);
 }
 
-/// The sessions drawer: brand and "新对话" on top, search, the workspace
-/// switcher with the list's options, the status filters, the active host's
-/// conversations (pinned, folders, then by day), and an identity bar at the
-/// bottom (the host, 网页版, 设置). In multi-select the brand row and the
-/// identity bar give way to the selection header and its action bar.
-class SessionsDrawer extends ConsumerWidget {
-  const SessionsDrawer({
+/// A card's right-end time: today HH:mm, else M-D — with the year once the
+/// conversation goes back past this one.
+String sessionTimeText(DateTime at, DateTime now) {
+  String two(int v) => v.toString().padLeft(2, '0');
+  if (at.year == now.year && at.month == now.month && at.day == now.day) {
+    return '${two(at.hour)}:${two(at.minute)}';
+  }
+  final md = '${at.month}-${at.day}';
+  return at.year == now.year ? md : '${at.year}-$md';
+}
+
+/// The 聊天 tab's page: title row, status filters, the active host's
+/// conversations and a floating 新对话. [onOpenChat] runs after the session
+/// selection state is already set: the shell shows the chat over the tabs.
+/// [onDestination] hosts pages that are not tabs (网页版, 远程, 引擎…).
+class SessionListPage extends ConsumerWidget {
+  const SessionListPage({
     super.key,
-    required this.onClose,
-    required this.onOpen,
+    required this.onOpenChat,
+    required this.onDestination,
     this.now,
-    this.identityBarHeight,
-    this.drawerMotion,
   });
 
-  final VoidCallback onClose;
-  final ValueChanged<DrawerDestination> onOpen;
+  final VoidCallback onOpenChat;
+
+  /// Non-tab destinations still open as pushed pages (网页版 / 远程 / 引擎 / 设置搜索).
+  final ValueChanged<DrawerDestination> onDestination;
 
   /// Clock override for grouping (tests).
   final DateTime? now;
-
-  /// Told the height of the identity bar (and of the action bar over it in
-  /// multi-select) once it is laid out: the pulled-over drawer's notices
-  /// stand above it.
-  final ValueNotifier<double>? identityBarHeight;
-
-  /// The pulled-over drawer's 0 → 1 animation (null for the persistent
-  /// sidebar). While it moves, the panel drops its backdrop blur: a moving
-  /// glass surface re-samples the whole chat behind it every frame, which is
-  /// the expensive part on mid-range GPUs.
-  final Animation<double>? drawerMotion;
-
-  /// Where the content sits in from either edge: the search bar, the rows'
-  /// highlights and the identity bar's keys.
-  static const contentEdge = 10.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void newChat() {
       ref.read(currentSessionProvider.notifier).select(null);
-      onClose();
-    }
-
-    void manageWorkspaces() {
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const WorkspacesPage()));
-      // Close once the page covers us, so "back" lands on the chat.
-      Future<void>.delayed(AppMotion.slow, onClose);
+      onOpenChat();
     }
 
     final selecting =
         ref.watch(drawerSelectionProvider.select((s) => s != null)) && ref.watch(drawerScopeProvider)?.readOnly != true;
-    // The drawer stays mounted with the shell: it keeps the unread record
+    // The list stays mounted with the shell: it keeps the unread record
     // following what the person opens and leaves.
     ref.listen(drawerSeenProvider, (_, _) {});
+    // On another tab (an IndexedStack disables its tickers), multi-select
+    // ends with the page.
+    if (selecting && !TickerMode.valuesOf(context).enabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) ref.read(drawerSelectionProvider.notifier).end();
+      });
+    }
     // Folders forget conversations the host no longer has.
     ref.listen(sessionsProvider, (_, next) {
       if (!next.hasValue || next.isLoading) return;
       final known = {for (final s in ref.read(sessionsProvider.notifier).allSessions) s.sessionId};
       if (known.isNotEmpty) unawaited(ref.read(drawerViewProvider.notifier).forgetMissing(known));
     });
-    // Hidden (closed by a tap, a swipe or back): multi-select ends with it.
-    if (selecting && !TickerMode.valuesOf(context).enabled) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) ref.read(drawerSelectionProvider.notifier).end();
-      });
-    }
     final quick = AppMotion.of(context, AppMotion.quick);
-    // A phone on its side: the top of the drawer (brand, search, filters)
-    // would leave room for two conversations, so it scrolls away with them.
+    // A phone on its side: the top of the page (title, filters) would leave
+    // room for two conversations, so it scrolls away with them.
     final short = MediaQuery.sizeOf(context).height < WindowClass.compactHeight;
     final top = <Widget>[
       AnimatedSwitcher(
@@ -148,46 +136,15 @@ class SessionsDrawer extends ConsumerWidget {
         child: selecting
             ? DrawerSelectionHeader(key: const ValueKey('selecting'), now: now)
             : Padding(
-                key: const ValueKey('brand'),
-                // The lockup lines up with the rows' text (20); the
-                // button's edge with the search bar's and the rows'
-                // edges (10).
-                padding: const EdgeInsets.fromLTRB(20, 14, 10, 10),
-                child: Row(
-                  children: [
-                    // On a narrow drawer with large text the lockup gives
-                    // way a little rather than the keys.
-                    const Expanded(
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: FittedBox(fit: BoxFit.scaleDown, child: BrandLockup(height: 19)),
-                      ),
-                    ),
-                    // 网页模式, quietly: the one solid element stays 新对话.
-                    const WebModeKey(tier: GlassTier.pill),
-                    const SizedBox(width: 8),
-                    NewChatButton(onTap: newChat),
-                  ],
-                ),
+                key: const ValueKey('title'),
+                // 与 AppPage 枢纽页的大标题同一档字级和左缘（24）。
+                padding: const EdgeInsets.fromLTRB(24, 6, 10, 10),
+                child: _TitleRow(onOpenChat: onOpenChat, onDestination: onDestination),
               ),
       ),
       SafeModeBanner(
         padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-        onDetails: () => onOpen(DrawerDestination.engine),
-      ),
-      SessionSearchBar(onClose: onClose),
-      // The workspace switcher (once the host's workspace list has
-      // arrived) and the list's options, then the status filters.
-      SmoothSize(
-        duration: AppMotion.of(context, AppMotion.standard),
-        curve: AppMotion.std,
-        alignment: Alignment.topCenter,
-        child: Row(
-          children: [
-            Expanded(child: WorkspaceSwitcher(onManage: manageWorkspaces)),
-            _ViewOptionsKey(onClose: onClose),
-          ],
-        ),
+        onDetails: () => onDestination(DrawerDestination.engine),
       ),
       SmoothSize(
         duration: AppMotion.of(context, AppMotion.standard),
@@ -196,174 +153,162 @@ class SessionsDrawer extends ConsumerWidget {
         child: const DrawerFilterBar(),
       ),
     ];
-    final list = _EdgeFade(
-      child: _SessionList(onClose: onClose, now: now),
-    );
+    final list = _EdgeFade(child: _SessionList(onOpenChat: onOpenChat, onDestination: onDestination, now: now));
 
-    const radius = BorderRadius.only(topRight: Radius.circular(AppShape.xl), bottomRight: Radius.circular(AppShape.xl));
-    final content = Material(
-      type: MaterialType.transparency,
-      child: SafeArea(
-        right: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (short)
-              Expanded(
-                child: NestedScrollView(
-                  headerSliverBuilder: (context, _) => [
-                    SliverToBoxAdapter(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: top),
-                    ),
-                  ],
-                  body: list,
-                ),
-              )
-            else ...[
-              ...top,
-              Expanded(child: list),
-            ],
-            // The action bar lies exactly over the identity bar, which
-            // keeps its size while hidden: same height at any text size.
-            _ReportHeight(
-              height: identityBarHeight,
-              child: Stack(
-                children: [
-                  AnimatedOpacity(
-                    opacity: selecting ? 0 : 1,
-                    duration: quick,
-                    child: IgnorePointer(
-                      ignoring: selecting,
-                      child: ExcludeSemantics(
-                        excluding: selecting,
-                        child: IdentityBar(
-                          onHost: () => showHostSheet(context, onManage: () => onOpen(DrawerDestination.remote)),
-                          onLocalDetails: () => onOpen(DrawerDestination.engine),
-                          onFeatures: () => onOpen(DrawerDestination.features),
-                          onSettings: () => onOpen(DrawerDestination.settings),
-                          onSettingsHold: () => onOpen(DrawerDestination.settingsSearch),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: AnimatedSwitcher(
-                      duration: quick,
-                      child: selecting
-                          ? SelectionActionBar(
-                              key: const ValueKey('selecting'),
-                              onMove: () {
-                                if (ref.read(drawerScopeProvider)?.readOnly == false) {
-                                  moveToFolderFlow(
-                                    context,
-                                    ref,
-                                    ref.read(drawerSelectionProvider)?.toList() ?? const [],
-                                  );
-                                }
-                              },
-                              onPin: () {
-                                if (ref.read(drawerScopeProvider)?.readOnly == false) pinSelectionFlow(context, ref);
-                              },
-                              onArchive: () {
-                                if (ref.read(drawerScopeProvider)?.readOnly == false) {
-                                  archiveSelectionFlow(context, ref);
-                                }
-                              },
-                              onDelete: () {
-                                if (ref.read(drawerScopeProvider)?.readOnly == false) {
-                                  unawaited(deleteSelectionFlow(context, ref));
-                                }
-                              },
-                            )
-                          : const SizedBox.shrink(),
-                    ),
+    final content = SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (short)
+            Expanded(
+              child: NestedScrollView(
+                headerSliverBuilder: (context, _) => [
+                  SliverToBoxAdapter(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: top),
                   ),
                 ],
+                body: list,
               ),
-            ),
+            )
+          else ...[
+            ...top,
+            Expanded(child: list),
           ],
-        ),
+          // In multi-select the action bar pins to the bottom, over where
+          // the FAB floats.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 78),
+            child: AnimatedSwitcher(
+              duration: quick,
+              child: selecting
+                ? SelectionActionBar(
+                    key: const ValueKey('selecting'),
+                    onMove: () {
+                      if (ref.read(drawerScopeProvider)?.readOnly == false) {
+                        moveToFolderFlow(
+                          context,
+                          ref,
+                          ref.read(drawerSelectionProvider)?.toList() ?? const [],
+                        );
+                      }
+                    },
+                    onPin: () {
+                      if (ref.read(drawerScopeProvider)?.readOnly == false) pinSelectionFlow(context, ref);
+                    },
+                    onArchive: () {
+                      if (ref.read(drawerScopeProvider)?.readOnly == false) {
+                        archiveSelectionFlow(context, ref);
+                      }
+                    },
+                    onDelete: () {
+                      if (ref.read(drawerScopeProvider)?.readOnly == false) {
+                        unawaited(deleteSelectionFlow(context, ref));
+                      }
+                    },
+                  )
+                : const SizedBox.shrink(),
+            ),
+          ),
+        ],
       ),
     );
 
-    final motion = drawerMotion;
-    if (motion == null) {
-      return GlassSurface(tier: GlassTier.sheet, borderRadius: radius, child: content);
-    }
-    return SlidingGlass(motion: motion, tier: GlassTier.sheet, borderRadius: radius, child: content);
+    return Stack(
+      children: [
+        Positioned.fill(child: content),
+        // 新对话: a floating round key above the bottom bar's glass pieces,
+        // out of the action bar's way in multi-select.
+        Positioned(
+          right: 16,
+          bottom: selecting ? 0 : 100,
+          child: AnimatedOpacity(
+            opacity: selecting ? 0 : 1,
+            duration: quick,
+            child: IgnorePointer(
+              ignoring: selecting,
+              child: GlassIconButton(
+                icon: AppIcons.newChat,
+                tooltip: context.l10n.commonNewChat,
+                onPressed: newChat,
+                // 独立浮件,不在 BackdropGroup 里。
+                grouped: false,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
-/// Tells [height] the child's height after each layout that changes it (on
-/// the next frame: nothing above is rebuilt while laying out).
-class _ReportHeight extends SingleChildRenderObjectWidget {
-  const _ReportHeight({required this.height, required super.child});
+/// 「聊天」 and the three round keys: the conversation scope, search, and the
+/// list's view options (the host key sits on the shell's bottom bar).
+class _TitleRow extends ConsumerWidget {
+  const _TitleRow({required this.onOpenChat, required this.onDestination});
 
-  final ValueNotifier<double>? height;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) => _RenderReportHeight(height);
+  final VoidCallback onOpenChat;
+  final ValueChanged<DrawerDestination> onDestination;
 
   @override
-  void updateRenderObject(BuildContext context, _RenderReportHeight renderObject) => renderObject.height = height;
-}
-
-class _RenderReportHeight extends RenderProxyBox {
-  _RenderReportHeight(this.height);
-
-  ValueNotifier<double>? height;
-
-  @override
-  void performLayout() {
-    super.performLayout();
-    final target = height;
-    final value = size.height;
-    if (target == null || target.value == value) return;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (attached && identical(height, target)) target.value = value;
-    });
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    return Row(
+      children: [
+        Expanded(child: Text(context.l10n.chatListTitle, style: Theme.of(context).textTheme.headlineLarge)),
+        _RoundKey(
+          icon: AppIcons.folderOpen,
+          tooltip: l10n.remoteWorkspace,
+          onTap: () => showWorkspaceSheet(
+            context,
+            onManage: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const WorkspacesPage())),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _RoundKey(
+          icon: AppIcons.search,
+          tooltip: l10n.shellSearchChats,
+          onTap: () async {
+            final sessionId = await showSessionSearch(context);
+            if (sessionId == null || !context.mounted) return;
+            ref.read(currentSessionProvider.notifier).select(sessionId);
+            onOpenChat();
+          },
+        ),
+        const SizedBox(width: 8),
+        const _ViewOptionsKey(),
+      ],
+    );
   }
 }
 
-/// "新对话": the drawer's one solid primary element, a 36dp pill.
-class NewChatButton extends StatelessWidget {
-  const NewChatButton({super.key, required this.onTap});
+/// A pill-glass circle key of the title row (no blur: the page sits on the
+/// shell's own glass backdrop).
+class _RoundKey extends StatelessWidget {
+  const _RoundKey({required this.icon, required this.tooltip, required this.onTap});
 
+  final IconData icon;
+  final String tooltip;
   final VoidCallback onTap;
+
+  static const size = 34.0;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Semantics(
-      button: true,
-      label: l10n.commonNewChat,
-      onTap: onTap,
-      excludeSemantics: true,
-      child: Pressable(
-        child: Material(
-          color: scheme.primary,
-          shape: const StadiumBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        onTap: onTap,
+        excludeSemantics: true,
+        child: SizedBox.square(
+          dimension: size,
+          child: GlassSurface(
+            tier: GlassTier.pill,
+            circle: true,
             onTap: onTap,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 36),
-              child: Padding(
-                // The glyph carries ~3dp of its own air on the left: 12 + 3
-                // reads as the 15 on the right.
-                padding: const EdgeInsets.fromLTRB(12, 0, 15, 0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(AppIcons.newChat, size: 20, color: scheme.onPrimary),
-                    const SizedBox(width: 4),
-                    Text(l10n.commonNewChat, style: theme.textTheme.labelLarge?.copyWith(color: scheme.onPrimary)),
-                  ],
-                ),
-              ),
-            ),
+            child: Center(child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
         ),
       ),
@@ -371,12 +316,10 @@ class NewChatButton extends StatelessWidget {
   }
 }
 
-/// 「对话列表」 options at the end of the workspace row, its circle on the 10
-/// line; only while there are conversations to organise.
+/// 「对话列表」 options as one of the title row's keys; only while there are
+/// conversations to organise.
 class _ViewOptionsKey extends ConsumerWidget {
-  const _ViewOptionsKey({required this.onClose});
-
-  final VoidCallback onClose;
+  const _ViewOptionsKey();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -385,15 +328,16 @@ class _ViewOptionsKey extends ConsumerWidget {
     ref.watch(sessionsProvider);
     final hasArchived = ref.read(sessionsProvider.notifier).archivedSessions.isNotEmpty;
     if (scope == null || (scope.sessions.isEmpty && !filtered && !hasArchived)) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: DrawerViewButton(onTap: () => openDrawerViewOptions(context, ref, onClose: onClose)),
+    return _RoundKey(
+      icon: AppIcons.more,
+      tooltip: context.l10n.shellChatList,
+      onTap: () => openDrawerViewOptions(context, ref),
     );
   }
 }
 
 /// Soft top and bottom edges on the list, so rows fade into the header and
-/// the identity bar instead of being cut. At rest nothing is under either fade
+/// the tab bar instead of being cut. At rest nothing is under either fade
 /// (the list's own padding is deeper).
 class _EdgeFade extends StatelessWidget {
   const _EdgeFade({required this.child});
@@ -422,9 +366,10 @@ class _EdgeFade extends StatelessWidget {
 }
 
 class _SessionList extends ConsumerWidget {
-  const _SessionList({required this.onClose, this.now});
+  const _SessionList({required this.onOpenChat, required this.onDestination, this.now});
 
-  final VoidCallback onClose;
+  final VoidCallback onOpenChat;
+  final ValueChanged<DrawerDestination> onDestination;
   final DateTime? now;
 
   @override
@@ -461,16 +406,12 @@ class _SessionList extends ConsumerWidget {
     }
     return DrawerConversationList(
       now: now,
-      onNewChat: onClose,
+      onNewChat: onOpenChat,
       readOnly: scope.readOnly,
       leading: showBots
           ? DsBotDrawerRow(
               running: scope.bots.any((s) => s.running),
-              onTap: () {
-                Navigator.of(context).push(BotsPage.route());
-                // Close once the page covers us, so "back" lands on the chat.
-                Future<void>.delayed(AppMotion.slow, onClose);
-              },
+              onTap: () => Navigator.of(context).push(BotsPage.route()),
             )
           : null,
       onOpen: (id) {
@@ -479,7 +420,7 @@ class _SessionList extends ConsumerWidget {
           return;
         }
         ref.read(currentSessionProvider.notifier).select(id);
-        onClose();
+        onOpenChat();
       },
       onLongPress: (s) {
         final current = ref.read(drawerScopeProvider);
@@ -911,201 +852,5 @@ class _RemoteEmptyState extends ConsumerWidget {
       ),
     };
     return _Centered(child: view);
-  }
-}
-
-/// The drawer's footer: the host icon opens its details; the name and dropdown
-/// switch hosts. 全部功能 and 设置 follow as two equal round buttons.
-class IdentityBar extends ConsumerWidget {
-  const IdentityBar({
-    super.key,
-    required this.onHost,
-    required this.onFeatures,
-    required this.onSettings,
-    this.onSettingsHold,
-    this.onLocalDetails,
-  });
-
-  final VoidCallback onHost;
-
-  /// Local hosts have engine details, not a remote network path.
-  final VoidCallback? onLocalDetails;
-
-  /// 全部功能: what there is to do now. (网页版 is in 全部功能, in 设置 ›
-  /// 界面 and on the brand row's switch.)
-  final VoidCallback onFeatures;
-  final VoidCallback onSettings;
-
-  /// ⚙ held down: straight to settings search.
-  final VoidCallback? onSettingsHold;
-
-  /// The round keys, and the host pill's height beside them.
-  static const keySize = 44.0;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final colors = DshColors.of(context);
-    final host = ref.watch(activeHostProvider);
-    final name = ref.watch(hostNameProvider(host)) ?? (host.isLocal ? l10n.commonThisPhone : l10n.commonRemoteHost);
-    final view = watchHostStatus(ref, host);
-    final link = host.kind == HostKind.relay ? ref.watch(hostLinkStatusProvider(host)).value : null;
-    final path = link?.isConnected == true ? link?.network?.path ?? link?.path : null;
-    final statusLabel = path == null ? view.label : path.label;
-    final tint = hostKindTint(host.kind);
-    return Padding(
-      // Same 10 / 20 grid as the rows above: the highlight's edge at 10, the
-      // avatar on the 20 text line, the last button's edge at 10. The host
-      // pill is as tall as the round keys beside it (44; taller only for
-      // large text).
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 13),
-      child: Row(
-        children: [
-          Expanded(
-            child: Row(
-              key: const ValueKey('identity-host-controls'),
-              children: [
-                const SizedBox(width: 6),
-                IconButton(
-                  key: const ValueKey('identity-host-details'),
-                  tooltip: host.isLocal ? l10n.phoneEngineTitle : l10n.remoteNetworkDetails,
-                  onPressed: host.isLocal ? onLocalDetails : () => showRemoteNetworkDetails(context, host),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints.tightFor(width: keySize, height: keySize),
-                  style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  icon: DecoratedBox(
-                    decoration: ShapeDecoration(color: colors.identity[tint], shape: const CircleBorder()),
-                    child: SizedBox.square(
-                      dimension: 36,
-                      child: Icon(hostKindIcon(host.kind), size: 19, color: colors.onIdentity[tint]),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Semantics(
-                    button: true,
-                    label: l10n.shellCurrentHostLabel(name, statusLabel),
-                    onTap: onHost,
-                    excludeSemantics: true,
-                    child: InkWell(
-                      key: const ValueKey('identity-host-switcher'),
-                      onTap: onHost,
-                      customBorder: Squircle.border(AppShape.md),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: IdentityBar.keySize),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleSmall,
-                                    ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        StatusDot(tone: view.tone, size: 6),
-                                        const SizedBox(width: 6),
-                                        Flexible(
-                                          child: AnimatedSwitcher(
-                                            duration: AppMotion.of(context, AppMotion.quick),
-                                            layoutBuilder: (current, previous) => Stack(
-                                              alignment: Alignment.centerLeft,
-                                              children: [...previous, ?current],
-                                            ),
-                                            child: Text(
-                                              statusLabel,
-                                              key: ValueKey(statusLabel),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppType.tabular(
-                                                theme.textTheme.bodySmall!.copyWith(color: colors.textTertiary),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(AppIcons.dropdown, size: 18, color: colors.textTertiary),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          _RoundButton(icon: AppIcons.allFeatures, tooltip: l10n.hubSettingsAllFeatures, onTap: onFeatures),
-          const SizedBox(width: 8),
-          _RoundButton(
-            icon: AppIcons.settings,
-            tooltip: l10n.commonSettings,
-            onTap: onSettings,
-            onLongPress: onSettingsHold,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 44dp pill-glass circle (no blur: the drawer is already glass).
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({required this.icon, required this.tooltip, required this.onTap, this.onLongPress});
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final hold = onLongPress;
-    Widget button = SizedBox.square(
-      dimension: IdentityBar.keySize,
-      child: GlassSurface(
-        tier: GlassTier.pill,
-        circle: true,
-        onTap: onTap,
-        child: Center(child: Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface)),
-      ),
-    );
-    if (hold != null) {
-      button = GestureDetector(
-        onLongPress: () {
-          unawaited(HapticFeedback.mediumImpact());
-          hold();
-        },
-        child: button,
-      );
-    }
-    return Tooltip(
-      message: tooltip,
-      // Holding it does something of its own.
-      triggerMode: hold == null ? null : TooltipTriggerMode.manual,
-      child: Semantics(
-        button: true,
-        label: tooltip,
-        onTap: onTap,
-        onLongPress: hold,
-        excludeSemantics: true,
-        child: button,
-      ),
-    );
   }
 }

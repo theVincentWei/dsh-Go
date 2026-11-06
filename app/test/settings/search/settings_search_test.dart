@@ -1,8 +1,8 @@
 // Settings search: what a query finds and in what order, in Chinese and
 // English alike; the page around it (common words, recent searches, a result
 // opening its page at the row, a row that isn't there right now, 问 AI when
-// nothing matched and not in 网页模式); and the two ways in (the hub's
-// capsule, ⚙ held down in the drawer).
+// nothing matched and not in 网页模式); and the way in (the hub's capsule —
+// the drawer's ⚙-hold entry went away with the drawer).
 
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/runtime/runtime_state.dart';
@@ -16,7 +16,6 @@ import 'package:dsh_app/ui/settings/index/spots.dart';
 import 'package:dsh_app/ui/settings/search/settings_search.dart';
 import 'package:dsh_app/ui/settings/search/settings_search_page.dart';
 import 'package:dsh_app/ui/settings/settings_screen.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart' show IdentityBar;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -230,31 +229,6 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-search')));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsSearchPage), findsOneWidget);
-    });
-
-    testWidgets('⚙ held down in the drawer goes to search; a tap still opens settings', (tester) async {
-      var held = 0;
-      var tapped = 0;
-      await tester.pumpWidget(
-        goldenApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomCenter,
-              child: IdentityBar(onHost: () {}, onFeatures: () {}, onSettings: () => tapped++, onSettingsHold: () => held++),
-            ),
-          ),
-          brightness: Brightness.light,
-          overrides: _overrides(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final gear = find.bySemanticsLabel('设置');
-      await tester.longPress(gear);
-      await tester.pumpAndSettle();
-      expect((held, tapped), (1, 0));
-      await tester.tap(gear);
-      await tester.pumpAndSettle();
-      expect((held, tapped), (1, 1));
     });
   });
 }

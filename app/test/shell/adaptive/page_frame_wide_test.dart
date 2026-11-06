@@ -11,18 +11,33 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../chat/support/harness.dart';
 import 'support.dart';
 
+/// Secondary pages are pushed pages: a blank page underneath keeps
+/// `Navigator.canPop` true, so the bar renders its back key.
+Widget _pushed(Widget page) => Navigator(
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
+  pages: [
+    MaterialPage<void>(child: const SizedBox.shrink()),
+    MaterialPage<void>(child: page),
+  ],
+);
+
 Future<void> _pump(WidgetTester tester, Size size) async {
   useWindow(tester, size);
   await tester.pumpWidget(
     testApp(
-      AppPage.list(
-        title: '设置',
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(key: const ValueKey('card'), height: 120),
-          ),
-        ],
+      _pushed(
+        AppPage.list(
+          title: '设置',
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(key: const ValueKey('card'), height: 120),
+            ),
+          ],
+        ),
       ),
     ),
   );

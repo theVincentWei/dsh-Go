@@ -23,6 +23,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../share_code/support/fake_engine.dart';
 import '../shell/golden_harness.dart';
@@ -95,18 +96,22 @@ class _FakeLinksNative {
   );
 }
 
-Widget _shell({List<Override> extra = const []}) => ProviderScope(
-  overrides: [
-    ...extra,
-    networkKicksProvider.overrideWithValue(const Stream.empty()),
-    localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
-    sessionsProvider.overrideWith(() => FakeSessions(const [])),
-  ],
-  child: MaterialApp(
-    theme: buildLightTheme(),
-    home: HomeShell(chatBuilder: (_) => const SizedBox.expand()),
-  ),
-);
+Widget _shell({List<Override> extra = const []}) {
+  // HomeShell 会读 SharedPreferences 恢复上次的 tab。
+  SharedPreferences.setMockInitialValues({});
+  return ProviderScope(
+    overrides: [
+      ...extra,
+      networkKicksProvider.overrideWithValue(const Stream.empty()),
+      localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
+      sessionsProvider.overrideWith(() => FakeSessions(const [])),
+    ],
+    child: MaterialApp(
+      theme: buildLightTheme(),
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
+    ),
+  );
+}
 
 void main() {
   testWidgets('a cold-start dshgo:// link reaches a handler a feature registers at startup', (tester) async {

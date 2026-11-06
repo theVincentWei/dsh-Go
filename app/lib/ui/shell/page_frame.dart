@@ -22,6 +22,11 @@ import '../theme/theme.dart';
 /// Pushed with a plain `MaterialPageRoute`, the page gets the app-wide push
 /// transition and back gesture from the theme (`AppPageTransitionsBuilder`).
 ///
+/// Home-tab pages drop the floating bar: the large header
+/// is pinned at the very top and the content scrolls below it. A page is
+/// compact when [compactHeader] is set, or automatically when it can't pop
+/// (a tab root); pushed pages can pop and keep the floating bar.
+///
 /// On a window wider than [contentWidth] (tablets, open foldables) the
 /// headline and the content keep that width, centred; the bar's keys stay on
 /// the window's edges.
@@ -36,6 +41,7 @@ class AppPage extends StatefulWidget {
     this.showLargeTitle = true,
     this.padBottom = true,
     this.solidBar = true,
+    this.compactHeader = false,
   });
 
   final String title;
@@ -62,6 +68,20 @@ class AppPage extends StatefulWidget {
   /// the bar title. False uses the shared [TopFade] instead.
   final bool solidBar;
 
+  /// Home-tab pages (小程序, 设置): the large header is pinned at the very
+  /// top of the page — no floating bar above it (no [barHeight] inset, no
+  /// back key, no bar-title hand-off, no [actions]) — and the content
+  /// scrolls below it. False (pushed pages) keeps the floating bar. Either
+  /// way a page that can't pop is compact and one that can pop is not:
+  /// as tabs the pages can't pop (compact), pushed over the shell they can
+  /// (floating bar with the back key).
+  final bool compactHeader;
+
+  /// The floating bar's height (back/menu keys, title hand-off); pages that
+  /// don't use [AppPage] offset their content by the same amount to keep the
+  /// three home tabs' headers on one line.
+  static const barHeight = 56.0;
+
   /// The widest the page's column gets: the chat's reading width.
   static const contentWidth = AppSpace.readingWidth;
 
@@ -78,12 +98,14 @@ class AppPage extends StatefulWidget {
     required List<Widget> children,
     List<Widget> actions = const [],
     bool solidBar = true,
+    bool compactHeader = false,
   }) => AppPage(
     key: key,
     title: title,
     subtitle: subtitle,
     actions: actions,
     solidBar: solidBar,
+    compactHeader: compactHeader,
     slivers: [SliverList.list(children: children)],
   );
 
@@ -146,8 +168,15 @@ class _AppPageState extends State<AppPage> {
     });
     final theme = Theme.of(context);
     final padding = MediaQuery.paddingOf(context);
-    const barHeight = 56.0;
-    final top = padding.top + barHeight;
+    const barHeight = AppPage.barHeight;
+    // Compact (tab) pages pin the header at the very top: the floating bar's
+    // 56dp are not reserved. A page is compact when it asks for it, or
+    // automatically when it can't pop — a tab root (小程序, 设置 are tabs
+    // without a page under them); a pushed page can pop and keeps the bar.
+    // Evaluated at build time: tab pages build once at startup, and a pushed
+    // page can always pop while it builds.
+    final compact = widget.compactHeader || Navigator.of(context).canPop() == false;
+    final top = padding.top + (compact ? 0.0 : barHeight);
     // Wide windows: one centred column (zero on phones). A phone on its side
     // keeps the column and the bar's keys clear of the cutout or navigation
     // bar, on both sides alike.
@@ -181,96 +210,126 @@ class _AppPageState extends State<AppPage> {
           backgroundColor: Colors.transparent,
           body: Stack(
             children: [
-              CustomScrollView(
-                controller: _controller,
-                physics: AppMotion.scrollPhysics(context),
-                slivers: [
-                  SliverToBoxAdapter(child: SizedBox(height: top)),
-                  if (header != null)
-                    SliverPadding(
-                      padding: side,
-                      sliver: SliverToBoxAdapter(
-                        child: ValueListenableBuilder<double>(
-                          valueListenable: _offset,
-                          // Pulled past the top (only the fluid tier's lists go there), the
-                          // headline swells a little with the pull.
-                          builder: (context, offset, child) => Opacity(
-                            opacity: _headerOpacity(offset),
-                            alwaysIncludeSemantics: true,
-                            child: Transform.scale(
-                              scale: 1 + (-offset / 900).clamp(0.0, 0.1),
-                              alignment: AlignmentDirectional.topStart,
-                              child: child,
-                            ),
-                          ),
-                          child: KeyedSubtree(key: _headerKey, child: header),
-                        ),
+              if (compact)
+                // 固定头部:大标题常驻,内容列表在其下滚动(视口顶边裁切)。
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: top),
+                    if (header != null)
+                      Padding(
+                        padding: side,
+                        child: KeyedSubtree(key: _headerKey, child: header),
+                      ),
+                    Expanded(
+                      child: CustomScrollView(
+                        controller: _controller,
+                        physics: AppMotion.scrollPhysics(context),
+                        slivers: [
+                          for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
+                          if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
+                        ],
                       ),
                     ),
-                  for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
-                  if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
-                ],
-              ),
+                  ],
+                )
+              else
+                CustomScrollView(
+                  controller: _controller,
+                  physics: AppMotion.scrollPhysics(context),
+                  slivers: [
+                    SliverToBoxAdapter(child: SizedBox(height: top)),
+                    if (header != null)
+                      SliverPadding(
+                        padding: side,
+                        sliver: SliverToBoxAdapter(
+                          child: ValueListenableBuilder<double>(
+                            valueListenable: _offset,
+                            // Pulled past the top (only the fluid tier's lists go there), the
+                            // headline swells a little with the pull.
+                            builder: (context, offset, child) => Opacity(
+                              opacity: _headerOpacity(offset),
+                              alwaysIncludeSemantics: true,
+                              child: Transform.scale(
+                                scale: 1 + (-offset / 900).clamp(0.0, 0.1),
+                                alignment: AlignmentDirectional.topStart,
+                                child: child,
+                              ),
+                            ),
+                            child: KeyedSubtree(key: _headerKey, child: header),
+                          ),
+                        ),
+                      ),
+                    for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
+                    if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
+                  ],
+                ),
               Positioned(
                 left: 0,
                 right: 0,
                 top: 0,
                 // The veil paints the page's own backdrop, so it spans the page.
-                bottom: widget.solidBar ? 0 : null,
+                // Compact pages have no floating bar: just the light top fade.
+                bottom: !compact && widget.solidBar ? 0 : null,
                 child: ValueListenableBuilder<double>(
                   valueListenable: _offset,
                   // Only once content is under the bar: at rest it would just
                   // tint the glow.
                   builder: (context, offset, child) => Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
-                  child: widget.solidBar ? BackdropVeil.top(height: top, feather: 12) : TopFade(height: top + 12),
+                  child: compact || !widget.solidBar
+                      ? TopFade(height: top + 12)
+                      : BackdropVeil.top(height: top, feather: 12),
                 ),
               ),
-              Positioned(
-                left: 0,
-                right: 0,
-                top: padding.top,
-                height: barHeight,
-                child: BackdropGroup(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12 + inset),
-                    child: NavigationToolbar(
-                      centerMiddle: true,
-                      middleSpacing: 8,
-                      leading: Center(
-                        widthFactor: 1,
-                        child: GlassIconButton(
-                          icon: AppIcons.back,
-                          tooltip: l10n.commonBack,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
-                      ),
-                      middle: ValueListenableBuilder<double>(
-                        valueListenable: _offset,
-                        builder: (context, offset, child) {
-                          final t = _barTitle(offset);
-                          return Opacity(
-                            opacity: t,
-                            child: Transform.translate(offset: Offset(0, 6 * (1 - t)), child: child),
-                          );
-                        },
-                        child: Semantics(
-                          header: !_hasHeader,
-                          child: Text(
-                            widget.title,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium,
+              if (!compact)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: padding.top,
+                  height: AppPage.barHeight,
+                  child: BackdropGroup(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12 + inset),
+                      child: NavigationToolbar(
+                        centerMiddle: true,
+                        middleSpacing: 8,
+                        leading: Navigator.of(context).canPop()
+                            ? Center(
+                                widthFactor: 1,
+                                child: GlassIconButton(
+                                  icon: AppIcons.back,
+                                  tooltip: l10n.commonBack,
+                                  onPressed: () => Navigator.of(context).maybePop(),
+                                ),
+                              )
+                            : null,
+                        middle: ValueListenableBuilder<double>(
+                          valueListenable: _offset,
+                          builder: (context, offset, child) {
+                            final t = _barTitle(offset);
+                            return Opacity(
+                              opacity: t,
+                              child: Transform.translate(offset: Offset(0, 6 * (1 - t)), child: child),
+                            );
+                          },
+                          child: Semantics(
+                            header: !_hasHeader,
+                            child: Text(
+                              widget.title,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium,
+                            ),
                           ),
                         ),
+                        trailing: widget.actions.isEmpty
+                            ? const SizedBox(width: 44)
+                            : Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: widget.actions),
                       ),
-                      trailing: widget.actions.isEmpty
-                          ? const SizedBox(width: 44)
-                          : Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: widget.actions),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

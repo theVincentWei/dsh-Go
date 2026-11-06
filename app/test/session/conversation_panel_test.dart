@@ -62,8 +62,12 @@ void main() {
       expect(find.byType(ModelChip), findsNothing);
       expect(find.descendant(of: find.byType(ChatHeader), matching: find.textContaining('V4 Pro')), findsNothing);
       final title = tester.getRect(find.byKey(const ValueKey('chat-title-pill')));
-      final fresh = tester.getRect(find.byKey(const ValueKey('chat-new-chat')));
-      expect(fresh.left - title.right, lessThan(12), reason: 'a long title reaches the key');
+      final fresh = tester.getRect(find.byKey(const ValueKey('chat-settings')));
+      // The ≡ key is gone (the chat is a pushed page), so the pill now hugs
+      // its content and may stop short of the 新对话 key — but it never
+      // crosses it, and the long title stays whole.
+      expect(title.right, lessThanOrEqualTo(fresh.left));
+      expect(find.text('修复登录重复提交的问题并补上回归测试'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

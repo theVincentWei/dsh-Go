@@ -534,6 +534,10 @@ class SessionProjections {
 
   bool has(String key) => values.containsKey(key);
   String? get title => asString(values['title']);
+
+  /// Latest message line for a list row's second line, once the engine
+  /// provides the `preview` key; null until then.
+  String? get preview => asString(values['preview']);
   String? get agentPreset => asString(values['agentPreset']);
 
   /// Current permission preset (`read-only`, `workspace-write`,
@@ -631,6 +635,14 @@ class SessionSummary {
   final Map<String, Object?> raw;
 
   String? get title => projections.title;
+
+  /// [SessionProjections.preview], trimmed; null while empty, so lists can
+  /// fall back to the [cwd].
+  String? get previewText {
+    final p = projections.preview?.trim();
+    return p == null || p.isEmpty ? null : p;
+  }
+
   bool get isSubagent => origin == 'subagent';
 
   SessionSummary copyWith({

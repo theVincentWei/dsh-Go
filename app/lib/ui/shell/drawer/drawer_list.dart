@@ -16,7 +16,7 @@ import '../../../state/workspaces_state.dart';
 import '../../common/empty_view.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/motion.dart';
-import '../sessions_drawer.dart' show sessionTitle;
+import '../session_list_page.dart' show sessionTimeText, sessionTitle;
 import 'drawer_actions.dart';
 import 'folder_header.dart';
 import 'session_tile.dart';
@@ -48,12 +48,15 @@ class DrawerConversationList extends ConsumerWidget {
   final DateTime? now;
   final bool readOnly;
 
-  /// The list's padding: rows' edges on the drawer's 10 line.
-  static const padding = EdgeInsets.fromLTRB(10, 4, 10, 16);
+  /// The list's padding. The cards carry their own 10 margins, so the list
+  /// only insets vertically; rows that stay plain (the DS Bot row, the
+  /// folders' headers) wrap themselves in the 10.
+  static const padding = EdgeInsets.fromLTRB(0, 4, 0, 16);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final now = this.now ?? DateTime.now();
     final blocks = watchDrawerBlocks(ref, now: now);
     if (blocks == null) return const SizedBox.shrink();
     final selection = ref.watch(drawerSelectionProvider);
@@ -77,9 +80,13 @@ class DrawerConversationList extends ConsumerWidget {
 
     Widget tile(SessionSummary s, {bool inFolder = false}) {
       final id = s.sessionId;
+      final cwd = s.cwd?.trim();
       return SessionTile(
         key: ValueKey('session-$id'),
         title: sessionTitle(s),
+        // 第二行:最近一条消息(引擎补 preview 后),还没有就回退 cwd;都空不渲染。
+        subtitle: s.previewText ?? (cwd == null || cwd.isEmpty ? null : s.cwd),
+        timeText: sessionTimeText(s.updatedAt, now),
         running: s.running,
         current: id == current,
         pending: readOnly ? null : pending[id],
@@ -110,7 +117,7 @@ class DrawerConversationList extends ConsumerWidget {
     final showLeading = leading != null && filter == DrawerFilter.all && !selecting;
     if (showLeading) {
       const key = ValueKey('leading');
-      add(key, (_) => KeyedSubtree(key: key, child: leading!));
+      add(key, (_) => KeyedSubtree(key: key, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: leading!)));
     }
     var foldersLabelled = false;
     for (final block in blocks) {
@@ -133,14 +140,19 @@ class DrawerConversationList extends ConsumerWidget {
           final headerKey = ValueKey('folder-${folder.id}');
           add(
             headerKey,
-            (_) => DrawerFolderHeader(
-              key: headerKey,
-              folder: folder,
-              count: items.length,
-              onTap: () => ref.read(drawerViewProvider.notifier).toggleCollapsed(folder.id),
-              onLongPress: () {
-                if (!readOnly) folderActionsFlow(context, ref, folder, onNewChat: onNewChat);
-              },
+            // The header stays a plain row: it keeps the 10 edges the cards
+            // give themselves.
+            (_) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: DrawerFolderHeader(
+                key: headerKey,
+                folder: folder,
+                count: items.length,
+                onTap: () => ref.read(drawerViewProvider.notifier).toggleCollapsed(folder.id),
+                onLongPress: () {
+                  if (!readOnly) folderActionsFlow(context, ref, folder, onNewChat: onNewChat);
+                },
+              ),
             ),
           );
           final bodyKey = ValueKey('folder-body-${folder.id}');

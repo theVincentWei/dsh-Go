@@ -22,9 +22,12 @@ import '../../state/update_state.dart';
 import '../account/account_page.dart';
 import '../account/account_widgets.dart';
 import '../chat/balance_widgets.dart' show formatMoney;
+import '../chat/widgets/plus_panel.dart' show PhoneConfirmCard, ThisChatCard;
+import '../common/app_sheet.dart';
 import '../common/ask_ai.dart';
 import '../common/overview_card.dart';
 import '../common/search_capsule.dart';
+import '../common/sheet_navigator.dart';
 import '../common/status_chip.dart';
 import '../engine/engine_screen.dart';
 import '../engine/engine_status.dart';
@@ -138,6 +141,20 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         const SettingsOverview(),
+        // The open conversation's own settings (a bottom sheet); nothing
+        // open, nothing to show.
+        if (ref.watch(currentSessionProvider) case final sessionId?)
+          SettingsSection(
+            children: [
+              SettingsTile(
+                key: const ValueKey('settings-current-chat'),
+                icon: AppIcons.chat,
+                tint: SettingsHues.ai,
+                title: l10n.chatCurrentChat,
+                onTap: () => unawaited(showCurrentChatSheet(context, sessionId)),
+              ),
+            ],
+          ),
         SettingsSection(
           title: l10n.hubGroupAi,
           children: [
@@ -355,6 +372,39 @@ class SettingsScreen extends ConsumerWidget {
     final name = state.options.where((o) => o.value == value).firstOrNull?.name;
     return (permissionName(value, name), value == 'danger-full-access' || value == 'auto');
   }
+}
+
+/// 「当前会话」: the open conversation's permission preset, plan mode and
+/// phone-control confirm mode — the same controls the composer's ＋ panel
+/// hosts under 本对话, reached from the settings hub.
+Future<void> showCurrentChatSheet(BuildContext context, String sessionId) {
+  final l10n = context.l10n;
+  return showAppSheet<void>(
+    context,
+    isScrollControlled: true,
+    builder: (sheet) => SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
+        child: SingleChildScrollView(
+          child: SheetNavigator(
+            root: (_) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SheetHeader(l10n.chatCurrentChat),
+                const SizedBox(height: 4),
+                ThisChatCard(sessionId: sessionId),
+                const SizedBox(height: 16),
+                const PhoneConfirmCard(),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The hub's overview card: who is paying (DeepSeek account or API Key) and

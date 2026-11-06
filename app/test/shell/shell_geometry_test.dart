@@ -1,4 +1,4 @@
-// Measured alignment of the shell's chrome: the drawer's 10 / 20 grid, the
+// Measured alignment of the shell's chrome: the 聊天 tab's 10 / 20 grid, the
 // secondary-page bar, the search header, the sheet header and the onboarding
 // step bar. Numbers, not eyeballing.
 //
@@ -11,28 +11,41 @@ import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/common/app_sheet.dart';
 import 'package:dsh_app/ui/onboarding/onboarding_scaffold.dart';
 import 'package:dsh_app/ui/onboarding/runtime_setup_page.dart';
-import 'package:dsh_app/ui/shell/brand_mark.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/page_frame.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_app/ui/shell/session_search_page.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'brand_support.dart';
 import 'golden_harness.dart';
 
 const _eps = 0.01;
 
 Matcher _near(double v) => closeTo(v, _eps);
 
-Future<void> _pumpDrawer(WidgetTester tester) async {
+/// Secondary pages are pushed pages: a blank page underneath keeps
+/// `Navigator.canPop` true, so [AppPage] renders its back key.
+Widget _pushed(Widget page) => Navigator(
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
+  pages: [
+    MaterialPage<void>(child: const SizedBox.shrink()),
+    MaterialPage<void>(child: page),
+  ],
+);
+
+Future<void> _pumpChats(WidgetTester tester) async {
+  SharedPreferences.setMockInitialValues({});
   usePhoneSurface(tester);
   await tester.pumpWidget(
     goldenApp(
-      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
       brightness: Brightness.light,
       overrides: [
         localRuntimeProvider.overrideWith(
@@ -49,51 +62,28 @@ Future<void> _pumpDrawer(WidgetTester tester) async {
 }
 
 void main() {
-  group('drawer', () {
-    testWidgets('text on the 20 line, edges on the 10 line', (tester) async {
-      await _pumpDrawer(tester);
-      final drawer = tester.getRect(find.byType(SessionsDrawer));
-      final lockup = tester.getRect(find.byType(BrandLockup));
-      final newChat = tester.getRect(find.byType(NewChatButton));
-      final search = tester.getRect(
-        find.descendant(of: find.byType(SessionSearchBar), matching: find.byType(GlassSurface)),
-      );
-      final tile = tester.getRect(find.byType(SessionTile).first);
+  group('chats tab', () {
+    testWidgets('cards on the 10 line, chip on the 12 inner line, keys end on the 10 line', (tester) async {
+      await _pumpChats(tester);
+      final page = tester.getRect(find.byType(SessionListPage));
+      // The list no longer insets its rows: each card carries its own 10
+      // margins, so the visual card is the Ink inside the tile.
+      final first = find.byType(SessionTile).first;
+      final tile = tester.getRect(find.descendant(of: first, matching: find.byType(Ink)).first);
+      final chip = tester.getRect(find.descendant(of: first, matching: find.byIcon(AppIcons.chat)));
       final title = tester.getRect(find.text('修复登录按钮重复提交'));
+      final key = tester.getRect(find.byTooltip('对话列表'));
 
-      expect(lockup.left - drawer.left, _near(20));
-      expect(title.left - drawer.left, _near(20));
-      expect(tile.left - drawer.left, _near(10));
-      expect(drawer.right - tile.right, _near(10));
-      expect(search.left - drawer.left, _near(10));
-      expect(drawer.right - search.right, _near(10));
-      expect(drawer.right - newChat.right, _near(10));
-      // The pill and the lockup share a centre line.
-      expect(newChat.center.dy, _near(lockup.center.dy));
-      expect(newChat.height, _near(36));
-      // The lockup itself: glyph centred on the word's cap height, sized and spaced by it.
-      await expectBrandLockup(tester, find.byType(BrandLockup));
-    });
-
-    testWidgets('identity bar: avatar on the 20 line, 全部功能 and 设置 equal, ending on the 10 line', (tester) async {
-      await _pumpDrawer(tester);
-      final drawer = tester.getRect(find.byType(SessionsDrawer));
-      final bar = find.byType(IdentityBar);
-      final avatar = tester.getRect(
-        find.ancestor(of: find.byIcon(AppIcons.thisPhone), matching: find.byType(DecoratedBox)).first,
-      );
-      final features = tester.getRect(find.descendant(of: bar, matching: find.byTooltip('全部功能')));
-      final settings = tester.getRect(find.descendant(of: bar, matching: find.byTooltip('设置')));
-
-      expect(avatar.left - drawer.left, _near(20));
-      expect(features.size, settings.size);
-      expect(features.width, _near(44));
-      expect(features.height, _near(44));
-      expect(drawer.right - settings.right, _near(10));
-      expect(settings.left - features.right, _near(8));
-      // One centre line through the avatar and both buttons.
-      expect(features.center.dy, _near(avatar.center.dy));
-      expect(settings.center.dy, _near(avatar.center.dy));
+      expect(tile.left - page.left, _near(SessionTile.marginH));
+      expect(page.right - tile.right, _near(SessionTile.marginH));
+      expect(tile.height, _near(SessionTile.height + 2 * SessionTile.padV));
+      // The chip sits on the card's 12 inner line; the title follows it.
+      expect(chip.left - page.left, _near(SessionTile.marginH + SessionTile.innerH));
+      expect(chip.size, const Size.square(34));
+      expect(title.left - chip.right, _near(10));
+      // The title row's 「对话列表」 round key ends where the cards do.
+      expect(page.right - key.right, _near(10));
+      expect(key.size, const Size.square(34));
     });
   });
 
@@ -103,9 +93,11 @@ void main() {
       await tester.pumpWidget(
         goldenApp(
           brightness: Brightness.light,
-          home: AppPage.list(
-            title: '示例',
-            children: [for (var i = 0; i < 40; i++) SizedBox(height: 48, child: Text('行 $i'))],
+          home: _pushed(
+            AppPage.list(
+              title: '示例',
+              children: [for (var i = 0; i < 40; i++) SizedBox(height: 48, child: Text('行 $i'))],
+            ),
           ),
         ),
       );
@@ -131,13 +123,15 @@ void main() {
     await tester.pumpWidget(
       goldenApp(
         brightness: Brightness.light,
-        home: AppPage.list(
-          title: '两个操作',
-          actions: [
-            GlassIconButton(icon: AppIcons.search, tooltip: '查找', onPressed: () {}),
-            GlassIconButton(icon: AppIcons.more, tooltip: '更多', onPressed: () {}),
-          ],
-          children: [for (var i = 0; i < 30; i++) SizedBox(height: 60, child: Text('行 $i'))],
+        home: _pushed(
+          AppPage.list(
+            title: '两个操作',
+            actions: [
+              GlassIconButton(icon: AppIcons.search, tooltip: '查找', onPressed: () {}),
+              GlassIconButton(icon: AppIcons.more, tooltip: '更多', onPressed: () {}),
+            ],
+            children: [for (var i = 0; i < 30; i++) SizedBox(height: 60, child: Text('行 $i'))],
+          ),
         ),
       ),
     );

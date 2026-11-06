@@ -1,4 +1,4 @@
-// The drawer's conversation row and section label.
+// The drawer's conversation card and section label.
 
 import 'package:flutter/material.dart';
 
@@ -7,13 +7,15 @@ import '../../../state/session_attention_state.dart';
 import '../../common/status_dot.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
-import '../sessions_drawer.dart' show sessionSelectionColor;
+import '../session_list_page.dart' show sessionSelectionColor;
 
-/// One conversation row: 44 high, the highlight on the 10 line, the title on
-/// the 20 line (plus [indent] inside a folder). At the end, one marker at
-/// most: what it waits for (待确认 / 待回答), a breathing dot while it works,
-/// or a quiet dot when it moved on since it was last seen. In multi-select a
-/// check slides in before the title.
+/// One conversation as a glass card: the chat chip on the left, the title
+/// (plus [indent] inside a folder) and an optional [subtitle] in the middle,
+/// and at the right end one thing at most: what it waits for (待确认 /
+/// 待回答), a breathing dot while it works, a quiet dot when it moved on
+/// since it was last seen — or, when nothing claims the corner, the
+/// [timeText]. The open conversation wears the soft selection fill. In
+/// multi-select a check slides in before the chip.
 class SessionTile extends StatelessWidget {
   const SessionTile({
     super.key,
@@ -22,6 +24,8 @@ class SessionTile extends StatelessWidget {
     required this.current,
     required this.onTap,
     required this.onLongPress,
+    this.subtitle,
+    this.timeText,
     this.pending,
     this.unread = false,
     this.pinned = false,
@@ -31,6 +35,13 @@ class SessionTile extends StatelessWidget {
   });
 
   final String title;
+
+  /// One line under the title (where the conversation works); null hides it.
+  final String? subtitle;
+
+  /// The right end's text (today HH:mm, else M-D) — shown only when nothing
+  /// else claims the corner: a marker always wins.
+  final String? timeText;
   final bool running;
 
   /// The open conversation (soft fill; ignored while selecting).
@@ -40,15 +51,31 @@ class SessionTile extends StatelessWidget {
   final PendingKind? pending;
   final bool unread;
 
-  /// Shown as a small pin (inside folders; elsewhere 置顶 says it).
+  /// Shown as a small pin before the title (inside folders; elsewhere 置顶
+  /// says it).
   final bool pinned;
 
-  /// Content inset from the 20 line (folder members: [folderIndent]).
+  /// Content inset from the card's edge (folder members: [folderIndent]).
   final double indent;
   final bool selecting;
   final bool selected;
 
-  static const height = 44.0;
+  /// The card's height at scale 1 (the 34 chip plus air); large text grows it.
+  static const height = 56.0;
+
+  /// Space around a card: 5 above and below, 10 to the sides.
+  static const marginV = 4.0;
+  static const marginH = 10.0;
+
+  /// The card's inner padding: the chip and title sit 12 in from the sides,
+  /// 10 from top and bottom.
+  static const innerH = 12.0;
+  static const padV = 8.0;
+
+  /// The left icon chip (34, radius 11) and its gap to the title column.
+  static const chipSize = 34.0;
+  static const chipRadius = 11.0;
+  static const chipGap = 10.0;
 
   /// A folder's glyph (20) plus its gap (10): members' titles line up with
   /// the folder's name.
@@ -57,8 +84,12 @@ class SessionTile extends StatelessWidget {
   /// Width of the check slot while selecting (a 20 circle and a 10 gap).
   static const checkSlot = 30.0;
 
-  /// Size of the quiet markers at the end of the row.
+  /// Size of the quiet markers at the end of the card.
   static const dot = 7.0;
+
+  /// The title Text's key: tests collect the conversation titles (and not
+  /// the cwd subtitle or the time) through it.
+  static const titleKey = ValueKey<String>('session-title');
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +98,9 @@ class SessionTile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
     final shape = Squircle.border(AppShape.md);
+    // The card's hairline (onSurface 0.07, 1px) rides on top of the fill as
+    // a foreground decoration, so it never squeezes the content's padding.
+    final outlined = Squircle.border(AppShape.md, side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.07)));
     final highlighted = selecting ? selected : current;
     final Widget? marker = switch ((pending, running, unread)) {
       (final PendingKind kind, _, _) => Text(
@@ -93,59 +127,114 @@ class SessionTile extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       excludeSemantics: true,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          customBorder: shape,
-          // Ink (not a container's decoration), so the splash draws over the
-          // fill; the fill fades in and out.
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(end: highlighted ? 1 : 0),
-            duration: AppMotion.of(context, AppMotion.quick),
-            curve: AppMotion.std,
-            builder: (context, t, child) {
-              final fill = sessionSelectionColor(context);
-              return Ink(
-                decoration: ShapeDecoration(
-                  color: fill.withValues(alpha: fill.a * t),
-                  shape: shape,
-                ),
-                height: height,
-                padding: EdgeInsets.only(left: 10 + indent, right: 10),
-                child: child,
-              );
-            },
-            child: Row(
-              children: [
-                _CheckSlot(selecting: selecting, selected: selected),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontSize: 15,
-                      height: 1.4,
-                      color: scheme.onSurface,
-                      fontWeight: current && !selecting ? FontWeight.w600 : FontWeight.w400,
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: marginV, horizontal: marginH),
+        child: Container(
+          foregroundDecoration: ShapeDecoration(shape: outlined),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              customBorder: outlined,
+              // Ink (not a container's decoration), so the splash draws over the
+              // fill; the fill fades between the glass base and the selection.
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: highlighted ? 1 : 0),
+                duration: AppMotion.of(context, AppMotion.quick),
+                curve: AppMotion.std,
+                builder: (context, t, child) {
+                  final fill = sessionSelectionColor(context);
+                  final base = scheme.onSurface.withValues(alpha: 0.05);
+                  return Ink(
+                    decoration: ShapeDecoration(color: Color.lerp(base, fill, t), shape: shape),
+                    padding: EdgeInsets.fromLTRB(innerH + indent, padV, innerH, padV),
+                    child: child,
+                  );
+                },
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: height),
+                  child: Row(
+                    children: [
+                      _CheckSlot(selecting: selecting, selected: selected),
+                      Container(
+                        width: chipSize,
+                        height: chipSize,
+                        decoration: ShapeDecoration(
+                          color: scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
+                          shape: Squircle.border(chipRadius),
+                        ),
+                        child: Icon(AppIcons.chat, size: 20, color: scheme.primary),
+                      ),
+                      const SizedBox(width: chipGap),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (pinned) ...[
+                                  Icon(AppIcons.pinActive, size: 14, color: colors.textTertiary),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    title,
+                                    key: SessionTile.titleKey,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontSize: 15,
+                                      height: 1.4,
+                                      color: scheme.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (subtitle case final sub?)
+                              Text(
+                                sub,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontSize: 11,
+                                  height: 1.3,
+                                  color: colors.textTertiary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      AnimatedSwitcher(
+                        duration: AppMotion.of(context, AppMotion.quick),
+                        layoutBuilder: (current, previous) =>
+                            Stack(alignment: Alignment.centerRight, children: [...previous, ?current]),
+                        child: switch ((marker, timeText)) {
+                          (final marker?, _) => Padding(
+                            key: marker.key,
+                            padding: const EdgeInsets.only(left: 10),
+                            child: marker,
+                          ),
+                          (null, final time?) => Padding(
+                            key: const ValueKey('time'),
+                            padding: const EdgeInsets.only(left: 10),
+                            child: Text(
+                              time,
+                              style: AppType.tabular(
+                                theme.textTheme.labelSmall!.copyWith(fontSize: 11, color: colors.textTertiary),
+                              ),
+                            ),
+                          ),
+                          _ => const SizedBox.shrink(key: ValueKey('none')),
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                if (pinned) ...[
-                  const SizedBox(width: 8),
-                  Icon(AppIcons.pinActive, size: 14, color: colors.textTertiary),
-                ],
-                AnimatedSwitcher(
-                  duration: AppMotion.of(context, AppMotion.quick),
-                  layoutBuilder: (current, previous) =>
-                      Stack(alignment: Alignment.centerRight, children: [...previous, ?current]),
-                  child: marker == null
-                      ? const SizedBox.shrink(key: ValueKey('none'))
-                      : Padding(key: marker.key, padding: const EdgeInsets.only(left: 10), child: marker),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -167,7 +256,7 @@ class _UnreadDot extends StatelessWidget {
   );
 }
 
-/// The check that slides in before the title while selecting: a 20 ring,
+/// The check that slides in before the chip while selecting: a 20 ring,
 /// filled with ink and a tick once chosen (ink, not the brand colour — the
 /// drawer keeps one primary element).
 class _CheckSlot extends StatelessWidget {
@@ -185,13 +274,17 @@ class _CheckSlot extends StatelessWidget {
       curve: AppMotion.std,
       builder: (context, t, child) {
         if (t == 0) return const SizedBox.shrink();
+        // Height 20: the row bounds the slot's width only — the check circle
+        // keeps its own 20 against the unbounded height of the card's row.
         return SizedBox(
           width: SessionTile.checkSlot * t,
+          height: 20,
           child: ClipRect(
             child: OverflowBox(
               alignment: Alignment.centerLeft,
               minWidth: SessionTile.checkSlot,
               maxWidth: SessionTile.checkSlot,
+              maxHeight: 20,
               child: Opacity(opacity: t, child: child),
             ),
           ),
@@ -225,7 +318,9 @@ class _CheckSlot extends StatelessWidget {
   }
 }
 
-/// A section label in the drawer list: small, faint, on the 20 line.
+/// A section label in the drawer list: small, faint, on the 20 line (the
+/// list's own inset is gone — the cards carry their 10 margins — so the
+/// label insets itself).
 class DrawerEyebrow extends StatelessWidget {
   const DrawerEyebrow(this.text, {super.key});
 
@@ -234,7 +329,7 @@ class DrawerEyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 16, 10, 6),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
       child: Semantics(
         header: true,
         child: Text(text, style: AppType.eyebrow(color: DshColors.of(context).textTertiary)),

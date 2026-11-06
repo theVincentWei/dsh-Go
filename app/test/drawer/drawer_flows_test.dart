@@ -10,7 +10,6 @@ import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/common/capsule_chip.dart';
-import 'package:dsh_app/ui/shell/drawer/drawer_filter_bar.dart';
 import 'package:dsh_app/ui/shell/drawer/folder_header.dart';
 import 'package:dsh_app/ui/shell/drawer/selection_bars.dart';
 import 'package:dsh_app/ui/shell/drawer/session_tile.dart';
@@ -46,7 +45,8 @@ Future<(DrawerHost, ProviderContainer)> _start(
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      // 聊天 tab 整页就是旧抽屉的内容；聊天页用替身，打开会话时才推入。
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
       overrides: [
         ...workspaceOverrides(host, prefs: const WorkspacePrefs(loaded: true), current: 's2'),
         pendingInteractionsProvider.overrideWith(() => FixedPending(pending)),
@@ -87,7 +87,8 @@ void main() {
 
   testWidgets('新建文件夹 from the options sheet, then file a conversation in it and undo', (tester) async {
     final (_, container) = await _start(tester);
-    await tester.tap(find.byType(DrawerViewButton));
+    // 旧抽屉的 DrawerViewButton 已并入标题行的「对话列表」圆钮。
+    await tester.tap(find.byTooltip('对话列表'));
     await _settle(tester);
     await tester.tap(find.text('新建文件夹'));
     await _settle(tester);
@@ -172,7 +173,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byType(DrawerViewButton));
+    await tester.tap(find.byTooltip('对话列表'));
     await _settle(tester);
     await tester.tap(find.text('多选'));
     await _settle(tester);

@@ -14,8 +14,7 @@ import '../../state/bots_state.dart';
 import '../../state/sessions_state.dart';
 import '../common/app_sheet.dart' show groupTitleStyle;
 import '../common/feature_tile.dart';
-import '../common/list_page_row.dart';
-import '../common/overview_card.dart';
+import '../common/pressable.dart';
 import '../common/tile_grid.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -23,10 +22,7 @@ import '../theme/theme.dart';
 import '../web/dsh_web_launcher.dart';
 import '../web/web_target.dart';
 import '../plugins/seats/seat_probe.dart';
-import '../settings/search/settings_search_page.dart';
-import '../settings/settings_screen.dart';
 import 'feature_catalog.dart';
-import 'feature_widgets.dart';
 
 /// Opens DSH Web on a target; tests swap it for a recorder.
 typedef DshWebOpener = void Function(BuildContext context, WidgetRef ref, DshWebTarget target);
@@ -36,14 +32,7 @@ final dshWebOpenerProvider = Provider<DshWebOpener>(
       (context, ref, target) => openDshWeb(context, ref, target: target),
 );
 
-/// 全部设置: the settings hub, with search open over it (back lands on the
-/// hub, then here).
-void openAllSettings(BuildContext context) {
-  final navigator = Navigator.of(context);
-  unawaited(navigator.push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen())));
-  unawaited(navigator.push(SettingsSearchPage.route()));
-}
-
+/// 全部设置入口已随设置 tab 移除;原 [openAllSettings] 一并删除。
 class AllFeaturesPage extends ConsumerWidget {
   const AllFeaturesPage({super.key, this.sections});
 
@@ -55,9 +44,6 @@ class AllFeaturesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final sessionId = ref.watch(currentSessionProvider);
-    final title = sessionId == null
-        ? null
-        : ref.watch(sessionsProvider).value?.where((s) => s.sessionId == sessionId).firstOrNull?.projections.title;
 
     void openWeb(FeatureItem item) => ref.read(dshWebOpenerProvider)(context, ref, item.webFor(sessionId)!);
     void open(FeatureItem item) {
@@ -72,38 +58,23 @@ class AllFeaturesPage extends ConsumerWidget {
 
     final List<FeatureSection> all = sections ?? ref.watch(featureSectionsProvider);
     final page = AppPage.list(
-      title: l10n.catalogAllFeatures,
-      subtitle: Text(l10n.catalogAllFeaturesSubtitle),
+      title: l10n.tabMiniApps,
       children: [
-        _ConversationCard(sessionId: sessionId, title: (title?.trim().isNotEmpty ?? false) ? title!.trim() : null),
         for (final section in all) ...[
           FeatureGroupLabel(section.title),
+          // 手机桌面式:4 列图标网格,图标在上、标签在下,无卡片底。
           TileGrid(
+            columns: 4,
+            spacing: 16,
             children: [
               for (final item in section.items)
-                FeatureTileFor(
+                _AppIconTile(
                   item: item,
                   enabled: !item.needsSession || sessionId != null,
                   onOpen: () => open(item),
-                  onOpenWeb: item.hasNative && item.web != null ? () => openWeb(item) : null,
                 ),
             ],
           ),
-          if (section.id == settingsFeatureSection)
-            Padding(
-              // The grid's 16 gutters and 12 between cards.
-              padding: const EdgeInsets.only(top: 12),
-              child: ListPageCard(
-                children: [
-                  ListPageRow(
-                    key: const ValueKey('all-settings'),
-                    icon: AppIcons.search,
-                    title: l10n.catalogAllSettings,
-                    onTap: () => openAllSettings(context),
-                  ),
-                ],
-              ),
-            ),
           if (section.note case final note?)
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
@@ -201,24 +172,94 @@ class FeatureTileFor extends ConsumerWidget {
   }
 }
 
-/// The hub's overview: which conversation the 「当前对话」 tiles act on; a tap
-/// goes back to it.
-class _ConversationCard extends ConsumerWidget {
-  const _ConversationCard({required this.sessionId, this.title});
+/// 手机桌面式的一项:图标(功能磁贴,或圆底图标)在上、标签在下,无卡片底。
+/// 选中会话才可用的项在未选中时淡到 45%;DS Bot 的未读数是图标右上角的小圆点。
+class _AppIconTile extends ConsumerWidget {
+  const _AppIconTile({required this.item, required this.onOpen, this.enabled = true});
 
-  final String? sessionId;
-  final String? title;
+  final FeatureItem item;
+  final VoidCallback onOpen;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final open = sessionId != null;
-    return OverviewCard(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      leading: OverviewGlyph(open ? AppIcons.chat : AppIcons.conversations, tint: open ? 0 : 7),
-      title: Text(open ? (title ?? l10n.commonUntitledChat) : l10n.catalogNoOpenChat),
-      subtitle: Text(open ? l10n.catalogOpenChat : l10n.catalogOpenOrCreateChat),
-      onTap: open ? () => openSessionInChat(context, ref, sessionId) : null,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final unread = item.id == 'ds-bot' ? ref.watch(dsBotInboxProvider.select((inbox) => inbox.total)) : 0;
+    final chip = SizedBox.square(
+      dimension: 46,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Center(
+                child: switch (item.tile) {
+                  final kind? => FeatureTile(kind, size: 30),
+                  null => Icon(item.icon, size: 20, color: scheme.primary),
+                },
+              ),
+            ),
+          ),
+          if (unread > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 16,
+                height: 16,
+                alignment: Alignment.center,
+                decoration: ShapeDecoration(color: scheme.error, shape: const CircleBorder()),
+                child: Text(
+                  unread > 99 ? '99+' : '$unread',
+                  style: theme.textTheme.labelSmall?.copyWith(color: scheme.onError, fontSize: 9, height: 1),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: item.title,
+      child: Pressable(
+        enabled: enabled,
+        child: AnimatedOpacity(
+          opacity: enabled ? 1 : 0.45,
+          duration: AppMotion.of(context, AppMotion.quick),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: enabled ? onOpen : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    chip,
+                    const SizedBox(height: 6),
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

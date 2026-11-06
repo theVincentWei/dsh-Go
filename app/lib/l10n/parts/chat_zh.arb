@@ -729,5 +729,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "chatCurrentChat": "当前会话"
 }

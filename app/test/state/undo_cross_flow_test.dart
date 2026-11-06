@@ -1,5 +1,5 @@
 // UNRUN: fixed f87 + PLUGIN-UNDO-V2 + ARCHIVE-DELAY-V3 combination.
-// Real HomeShell/settings/plugins routes and real production undo controllers.
+// Real HomeShell (聊天/设置 tab) and plugins routes, real production undo controllers.
 import 'dart:async';
 
 import 'package:dsh_app/l10n/l10n.dart';
@@ -12,7 +12,7 @@ import 'package:dsh_app/ui/common/undo_notice_window.dart';
 import 'package:dsh_app/ui/plugins/plugins_screen.dart';
 import 'package:dsh_app/ui/settings/settings_screen.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,7 +69,7 @@ Future<(_Host, ProviderContainer, ScaffoldMessengerState, Route<dynamic>)> _star
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
       overrides: workspaceOverrides(
         host,
         current: 's1',
@@ -97,11 +97,7 @@ Future<void> _archive(WidgetTester tester) async {
 }
 
 Future<Route<dynamic>> _openPlugins(WidgetTester tester, ScaffoldMessengerState root) async {
-  // f87 visible route is drawer Settings -> Plugins, not the unused enum case.
-  if (find.byTooltip('设置').hitTestable().evaluate().isEmpty) {
-    await tester.dragFrom(const Offset(1, 300), const Offset(320, 0));
-    await _settle(tester);
-  }
+  // 设置是底部 tab：切到设置 tab 再进插件页。
   await tester.tap(find.byTooltip('设置'));
   await tester.pumpAndSettle();
   await _settle(tester);
@@ -150,9 +146,9 @@ Future<PendingPluginRemoval> _remove(
 }
 
 Future<void> _backHome(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('返回')); // Plugins -> Settings.
+  await tester.tap(find.byTooltip('返回')); // Plugins -> shell（还停在设置 tab）.
   await _settle(tester);
-  await tester.tap(find.byTooltip('返回')); // Settings -> HomeShell.
+  await tester.tap(find.byTooltip('聊天')); // 设置 tab -> 聊天 tab.
   await _settle(tester);
 }
 
@@ -215,9 +211,8 @@ void main() {
     await _backHome(tester);
     expect(pluginRoute.isCurrent, isFalse);
     expect(homeRoute.isCurrent, isTrue);
-    // HomeShell closed the drawer when navigating; use its real opening drag.
-    await tester.dragFrom(const Offset(1, 300), const Offset(320, 0));
-    await _settle(tester);
+    // HomeShell 现在把会话列表放在聊天 tab：_backHome 已把它切回前台，
+    // 不再需要旧抽屉的拉出手势。
     await _archive(tester);
     expect(host.argsOf('workspace/archiveSession'), isEmpty);
     host.removeReply.complete();
@@ -232,9 +227,10 @@ void main() {
     final (host, container, root, _) = await _start(tester);
     await _archive(tester);
     expect(host.argsOf('workspace/archiveSession'), isEmpty);
-    // The pending snackbar covers f87's bottom Settings button. Dismiss the
-    // visible bar by its real swipe gesture; the underlying waiting plan is
-    // still sent at once when the later plugin plan takes over the shared slot.
+    // The pending snackbar covers the bottom tab bar (设置 is a tab now).
+    // Dismiss the visible bar by its real swipe gesture; the underlying
+    // waiting plan is still sent at once when the later plugin plan takes
+    // over the shared slot.
     await tester.drag(find.byType(SnackBar), const Offset(0, 150));
     await tester.pumpAndSettle();
     await _openPlugins(tester, root);
@@ -254,8 +250,7 @@ void main() {
     await _openPlugins(tester, root);
     final pending = await _remove(tester, container, host, root);
     await _backHome(tester);
-    await tester.dragFrom(const Offset(1, 300), const Offset(320, 0));
-    await _settle(tester);
+    // 聊天 tab 已在 _backHome 里切回前台，列表直接可长按。
     await _archive(tester);
     expect((await pending.done)!.succeeded, isTrue, reason: 'B lost its notice, so it is sent now');
     expect(find.text('已归档「Archive A」'), findsOneWidget);

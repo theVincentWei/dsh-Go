@@ -22,6 +22,7 @@ import 'package:dsh_app/ui/chat/widgets/whale_tail.dart' show WhaleSprites;
 import 'package:dsh_app/ui/common/app_sheet.dart' show SheetDragHandle;
 import 'package:dsh_app/ui/session/session_detail_page.dart';
 import 'package:dsh_app/ui/settings/settings_screen.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart' show SessionTile;
 import 'package:dsh_app/ui/shell/session_search_page.dart';
 import 'package:dsh_app/ui/terminal/terminal_keys.dart';
 import 'package:dsh_app/ui/terminal/terminal_page.dart';
@@ -44,11 +45,36 @@ Matcher _near(double v) => closeTo(v, _eps);
 
 Rect _key(WidgetTester tester, String key) => tester.getRect(find.byKey(ValueKey(key)));
 
-Future<void> _home(WidgetTester tester, Win win, {ChatState Function(String id)? chat, double keyboard = 0}) async {
+/// Secondary pages are pushed pages: a blank page underneath keeps
+/// `Navigator.canPop` true, so [AppPage] renders its back key.
+Widget _pushed(Widget page) => Navigator(
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
+  pages: [
+    MaterialPage<void>(child: const SizedBox.shrink()),
+    MaterialPage<void>(child: page),
+  ],
+);
+
+Future<void> _home(
+  WidgetTester tester,
+  Win win, {
+  ChatState Function(String id)? chat,
+  double keyboard = 0,
+  bool openChat = false,
+}) async {
   useWin(tester, win, keyboard: keyboard);
   mockClipboard(tester);
   await tester.pumpWidget(homeApp(chat: chat));
   await pumpFrames(tester, 8);
+  // The conversation is a pushed page over the tabs (the three-tab home):
+  // a tap on its row opens it.
+  if (openChat) {
+    await tester.tap(find.byType(SessionTile).first);
+    await pumpFrames(tester, 8);
+  }
 }
 
 /// The dialog's card (the AlertDialog widget itself spans the window).
@@ -93,21 +119,25 @@ void main() {
     final centre = win.size.width / 2;
 
     group('${win.name}: a phone on its side', () {
-      testWidgets('one column: no rail, no panel; the header keys mirror each other', (tester) async {
-        await _home(tester, win);
+      testWidgets('one column: no rail, no panel; the pushed chat has no menu key', (tester) async {
+        await _home(tester, win, openChat: true);
         expect(tester.takeException(), isNull);
         expect(find.byKey(const ValueKey('rail-menu')), findsNothing);
         expect(find.byKey(const ValueKey('adaptive-panel-hairline')), findsNothing);
-        final menu = _key(tester, 'chat-menu');
-        final newChat = _key(tester, 'chat-new-chat');
-        expect(menu.left, _near(side + 12));
+        // The chat is a pushed page (onOpenDrawer == null): no ≡ key. The
+        // 新对话 key stays at the right inset, 44 square, on the title
+        // pill's line.
+        expect(find.byKey(const ValueKey('chat-menu')), findsNothing);
+        final newChat = _key(tester, 'chat-settings');
+        // The landscape safe area is mirrored: both sides keep clear of the
+        // larger inset.
         expect(win.size.width - newChat.right, _near(side + 12));
-        expect(menu.size, const Size.square(44));
-        expect(newChat.center.dy, _near(menu.center.dy));
+        expect(newChat.size, const Size.square(44));
+        expect(newChat.center.dy, _near(tester.getCenter(find.byKey(const ValueKey('chat-title-pill'))).dy));
       });
 
       testWidgets('the composer and the dock sit on the messages\' reading column', (tester) async {
-        await _home(tester, win, chat: _approval);
+        await _home(tester, win, chat: _approval, openChat: true);
         final composer = tester.getRect(find.byType(Composer));
         expect(composer.center.dx, _near(centre));
         expect(composer.width, _near(AppSpace.floatingWidth));
@@ -119,7 +149,7 @@ void main() {
       });
 
       testWidgets('keyboard up: header and dock step aside, the latest message stays in sight', (tester) async {
-        await _home(tester, win);
+        await _home(tester, win, openChat: true);
         expect(find.byType(DockStack), findsOneWidget);
         await tester.showKeyboard(find.byType(EditableText).first);
         setKeyboard(tester, win, 200);
@@ -152,21 +182,33 @@ void main() {
         expect(find.byKey(const ValueKey('chat-title-pill')).hitTestable(), findsOneWidget);
       });
 
-      testWidgets('the drawer: 320 of list beside the cutout', (tester) async {
+      testWidgets('the 聊天 tab: the title row scrolls away with the list', (tester) async {
+        // A phone on its side is short: the tab's header (title, round keys,
+        // filters) would leave room for two conversations, so it scrolls
+        // away with the list.
         await _home(tester, win);
-        await tester.tap(find.byKey(const ValueKey('chat-menu')));
-        await pumpFrames(tester, 8);
-        final search = tester.getRect(find.text('搜索对话').first);
-        expect(search.left, greaterThan(side + 10));
-        // Scrolling the list takes the brand, search and filters with it.
+        // Any pending open-scroll activity settles before we take the wheel.
+        await pumpFrames(tester, 30);
+        expect(tester.getRect(find.byTooltip('搜索对话').first).left, greaterThan(side + 10));
+        final scroll = tester.stateList<ScrollableState>(find.byType(Scrollable)).firstWhere(
+          (s) => s.widget.axisDirection == AxisDirection.down && s.position.maxScrollExtent > 0,
+        );
         final before = tester.getRect(find.text('给设置页加深色模式').last).top;
-        await tester.drag(find.text('给设置页加深色模式').last, const Offset(0, -200));
-        await pumpFrames(tester, 8);
-        expect(tester.getRect(find.text('给设置页加深色模式').last).top, lessThan(before - 150));
+        // Drag from the first card's face: the row's middle dips under the
+        // bottom tab bar's long-press tooltip on a phone this short.
+        final card = tester.getRect(find.descendant(of: find.byType(SessionTile).first, matching: find.byType(Ink)).first);
+        await tester.dragFrom(Offset(card.left + 60, card.top + 10), const Offset(0, -200));
+        await pumpFrames(tester, 30);
+        // The list scrolled and the row rode up with it (the header also
+        // collapses, so the row moves at least the scrolled amount).
+        expect(scroll.position.pixels, greaterThan(0));
+        expect(tester.getRect(find.text('给设置页加深色模式').last).top, lessThan(before - scroll.position.pixels));
+        // The title row (round keys, filters) scrolled away with the list.
+        expect(find.byTooltip('搜索对话'), findsNothing);
       });
 
       testWidgets('对话详情 opens as a page; hero and tabs on the reading column', (tester) async {
-        await _home(tester, win);
+        await _home(tester, win, openChat: true);
         SessionDetailPage.open(tester.element(find.byType(ChatScreen)), 's1');
         await pumpFrames(tester, 10);
         final tabs = tester.getRect(find.byType(GlassSegments));
@@ -178,7 +220,7 @@ void main() {
       });
 
       testWidgets('a sheet is centred on the glass', (tester) async {
-        await _home(tester, win);
+        await _home(tester, win, openChat: true);
         await tester.tap(find.byType(ModelChip));
         await pumpFrames(tester, 8);
         final sheet = tester.getRect(
@@ -201,7 +243,7 @@ void main() {
       testWidgets('a page: back key clear of the inset, content centred', (tester) async {
         useWin(tester, win);
         await tester.pumpWidget(
-          goldenApp(home: const SettingsScreen(), brightness: Brightness.light, overrides: _shell()),
+          goldenApp(home: _pushed(const SettingsScreen()), brightness: Brightness.light, overrides: _shell()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
@@ -215,7 +257,7 @@ void main() {
 
   testWidgets('turning a phone keeps the draft and the conversation', (tester) async {
     const upright = Win('upright', Size(412, 915));
-    await _home(tester, upright);
+    await _home(tester, upright, openChat: true);
     await tester.enterText(find.byType(EditableText).first, '先别动草稿');
     await pumpFrames(tester, 2);
     final state = tester.state(find.byType(ChatScreen));
@@ -234,7 +276,7 @@ void main() {
 
   group('600 × 900', () {
     testWidgets('one column; the composer 12 from the edges', (tester) async {
-      await _home(tester, w600);
+      await _home(tester, w600, openChat: true);
       final composer = tester.getRect(find.byType(Composer));
       expect(composer.left, _near(12));
       expect(composer.right, _near(600 - 12));
@@ -243,17 +285,14 @@ void main() {
   });
 
   for (final win in [w840, w1280]) {
-    group('${win.name}: rail · chat · panel', () {
-      testWidgets('the composer centred on the chat column, on its reading column', (tester) async {
-        await _home(tester, win, chat: _approval);
-        final rail = _key(tester, 'rail-menu');
-        final hairline = tester.getRect(find.byKey(const ValueKey('adaptive-panel-hairline')));
-        final chatLeft = rail.right + 12;
-        final chatRight = hairline.left;
+    group('${win.name}: the chat page spans the window', () {
+      testWidgets('the composer centred on the reading column', (tester) async {
+        // The rail / chat column / panel layout went away with the drawer:
+        // the pushed chat now spans the window and keeps the reading column.
+        await _home(tester, win, chat: _approval, openChat: true);
         final composer = tester.getRect(find.byType(Composer));
-        expect(composer.center.dx, _near((chatLeft + chatRight) / 2));
-        final column = (chatRight - chatLeft).clamp(0.0, AppSpace.readingWidth);
-        expect(composer.width, _near(column - 24));
+        expect(composer.center.dx, _near(win.size.width / 2));
+        expect(composer.width, _near(AppSpace.floatingWidth));
         final card = tester.getRect(find.byType(ApprovalCard));
         expect(card.left - composer.left, _near(4));
         expect(composer.right - card.right, _near(4));
@@ -263,7 +302,7 @@ void main() {
 
   group('1280 × 800', () {
     testWidgets('the jump key keeps to the reading column', (tester) async {
-      await _home(tester, w1280);
+      await _home(tester, w1280, openChat: true);
       await tester.dragFrom(const Offset(500, 400), const Offset(0, 300));
       await pumpFrames(tester, 8);
       final jump = tester.getRect(find.byKey(const ValueKey('jump')));

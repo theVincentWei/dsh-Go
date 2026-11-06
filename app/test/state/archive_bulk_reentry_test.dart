@@ -63,7 +63,7 @@ void main() {
     await tester.pumpWidget(
       goldenApp(
         brightness: Brightness.light,
-        home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+        home: HomeShell(chatBuilder: const SizedBox.expand()),
         overrides: [
           ...workspaceOverrides(
             host,

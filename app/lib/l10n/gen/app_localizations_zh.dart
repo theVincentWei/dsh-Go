@@ -4230,6 +4230,9 @@ class L10nZh extends L10n {
   }
 
   @override
+  String get chatCurrentChat => '当前会话';
+
+  @override
   String get commonCancel => '取消';
 
   @override
@@ -4246,6 +4249,12 @@ class L10nZh extends L10n {
 
   @override
   String get commonSettings => '设置';
+
+  @override
+  String get tabChats => '聊天';
+
+  @override
+  String get tabMiniApps => '小程序';
 
   @override
   String get commonBack => '返回';
@@ -14222,6 +14231,9 @@ class L10nZh extends L10n {
   String get shellSearchChats => '搜索对话';
 
   @override
+  String get chatListTitle => '会话';
+
+  @override
   String get shellCollapseChatList => '收起对话列表';
 
   @override
@@ -14524,6 +14536,9 @@ class L10nZh extends L10n {
   String shellCurrentHostLabel(String name, String view) {
     return '当前主机：$name，$view。切换主机';
   }
+
+  @override
+  String get shellDeviceLabel => '机器';
 
   @override
   String get shellChatGone => '这个对话已不在了';

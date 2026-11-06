@@ -340,13 +340,15 @@ void main() {
     expect(find.text('每条消息最多 9 个附件'), findsOneWidget);
   });
 
-  testWidgets('new conversation header action clears the selection', (tester) async {
+  testWidgets('the header\'s 设置 key shows for an open conversation (no tap: it opens the settings hub)', (
+    tester,
+  ) async {
     await pumpScreen(tester, ChatHarness(session: 's1'));
-    expect(find.byKey(const ValueKey('chat-new-chat')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('chat-new-chat')));
-    await pumpFrames(tester);
-    expect(containerOf(tester).read(currentSessionProvider), isNull);
-    expect(find.byKey(const ValueKey('chat-new-chat')), findsNothing);
+    expect(find.byKey(const ValueKey('chat-settings')), findsOneWidget);
+    expect(find.byTooltip('设置'), findsOneWidget);
+    // It is the settings key, not the old 新对话 one.
+    expect(find.byIcon(AppIcons.settings), findsOneWidget);
+    expect(find.byIcon(AppIcons.newChat), findsNothing);
   });
 
   testWidgets('while a reply generates, auto-approve sits beside the activity strip, not on a row of its own', (

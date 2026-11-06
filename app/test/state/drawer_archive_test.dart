@@ -3,7 +3,7 @@ import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -58,7 +58,7 @@ void main() {
     await tester.pumpWidget(
       goldenApp(
         brightness: Brightness.light,
-        home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+        home: HomeShell(chatBuilder: const SizedBox.expand()),
         overrides: workspaceOverrides(
           host,
           current: 's1',
@@ -121,14 +121,16 @@ void main() {
     expect(host.archived, isEmpty);
   });
 
-  testWidgets('drawer owned buttons expose their actions and headings', (tester) async {
+  testWidgets('list tab buttons expose their actions and headings', (tester) async {
     final semantics = tester.ensureSemantics();
     await start(tester);
+    // 新对话是列表页的悬浮圆键（GlassIconButton）；全部功能/设置改为底部
+    // tab，tab 的语义 label 就是 tooltip 文案。
     for (final finder in [
-      find.byType(NewChatButton),
+      find.bySemanticsLabel(RegExp('新对话')),
       find.widgetWithText(SessionTile, '归档测试'),
-      find.bySemanticsLabel('全部功能'),
-      find.bySemanticsLabel('设置'),
+      find.bySemanticsLabel(RegExp('小程序')),
+      find.bySemanticsLabel(RegExp('^设置')),
       find.bySemanticsLabel(RegExp('当前主机：.*')),
     ]) {
       final data = tester.getSemantics(finder).getSemanticsData();

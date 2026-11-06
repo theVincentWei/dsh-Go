@@ -2758,12 +2758,15 @@
       }
     }
   },
+  "chatCurrentChat": "当前会话",
   "commonCancel": "取消",
   "commonRetry": "重试",
   "commonClose": "关闭",
   "commonCopied": "已复制",
   "commonSave": "保存",
   "commonSettings": "设置",
+  "tabChats": "聊天",
+  "tabMiniApps": "小程序",
   "commonBack": "返回",
   "commonCopy": "复制",
   "commonDone": "完成",
@@ -8905,6 +8908,7 @@
   "shellWelcomeMessage": "把 DeepSeek 智能体\n装进口袋",
   "shellGetStarted": "开始",
   "shellSearchChats": "搜索对话",
+  "chatListTitle": "会话",
   "shellCollapseChatList": "收起对话列表",
   "shellExpandChatList": "展开对话列表",
   "shellChatList": "对话列表",
@@ -9139,6 +9143,7 @@
       }
     }
   },
+  "shellDeviceLabel": "机器",
   "shellChatGone": "这个对话已不在了",
   "shellAccentMist": "雾蓝",
   "shellAccentDaiqing": "黛青",

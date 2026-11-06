@@ -10,8 +10,6 @@ import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/common/app_sheet.dart';
 import 'package:dsh_app/ui/remote/remote_screen.dart';
-import 'package:dsh_app/ui/settings/search/settings_search_page.dart';
-import 'package:dsh_app/ui/settings/settings_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
@@ -215,35 +213,31 @@ void main() {
         const AllFeaturesPage(),
         overrides: [..._fixed(), dshWebOpenerProvider.overrideWithValue((context, ref, target) => opened.add(target))],
       );
-      // The overview card names the conversation the tiles act on.
-      expect(find.text('当前打开的对话'), findsOneWidget);
-      expect(find.text('修复登录按钮重复提交'), findsOneWidget);
 
-      // Native terminal keeps its conversation; no redundant web fallback.
+      // Native terminal keeps its conversation.
       await _reveal(tester, find.text('终端'));
-      final terminal = find.ancestor(of: find.text('终端'), matching: find.byType(FeatureTileFor));
-      final terminalPage = tester.widget<FeatureTileFor>(terminal).item.native!('s1');
-      expect(terminalPage, isA<TerminalPage>());
-      expect((terminalPage as TerminalPage).sessionId, 's1');
-      expect(find.descendant(of: terminal, matching: find.byTooltip('在网页版打开')), findsNothing);
+      await tester.tap(find.text('终端'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TerminalPage), findsOneWidget);
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
 
-      // The row opens the native automation page, without a web fallback.
+      // The tile opens the native automation page, without a web fallback.
       await _reveal(tester, find.text('自动化任务'));
       await tester.tap(find.text('自动化任务'));
       await tester.pumpAndSettle();
       expect(find.byType(SchedulesPage), findsOneWidget);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
-      final row = find.ancestor(of: find.text('自动化任务'), matching: find.byType(FeatureTileFor));
-      expect(find.descendant(of: row, matching: find.byTooltip('在网页版打开')), findsNothing);
-      expect(tester.widget<FeatureTileFor>(row).item.native!('s1'), isA<SchedulesPage>());
-      expect(opened, isEmpty);
 
-      // Settings shortcuts open the same pages as 设置.
+      // 远程主机 opens its native screen; settings live in 设置.
       await _reveal(tester, find.text('远程主机'));
-      final remote = find.ancestor(of: find.text('远程主机'), matching: find.byType(FeatureTileFor));
-      expect(tester.widget<FeatureTileFor>(remote).item.native!(null), isA<RemoteScreen>());
-      expect(find.text('Agent 循环'), findsNothing, reason: 'settings live in 设置');
+      await tester.tap(find.text('远程主机'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RemoteScreen), findsOneWidget);
+      expect(find.text('Agent 循环'), findsNothing);
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
       expect(opened, isEmpty);
 
       // Web-only: 网页版 itself.
@@ -251,28 +245,6 @@ void main() {
       await tester.tap(find.text('网页版'));
       await pumpFrames(tester);
       expect(opened.last, const DshWebTarget());
-    });
-
-    testWidgets('settings shortcuts last, then all-settings spanning the grid', (tester) async {
-      await _pump(tester, const AllFeaturesPage());
-      await _reveal(tester, find.text('全部设置'));
-      Rect card(String title) =>
-          tester.getRect(find.ancestor(of: find.text(title), matching: find.byType(FeatureTileFor)).first);
-      final all = tester.getRect(find.ancestor(of: find.text('全部设置'), matching: find.byType(GlassSurface)).first);
-      expect(all.left, card('模型').left);
-      expect(all.right, card('权限').right);
-      expect(all.left, card('手机操控').left);
-      expect(all.right, card('远程主机').right);
-      expect(all.top - card('远程主机').bottom, 12, reason: 'the grid\'s own gap');
-      final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
-      expect(all.left, 16);
-      expect(width - all.right, 16);
-
-      // Search over the settings hub: back lands on the hub.
-      await tester.tap(find.text('全部设置'));
-      await pumpFrames(tester, 6);
-      expect(find.byType(SettingsSearchPage), findsOneWidget);
-      expect(find.byType(SettingsScreen, skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('引用 goes back to the chat, where @ lives', (tester) async {
@@ -313,12 +285,33 @@ void main() {
           dshWebOpenerProvider.overrideWithValue((context, ref, target) => opened.add(target)),
         ],
       );
-      expect(find.text('还没打开对话'), findsOneWidget);
-      expect(find.text('先打开一个对话'), findsWidgets);
-      Future<void> tapItem(String title) async {
-        await tester.ensureVisible(find.text(title));
+      // 对话卡已删:未选中会话时,按会话的项在 4 列网格里淡到 45% 且不可点。
+      Future<double> tileOpacity(String title) async {
+        await tester.scrollUntilVisible(find.text(title), 200, scrollable: find.byType(Scrollable).first);
         await pumpFrames(tester);
-        await tester.tap(find.text(title));
+        return tester
+            .widget<AnimatedOpacity>(find.ancestor(of: find.text(title), matching: find.byType(AnimatedOpacity)).first)
+            .opacity;
+      }
+
+      expect(await tileOpacity('后台任务'), 0.45);
+      expect(await tileOpacity('终端'), 0.45);
+      // Not bound to a conversation: full opacity.
+      expect(await tileOpacity('网页版'), 1.0);
+
+      Future<void> tapItem(String title) async {
+        // 固定头部(AppPage compactHeader)让视口更矮:滚到后面的目标后,更早的
+        // 目标可能已被列表甩出缓存(元素不在树里),ensureVisible 会拿不到它。
+        // 先一路滚回顶部,再向下把目标滚进视口。
+        final scrollable = find.byType(Scrollable).first;
+        double offset() => tester.state<ScrollableState>(scrollable).position.pixels;
+        while (offset() > 0) {
+          await tester.drag(scrollable, const Offset(0, 600));
+          await pumpFrames(tester);
+        }
+        await tester.scrollUntilVisible(find.text(title), 200, scrollable: scrollable);
+        await pumpFrames(tester);
+        await tester.tap(find.text(title), warnIfMissed: false);
       }
 
       await tapItem('后台任务');

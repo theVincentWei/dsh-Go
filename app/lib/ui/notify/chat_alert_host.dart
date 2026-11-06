@@ -86,11 +86,13 @@ class _ChatAlertHostState extends ConsumerState<ChatAlertHost> {
 
   Future<void> _onTap(NotifyTap tap) async {
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
-    widget.onReveal?.call(false);
     // A Bot or group chat notification opens that chat.
     if (openDsBotTap(context, tap)) return;
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+    // Select first, then reveal: the shell pushes the conversation over the
+    // tabs only when its session is already the current one.
     ref.read(chatAlertsProvider.notifier).open(tap.host, tap.sessionId);
+    widget.onReveal?.call(false);
   }
 
   @override
@@ -153,8 +155,10 @@ class _AlertBannerLayerState extends ConsumerState<AlertBannerLayer> {
     final alerts = ref.read(chatAlertsProvider.notifier);
     alerts.dismissBanner(alert);
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
-    widget.onOpened?.call();
+    // Select first, then reveal (see _onTap): the shell needs the session
+    // current before it pushes the conversation over the tabs.
     alerts.open(alert.host, alert.sessionId);
+    widget.onOpened?.call();
   }
 
   @override

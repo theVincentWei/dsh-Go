@@ -116,6 +116,9 @@ android {
             // tooling/dev-run.sh installs debug over the release build on a phone, data
             // kept: Android only allows that with the same key.
             if (hasWholeReleaseKey) signingConfig = signingConfigs.getByName("release")
+            // 没有发布签名的机器（无法覆盖安装正式版）给 debug 包独立包名，
+            // 与已装的正式版并存，互不覆盖。
+            if (keyProps.isEmpty) applicationIdSuffix = ".debug"
         }
         release {
             // Use the release key when configured; local builds without key.properties fall back to debug.

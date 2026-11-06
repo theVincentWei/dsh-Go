@@ -187,42 +187,51 @@ class SelectionActionBar extends ConsumerWidget {
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _ActionKey(
-              icon: AppIcons.moveToFolder,
-              label: l10n.shellMoveToFolder,
-              onTap: none || busy ? null : onMove,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ActionKey(
-              icon: allPinned ? AppIcons.pinActive : AppIcons.pin,
-              label: allPinned ? l10n.shellUnpin : l10n.commonPin,
-              onTap: none || !canPin || busy ? null : onPin,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ActionKey(icon: AppIcons.archive, label: l10n.shellArchive, onTap: none || busy ? null : onArchive),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Tooltip(
-              message: deleteReason ?? l10n.shellDeleteNoUndo,
+      // The bar sizes itself now (the list page has no fixed-height slot for
+      // it any more): the keys still stretch to one equal height, at least
+      // the key height, growing with the text.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
               child: _ActionKey(
-                icon: AppIcons.delete,
-                label: busy ? l10n.shellDeletingChats : l10n.commonDelete,
-                onTap: none || deleteReason != null || scope?.readOnly != false ? null : onDelete,
-                destructive: true,
-                busy: busy,
+                icon: AppIcons.moveToFolder,
+                label: l10n.shellMoveToFolder,
+                onTap: none || busy ? null : onMove,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionKey(
+                icon: allPinned ? AppIcons.pinActive : AppIcons.pin,
+                label: allPinned ? l10n.shellUnpin : l10n.commonPin,
+                onTap: none || !canPin || busy ? null : onPin,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionKey(
+                icon: AppIcons.archive,
+                label: l10n.shellArchive,
+                onTap: none || busy ? null : onArchive,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Tooltip(
+                message: deleteReason ?? l10n.shellDeleteNoUndo,
+                child: _ActionKey(
+                  icon: AppIcons.delete,
+                  label: busy ? l10n.shellDeletingChats : l10n.commonDelete,
+                  onTap: none || deleteReason != null || scope?.readOnly != false ? null : onDelete,
+                  destructive: true,
+                  busy: busy,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

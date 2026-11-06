@@ -3,99 +3,87 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../l10n/l10n.dart';
 import '../../links/app_links.dart';
 import '../../pets/overlay_channel.dart' show petOverlayChannelProvider;
 import '../../pets/pet_overlay_bridge.dart';
-import '../../state/adaptive_layout_state.dart';
+import '../../state/connection_state.dart';
+import '../../state/hosts_state.dart';
 import '../../state/drawer_view_state.dart' show drawerSelectionProvider;
 import '../../state/quick_panel_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../bots/bot_alerts.dart';
 import '../chat/chat_screen.dart';
-import '../chat/composer_toast.dart' show composerToastGap;
+import '../common/status_dot.dart' show StatusTone;
 import '../engine/engine_screen.dart';
 import '../features/all_features_page.dart';
 import '../forum/forum_link_host.dart';
 import '../notify/background_net_host.dart';
 import '../notify/chat_alert_host.dart';
 import '../notify/voice_model_host.dart';
-import '../plugins/plugins_screen.dart';
 import '../pets/pet_settings_page.dart';
 import '../phone/phone_stop_watcher.dart';
+import '../plugins/plugins_screen.dart';
+import '../remote/host_status.dart' show watchHostStatus, hostKindTint;
 import '../remote/host_switcher.dart' show showHostSheet;
+import '../remote/network_details_sheet.dart' show showRemoteNetworkDetails;
 import '../remote/remote_screen.dart';
 import '../safe_mode/safe_mode_notice_listener.dart';
-import '../session/session_detail_page.dart';
 import '../settings/search/settings_search_page.dart';
 import '../settings/settings_screen.dart';
 import '../share_code/share_code_host.dart';
 import '../star/star_prompt_host.dart';
+import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../update/update_launch_check.dart';
 import '../wallpaper/wallpaper_backdrop.dart';
 import '../web/local_web_screen.dart';
-import 'adaptive/adaptive_layout.dart';
-import 'adaptive/adaptive_rail.dart';
-import 'adaptive/adaptive_scaffold.dart';
-import 'drawer_drag.dart';
+import 'drawer_drag.dart' show QuickPanelDragRecognizer;
 import 'quick_panel.dart';
-import 'session_search_page.dart' show showSessionSearch;
-import 'sessions_drawer.dart';
+import 'session_list_page.dart';
 import 'system_entry_host.dart';
 
-/// Home: the chat screen, with the sessions drawer pulled over it from the left.
+/// Home: three tabs — 聊天 (the conversation list), 小程序 (全部功能) and
+/// 设置 — over the wallpaper. A conversation opens as a full-screen page
+/// over the tabs; back returns to the list.
 ///
-/// The drawer is driven by one [AnimationController] that a swipe moves
-/// continuously (right to open, left to push back, same finger), so the drawer
-/// follows the hand instead of playing a canned animation. Only the overlay
-/// rebuilds per frame; the chat underneath never does.
-///
-/// From 840dp wide ([AdaptiveLayout]) the list stays on screen as a rail or a
-/// sidebar and 对话详情 is a column beside the chat; ≡ then folds and unfolds
-/// the list, and the drawer is only pulled over when the sidebar doesn't fit.
-///
-/// A left swipe pulls [QuickPanel] over from the right the same way, wherever
-/// the drawer's swipe works and what's under the finger has no horizontal drag
-/// of its own. Each panel keeps the finger that moved it: neither becomes the
-/// other mid-gesture, and open, one covers the chat and the other's swipe.
+/// A left swipe pulls [QuickPanel] over from the right, on every tab, the
+/// same way it used to ride over the chat.
 class HomeShell extends ConsumerStatefulWidget {
-  const HomeShell({super.key, this.chatBuilder, this.initiallyOpen = false});
+  const HomeShell({super.key, this.chatBuilder, this.sessionListBuilder});
 
-  /// Replaces [ChatScreen] (widget tests use a stand-in).
+  /// Replaces the chat page opened for a conversation (widget tests use a
+  /// stand-in).
   @visibleForTesting
-  final Widget Function(VoidCallback openDrawer)? chatBuilder;
+  final Widget? chatBuilder;
 
-  /// Starts with the drawer fully open (goldens).
+  /// Replaces the 聊天 tab's list (widget tests use a stand-in).
   @visibleForTesting
-  final bool initiallyOpen;
+  final Widget? sessionListBuilder;
 
   @override
   ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateMixin {
-  late final AnimationController _drawer = AnimationController(
-    vsync: this,
-    duration: AppMotion.emphasized,
-    value: widget.initiallyOpen ? 1 : 0,
-  );
+  /// The selected tab: 0 聊天, 1 小程序, 2 设置. Kept across restarts.
+  static const _tabKey = 'home.tab';
+
+  int _tab = 0;
+
+  /// Whether the conversation page currently covers the tabs.
+  bool _chatOpen = false;
 
   late final AnimationController _quickPanel = AnimationController(vsync: this, duration: AppMotion.emphasized);
 
-  /// Mirrors "drawer at all open" so PopScope rebuilds only on the 0 ↔ >0 edge.
-  late bool _open = widget.initiallyOpen;
-
   /// The same for [_quickPanel].
   bool _quickPanelOpen = false;
-
-  /// The pulled-over drawer's identity bar height: its notices stand above it.
-  final _identityBar = ValueNotifier<double>(0);
 
   /// 「宠物设置」 from the floating pet's menu (every tap, not deduplicated).
   StreamSubscription<void>? _petSettings;
@@ -103,335 +91,358 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _drawer.addListener(() {
-      final open = _drawer.value > 0;
-      if (open != _open) setState(() => _open = open);
-    });
     _quickPanel.addListener(() {
       final open = _quickPanel.value > 0;
       if (open != _quickPanelOpen) setState(() => _quickPanelOpen = open);
     });
+    _restoreTab();
     _petSettings = ref.read(petOverlayChannelProvider).settingsRequests.listen((_) {
       if (mounted) unawaited(PetSettingsPage.open(context));
     });
   }
 
+  /// Restores the last tab once, at startup, from the warmed prefs. Fails
+  /// quietly (tests without the platform channel, channel hiccups): the tab
+  /// stays 聊天.
+  Future<void> _restoreTab() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tab = prefs.getInt(_tabKey) ?? 0;
+      if (mounted && tab >= 0 && tab <= 2 && tab != _tab) setState(() => _tab = tab);
+    } catch (_) {
+      // Startup continues on the first tab.
+    }
+  }
+
+  Future<void> _selectTab(int tab) async {
+    setState(() => _tab = tab);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_tabKey, tab);
+    } catch (_) {
+      // The tab still switches; persistence is best-effort.
+    }
+  }
+
   @override
   void dispose() {
     unawaited(_petSettings?.cancel());
-    _drawer.dispose();
     _quickPanel.dispose();
-    _identityBar.dispose();
     super.dispose();
   }
 
-  /// 320 of list, plus the cutout or navigation bar it covers on a phone on
-  /// its side (the drawer's content keeps clear of it), like the sidebar.
-  double _drawerWidth(BuildContext context) => math.min(
-    AdaptiveMetrics.sidebarWidth + MediaQuery.paddingOf(context).left,
-    MediaQuery.sizeOf(context).width - 56,
-  );
-
-  /// [QuickPanel.width], plus what it covers on a phone on its side.
+  /// [QuickPanel.width] (or the conversation's), plus what it covers on a
+  /// phone on its side.
   double _quickPanelWidth(BuildContext context) => math.min(
     (ref.read(currentSessionProvider) == null ? QuickPanel.width : QuickPanel.conversationWidth) +
         MediaQuery.paddingOf(context).right,
     MediaQuery.sizeOf(context).width - 56,
   );
 
-  void _slideOpen(AnimationController side) {
+  void _slideOpen() {
     FocusManager.instance.primaryFocus?.unfocus();
-    side.animateTo(1, curve: AppMotion.glide, duration: AppMotion.of(context, AppMotion.emphasized));
+    _quickPanel.animateTo(1, curve: AppMotion.glide, duration: AppMotion.of(context, AppMotion.emphasized));
   }
 
-  void _slideClosed(AnimationController side) {
+  void _slideClosed() {
     FocusManager.instance.primaryFocus?.unfocus();
-    side.animateBack(0, curve: AppMotion.glide, duration: AppMotion.of(context, AppMotion.standard));
+    _quickPanel.animateBack(0, curve: AppMotion.glide, duration: AppMotion.of(context, AppMotion.standard));
   }
 
-  void _openDrawer() => _slideOpen(_drawer);
+  void _onQuickPanelDragStart() {
+    _quickPanel.stop();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
-  void _closeDrawer() => _slideClosed(_drawer);
+  /// Shows the conversation over the tabs. The list page sets the session
+  /// selection first; [ChatScreen] reads it.
+  Future<void> _openChat() async {
+    if (_chatOpen || !mounted) return;
+    _chatOpen = true;
+    final navigator = Navigator.of(context);
+    try {
+      await navigator.push(
+        MaterialPageRoute<void>(builder: (_) => widget.chatBuilder ?? const ChatScreen()),
+      );
+    } finally {
+      _chatOpen = false;
+    }
+  }
 
-  void _closeQuickPanel() => _slideClosed(_quickPanel);
-
+  /// A notification or a share/shortcut entry wants the conversation shown:
+  /// one is already open, or there is nothing to open.
   void _revealChat(bool animate) {
-    for (final side in [_drawer, _quickPanel]) {
-      if (side.value == 0) continue;
-      if (animate) {
-        _slideClosed(side);
-      } else {
-        side.value = 0;
-      }
-    }
+    if (_chatOpen) return;
+    if (ref.read(currentSessionProvider) == null) return;
+    unawaited(_openChat());
   }
 
-  /// The columns as last built; what ≡ does depends on them.
-  AdaptiveLayout _layout = const AdaptiveLayout.compact();
-
-  /// ≡ (the header's, or the rail's): pull the drawer over, or fold / unfold
-  /// the sidebar of a wide window.
-  void _onMenu() {
-    final prefs = ref.read(layoutPrefsProvider.notifier);
-    switch (_layout.menuAction) {
-      case MenuAction.overlay:
-        _openDrawer();
-      case MenuAction.expand:
-        prefs.setSidebarOpen(true);
-      case MenuAction.collapse:
-        prefs.setSidebarOpen(false);
-    }
-  }
-
-  Future<void> _search() async {
-    final sessionId = await showSessionSearch(context);
-    if (sessionId == null || !mounted) return;
-    ref.read(currentSessionProvider.notifier).select(sessionId);
-  }
-
-  void _onDragStart(AnimationController side) {
-    side.stop();
-    FocusManager.instance.primaryFocus?.unfocus();
-  }
-
-  /// [opening]: pixels towards fully open.
-  void _onDragDelta(AnimationController side, double width, double opening) {
-    if (width <= 0) return;
-    side.value = (side.value + opening / width).clamp(0.0, 1.0);
-  }
-
-  /// [velocity]: pixels a second towards fully open.
-  void _onDragEnd(AnimationController side, double width, double velocity) {
-    if (velocity.abs() >= kMinFlingVelocity && width > 0) {
-      final target = velocity > 0 ? 1.0 : 0.0;
-      if (AppMotion.reduced(context)) {
-        side.value = target;
-        return;
-      }
-      // Not `fling`, which refuses a spring with any bounce. The controller's
-      // bounds clip it: the bounce shapes the arrival, nothing goes past the edge.
-      final spring = AppMotion.settle(AppMotion.flingSpring, side.value, target, velocity / width, landing: false);
-      if (velocity > 0) {
-        side.animateWith(spring);
-      } else {
-        side.animateBackWith(spring);
-      }
-      return;
-    }
-    if (side.value >= 0.5) {
-      _slideOpen(side);
-    } else {
-      _slideClosed(side);
-    }
-  }
-
+  /// Destinations that are not tabs still open as pushed pages (网页版 /
+  /// 远程 / 插件 / 引擎 / 设置搜索); the rest switch tabs. A pushed page
+  /// covers the shell, so the quick panel goes in behind it — back lands on
+  /// a clean tab.
   void _openDestination(DrawerDestination destination) {
-    final page = switch (destination) {
-      DrawerDestination.web => const LocalWebScreen(),
-      DrawerDestination.remote => const RemoteScreen(),
-      DrawerDestination.plugins => const PluginsScreen(),
-      DrawerDestination.engine => const EngineScreen(),
-      DrawerDestination.settings => const SettingsScreen(),
-      DrawerDestination.settingsSearch => const SettingsSearchPage(),
-      DrawerDestination.features => const AllFeaturesPage(),
-    };
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
-    // Close once the new page covers us, so "back" lands on the chat.
-    Future<void>.delayed(AppMotion.slow, () {
-      if (!mounted) return;
-      _drawer.value = 0;
-      _quickPanel.value = 0;
-    });
+    switch (destination) {
+      case DrawerDestination.settings:
+        unawaited(_selectTab(2));
+      case DrawerDestination.features:
+        unawaited(_selectTab(1));
+      case DrawerDestination.web:
+        _push(const LocalWebScreen());
+      case DrawerDestination.remote:
+        _push(const RemoteScreen());
+      case DrawerDestination.plugins:
+        _push(const PluginsScreen());
+      case DrawerDestination.engine:
+        _push(const EngineScreen());
+      case DrawerDestination.settingsSearch:
+        _push(const SettingsSearchPage());
+    }
   }
 
-  /// The drawer's swipe (right to open, left to push back).
-  Map<Type, GestureRecognizerFactory> get _drawerGestures => {
-    DrawerDragRecognizer: GestureRecognizerFactoryWithHandlers<DrawerDragRecognizer>(
-      () => DrawerDragRecognizer(
-        isOpen: () => _drawer.value > 0,
-        onStart: () => _onDragStart(_drawer),
-        onDelta: (dx) => _onDragDelta(_drawer, _drawerWidth(context), dx),
-        onEnd: (velocity) => _onDragEnd(_drawer, _drawerWidth(context), velocity),
-        debugOwner: this,
-      ),
-      (_) {},
-    ),
-  };
-
-  /// The quick panel's swipe (left to open, right to push back).
-  Map<Type, GestureRecognizerFactory> get _quickPanelGestures {
-    final settings = MediaQuery.maybeGestureSettingsOf(context);
-    return {
-      QuickPanelDragRecognizer: GestureRecognizerFactoryWithHandlers<QuickPanelDragRecognizer>(
-        () => QuickPanelDragRecognizer(
-          isOpen: () => _quickPanel.value > 0,
-          onStart: () => _onDragStart(_quickPanel),
-          onDelta: (dx) => _onDragDelta(_quickPanel, _quickPanelWidth(context), -dx),
-          onEnd: (velocity) => _onDragEnd(_quickPanel, _quickPanelWidth(context), -velocity),
-          debugOwner: this,
-        ),
-        (recognizer) => recognizer.gestureSettings = settings,
-      ),
-    };
+  void _push(Widget page) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+    // Close once the new page covers us, so "back" lands on a clean tab.
+    Future<void>.delayed(AppMotion.slow, () {
+      if (mounted) _quickPanel.value = 0;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = _drawerWidth(context);
     final sessionId = ref.watch(currentSessionProvider);
-    final prefs = ref.watch(layoutPrefsProvider);
-    // Multi-select in a list on screen (the open drawer, or the sidebar):
-    // back ends it before anything else.
+    // Multi-select in the list: back ends it before anything else.
     final selecting = ref.watch(drawerSelectionProvider.select((s) => s != null));
-    final layout = _layout = AdaptiveLayout.resolve(
-      window: MediaQuery.sizeOf(context),
-      padding: MediaQuery.paddingOf(context),
-      hasSession: sessionId != null,
-      sidebarOpen: prefs.sidebarOpen,
-      panelOpen: prefs.panelOpen,
-    );
-    // No quick panel beside a sidebar (the swipes are off there), or once
-    // it's turned off: one left open goes, at once, as the window changes.
-    final sidebar = layout.left == LeftPane.sidebar;
-    // With a conversation open the panel has that to show, whatever shortcuts it lists.
-    final quickPanelOn =
-        !sidebar && ref.watch(quickPanelProvider.select((p) => p.available || (p.swipe && sessionId != null)));
+    // With a conversation open the panel has that to show, whatever shortcuts
+    // it lists. Off once it's turned off: one left open goes, at once.
+    final quickPanelOn = ref.watch(quickPanelProvider.select((p) => p.available || (p.swipe && sessionId != null)));
     if (!quickPanelOn && _quickPanel.value > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _quickPanel.value = 0;
       });
     }
-    final chat = widget.chatBuilder?.call(_onMenu) ?? ChatScreen(onOpenDrawer: _onMenu, backdrop: false);
+    final gestures = quickPanelOn
+        ? {
+            QuickPanelDragRecognizer: GestureRecognizerFactoryWithHandlers<QuickPanelDragRecognizer>(
+              () => QuickPanelDragRecognizer(
+                isOpen: () => _quickPanel.value > 0,
+                onStart: _onQuickPanelDragStart,
+                onDelta: (dx) {
+                  final width = _quickPanelWidth(context);
+                  if (width <= 0) return;
+                  _quickPanel.value = (_quickPanel.value - dx / width).clamp(0.0, 1.0);
+                },
+                onEnd: (velocity) {
+                  if (velocity.abs() >= kMinFlingVelocity && _quickPanelWidth(context) > 0) {
+                    final target = velocity < 0 ? 1.0 : 0.0;
+                    if (AppMotion.reduced(context)) {
+                      _quickPanel.value = target;
+                      return;
+                    }
+                    final spring = AppMotion.settle(
+                      AppMotion.flingSpring,
+                      _quickPanel.value,
+                      target,
+                      -velocity / _quickPanelWidth(context),
+                      landing: false,
+                    );
+                    if (velocity < 0) {
+                      _quickPanel.animateWith(spring);
+                    } else {
+                      _quickPanel.animateBackWith(spring);
+                    }
+                    return;
+                  }
+                  if (_quickPanel.value >= 0.5) {
+                    _slideOpen();
+                  } else {
+                    _slideClosed();
+                  }
+                },
+                debugOwner: this,
+              ),
+              (recognizer) => recognizer.gestureSettings = MediaQuery.maybeGestureSettingsOf(context),
+            ),
+          }
+        : const <Type, GestureRecognizerFactory>{};
     // The floating pet outside the app hears every pet state.
     ref.listen<void>(petOverlayBridgeProvider, (_, _) {});
     return SafeModeNoticeListener(
       child: PhoneStopWatcher(
         child: PopScope(
-          canPop: !_open && !_quickPanelOpen && !(selecting && sidebar),
+          canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            final selection = ref.read(drawerSelectionProvider.notifier);
             if (_quickPanelOpen) {
-              _closeQuickPanel();
-            } else if (selection.active) {
-              selection.end();
-            } else {
-              _closeDrawer();
+              _slideClosed();
+            } else if (selecting) {
+              ref.read(drawerSelectionProvider.notifier).end();
+            } else if (_tab != 0) {
+              unawaited(_selectTab(0));
             }
+            // On 聊天 with nothing selected there is nothing to pop into —
+            // the app stays; leaving it is the system's back-exit flow.
           },
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: dshSystemOverlay(Theme.of(context).brightness),
-            // 首页 / 对话 and the drawer: the custom wallpaper when one is in use.
+            // 首页三个 tab: the custom wallpaper when one is in use.
             child: WallpaperBackdrop(
-              child: _DrawerNoticeTheme(
-                drawer: _drawer,
-                identityBar: _identityBar,
-                width: width,
-                child: Scaffold(
-                  backgroundColor: Colors.transparent,
-                  // The chat screen handles the keyboard itself.
-                  resizeToAvoidBottomInset: false,
-                  body: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Notifications: routes taps, raises the in-app banner (draws nothing here).
-                      ChatAlertHost(onReveal: _revealChat),
-                      // Background running cut off by the phone: one line under the header (draws nothing here).
-                      const BackgroundNetHost(),
-                      // Daily update check + install resume (draws nothing).
-                      const UpdateLaunchCheck(),
-                      // The voice model chosen during setup: download, resume, ready / failed notices (draws nothing).
-                      const VoiceModelHost(),
-                      // 公测版: once in a while, an invitation to star the project (draws nothing).
-                      StarPromptHost(drawer: _drawer, quickPanel: _quickPanel),
-                      // App links / shared files: routes them to their feature (draws nothing).
-                      const LinkHost(),
-                      // Share codes (分享码): registers its links and files with the router.
-                      const ShareCodeHost(),
-                      // Share sheet, launcher shortcuts, the tile: into the chat (draws nothing).
-                      SystemEntryHost(onReveal: _revealChat),
-                      // Forum links (sign-in return, topics): registers them with the router.
-                      const ForumLinkHost(),
-                      // DS Bot: keeps its feed and notifications alive with the shell.
-                      const BotAlertsHost(),
-                      ExcludeSemantics(
-                        excluding: _open || _quickPanelOpen,
-                        child: _SideParallax(
-                          drawer: _drawer,
-                          drawerWidth: width,
-                          quickPanel: _quickPanel,
-                          quickPanelWidth: _quickPanelWidth(context),
-                          child: AdaptiveScaffold(
-                            layout: layout,
-                            // Stored choices arriving at launch snap into place.
-                            animate: prefs.loaded,
-                            body: RawGestureDetector(
-                              // translucent: join the hit chain without swallowing taps
-                              // meant for the chat; wraps the whole chat column so empty
-                              // areas still drag. Not 对话详情 beside it: its tabs swipe.
-                              // No drawer to pull while the sidebar shows.
-                              behavior: HitTestBehavior.translucent,
-                              gestures: {if (!sidebar) ..._drawerGestures, if (quickPanelOn) ..._quickPanelGestures},
-                              child: chat,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                // The chat screen handles the keyboard itself.
+                resizeToAvoidBottomInset: false,
+                // 液态玻璃底栏:三个 tab 的内容全出血,从玻璃条底下穿过。
+                extendBody: true,
+                body: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Notifications: routes taps, raises the in-app banner (draws nothing here).
+                    ChatAlertHost(onReveal: _revealChat),
+                    // Background running cut off by the phone: one line under the header (draws nothing here).
+                    const BackgroundNetHost(),
+                    // Daily update check + install resume (draws nothing).
+                    const UpdateLaunchCheck(),
+                    // The voice model chosen during setup: download, resume, ready / failed notices (draws nothing).
+                    const VoiceModelHost(),
+                    // 公测版: once in a while, an invitation to star the project.
+                    StarPromptHost(quickPanel: _quickPanel),
+                    // App links / shared files: routes them to their feature (draws nothing).
+                    const LinkHost(),
+                    // Share codes (分享码): registers its links and files with the router.
+                    const ShareCodeHost(),
+                    // Share sheet, launcher shortcuts, the tile: into the chat (draws nothing).
+                    SystemEntryHost(onReveal: _revealChat),
+                    // Forum links (sign-in return, topics): registers them with the router.
+                    const ForumLinkHost(),
+                    // DS Bot: keeps its feed and notifications alive with the shell.
+                    const BotAlertsHost(),
+                    ExcludeSemantics(
+                      excluding: _quickPanelOpen,
+                      child: RawGestureDetector(
+                        // translucent: join the hit chain without swallowing taps
+                        // meant for the pages; empty areas still drag the panel.
+                        behavior: HitTestBehavior.translucent,
+                        gestures: gestures,
+                        // 底栏高度计入底部内边距:各页的滚动余量据此让最后一行
+                        // 能完整滚出玻璃条。
+                        child: MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            padding: MediaQuery.of(context).padding.copyWith(
+                              bottom: MediaQuery.of(context).padding.bottom + 76,
                             ),
-                            sidebar: SessionsDrawer(
-                              key: const ValueKey('persistent-sidebar'),
-                              // It stays: picking a conversation just shows it.
-                              onClose: () {},
-                              onOpen: _openDestination,
-                            ),
-                            rail: AdaptiveRail(
-                              onMenu: _onMenu,
-                              menuTooltip: AdaptiveChrome.menuTooltipFor(layout),
-                              onSearch: _search,
-                              onHost: () =>
-                                  showHostSheet(context, onManage: () => _openDestination(DrawerDestination.remote)),
-                              onWeb: () => _openDestination(DrawerDestination.web),
-                              onSettings: () => _openDestination(DrawerDestination.settings),
-                            ),
-                            panel: layout.panelAvailable && sessionId != null
-                                ? SessionDetailPage.panel(key: ValueKey(sessionId), sessionId: sessionId)
-                                : null,
                           ),
+                          child: IndexedStack(index: _tab, children: [
+                            RepaintBoundary(
+                              child: widget.sessionListBuilder ??
+                                  SessionListPage(onOpenChat: _openChat, onDestination: _openDestination),
+                            ),
+                            const RepaintBoundary(child: AllFeaturesPage()),
+                            const RepaintBoundary(child: SettingsScreen()),
+                          ]),
                         ),
                       ),
-                      Positioned.fill(
-                        // The open drawer and its scrim take the swipe that pushes it
-                        // back; closed, nothing here is hit.
-                        child: RawGestureDetector(
-                          behavior: HitTestBehavior.deferToChild,
-                          gestures: _drawerGestures,
-                          child: _DrawerOverlay(
-                            animation: _drawer,
-                            width: width,
-                            drawer: SessionsDrawer(
-                              onClose: _closeDrawer,
-                              onOpen: _openDestination,
-                              identityBarHeight: _identityBar,
-                              drawerMotion: _drawer,
-                            ),
-                            onClose: _closeDrawer,
+                    ),
+                    Positioned.fill(
+                      child: RawGestureDetector(
+                        behavior: HitTestBehavior.deferToChild,
+                        gestures: gestures,
+                        child: _PanelOverlay(
+                          animation: _quickPanel,
+                          width: _quickPanelWidth(context),
+                          fromRight: true,
+                          panel: QuickPanel(
+                            motion: _quickPanel,
+                            onOpen: _openDestination,
+                            sessionId: _quickPanelOpen ? sessionId : null,
                           ),
+                          onClose: _slideClosed,
                         ),
                       ),
-                      Positioned.fill(
-                        child: RawGestureDetector(
-                          behavior: HitTestBehavior.deferToChild,
-                          gestures: quickPanelOn ? _quickPanelGestures : const {},
-                          child: _DrawerOverlay(
-                            animation: _quickPanel,
-                            width: _quickPanelWidth(context),
-                            fromRight: true,
-                            drawer: QuickPanel(
-                              motion: _quickPanel,
-                              onOpen: _openDestination,
-                              sessionId: _quickPanelOpen ? sessionId : null,
+                    ),
+                  ],
+                ),
+                bottomNavigationBar: SafeArea(
+                  top: false,
+                  child: Padding(
+                    // 悬浮玻璃件:左右留边、底部留手势条空间,内容从玻璃下穿过。
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 左件:独立的主机圆钮(标签挂在圆外下方)。
+                        _DeviceKey(
+                          onHost: () => showHostSheet(
+                            context,
+                            onManage: () => _openDestination(DrawerDestination.remote),
+                          ),
+                          onDetails: () => _openDestination(DrawerDestination.engine),
+                        ),
+                        const SizedBox(width: 12),
+                        // 右件:三连胶囊。纯图标(无文字):每颗是垂直居中的
+                        // 44 圆形图标钮,选中 primary 圆底 + primary 图标。
+                        Expanded(
+                          child: GlassSurface(
+                            tier: GlassTier.chrome,
+                            stadium: true,
+                            child: SizedBox(
+                              height: 56,
+                              child: Row(
+                                children: [
+                                  _homeTab(0, tooltip: context.l10n.tabChats, icon: AppIcons.chat),
+                                  _homeTab(1, tooltip: context.l10n.tabMiniApps, icon: AppIcons.allFeatures),
+                                  _homeTab(2, tooltip: context.l10n.commonSettings, icon: AppIcons.settings),
+                                ],
+                              ),
                             ),
-                            onClose: _closeQuickPanel,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 底栏右件的一颗 tab:等宽格里垂直居中的 44 圆形图标钮。选中 primary
+  /// 圆底 + primary 图标,未选中无底 + onSurfaceVariant 图标。无文字,
+  /// 语义和 tooltip 都用 [tooltip];点按先收起键盘再切 tab。
+  Widget _homeTab(int index, {required String tooltip, required IconData icon}) {
+    final scheme = Theme.of(context).colorScheme;
+    final selected = _tab == index;
+    void select() {
+      FocusManager.instance.primaryFocus?.unfocus();
+      unawaited(_selectTab(index));
+    }
+
+    return Expanded(
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        onTap: select,
+        excludeSemantics: true,
+        child: Tooltip(
+          message: tooltip,
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: select,
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 44,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selected ? scheme.primary.withValues(alpha: 0.18) : null,
+                    ),
+                    child: Center(
+                      child: Icon(icon, size: 22, color: selected ? scheme.primary : scheme.onSurfaceVariant),
+                    ),
                   ),
                 ),
               ),
@@ -443,100 +454,82 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   }
 }
 
-/// While the drawer is pulled over, notices (floating SnackBars without a
-/// margin of their own) stand inside it: [SessionsDrawer.contentEdge] in from
-/// either side of its content and [composerToastGap] above its identity bar,
-/// clear of every key. Closed, the theme's placement is untouched; in
-/// between they follow the drawer. Only SnackBars depend on this, so the
-/// chat underneath still never rebuilds while the drawer moves.
-class _DrawerNoticeTheme extends StatelessWidget {
-  const _DrawerNoticeTheme({required this.drawer, required this.identityBar, required this.width, required this.child});
+/// 底栏左端的主机圆钮:独立玻璃圆(56,与右件三连胶囊同高),背景色随连接
+/// 状态(绿=已连接,黄=连接中,红=失败,灰=未连接),主机图标居中。
+/// 点按弹出主机切换,长按看本机引擎详情(或远程网络详情)。这是全局状态件,
+/// 不属于三个 tab。
+class _DeviceKey extends ConsumerWidget {
+  const _DeviceKey({required this.onHost, required this.onDetails});
 
-  final Animation<double> drawer;
-  final ValueListenable<double> identityBar;
+  final VoidCallback onHost;
+  final VoidCallback onDetails;
 
-  /// The drawer's width, its content starting after the left inset.
-  final double width;
-  final Widget child;
+  static const _size = 56.0;
 
   @override
-  Widget build(BuildContext context) {
-    final base = SnackBarTheme.of(context);
-    final closed = base.insetPadding;
-    final screen = MediaQuery.sizeOf(context).width;
-    final padding = MediaQuery.paddingOf(context);
-    return AnimatedBuilder(
-      animation: Listenable.merge([drawer, identityBar]),
-      child: child,
-      builder: (context, child) {
-        final progress = drawer.value;
-        var data = base;
-        if (closed != null && progress > 0 && identityBar.value > 0) {
-          // A floating SnackBar's margin lies inside the side insets (its
-          // SafeArea) and stands on the bottom one, as the drawer's content does.
-          final open = EdgeInsets.fromLTRB(
-            SessionsDrawer.contentEdge,
-            closed.top,
-            math.max(0.0, screen - padding.right - width + SessionsDrawer.contentEdge),
-            identityBar.value + composerToastGap,
-          );
-          data = base.copyWith(insetPadding: EdgeInsets.lerp(closed, open, progress));
-        }
-        return SnackBarTheme(data: data, child: child!);
-      },
-    );
-  }
-}
-
-/// Scrim + drawer panel; the only part that rebuilds while the drawer moves. The
-/// panel keeps its state when closed, while Visibility suppresses painting,
-/// semantics and tickers until the first drag frame reveals it. [QuickPanel]
-/// comes the same way, [fromRight].
-/// The fluid tier: as a side panel slides over, the page below drifts a little the
-/// same way. Only a translation: scaling would make its glass re-sample at a new size.
-class _SideParallax extends StatelessWidget {
-  const _SideParallax({
-    required this.drawer,
-    required this.drawerWidth,
-    required this.quickPanel,
-    required this.quickPanelWidth,
-    required this.child,
-  });
-
-  final Animation<double> drawer;
-  final double drawerWidth;
-  final Animation<double> quickPanel;
-  final double quickPanelWidth;
-  final Widget child;
-
-  static const _share = 0.14;
-
-  @override
-  Widget build(BuildContext context) {
-    final fluid = AppMotion.fluid(context);
-    return AnimatedBuilder(
-      animation: Listenable.merge([drawer, quickPanel]),
-      child: child,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(fluid ? _share * (drawer.value * drawerWidth - quickPanel.value * quickPanelWidth) : 0, 0),
-        child: child,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final colors = DshColors.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final host = ref.watch(activeHostProvider);
+    final name = ref.watch(hostNameProvider(host)) ?? l10n.shellDeviceLabel;
+    final view = watchHostStatus(ref, host);
+    final tint = hostKindTint(host.kind);
+    final tone = switch (view.tone) {
+      StatusTone.ok || StatusTone.busy => colors.identity[tint % colors.identity.length],
+      StatusTone.warn => colors.warning.withValues(alpha: 0.18),
+      StatusTone.error => colors.danger.withValues(alpha: 0.18),
+      StatusTone.idle => scheme.onSurface.withValues(alpha: 0.10),
+    };
+    final VoidCallback longPress = host.isLocal ? onDetails : () => showRemoteNetworkDetails(context, host);
+    return Tooltip(
+      message: l10n.shellCurrentHostLabel(name, view.label),
+      child: Semantics(
+        button: true,
+        label: l10n.shellCurrentHostLabel(name, view.label),
+        onTap: onHost,
+        onLongPress: longPress,
+        excludeSemantics: true,
+        child: GlassSurface(
+          tier: GlassTier.chrome,
+          circle: true,
+          child: Material(
+            color: tone,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onHost,
+              onLongPress: longPress,
+              child: SizedBox.square(
+                dimension: _size,
+                child: Center(child: Icon(AppIcons.remoteHosts, size: 24, color: scheme.onSurface)),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _DrawerOverlay extends StatelessWidget {
-  const _DrawerOverlay({
+/// Scrim + panel; the only part that rebuilds while the panel moves. The
+/// panel keeps its state when closed, while Visibility suppresses painting,
+/// semantics and tickers until the first drag frame reveals it.
+/// The fluid tier: as the panel slides over, the page below drifts a little
+/// the same way. Only a translation: scaling would make its glass re-sample
+/// at a new size.
+class _PanelOverlay extends StatelessWidget {
+  const _PanelOverlay({
     required this.animation,
     required this.width,
-    required this.drawer,
+    required this.panel,
     required this.onClose,
     this.fromRight = false,
   });
 
   final Animation<double> animation;
   final double width;
-  final Widget drawer;
+  final Widget panel;
   final VoidCallback onClose;
   final bool fromRight;
 
@@ -545,8 +538,8 @@ class _DrawerOverlay extends StatelessWidget {
     final scrim = DshSurfaces.of(context).scrim;
     return AnimatedBuilder(
       animation: animation,
-      child: RepaintBoundary(child: drawer),
-      builder: (context, drawer) {
+      child: RepaintBoundary(child: panel),
+      builder: (context, panel) {
         final progress = animation.value;
         return Stack(
           fit: StackFit.expand,
@@ -561,7 +554,7 @@ class _DrawerOverlay extends StatelessWidget {
               ),
             ),
             // 面板位置用 Transform 走(paint-only):每帧改 Positioned.left 会让
-            // Stack 和整块抽屉重新布局,拖动时白白多一层成本。
+            // Stack 和整块面板重新布局,拖动时白白多一层成本。
             Positioned(
               left: fromRight ? null : 0,
               right: fromRight ? 0 : null,
@@ -572,8 +565,10 @@ class _DrawerOverlay extends StatelessWidget {
                 visible: progress > 0,
                 maintainState: true,
                 child: Transform.translate(
+                  // 面板位置用 Transform 走(paint-only):每帧改 Positioned.left 会让
+                  // Stack 和整块面板重新布局,拖动时白白多一层成本。
                   offset: Offset((progress - 1) * (width + 24) * (fromRight ? -1 : 1), 0),
-                  child: drawer!,
+                  child: panel!,
                 ),
               ),
             ),

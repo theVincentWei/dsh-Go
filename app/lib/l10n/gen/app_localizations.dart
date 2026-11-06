@@ -7760,6 +7760,12 @@ abstract class L10n {
   /// **'{name}，{description}'**
   String chatArtifactSemantics(String name, String description);
 
+  /// No description provided for @chatCurrentChat.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前会话'**
+  String get chatCurrentChat;
+
   /// No description provided for @commonCancel.
   ///
   /// In zh, this message translates to:
@@ -7795,6 +7801,18 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'设置'**
   String get commonSettings;
+
+  /// No description provided for @tabChats.
+  ///
+  /// In zh, this message translates to:
+  /// **'聊天'**
+  String get tabChats;
+
+  /// No description provided for @tabMiniApps.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序'**
+  String get tabMiniApps;
 
   /// No description provided for @commonBack.
   ///
@@ -26060,6 +26078,12 @@ abstract class L10n {
   /// **'搜索对话'**
   String get shellSearchChats;
 
+  /// No description provided for @chatListTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'会话'**
+  String get chatListTitle;
+
   /// No description provided for @shellCollapseChatList.
   ///
   /// In zh, this message translates to:
@@ -26587,6 +26611,12 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'当前主机：{name}，{view}。切换主机'**
   String shellCurrentHostLabel(String name, String view);
+
+  /// No description provided for @shellDeviceLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'机器'**
+  String get shellDeviceLabel;
 
   /// No description provided for @shellChatGone.
   ///

@@ -6,7 +6,8 @@
 import 'package:dsh_app/state/quick_panel_state.dart';
 import 'package:dsh_app/ui/settings/interface_page.dart';
 import 'package:dsh_app/ui/settings/quick_panel_items_sheet.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart' show DrawerDestination;
+// DrawerDestination 从抽屉迁到会话列表页后仍由 drawer/ 导出（快捷入口存储的是它的 name）。
+import 'package:dsh_app/ui/shell/drawer/drawer_destination.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';

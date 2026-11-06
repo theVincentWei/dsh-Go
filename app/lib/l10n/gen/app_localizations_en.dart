@@ -4504,6 +4504,9 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get chatCurrentChat => 'Current chat';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -4520,6 +4523,12 @@ class L10nEn extends L10n {
 
   @override
   String get commonSettings => 'Settings';
+
+  @override
+  String get tabChats => 'Chats';
+
+  @override
+  String get tabMiniApps => 'Mini apps';
 
   @override
   String get commonBack => 'Back';
@@ -14975,6 +14984,9 @@ class L10nEn extends L10n {
   String get shellSearchChats => 'Search chats';
 
   @override
+  String get chatListTitle => 'Chats';
+
+  @override
   String get shellCollapseChatList => 'Collapse chat list';
 
   @override
@@ -15310,6 +15322,9 @@ class L10nEn extends L10n {
   String shellCurrentHostLabel(String name, String view) {
     return 'Current host: $name, $view. Switch host';
   }
+
+  @override
+  String get shellDeviceLabel => 'Device';
 
   @override
   String get shellChatGone => 'This chat is gone';

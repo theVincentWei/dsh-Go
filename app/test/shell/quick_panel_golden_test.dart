@@ -1,6 +1,8 @@
-// Golden screenshots of 快捷入口 over the real chat, and of the sheet that picks
-// its rows: at a phone's width, then at 320 dp with 1.3× text, some in English
-// (its labels are the longest), every destination listed.
+// TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录
+// Golden screenshots of 快捷入口 over the home screen (now the 聊天 tab, the
+// chat being a pushed page), and of the sheet that picks its rows: at a phone's
+// width, then at 320 dp with 1.3× text, some in English (its labels are the
+// longest), every destination listed.
 //
 //   flutter test --update-goldens test/shell/quick_panel_golden_test.dart
 
@@ -10,8 +12,8 @@ import 'package:dsh_app/state/adaptive_layout_state.dart';
 import 'package:dsh_app/state/quick_panel_state.dart';
 import 'package:dsh_app/ui/chat/chat_screen.dart';
 import 'package:dsh_app/ui/settings/quick_panel_items_sheet.dart';
+import 'package:dsh_app/ui/shell/drawer/drawer_destination.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart' show DrawerDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,7 +43,9 @@ Future<void> _pumpHome(
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   }
   mockClipboard(tester);
-  final home = HomeShell(chatBuilder: (openDrawer) => ChatScreen(onOpenDrawer: openDrawer, backdrop: false));
+  // 聊天页替身保持 ChatScreen 本体（≡ 键随 onOpenDrawer 缺省而隐藏）；
+  // 面板如今拉在聊天 tab 之上。
+  final home = HomeShell(chatBuilder: ChatScreen(backdrop: false));
   await tester.pumpWidget(
     testApp(
       english ? inEnglish(home) : home,

@@ -145,8 +145,8 @@ class _PlusRoot extends ConsumerWidget {
           ),
         ),
         const _PluginTools(),
-        if (sessionId != null) ...[const SizedBox(height: 16), _ThisChatCard(sessionId: sessionId)],
-        if (phoneOn) ...[const SizedBox(height: 24), const _PhoneCard()],
+        if (sessionId != null) ...[const SizedBox(height: 16), ThisChatCard(sessionId: sessionId)],
+        if (phoneOn) ...[const SizedBox(height: 24), const PhoneConfirmCard()],
         const SizedBox(height: 20),
       ],
     );
@@ -237,17 +237,19 @@ class PlusTile extends StatelessWidget {
   }
 }
 
-/// 本对话: the preset (opens its page) and plan mode.
-class _ThisChatCard extends ConsumerStatefulWidget {
-  const _ThisChatCard({required this.sessionId});
+/// 本对话: the preset (opens its page) and plan mode. Shared with the
+/// settings hub's 「当前会话」 sheet, which hosts the same two rows (and the
+/// phone one below) for the conversation that is open.
+class ThisChatCard extends ConsumerStatefulWidget {
+  const ThisChatCard({super.key, required this.sessionId});
 
   final String sessionId;
 
   @override
-  ConsumerState<_ThisChatCard> createState() => _ThisChatCardState();
+  ConsumerState<ThisChatCard> createState() => _ThisChatCardState();
 }
 
-class _ThisChatCardState extends ConsumerState<_ThisChatCard> {
+class _ThisChatCardState extends ConsumerState<ThisChatCard> {
   /// Asked for and not yet in the log (a switch mid-turn lands at the next
   /// step); null follows the log.
   bool? _plan;
@@ -299,8 +301,8 @@ class _ThisChatCardState extends ConsumerState<_ThisChatCard> {
 }
 
 /// 手机操控: how phone actions are confirmed.
-class _PhoneCard extends ConsumerWidget {
-  const _PhoneCard();
+class PhoneConfirmCard extends ConsumerWidget {
+  const PhoneConfirmCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

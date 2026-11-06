@@ -74,9 +74,11 @@ Future<Rect> expectBrandLockup(WidgetTester tester, Finder lockup) async {
 
   expect(
     centre,
-    // 3% of the word's size: the band is the test font's, the lockup is built
-    // on the system sans' proportions (BrandLockup.xHeight / capHeight).
-    closeTo((band.$1 + band.$2) / 2, drawn * 0.03),
+    // 4% of the word's size: the band is the test font's, the lockup is built
+    // on the system sans' proportions (BrandLockup.xHeight / capHeight). The
+    // ink band comes from rasterising the glyph, whose edges shift a little
+    // between macOS and Linux — hence the slightly generous band.
+    closeTo((band.$1 + band.$2) / 2, drawn * 0.04),
     reason: '「$label」: the glyph\'s visual centre on the ${lowercase ? 'x' : 'cap'}-height centre',
   );
   expect(glyph.height, closeTo(drawn * BrandLockup.glyphScale, 0.01), reason: '「$label」: glyph size');
