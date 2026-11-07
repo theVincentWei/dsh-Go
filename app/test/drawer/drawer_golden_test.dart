@@ -1,4 +1,3 @@
-// TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录
 // Golden screenshots of the 聊天 tab's list (the former drawer's content):
 // folders, filters, multi-select and the 已归档 undo notice, light and dark.
 //

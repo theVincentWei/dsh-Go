@@ -1,8 +1,8 @@
 // 会话列表的行与分组标签:与设置/技能等页同一套「分组卡片 + 行列表」
 // 解剖 —— 行自身不带卡片底,同一分组的相邻行拼成一张圆角卡(见
 // [SessionGroupPos]),行距、字号、左右内边距与设置行(SettingsTile)一致。
-// 行首是自动区分的头像:标题首字符 + 由会话 ID 哈希出的身份色,每个会话
-// 固定而互不相同。
+// 行首是自动区分的头像:DiceBear 图库表情 + 由会话 ID 哈希出的身份色圆盘,
+// 每个会话固定而互不相同。
 
 import 'package:flutter/material.dart';
 
@@ -39,7 +39,7 @@ class SessionTile extends StatelessWidget {
     this.selected = false,
   });
 
-  /// 头像的稳定种子:同一会话永远同一颜色。
+  /// 头像的稳定种子:同一会话永远同一表情与颜色。
   final String sessionId;
   final String title;
   final bool running;
@@ -232,8 +232,10 @@ class SessionTile extends StatelessWidget {
   }
 }
 
-/// 会话头像:标题首字符落在身份色圆盘里,色相由会话 ID 的稳定散列选出 ——
-/// 不依赖引擎、不随改名漂移,同一会话永远同一颜色(空标题回退「·」)。
+/// 会话头像:DiceBear「Fun Emoji」表情(构建期图库,tool/session_avatars 生成的
+/// 100 槽透明 PNG)落在身份色圆盘里;槽位与圆盘色都由 FNV-1a(会话 id)选出
+/// —— 不依赖引擎与网络、不随改名漂移,同一会话永远同一只表情同一底色;
+/// 图库图缺失时回退标题首字符(空标题回退「·」)。
 class _SessionAvatar extends StatelessWidget {
   const _SessionAvatar({required this.sessionId, required this.title});
 
@@ -244,11 +246,7 @@ class _SessionAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = DshColors.of(context);
-    var hash = 0;
-    for (final unit in sessionId.codeUnits) {
-      hash = (hash * 31 + unit) & 0x7fffffff;
-    }
-    final tint = hash % colors.identity.length;
+    final tint = DshColors.identityIndex(sessionId, colors.identity.length);
     final initial = title.runes.isEmpty
         ? '·'
         : String.fromCharCodes([title.runes.first]).toUpperCase();
@@ -257,19 +255,42 @@ class _SessionAvatar extends StatelessWidget {
       decoration: ShapeDecoration(color: colors.identity[tint], shape: const CircleBorder()),
       child: SizedBox.square(
         dimension: SessionTile.avatarSize,
-        child: Center(
-          child: Text(
-            initial,
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: colors.onIdentity[tint],
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: ClipOval(
+            child: Image.asset(
+              SessionAvatarGallery.assetFor(SessionAvatarGallery.slotFor(sessionId)),
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, error, stack) => Center(
+                child: Text(
+                  initial,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onIdentity[tint],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// 构建期头像图库(assets/session_avatars/,由 tool/session_avatars 生成)。
+/// 槽位数与生成器的 `count` 一一对应;slotFor 与生成器的种子序无关 —— 它只
+/// 是把会话 id 均匀撒进 [0, count),同一会话永远同一槽。
+class SessionAvatarGallery {
+  SessionAvatarGallery._();
+
+  static const count = 100;
+
+  static int slotFor(String sessionId) => DshColors.identityIndex(sessionId, count);
+
+  static String assetFor(int slot) => 'assets/session_avatars/avatar_${slot.toString().padLeft(2, '0')}.png';
 }
 
 class _UnreadDot extends StatelessWidget {

@@ -204,6 +204,16 @@ DS Bot 的 NOTICE 原文附在文末。
 | 用途 | 论坛表情的名称与别名表，只用数据，不含图片 |
 | 文件 | `app/lib/forum/emoji_data.g.dart`，由 `infra/forum/tools/gen_emoji_table.py` 从 `dist/emojis.json`、`dist/aliases.json` 生成 |
 
+### DiceBear Fun Emoji（CC BY 4.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | DiceBear「Fun Emoji Set」（style `@dicebear/fun-emoji` 9.4.2），https://www.dicebear.com/styles/fun-emoji/ |
+| 版权人 | 美术 Davis Uche（https://www.figma.com/community/file/968125295144990435）；生成库 DiceBear（MIT） |
+| 许可 | 美术 CC BY 4.0（需署名，见 `app/lib/ui/common/third_party_licenses.dart`）；生成库 MIT |
+| 用途 | 会话列表的行首默认头像：构建期由 `app/tool/session_avatars/make_session_avatars.mjs` 按 100 个固定种子生成的透明 PNG 图库 |
+| 文件 | `app/assets/session_avatars/avatar_00..99.png`，运行时按会话 id 的 FNV-1a 取槽（`SessionAvatarGallery`） |
+
 ### JetBrains Mono（SIL OFL 1.1）
 
 | 项 | 内容 |

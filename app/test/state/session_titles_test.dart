@@ -46,6 +46,8 @@ class _WorkspacePrefs extends WorkspacePrefsController {
 
 /// A `session/list` row. [title] null with [cold]: what a long-lived process
 /// lists for a conversation another process wrote (no projections at all).
+/// [hinted]: what the projection cache serves for a row it has cells for —
+/// a title without a second line.
 Map<String, Object?> _row(String id, {String? title, bool cold = false, int updatedAt = 1793000000000}) => {
   'sessionId': id,
   'updatedAt': updatedAt,
@@ -60,13 +62,33 @@ Map<String, Object?> _row(String id, {String? title, bool cold = false, int upda
     },
 };
 
+Map<String, Object?> _hintedRow(String id, {required String title, int updatedAt = 1793000000000}) => {
+  'sessionId': id,
+  'updatedAt': updatedAt,
+  'running': false,
+  'blank': false,
+  'agentAvailable': true,
+  'projections': {
+    'kind': 'cached',
+    'asOfSeq': 7,
+    'values': {'title': title},
+  },
+};
+
 /// `session/projections` for a conversation the process isn't holding.
-Map<String, Object?> _folded({String? title, bool blank = false}) => {
+/// [prompt]/[response] add a two-turn `turnOutline`, the second turn's
+/// halves settable so the fold's fallbacks are exercised.
+Map<String, Object?> _folded({String? title, bool blank = false, String? prompt, String? response}) => {
   'kind': 'sequenced',
   'asOfSeq': 12,
   'values': {
     'title': title,
     'sessionListMetadata': {'blank': blank},
+    if (prompt != null || response != null)
+      'turnOutline': [
+        {'turn': 0, 'seq': 1, 'prompt': 'First ask', 'response': 'First answer'},
+        {'turn': 1, 'seq': 5, 'prompt': prompt ?? '', 'response': response ?? ''},
+      ],
   },
 };
 
@@ -144,6 +166,10 @@ Future<void> _settle() async {
 
 Map<String, String?> _titles(ProviderContainer c) => {
   for (final s in c.read(sessionsProvider).value!) s.sessionId: s.title,
+};
+
+Map<String, String?> _previews(ProviderContainer c) => {
+  for (final s in c.read(sessionsProvider).value!) s.sessionId: s.previewText,
 };
 
 void main() {
@@ -494,6 +520,51 @@ void main() {
       await debounce();
       expect(host.lists, hasLength(1));
     });
+  });
+
+  test('the second line folds from the same read\'s outline, newest turn first', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party', response: 'Garden party moved to Sunday');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'desktop': 'Plan the garden party'});
+    expect(_previews(c), {'desktop': 'Garden party moved to Sunday'});
+    // One read covers both, and the conversation was not opened.
+    expect(host.reads, ['desktop']);
+    expect(host.opened, isEmpty);
+  });
+
+  test('a turn still without its answer shows the prompt as the second line', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party', prompt: 'When is the garden party?');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_previews(c), {'desktop': 'When is the garden party?'});
+    // An outline with no text at all leaves the row without a second line.
+    host.rows = [_row('desktop', cold: true, updatedAt: 1793000050000)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party');
+    await c.read(sessionsProvider.notifier).refresh();
+    await _settle();
+    expect(_previews(c), {'desktop': null});
+  });
+
+  test('a row served a title is still read once, for its second line', () async {
+    // The projection cache answers `session/list` with a title but never a
+    // preview; the row is read once per version to fold one, then left alone.
+    host.rows = [_hintedRow('cached', title: 'Served title')];
+    host.folded['cached'] = _folded(title: 'Served title', response: 'Latest news');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'cached': 'Served title'});
+    expect(_previews(c), {'cached': 'Latest news'});
+    expect(host.reads, ['cached']);
+    // Unchanged rows are not read again.
+    await c.read(sessionsProvider.notifier).refresh();
+    await _settle();
+    expect(host.reads, ['cached']);
   });
 
   test('switching hosts drops the titles read on the previous one', () async {

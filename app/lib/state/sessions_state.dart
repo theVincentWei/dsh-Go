@@ -78,9 +78,11 @@ class PendingSessionArchive {
   }
 }
 
-/// A title read through `session/projections` for a row `session/list`
-/// served without one, as of the row's `updatedAt`.
-typedef SessionTitleRead = ({DateTime updatedAt, String? title, bool? blank});
+/// What one `session/projections` read returned for a row, as of the row's
+/// `updatedAt`: the title the list served without, and the second line
+/// (`preview`) folded from the same response's `turnOutline` — the
+/// conversation's latest message. Either may be null (the Host has none).
+typedef SessionTitleRead = ({DateTime updatedAt, String? title, String? preview, bool? blank});
 
 /// A title read that failed, as of the row's `updatedAt`: the [failures] in a
 /// row, and when the row may be asked again.
@@ -144,7 +146,8 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
   /// A host event in the debounce window changed a conversation.
   bool _debouncedChange = false;
 
-  /// Titles read for rows served without one, by session id (this host).
+  /// Row reads (title, second line) for rows served without them, by session
+  /// id (this host).
   final Map<String, SessionTitleRead> _titles = {};
 
   /// The title reads of the live connection ([_readTitles]): one queue that
@@ -344,19 +347,30 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
   List<SessionSummary> _rows() => _titles.isEmpty ? _all : [for (final s in _all) _withTitle(s)];
 
   /// [s] with what was read for it: its title where the list had none (an
-  /// older read beats 「未命名」 until the newer one lands), and blank only
+  /// older read beats 「未命名」 until the newer one lands), the second line
+  /// (`preview`, the conversation's latest message) likewise, and blank only
   /// while the row is as it was read.
   SessionSummary _withTitle(SessionSummary s) {
     final read = _titles[s.sessionId];
     // A conversation the Host holds is served first-hand.
     if (read == null || s.projectionsKind == 'sequenced') return s;
     final title = read.title?.trim();
-    final fill = (s.title?.trim().isEmpty ?? true) && title != null && title.isNotEmpty;
+    final preview = read.preview?.trim();
+    final fillTitle = (s.title?.trim().isEmpty ?? true) && title != null && title.isNotEmpty;
+    final fillPreview = (s.previewText?.trim().isEmpty ?? true) && preview != null && preview.isNotEmpty;
     final blank = read.blank == true && read.updatedAt == s.updatedAt;
-    if (!fill && !blank) return s;
+    if (!fillTitle && !fillPreview && !blank) return s;
     return s.copyWith(
       blank: blank ? true : null,
-      projections: fill ? SessionProjections(s.projections.asOfSeq, {...s.projections.values, 'title': title}) : null,
+      projections: (fillTitle || fillPreview)
+          ? SessionProjections(s.projections.asOfSeq, {
+            ...s.projections.values,
+            if (fillTitle) 'title': title,
+            // `preview` is what SessionSummary.previewText reads; the engine
+            // serves its own key once it grows one, and wins the ?? in the UI.
+            if (fillPreview) 'preview': preview,
+          })
+          : null,
     );
   }
 
@@ -364,7 +378,9 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
       !s.isSubagent &&
       !s.blank &&
       s.projectionsKind != 'sequenced' &&
-      (s.title?.trim().isEmpty ?? true) &&
+      // The second line rides the same read: a row wants one until it has its
+      // title and its `preview` — the list hints carry either only sometimes.
+      ((s.title?.trim().isEmpty ?? true) || (s.previewText?.trim().isEmpty ?? true)) &&
       !_archived.contains(s.sessionId) &&
       !(_titleReads?.running.contains(s.sessionId) ?? false) &&
       _titles[s.sessionId]?.updatedAt != s.updatedAt &&
@@ -419,7 +435,12 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
     var unsupported = false;
     try {
       final projections = await client.projections(row.sessionId);
-      read = (updatedAt: row.updatedAt, title: projections?.title, blank: projections?.blank);
+      read = (
+        updatedAt: row.updatedAt,
+        title: projections?.title,
+        preview: projections?.turnOutlinePreview,
+        blank: projections?.blank,
+      );
     } on DshRemoteException catch (error) {
       if (error.code == 'METHOD_NOT_ALLOWED' || error.code.endsWith('method-not-found')) {
         unsupported = true;
@@ -459,7 +480,9 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
       _titleFailures.remove(row.sessionId);
       final before = _titles[row.sessionId];
       _titles[row.sessionId] = read;
-      if (read.title != before?.title || read.blank != before?.blank) _titlesChanged(reads.ref);
+      if (read.title != before?.title || read.preview != before?.preview || read.blank != before?.blank) {
+        _titlesChanged(reads.ref);
+      }
     }
     if (identical(_titlesUnsupported, client)) {
       reads.queue.clear();
