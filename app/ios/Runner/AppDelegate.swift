@@ -32,6 +32,7 @@ import UserNotifications
 import Photos
 import PhotosUI
 import UniformTypeIdentifiers
+import ActivityKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -329,17 +330,23 @@ final class DshNotifyBridge: NSObject, UNUserNotificationCenterDelegate {
     case "openSettings":
       guard let url = URL(string: UIApplication.openSettingsURLString) else { result(false); return }
       UIApplication.shared.open(url) { opened in result(opened) }
-    case "live", "actionResult":
-      // The live activity needs a widget extension (phase 2+); actionResult's
-      // Android side updates the notification text — iOS already left the
+    case "live":
+      DshLiveActivityController.shared.handle(args, result)
+    case "actionResult":
+      // The Android side updates the notification text; iOS already left the
       // notification in place, so removal (handled / gone) is all that maps.
-      if call.method == "actionResult", let name = argString(args, "result"), name != "failed" {
+      if let name = argString(args, "result"), name != "failed" {
         cancel(ids: [identifier(group: argString(args, "group") ?? "", key: argString(args, "key") ?? "")], result)
       } else {
         result(nil)
       }
     case "liveStatus":
-      result(["native": true, "supported": false, "allowed": false, "settings": false, "xiaomiFocus": false])
+      if #available(iOS 16.2, *) {
+        let allowed = ActivityAuthorizationInfo().areActivitiesEnabled
+        result(["native": true, "supported": true, "allowed": allowed, "settings": false, "xiaomiFocus": false])
+      } else {
+        result(["native": true, "supported": false, "allowed": false, "settings": false, "xiaomiFocus": false])
+      }
     case "openLiveSettings": result(false)
     default: result(FlutterMethodNotImplemented)
     }
@@ -444,6 +451,111 @@ final class DshNotifyBridge: NSObject, UNUserNotificationCenterDelegate {
     default: break
     }
     completionHandler()
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live activity / Dynamic Island (dsh/notify 'live')
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Keeps the one ongoing live activity in sync with the pet's state pushes
+/// (`live` on dsh/notify, the same contract LiveActivity.kt serves on
+/// Android): start/update through ActivityKit; a done/failed state updates
+/// once and ends after a short moment. The UI lives in DshWidget.
+final class DshLiveActivityController: NSObject {
+  static let shared = DshLiveActivityController()
+
+  /// `Activity<DshLiveActivityAttributes>` under iOS 16.2 (stored as Any so
+  /// the class compiles against the 15.0 deployment target).
+  private var activity: Any?
+
+  func handle(_ push: [String: Any], _ result: @escaping FlutterResult) {
+    guard #available(iOS 16.2, *) else {
+      result(nil)
+      return
+    }
+    let enabled = (push["enabled"] as? Bool) ?? false
+    guard enabled, let activityMap = push["activity"] as? [String: Any] else {
+      endCurrent(result)
+      return
+    }
+
+    let kind = activityMap["kind"] as? String ?? "running"
+    let host = activityMap["host"] as? String ?? ""
+    let sessionId = activityMap["sessionId"] as? String ?? ""
+    let state = DshLiveActivityAttributes.ContentState(
+      kind: kind,
+      title: activityMap["title"] as? String ?? "DSH",
+      text: activityMap["text"] as? String ?? "",
+      chip: activityMap["chip"] as? String ?? "",
+      publicText: activityMap["publicText"] as? String ?? "",
+      mood: activityMap["mood"] as? String ?? "thinking",
+      startedAt: (activityMap["sinceMs"] as? NSNumber).map {
+        Date(timeIntervalSince1970: $0.doubleValue / 1000)
+      }
+    )
+    let key = "\(host)|\(sessionId)"
+
+    Task { @MainActor in
+      guard #available(iOS 16.2, *) else {
+        result(nil)
+        return
+      }
+      let current = self.activity as? Activity<DshLiveActivityAttributes>
+      if let current {
+        await current.update(ActivityContent(state: state, staleDate: nil))
+        if kind == "done" || kind == "failed" {
+          await Self.endAfterMoment(current)
+          self.activity = nil
+        }
+        result(nil)
+      } else {
+        do {
+          let attributes = DshLiveActivityAttributes(conversationKey: key)
+          let started = try Activity.request(
+            attributes: attributes, content: ActivityContent(state: state, staleDate: nil))
+          self.activity = started
+          if kind == "done" || kind == "failed" {
+            await Self.endAfterMoment(started)
+            self.activity = nil
+          }
+          result(nil)
+        } catch {
+          NSLog("DSHLive request failed: %@", error.localizedDescription)
+          result(FlutterError(code: "failed", message: error.localizedDescription, details: nil))
+        }
+      }
+    }
+  }
+
+  /// 「完成」/「出错」 keeps its moment on the island, then clears itself.
+  @available(iOS 16.2, *)
+  private static func endAfterMoment(_ activity: Activity<DshLiveActivityAttributes>) async {
+    try? await Task.sleep(nanoseconds: 4_000_000_000)
+    await activity.end(
+      ActivityContent(state: activity.content.state, staleDate: nil),
+      dismissalPolicy: .immediate)
+  }
+
+  private func endCurrent(_ result: @escaping FlutterResult) {
+    guard #available(iOS 16.2, *) else {
+      result(nil)
+      return
+    }
+    let current = activity as? Activity<DshLiveActivityAttributes>
+    activity = nil
+    Task { @MainActor in
+      guard #available(iOS 16.2, *) else {
+        result(nil)
+        return
+      }
+      if let current {
+        await current.end(
+          ActivityContent(state: current.content.state, staleDate: nil),
+          dismissalPolicy: .immediate)
+      }
+      result(nil)
+    }
   }
 }
 
