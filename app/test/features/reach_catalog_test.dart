@@ -15,7 +15,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../search/support.dart';
 import '../shell/golden_harness.dart';
 
-FeatureItem item(String id) => featureSections.expand((section) => section.items).singleWhere((item) => item.id == id);
+FeatureItem item(String id) => [
+  ...featureSections.expand((section) => section.items),
+  ...currentChatTools,
+].singleWhere((item) => item.id == id);
 
 class _Inbox extends DsBotInboxController {
   @override

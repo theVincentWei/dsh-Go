@@ -764,7 +764,10 @@ Future<void> openNativePage(BuildContext context, WidgetRef ref, String page, {S
       await navigator.push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
       return;
   }
-  final item = [for (final section in featureSections) ...section.items].where((i) => i.id == page).firstOrNull;
+  final item = [
+    for (final section in featureSections) ...section.items,
+    ...currentChatTools,
+  ].where((i) => i.id == page).firstOrNull;
   if (item == null) {
     // Settings left 全部功能 for 设置; their ids still open the same page.
     if (settingsPageForLink(page, sessionId: sessionId) case final settings? when context.mounted) {

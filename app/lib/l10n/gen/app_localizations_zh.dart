@@ -2917,9 +2917,6 @@ class L10nZh extends L10n {
   String get brandZhihu => '知乎';
 
   @override
-  String get catalogCurrentChat => '当前对话';
-
-  @override
   String get catalogChatDetails => '对话详情';
 
   @override
@@ -2956,28 +2953,10 @@ class L10nZh extends L10n {
   String get catalogJobsSummary => '查看输出、停止';
 
   @override
-  String get catalogPlanGoal => '计划与目标';
-
-  @override
-  String get catalogPlanGoalSummary => '目标、计划与待办';
-
-  @override
   String get catalogSkills => '技能';
 
   @override
   String get catalogSkillsSummary => '在对话里用技能';
-
-  @override
-  String get catalogSubagents => '子代理';
-
-  @override
-  String get catalogSubagentsSummary => '谱系与状态，点开接着聊';
-
-  @override
-  String get catalogReference => '引用文件和对话';
-
-  @override
-  String get catalogReferenceSummary => '在输入框用 @ 引用';
 
   @override
   String get catalogAutomationSection => '自动化';
@@ -4263,6 +4242,9 @@ class L10nZh extends L10n {
 
   @override
   String get chatCurrentChat => '当前会话';
+
+  @override
+  String get chatNowTools => '现在要用的';
 
   @override
   String get commonCancel => '取消';

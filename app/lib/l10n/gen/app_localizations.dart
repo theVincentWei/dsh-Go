@@ -5354,12 +5354,6 @@ abstract class L10n {
   /// **'知乎'**
   String get brandZhihu;
 
-  /// No description provided for @catalogCurrentChat.
-  ///
-  /// In zh, this message translates to:
-  /// **'当前对话'**
-  String get catalogCurrentChat;
-
   /// No description provided for @catalogChatDetails.
   ///
   /// In zh, this message translates to:
@@ -5432,18 +5426,6 @@ abstract class L10n {
   /// **'查看输出、停止'**
   String get catalogJobsSummary;
 
-  /// No description provided for @catalogPlanGoal.
-  ///
-  /// In zh, this message translates to:
-  /// **'计划与目标'**
-  String get catalogPlanGoal;
-
-  /// No description provided for @catalogPlanGoalSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'目标、计划与待办'**
-  String get catalogPlanGoalSummary;
-
   /// No description provided for @catalogSkills.
   ///
   /// In zh, this message translates to:
@@ -5455,30 +5437,6 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'在对话里用技能'**
   String get catalogSkillsSummary;
-
-  /// No description provided for @catalogSubagents.
-  ///
-  /// In zh, this message translates to:
-  /// **'子代理'**
-  String get catalogSubagents;
-
-  /// No description provided for @catalogSubagentsSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'谱系与状态，点开接着聊'**
-  String get catalogSubagentsSummary;
-
-  /// No description provided for @catalogReference.
-  ///
-  /// In zh, this message translates to:
-  /// **'引用文件和对话'**
-  String get catalogReference;
-
-  /// No description provided for @catalogReferenceSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'在输入框用 @ 引用'**
-  String get catalogReferenceSummary;
 
   /// No description provided for @catalogAutomationSection.
   ///
@@ -7825,6 +7783,12 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'当前会话'**
   String get chatCurrentChat;
+
+  /// No description provided for @chatNowTools.
+  ///
+  /// In zh, this message translates to:
+  /// **'现在要用的'**
+  String get chatNowTools;
 
   /// No description provided for @commonCancel.
   ///

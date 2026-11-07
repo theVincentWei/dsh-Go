@@ -303,7 +303,7 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                                     onTap: widget.onOpenSettings,
                                     child: Tooltip(
                                       message: l10n.commonSettings,
-                                      child: Center(child: Icon(AppIcons.settings, size: 22, color: colors.onSurface)),
+                                      child: Center(child: Icon(AppIcons.info, size: 22, color: colors.onSurface)),
                                     ),
                                   ),
                                 ),
