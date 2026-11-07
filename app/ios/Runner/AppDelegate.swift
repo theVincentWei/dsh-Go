@@ -68,6 +68,72 @@ import UniformTypeIdentifiers
       default: result(FlutterMethodNotImplemented)
       }
     }
+
+    // `dshgo://…` links and opened files (SceneDelegate forwards the URLs).
+    DshLinksBridge.shared.register(on: messenger)
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deep links & opened files (dsh/links)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Forwards `dshgo://…` links and opened `file://` documents to Dart over the
+/// `dsh/links` channel, in the shape LinksPlugin.kt uses on Android: the Dart
+/// side sets itself as the handler, calls `ready`, and the native side pushes
+/// `link` calls with `{'uri': …}`. Links that arrive before Dart's `ready`
+/// (the cold-start link) are held and flushed in order when it lands.
+final class DshLinksBridge: NSObject {
+  static let shared = DshLinksBridge()
+
+  private var channel: FlutterMethodChannel?
+  private var dartReady = false
+  private var held: [URL] = []
+  private var lastForwarded: String?
+  private var lastForwardedAt = Date.distantPast
+
+  func register(on messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: "dsh/links", binaryMessenger: messenger)
+    self.channel = channel
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self, call.method == "ready" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      dartReady = true
+      let held = self.held
+      self.held = []
+      for url in held {
+        self.forward(url)
+      }
+      result(true)
+    }
+  }
+
+  /// One incoming URL (SceneDelegate is the only caller). `dshgo://` links
+  /// and `file://` documents pass; identical repeats within two seconds are
+  /// dropped (scene + legacy application delegate can both observe one open).
+  func handleOpen(_ url: URL) {
+    let scheme = url.scheme?.lowercased()
+    guard scheme == "dshgo" || url.isFileURL else { return }
+    NSLog("DSHLinks open %@", url.absoluteString)
+    let now = Date()
+    if url.absoluteString == lastForwarded, now.timeIntervalSince(lastForwardedAt) < 2 {
+      return
+    }
+    lastForwarded = url.absoluteString
+    lastForwardedAt = now
+    if dartReady {
+      forward(url)
+    } else {
+      held.append(url)
+    }
+  }
+
+  private func forward(_ url: URL) {
+    lastForwarded = url.absoluteString
+    lastForwardedAt = Date()
+    channel?.invokeMethod("link", arguments: ["uri": url.absoluteString])
   }
 }
 

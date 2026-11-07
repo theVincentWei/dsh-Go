@@ -26,6 +26,54 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>保存对话里的图片到相册的「DSH Go」相簿</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.github.ccch1mneyyy.dshApp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dshgo</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>DSH Go 分享码</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>io.github.ccch1mneyyy.dshapp.share-code</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>io.github.ccch1mneyyy.dshapp.share-code</string>
+			<key>UTTypeDescription</key>
+			<string>DSH Go 分享码</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>dshgo</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.dshgo+json</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
