@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/connection_state.dart';
 import '../../state/sessions_state.dart';
-import '../common/app_sheet.dart' show groupTitleStyle;
+import '../features/all_features_page.dart' show FeatureGroupLabel;
 import '../common/tile_grid.dart';
 import '../theme/app_icons.dart';
 import 'applet_bridge.dart';
@@ -77,7 +77,7 @@ class AppletGroup extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('小程序', style: groupTitleStyle(context)),
+            FeatureGroupLabel('星河'),
             TileGrid(
               columns: 4,
               spacing: 16,
