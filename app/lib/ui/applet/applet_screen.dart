@@ -50,7 +50,7 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
   bool _offline = false;
   String? _loadError;
 
-  bool _capsuleExpanded = true;
+  final ValueNotifier<bool> _capsuleExpanded = ValueNotifier<bool>(true);
   Timer? _capsuleIdleTimer;
   Brightness _brightness = Brightness.light;
   String _localeName = 'zh';
@@ -75,6 +75,7 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
   @override
   void dispose() {
     _capsuleIdleTimer?.cancel();
+    _capsuleExpanded.dispose();
     super.dispose();
   }
 
@@ -216,11 +217,11 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
   }
 
   void _onUiMessage(JavaScriptMessage message) {
-    if (!_capsuleExpanded) return;
+    if (!_capsuleExpanded.value) return;
     _capsuleIdleTimer?.cancel();
-    setState(() => _capsuleExpanded = false);
+    _capsuleExpanded.value = false;
     _capsuleIdleTimer = Timer(_capsuleIdle, () {
-      if (mounted) setState(() => _capsuleExpanded = true);
+      _capsuleExpanded.value = true;
     });
   }
 
@@ -257,7 +258,7 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
 
   void _collapseCapsuleInteractively() {
     _capsuleIdleTimer?.cancel();
-    setState(() => _capsuleExpanded = false);
+    _capsuleExpanded.value = false;
   }
 
   void _showMenu() {
@@ -325,13 +326,16 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
         body: Stack(
           children: <Widget>[
             if (_controller != null && !_offline && _loadError == null)
-              WebViewWidget(controller: _controller!),
-            AppletCapsule(
-              expanded: _capsuleExpanded,
-              topInset: _safeArea.top,
-              onExpand: () => setState(() => _capsuleExpanded = true),
-              onMenu: _showMenu,
-              onClose: () => Navigator.of(context).pop(),
+              RepaintBoundary(child: WebViewWidget(controller: _controller!)),
+            ValueListenableBuilder<bool>(
+              valueListenable: _capsuleExpanded,
+              builder: (BuildContext context, bool expanded, _) => AppletCapsule(
+                expanded: expanded,
+                topInset: _safeArea.top,
+                onExpand: () => _capsuleExpanded.value = true,
+                onMenu: _showMenu,
+                onClose: () => Navigator.of(context).pop(),
+              ),
             ),
             if (_loading || _offline || _loadError != null)
               Positioned.fill(
