@@ -22,7 +22,6 @@ import '../settings/settings_widgets.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import '../applet/applet_launcher_screen.dart';
 import '../web/local_web_screen.dart';
 import 'engine_status.dart';
 import 'local_uninstall.dart';
@@ -87,11 +86,6 @@ class EngineScreen extends ConsumerWidget {
           icon: AppIcons.webApp,
           tooltip: l10n.commonWeb,
           onPressed: status.phase == RuntimePhase.running ? () => _push(context, const LocalWebScreen()) : null,
-        ),
-        GlassIconButton(
-          icon: AppIcons.plugin,
-          tooltip: l10n.appletEntry,
-          onPressed: () => _push(context, const AppletLauncherScreen()),
         ),
       ],
       hero: PageHero(
