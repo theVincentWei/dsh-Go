@@ -1,0 +1,126 @@
+direction: right
+
+phone: 📱 聊天页（竖屏 · 从上往下看） {
+  direction: down
+
+  header: "🟦 顶栏\nheader.actions：内置按钮排序/隐藏\n+ 最多 3 个自定义按钮" {
+    style.fill: "#E8F0FE"
+    style.stroke: "#4B67B4"
+  }
+
+  msgflow: 消息流 {
+    bubble: "消息气泡\nApp 自有 · 不可插" {
+      style.fill: "#F1F3F6"
+      style.stroke: "#C4CBD6"
+    }
+    toolcard: "🟩 工具结果卡片\ntool.presentationMeta → dsh-go/view" {
+      style.fill: "#E7F6EE"
+      style.stroke: "#0A7D5B"
+    }
+    turnnote: "🟩 回合脚注\nturn.note（每插件 1 条，可藏）" {
+      style.fill: "#E7F6EE"
+      style.stroke: "#0A7D5B"
+    }
+  }
+
+  strip: "🟩 状态条\ncomposer.strip（输入框上方常驻 1 行）" {
+    style.fill: "#E7F6EE"
+    style.stroke: "#0A7D5B"
+  }
+
+  capsrow: 胶囊行 {
+    direction: right
+    quick: "🟦 快捷胶囊\ncomposer.quickActions（≤8）" {
+      style.fill: "#E8F0FE"
+      style.stroke: "#4B67B4"
+    }
+    plugincaps: "🟩 插件胶囊\ncomposer.actions（每插件 ≤2）" {
+      style.fill: "#E7F6EE"
+      style.stroke: "#0A7D5B"
+    }
+    entry: "🟦「插件」入口胶囊\npluginCapsule（可藏）" {
+      style.fill: "#E8F0FE"
+      style.stroke: "#4B67B4"
+    }
+  }
+
+  input: "输入框 + 发送（App 自有）\n🟩「+」加号面板 composer.tools（≤2）" {
+    style.fill: "#F1F3F6"
+    style.stroke: "#C4CBD6"
+  }
+}
+
+drawer: 会话抽屉（对话列表） {
+  groups: "🟦 drawer.groups / sort / filter\n分组显隐 · 排序 · 筛选" {
+    style.fill: "#E8F0FE"
+    style.stroke: "#4B67B4"
+  }
+  sidepanel: "🟩 sidebar 插件面板" {
+    style.fill: "#E7F6EE"
+    style.stroke: "#0A7D5B"
+  }
+}
+
+detail: 对话详情页 {
+  tab: "🟩 session.tab 插件页签\n每插件一张卡 · 数据只属本会话" {
+    style.fill: "#E7F6EE"
+    style.stroke: "#0A7D5B"
+  }
+  info: "🟩 session.actions\n右侧栏「信息」里（≤2）" {
+    style.fill: "#E7F6EE"
+    style.stroke: "#0A7D5B"
+  }
+}
+
+chatpanel: "🟩 chat.panel 插件弹层\n点「插件」入口胶囊打开" {
+  style.fill: "#E7F6EE"
+  style.stroke: "#0A7D5B"
+}
+
+features: "🟩 全部功能页\nfeatures 面板集中页" {
+  style.fill: "#E7F6EE"
+  style.stroke: "#0A7D5B"
+}
+
+newchat: "🟦 新对话页\nemptyState.suggestions 建议卡（≤6）" {
+  style.fill: "#E8F0FE"
+  style.stroke: "#4B67B4"
+}
+
+global: "🟦 全局配置（整个 App 生效）\n主题 theme（深浅 + 6 预设色/自定义色）\n密度 density · 宠物 pet 位置\n平板快捷键 shortcuts（≤20）\n隐藏清单 hide（脚注/token/思考/鲸尾…）\nplugins.seats（每插件每座位 native/island/web/hidden）" {
+  style.fill: "#E8F0FE"
+  style.stroke: "#4B67B4"
+}
+
+# ── 跳转关系 ──
+phone.header -> detail.tab: "点「详情」ⓘ 进入" {
+  style.stroke-dash: 3
+}
+phone.capsrow.entry -> chatpanel: "点开" {
+  style.stroke-dash: 3
+}
+phone -> drawer: "侧滑呼出" {
+  style.stroke-dash: 3
+}
+phone -> newchat: "新对话进入" {
+  style.stroke-dash: 3
+}
+drawer.sidepanel -> features: "「全部功能」聚合入口" {
+  style.stroke-dash: 3
+}
+
+legend: 图例 {
+  uijson: "🟦 ui.json 配置（dsh-go-ui 技能）" {
+    style.fill: "#E8F0FE"
+    style.stroke: "#4B67B4"
+  }
+  plugin: "🟩 插件座位（dsh-go-plugin 技能）" {
+    style.fill: "#E7F6EE"
+    style.stroke: "#0A7D5B"
+  }
+  fixed: "灰 = App 自有界面（unseatable，改不了）" {
+    style.fill: "#F1F3F6"
+    style.stroke: "#C4CBD6"
+  }
+  near: bottom-center
+}
