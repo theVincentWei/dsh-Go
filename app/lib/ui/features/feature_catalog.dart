@@ -187,90 +187,6 @@ const settingsFeatureSection = 'settings';
 /// What 全部功能 holds: things to do now. Settings live in 设置; the last
 /// group is a few shortcuts there (docs/design/settings-ia.md §4.6).
 final featureSections = <FeatureSection>[
-  FeatureSection.localized((l10n) => l10n.catalogCurrentChat, [
-    FeatureItem.localized(
-      id: 'session-detail',
-      title: (l10n) => l10n.catalogChatDetails,
-      summary: (l10n) => l10n.catalogChatDetailsSummary,
-      icon: AppIcons.sessionDetails,
-      needsSession: true,
-      action: (context, ref, id) => SessionDetailPage.open(context, _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'artifacts',
-      title: (l10n) => l10n.catalogArtifacts,
-      summary: (l10n) => l10n.catalogArtifactsSummary,
-      icon: AppIcons.artifacts,
-      needsSession: true,
-      native: (id) => SessionArtifactsPage(sessionId: _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'files',
-      title: (l10n) => l10n.catalogFiles,
-      summary: (l10n) => l10n.catalogFilesSummary,
-      icon: AppIcons.files,
-      tile: FeatureKind.files,
-      needsSession: true,
-      native: (id) => WorkspaceFilesPage(sessionId: _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'terminal',
-      title: (l10n) => l10n.catalogTerminal,
-      summary: (l10n) => l10n.catalogTerminalSummary,
-      icon: AppIcons.terminal,
-      tile: FeatureKind.terminal,
-      needsSession: true,
-      native: (id) => TerminalPage(sessionId: _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'export',
-      title: (l10n) => l10n.catalogExport,
-      summary: (l10n) => l10n.catalogExportSummary,
-      icon: AppIcons.exportLog,
-      needsSession: true,
-      native: (id) => SessionExportPage(sessionId: _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'jobs',
-      title: (l10n) => l10n.catalogJobs,
-      summary: (l10n) => l10n.catalogJobsSummary,
-      icon: AppIcons.jobs,
-      needsSession: true,
-      native: (id) => JobsPage(sessionId: _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'plan-goal',
-      title: (l10n) => l10n.catalogPlanGoal,
-      summary: (l10n) => l10n.catalogPlanGoalSummary,
-      icon: AppIcons.goal,
-      needsSession: true,
-      action: (context, ref, id) => SessionDetailPage.open(context, _session(id), tab: SessionTab.progress),
-    ),
-    FeatureItem.localized(
-      id: 'skills',
-      title: (l10n) => l10n.catalogSkills,
-      summary: (l10n) => l10n.catalogSkillsSummary,
-      icon: AppIcons.skill,
-      needsSession: true,
-      native: (id) => SkillsPage(sessionId: _session(id)),
-    ),
-    FeatureItem.localized(
-      id: 'subagents',
-      title: (l10n) => l10n.catalogSubagents,
-      summary: (l10n) => l10n.catalogSubagentsSummary,
-      icon: AppIcons.subagents,
-      tile: FeatureKind.subagents,
-      needsSession: true,
-      action: (context, ref, id) => SessionDetailPage.open(context, _session(id), tab: SessionTab.subagents),
-    ),
-    FeatureItem.localized(
-      id: 'reference',
-      title: (l10n) => l10n.catalogReference,
-      summary: (l10n) => l10n.catalogReferenceSummary,
-      icon: AppIcons.mention,
-      action: _backToChat,
-    ),
-  ]),
   FeatureSection.localized((l10n) => l10n.catalogAutomationSection, [
     FeatureItem.localized(
       id: 'schedules',
@@ -415,6 +331,70 @@ final featureSections = <FeatureSection>[
       native: (_) => const RemoteScreen(),
     ),
   ], id: settingsFeatureSection),
+];
+
+/// 当前对话的工具：已不在全部功能（2026-11-07 拍板），住进聊天页右上角
+/// ⓘ › 当前对话（`ui/chat/current_chat_page.dart`）。id 仍是插件 `open`
+/// 动作与 ui.json 的合法目标：`UiSchema.pages`、`native_taps.dart` 都认这份数据。
+final currentChatTools = <FeatureItem>[
+  FeatureItem.localized(
+    id: 'artifacts',
+    title: (l10n) => l10n.catalogArtifacts,
+    summary: (l10n) => l10n.catalogArtifactsSummary,
+    icon: AppIcons.artifacts,
+    needsSession: true,
+    native: (id) => SessionArtifactsPage(sessionId: _session(id)),
+  ),
+  FeatureItem.localized(
+    id: 'files',
+    title: (l10n) => l10n.catalogFiles,
+    summary: (l10n) => l10n.catalogFilesSummary,
+    icon: AppIcons.files,
+    tile: FeatureKind.files,
+    needsSession: true,
+    native: (id) => WorkspaceFilesPage(sessionId: _session(id)),
+  ),
+  FeatureItem.localized(
+    id: 'terminal',
+    title: (l10n) => l10n.catalogTerminal,
+    summary: (l10n) => l10n.catalogTerminalSummary,
+    icon: AppIcons.terminal,
+    tile: FeatureKind.terminal,
+    needsSession: true,
+    native: (id) => TerminalPage(sessionId: _session(id)),
+  ),
+  FeatureItem.localized(
+    id: 'export',
+    title: (l10n) => l10n.catalogExport,
+    summary: (l10n) => l10n.catalogExportSummary,
+    icon: AppIcons.exportLog,
+    needsSession: true,
+    native: (id) => SessionExportPage(sessionId: _session(id)),
+  ),
+  FeatureItem.localized(
+    id: 'jobs',
+    title: (l10n) => l10n.catalogJobs,
+    summary: (l10n) => l10n.catalogJobsSummary,
+    icon: AppIcons.jobs,
+    needsSession: true,
+    native: (id) => JobsPage(sessionId: _session(id)),
+  ),
+  FeatureItem.localized(
+    id: 'skills',
+    title: (l10n) => l10n.catalogSkills,
+    summary: (l10n) => l10n.catalogSkillsSummary,
+    icon: AppIcons.skill,
+    needsSession: true,
+    native: (id) => SkillsPage(sessionId: _session(id)),
+  ),
+  FeatureItem.localized(
+    id: 'session-detail',
+    title: (l10n) => l10n.catalogChatDetails,
+    summary: (l10n) => l10n.catalogChatDetailsSummary,
+    icon: AppIcons.sessionDetails,
+    needsSession: true,
+    action: (context, ref, id) => SessionDetailPage.open(context, _session(id)),
+  ),
 ];
 
 /// The section the host's plugin panels join.

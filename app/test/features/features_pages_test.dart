@@ -11,12 +11,12 @@ import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/common/app_sheet.dart';
 import 'package:dsh_app/ui/remote/remote_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
+import 'package:dsh_app/ui/chat/current_chat_page.dart';
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
 import 'package:dsh_app/ui/features/permission_page.dart';
 import 'package:dsh_app/ui/features/schedules_page.dart';
 import 'package:dsh_app/ui/features/skills_page.dart';
-import 'package:dsh_app/ui/terminal/terminal_page.dart';
 import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:dsh_app/ui/web/web_target.dart';
 import 'package:dsh_client/dsh_client.dart';
@@ -214,14 +214,6 @@ void main() {
         overrides: [..._fixed(), dshWebOpenerProvider.overrideWithValue((context, ref, target) => opened.add(target))],
       );
 
-      // Native terminal keeps its conversation.
-      await _reveal(tester, find.text('终端'));
-      await tester.tap(find.text('终端'));
-      await tester.pumpAndSettle();
-      expect(find.byType(TerminalPage), findsOneWidget);
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
-
       // The tile opens the native automation page, without a web fallback.
       await _reveal(tester, find.text('自动化任务'));
       await tester.tap(find.text('自动化任务'));
@@ -245,85 +237,6 @@ void main() {
       await tester.tap(find.text('网页版'));
       await pumpFrames(tester);
       expect(opened.last, const DshWebTarget());
-    });
-
-    testWidgets('引用 goes back to the chat, where @ lives', (tester) async {
-      usePhoneView(tester);
-      await tester.pumpWidget(
-        testApp(
-          Builder(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AllFeaturesPage())),
-                  child: const Text('聊天'),
-                ),
-              ),
-            ),
-          ),
-          overrides: _fixed(),
-        ),
-      );
-      await tester.tap(find.text('聊天'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AllFeaturesPage), findsOneWidget);
-      await _reveal(tester, find.text('引用文件和对话'));
-      await tester.tap(find.text('引用文件和对话'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AllFeaturesPage), findsNothing);
-      expect(find.text('聊天'), findsOneWidget);
-    });
-
-    testWidgets('conversation items are disabled without a conversation', (tester) async {
-      final opened = <DshWebTarget>[];
-      await _pump(
-        tester,
-        const AllFeaturesPage(),
-        overrides: [
-          ..._fixed(current: null),
-          dshWebOpenerProvider.overrideWithValue((context, ref, target) => opened.add(target)),
-        ],
-      );
-      // 对话卡已删:未选中会话时,按会话的项在 4 列网格里淡到 45% 且不可点。
-      Future<double> tileOpacity(String title) async {
-        await tester.scrollUntilVisible(find.text(title), 200, scrollable: find.byType(Scrollable).first);
-        await pumpFrames(tester);
-        return tester
-            .widget<AnimatedOpacity>(find.ancestor(of: find.text(title), matching: find.byType(AnimatedOpacity)).first)
-            .opacity;
-      }
-
-      expect(await tileOpacity('后台任务'), 0.45);
-      expect(await tileOpacity('终端'), 0.45);
-      // Not bound to a conversation: full opacity.
-      expect(await tileOpacity('网页版'), 1.0);
-
-      Future<void> tapItem(String title) async {
-        // 固定头部(AppPage compactHeader)让视口更矮:滚到后面的目标后,更早的
-        // 目标可能已被列表甩出缓存(元素不在树里),ensureVisible 会拿不到它。
-        // 先一路滚回顶部,再向下把目标滚进视口。
-        final scrollable = find.byType(Scrollable).first;
-        double offset() => tester.state<ScrollableState>(scrollable).position.pixels;
-        while (offset() > 0) {
-          await tester.drag(scrollable, const Offset(0, 600));
-          await pumpFrames(tester);
-        }
-        await tester.scrollUntilVisible(find.text(title), 200, scrollable: scrollable);
-        await pumpFrames(tester);
-        await tester.tap(find.text(title), warnIfMissed: false);
-      }
-
-      await tapItem('后台任务');
-      await tapItem('终端');
-      await pumpFrames(tester);
-      expect(find.byType(JobsPage), findsNothing);
-      expect(opened, isEmpty);
-      // Not bound to a conversation: still opens (the web home here).
-      await _reveal(tester, find.text('网页版'));
-      await tester.tap(find.text('网页版'));
-      await pumpFrames(tester);
-      expect(opened.single, const DshWebTarget());
     });
   });
 
@@ -532,6 +445,27 @@ void main() {
       expect(carrier.argsOf('job/kill').single, {
         'request': {'sessionId': 's1', 'jobId': 'job-1'},
       });
+    });
+
+    testWidgets('当前对话页:工具 7 行 + 设置卡', (tester) async {
+      carrier.handlers['session/projections'] = (_) => {
+        'kind': 'sequenced',
+        'asOfSeq': 3,
+        'values': {
+          'permissions': {'currentValue': 'read-only'},
+        },
+      };
+      carrier.handlers['commands/execute'] = (_) => {
+        'commandId': 'c1',
+        'result': {'kind': 'success', 'text': 'ok'},
+      };
+      await _pump(tester, const CurrentChatPage(sessionId: 's1'), overrides: live());
+      expect(find.text('现在要用的'), findsOneWidget);
+      for (final title in ['产出的文件', '文件', '终端', '导出对话日志', '后台任务', '技能', '对话详情']) {
+        expect(find.text(title), findsOneWidget, reason: title);
+      }
+      expect(find.text('本对话'), findsOneWidget);
+      expect(find.text('手机操控'), findsOneWidget);
     });
   });
 

@@ -309,5 +309,6 @@
   "chatTodoItemSemantics": "{content}, {state}",
   "chatMentionSemantics": "{kind}: {label}",
   "chatArtifactSemantics": "{name}, {description}",
-  "chatCurrentChat": "Current chat"
+  "chatCurrentChat": "Current chat",
+  "chatNowTools": "For right now"
 }

@@ -730,5 +730,6 @@
       }
     }
   },
-  "chatCurrentChat": "当前会话"
+  "chatCurrentChat": "当前会话",
+  "chatNowTools": "现在要用的"
 }

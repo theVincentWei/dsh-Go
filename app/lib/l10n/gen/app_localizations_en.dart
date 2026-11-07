@@ -3071,9 +3071,6 @@ class L10nEn extends L10n {
   String get brandZhihu => 'Zhihu';
 
   @override
-  String get catalogCurrentChat => 'Current chat';
-
-  @override
   String get catalogChatDetails => 'Chat details';
 
   @override
@@ -3110,28 +3107,10 @@ class L10nEn extends L10n {
   String get catalogJobsSummary => 'View output or stop jobs';
 
   @override
-  String get catalogPlanGoal => 'Plan and goal';
-
-  @override
-  String get catalogPlanGoalSummary => 'Goals, plans and to-dos';
-
-  @override
   String get catalogSkills => 'Skills';
 
   @override
   String get catalogSkillsSummary => 'Use skills in chats';
-
-  @override
-  String get catalogSubagents => 'Subagents';
-
-  @override
-  String get catalogSubagentsSummary => 'Lineage and status; tap to chat';
-
-  @override
-  String get catalogReference => 'Reference files and chats';
-
-  @override
-  String get catalogReferenceSummary => 'Use @ in the composer';
 
   @override
   String get catalogAutomationSection => 'Automation';
@@ -4538,6 +4517,9 @@ class L10nEn extends L10n {
 
   @override
   String get chatCurrentChat => 'Current chat';
+
+  @override
+  String get chatNowTools => 'For right now';
 
   @override
   String get commonCancel => 'Cancel';

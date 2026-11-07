@@ -23,6 +23,8 @@ void main() {
     final cards = {
       for (final s in featureSections)
         for (final i in s.items) i.id,
+      // 当前对话的工具已不在全部功能,但仍是合法的 open 目标。
+      for (final i in currentChatTools) i.id,
     };
     for (final page in UiSchema.pages) {
       if (page == 'new-chat' || page == 'settings' || cards.contains(page)) continue;
