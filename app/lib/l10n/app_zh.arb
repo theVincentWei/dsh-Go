@@ -938,6 +938,26 @@
     }
   },
   "activityToolListSeparator": "、",
+  "appletEntry": "小程序",
+  "searchKwApplet": "小程序,应用,容器,applet,mini,app",
+  "appletEmpty": "还没有小程序。让 Agent 在主机的 ~/dsh/apps 下创建一个（见 ~/dsh/apps/README.md）。",
+  "appletOffline": "未连接主机",
+  "appletLoadFailed": "加载失败",
+  "appletRetry": "重试",
+  "appletMenuRefresh": "刷新",
+  "appletMenuAbout": "关于",
+  "appletAboutBody": "{appId} · 版本 {version}",
+  "@appletAboutBody": {
+    "placeholders": {
+      "appId": {
+        "type": "String"
+      },
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "appletAllFeatures": "全部功能",
   "botsFolderGone": "这个文件夹已经不在了",
   "botsFolderReadFailed": "没能读取这个文件夹",
   "botsFolderOpenFailed": "打不开这个文件夹",

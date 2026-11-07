@@ -1540,6 +1540,38 @@ class L10nZh extends L10n {
   String get activityToolListSeparator => '、';
 
   @override
+  String get appletEntry => '小程序';
+
+  @override
+  String get searchKwApplet => '小程序,应用,容器,applet,mini,app';
+
+  @override
+  String get appletEmpty => '还没有小程序。让 Agent 在主机的 ~/dsh/apps 下创建一个（见 ~/dsh/apps/README.md）。';
+
+  @override
+  String get appletOffline => '未连接主机';
+
+  @override
+  String get appletLoadFailed => '加载失败';
+
+  @override
+  String get appletRetry => '重试';
+
+  @override
+  String get appletMenuRefresh => '刷新';
+
+  @override
+  String get appletMenuAbout => '关于';
+
+  @override
+  String appletAboutBody(String appId, int version) {
+    return '$appId · 版本 $version';
+  }
+
+  @override
+  String get appletAllFeatures => '全部功能';
+
+  @override
   String get botsFolderGone => '这个文件夹已经不在了';
 
   @override
