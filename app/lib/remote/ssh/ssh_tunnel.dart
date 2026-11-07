@@ -249,9 +249,10 @@ final class IsolateSshTunnel implements SshTunnel {
   Isolate? _isolate;
   SendPort? _inbox;
   ReceivePort? _events;
+  ReceivePort? _death;
   Future<SendPort>? _starting;
-  bool _broken = false;
   bool _closed = false;
+  bool _alive = false;
   final _pending = <int, Completer<Object?>>{};
   HostKeyCheck? _verify;
   final _lostController = StreamController<void>.broadcast();
@@ -297,13 +298,13 @@ final class IsolateSshTunnel implements SshTunnel {
 
   @override
   void reset() {
-    if (_closed || _broken) return;
+    if (_closed || !_alive) return;
     unawaited(_ask('reset', const {}));
   }
 
   @override
   void debugDropTransport() {
-    if (_closed || _broken) return;
+    if (_closed || !_alive) return;
     unawaited(_ask('debugDrop', const {}));
   }
 
@@ -311,9 +312,9 @@ final class IsolateSshTunnel implements SshTunnel {
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
-    if (!_broken) {
+    if (_alive) {
       try {
-        await (_inbox != null ? _ask('close', const {}) : Future.value());
+        await _ask('close', const {});
       } on Object {
         // The isolate is gone either way; killing it below is enough.
       }
@@ -322,9 +323,11 @@ final class IsolateSshTunnel implements SshTunnel {
     _isolate?.kill(priority: Isolate.immediate);
     _isolate = null;
     _events?.close();
+    _death?.close();
     _events = null;
+    _death = null;
     _inbox = null;
-    _broken = true;
+    _alive = false;
     for (final completer in _pending.values) {
       completer.completeError(const _WorkerGone());
     }
@@ -332,7 +335,7 @@ final class IsolateSshTunnel implements SshTunnel {
   }
 
   Future<void> _ask(String op, Map<String, Object?> args) async {
-    final inbox = _inbox ?? await (_starting ??= _start());
+    final inbox = await _ensureInbox();
     final id = _nextId++;
     final completer = Completer<Object?>();
     _pending[id] = completer;
@@ -345,14 +348,29 @@ final class IsolateSshTunnel implements SshTunnel {
     return reply['result'];
   }
 
+  /// A dead worker is respawned on the next operation; the host link's
+  /// reconnect flow re-runs connect/bootstrap/endpoint against it.
+  Future<SendPort> _ensureInbox() {
+    if (_closed) throw StateError('tunnel closed');
+    if (_inbox != null && _alive) return Future.value(_inbox);
+    return _starting ??= _start();
+  }
+
   Future<SendPort> _start() async {
     final events = ReceivePort();
+    final death = ReceivePort();
     final ready = Completer<SendPort>();
     _startingHandshake = ready;
     late final StreamSubscription<Object?> subscription;
     subscription = events.listen(_onMessage);
     try {
-      _isolate = await Isolate.spawn(_sshTunnelMain, events.sendPort, debugName: 'ssh-tunnel');
+      _isolate = await Isolate.spawn(
+        _sshTunnelMain,
+        events.sendPort,
+        debugName: 'ssh-tunnel',
+        onExit: death.sendPort,
+      );
+      _alive = true;
       // The worker answers with its inbox before doing anything else; if it
       // never does, this caller fails instead of hanging.
       return await ready.future.timeout(
@@ -360,12 +378,28 @@ final class IsolateSshTunnel implements SshTunnel {
         onTimeout: () => throw const _WorkerGone(),
       );
     } on Object {
-      _broken = true;
       _starting = null;
+      _alive = false;
       await subscription.cancel();
       events.close();
+      death.close();
       throw const _WorkerGone();
     }
+  }
+
+  /// The isolate terminated on its own (system kill, crash): fail every
+  /// pending operation, signal the link, and let the next operation respawn.
+  void _onWorkerDeath() {
+    _alive = false;
+    _inbox = null;
+    _starting = null;
+    _isolate = null;
+    for (final completer in _pending.values) {
+      completer.completeError(const _WorkerGone());
+    }
+    _pending.clear();
+    _death?.close();
+    if (!_closed) _lostController.add(null);
   }
 
   Completer<SendPort>? _startingHandshake;
