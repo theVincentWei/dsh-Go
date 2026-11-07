@@ -44,7 +44,7 @@ class AppletCapsule extends StatelessWidget {
 
     return Positioned(
       top: topInset + 8,
-      right: 0,
+      right: expanded ? 12 : 4,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         switchInCurve: Curves.easeOutCubic,
@@ -69,14 +69,12 @@ class AppletCapsule extends StatelessWidget {
                 key: const ValueKey<bool>(false),
                 color: background,
                 shape: RoundedRectangleBorder(
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+                  borderRadius: const BorderRadius.all(Radius.circular(14)),
                   side: BorderSide(color: border),
                 ),
                 child: InkWell(
                   onTap: onExpand,
-                  customBorder: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.horizontal(left: Radius.circular(14)),
-                  ),
+                  customBorder: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
                   child: SizedBox(
                     width: 18,
                     height: 32,
