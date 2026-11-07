@@ -80,7 +80,7 @@ abstract final class PetMetrics {
 /// with [PetPerch], panels that should send it away with [PetCover], areas
 /// it keeps out of with [PetAvoid].
 class PetStage extends ConsumerStatefulWidget {
-  const PetStage({super.key, this.sessionId, this.aside = false, required this.child});
+  const PetStage({super.key, this.sessionId, this.aside = false, this.onOpenChat, required this.child});
 
   /// The conversation the page shows (null: a new chat). The pet reads what
   /// it is doing from here.
@@ -89,6 +89,12 @@ class PetStage extends ConsumerStatefulWidget {
   /// A phone on its side is typing: the bars fold away, the pet stays on
   /// the composer.
   final bool aside;
+
+  /// Opens the conversation page once the bubble's target is selected. Set by
+  /// a stage that is not a conversation page (the sessions list): a bubble tap
+  /// there has to push the page — a selection alone changes nothing on screen.
+  final VoidCallback? onOpenChat;
+
   final Widget child;
 
   @override
@@ -108,16 +114,22 @@ class _PetStageState extends ConsumerState<PetStage> {
   }
 
   /// Go and look: the conversation on screen scrolls to what waits (or its
-  /// newest reply); another conversation opens.
+  /// newest reply); another conversation opens. A stage under no conversation
+  /// page (the sessions list) opens the page instead — its selection alone is
+  /// invisible.
   Future<void> _reveal(PetTarget target, PetBubbleKind kind) async {
-    final here = ref.read(activeHostProvider) == target.host && ref.read(currentSessionProvider) == target.sessionId;
-    if (here) {
-      _scrollTo(kind);
-      return;
+    final open = widget.onOpenChat;
+    if (open == null) {
+      final here = ref.read(activeHostProvider) == target.host && ref.read(currentSessionProvider) == target.sessionId;
+      if (here) {
+        _scrollTo(kind);
+        return;
+      }
     }
     if (!await DiscardGuard.confirmLeave(context) || !mounted) return;
     ref.read(activeHostProvider.notifier).select(target.host);
     ref.read(currentSessionProvider.notifier).select(target.sessionId);
+    open?.call();
   }
 
   /// Brings the waiting card (or the latest reply) into view.

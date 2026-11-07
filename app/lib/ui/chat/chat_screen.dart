@@ -33,6 +33,7 @@ import '../../state/hosts_state.dart' show HostKind, activeHostProvider;
 import '../../state/media_generation.dart';
 import '../../state/mention_state.dart';
 import '../../state/models_state.dart';
+import '../../state/notify_state.dart' show FlagController, chatPageOnScreenProvider;
 import '../../state/session_search.dart' show folderLabel;
 import '../../state/safe_mode_state.dart';
 import '../../state/session_modes.dart';
@@ -124,11 +125,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   bool _routeCurrent = true;
   ModalRoute<Object?>? _interactionRoute;
 
+  /// [chatPageOnScreenProvider]'s controller, captured once so [dispose] can
+  /// still clear the flag after [ref] is gone.
+  FlagController? _pageFlag;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _interactionRoute = ModalRoute.of<Object?>(context);
     final current = ModalRoute.isCurrentOf(context) ?? true;
+    // The page reports itself as 「正在看」: with the chat a pushed page, the
+    // shell's route state means the list, so viewedChat has to come from here
+    // (alerts for the conversation on screen, its unread dot, seen marks).
+    final pageFlag = ref.read(chatPageOnScreenProvider.notifier);
+    _pageFlag = pageFlag;
+    pageFlag.set(current);
     if (current == _routeCurrent) return;
     _routeCurrent = current;
     if (current) {
@@ -377,6 +388,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     _endInteraction?.call();
     _endInteraction = null;
+    // Removed without a pop's dependency change: if the page still believed
+    // itself current, take the flag back.
+    if (_routeCurrent) _pageFlag?.set(false);
     _draftScope = Object();
     _creating = null;
     _syncWait = null;

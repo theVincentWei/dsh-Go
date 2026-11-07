@@ -170,8 +170,15 @@ class FlagController extends Notifier<bool> {
 /// shade is down). Set from the app lifecycle by the alert host.
 final appForegroundProvider = NotifierProvider<FlagController, bool>(() => FlagController(true));
 
-/// The chat is the current route (no settings page or sheet pushed over it).
+/// The home route is current: no page pushed over the shell. With the chat a
+/// full-screen page over the tabs now, this means the list — not a
+/// conversation. Set from the shell's route by the alert host.
 final chatOnScreenProvider = NotifierProvider<FlagController, bool>(() => FlagController(true));
+
+/// A conversation page ([ChatScreen]) is the current route. The page itself
+/// reports it ([ModalRoute.isCurrent]), wherever it sits — the shell pushes it
+/// over the tabs, 网页模式 lays it into the home.
+final chatPageOnScreenProvider = NotifierProvider<FlagController, bool>(() => FlagController(false));
 
 /// Something asked for the person's attention unbidden in this launch (the
 /// usage statistics toast, an update offer, the background running line):
@@ -181,9 +188,11 @@ final launchNoticeShownProvider = NotifierProvider<FlagController, bool>(() => F
 /// A conversation on a host.
 typedef ChatTarget = ({HostRef host, String sessionId});
 
-/// The conversation the person is looking at right now, or null.
+/// The conversation the person is looking at right now, or null: the
+/// conversation page must be the current route (the list or another tab on
+/// top of the shell is not "looking", whatever session is still selected).
 final viewedChatProvider = Provider<ChatTarget?>((ref) {
-  if (!ref.watch(appForegroundProvider) || !ref.watch(chatOnScreenProvider)) return null;
+  if (!ref.watch(appForegroundProvider) || !ref.watch(chatPageOnScreenProvider)) return null;
   final session = ref.watch(currentSessionProvider);
   if (session == null) return null;
   return (host: ref.watch(activeHostProvider), sessionId: session);
