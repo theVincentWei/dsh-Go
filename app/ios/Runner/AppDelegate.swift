@@ -71,6 +71,9 @@ import UniformTypeIdentifiers
 
     // `dshgo://…` links and opened files (SceneDelegate forwards the URLs).
     DshLinksBridge.shared.register(on: messenger)
+
+    // Shares from the ShareExtension (saved into the shared container).
+    DshShareBridge.shared.register(on: messenger)
   }
 }
 
@@ -116,6 +119,11 @@ final class DshLinksBridge: NSObject {
   func handleOpen(_ url: URL) {
     let scheme = url.scheme?.lowercased()
     guard scheme == "dshgo" || url.isFileURL else { return }
+    // The ShareExtension opened the host app after writing its inbox: look
+    // again for manifests (kept out of the dedupe window on purpose).
+    if scheme == "dshgo", url.host?.lowercased() == "intake" {
+      DshShareBridge.shared.rescan()
+    }
     NSLog("DSHLinks open %@", url.absoluteString)
     let now = Date()
     if url.absoluteString == lastForwarded, now.timeIntervalSince(lastForwardedAt) < 2 {
@@ -134,6 +142,92 @@ final class DshLinksBridge: NSObject {
     lastForwarded = url.absoluteString
     lastForwardedAt = Date()
     channel?.invokeMethod("link", arguments: ["uri": url.absoluteString])
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Share intake (dsh/share)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Picks up what the ShareExtension wrote into the shared container
+/// (`share-inbox/<id>/manifest.json` + files) and forwards it to Dart over
+/// `dsh/share`, in the same shape the Android SharePlugin uses. Forwarded
+/// entries are kept (Dart may read the files lazily while composing) and
+/// cleaned after a day.
+final class DshShareBridge: NSObject {
+  static let shared = DshShareBridge()
+  private static let appGroup = "group.io.github.ccch1mneyyy.dshapp"
+  private static let inboxName = "share-inbox"
+  private static let keepInterval: TimeInterval = 24 * 3600
+
+  private var channel: FlutterMethodChannel?
+  private var dartReady = false
+
+  func register(on messenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(name: "dsh/share", binaryMessenger: messenger)
+    channel?.setMethodCallHandler { [weak self] call, result in
+      guard let self, call.method == "ready" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      dartReady = true
+      DispatchQueue.global(qos: .userInitiated).async { self.scanAndForward() }
+      result(true)
+    }
+  }
+
+  /// The ShareExtension opened `dshgo://intake`: the app may have been up
+  /// while the share was written, so look again.
+  func rescan() {
+    DispatchQueue.global(qos: .userInitiated).async { self.scanAndForward() }
+  }
+
+  private func scanAndForward() {
+    guard let root = FileManager.default.containerURL(
+      forSecurityApplicationGroupIdentifier: Self.appGroup
+    )?.appendingPathComponent(Self.inboxName, isDirectory: true) else { return }
+    let fm = FileManager.default
+    cleanOldEntries(root: root, fm: fm)
+    guard let entries = try? fm.contentsOfDirectory(
+      at: root, includingPropertiesForKeys: [.creationDateKey], options: .skipsHiddenFiles
+    ) else { return }
+    let dirs = entries
+      .filter { (url: URL) in url.hasDirectoryPath }
+      .sorted(by: { (a: URL, b: URL) -> Bool in
+        let ad = (try? a.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? .distantPast
+        let bd = (try? b.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? .distantPast
+        return ad < bd
+      })
+    for dir in dirs {
+      let manifestURL = dir.appendingPathComponent("manifest.json")
+      guard let data = try? Data(contentsOf: manifestURL),
+        let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+      else {
+        try? fm.removeItem(at: dir)
+        continue
+      }
+      var payload = manifest
+      if let names = manifest["files"] as? [[String: Any]] {
+        payload["files"] = names.map { entry in
+          var entry = entry
+          if let name = entry["name"] as? String {
+            entry["path"] = dir.appendingPathComponent(name).path
+          }
+          return entry
+        }
+      }
+      DispatchQueue.main.async {
+        self.channel?.invokeMethod("share", arguments: payload)
+      }
+    }
+  }
+
+  private func cleanOldEntries(root: URL, fm: FileManager) {
+    guard let entries = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) else { return }
+    let cutoff = Date().addingTimeInterval(-Self.keepInterval)
+    for entry in entries where (try? entry.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? .distantPast < cutoff {
+      try? fm.removeItem(at: entry)
+    }
   }
 }
 
