@@ -44,7 +44,7 @@ class AppletCapsule extends StatelessWidget {
 
     return Positioned(
       top: topInset + 8,
-      right: 4,
+      right: expanded ? 12 : 4,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         switchInCurve: Curves.easeOutCubic,
