@@ -1,8 +1,10 @@
-// The two-column feature tiles of the hub pages.
+// The hub pages' tiles: the two-column feature cards and the phone-desktop
+// icon tiles (feature catalog and the 星河 applet group share the latter).
 
 import 'package:flutter/material.dart';
 
 import '../theme/theme.dart';
+import 'app_sheet.dart' show groupTitleStyle;
 import 'pressable.dart';
 
 /// 磁贴网格:默认两列,列宽相等,同一行的磁贴等高(按较高的那块),
@@ -41,6 +43,112 @@ class TileGrid extends StatelessWidget {
     return Padding(
       padding: padding,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: rows),
+    );
+  }
+}
+
+/// 手机桌面式图标瓷贴:46 圆角方形图标在上、名称在下,无卡片底。功能目录的
+/// 功能项与「星河」小程序组共用这一个组件,保证各图标格下的名称是同一种字、
+/// 同一套间距与按压反馈。图标内容([icon])由调用方决定(功能图形、字形或
+/// App 的 icon.png);[badge] 叠在图标右上角(如未读数)。[enabled] 为 false
+/// 时整块淡到 45%,不响应点击(要先选中会话的项用)。
+class IconTile extends StatelessWidget {
+  const IconTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.badge,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  /// 居中在图标方块里的内容。
+  final Widget icon;
+  final String label;
+  final Widget? badge;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  /// 图标方块的边长与圆角;名称的字形与上下间距也定在这里,调用方不再自设。
+  static const dimension = 46.0;
+  static const radius = 14.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final chip = SizedBox.square(
+      dimension: dimension,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+              ),
+              child: Center(child: icon),
+            ),
+          ),
+          if (badge case final badge?) Positioned(right: -2, top: -2, child: badge),
+        ],
+      ),
+    );
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: Pressable(
+        enabled: enabled,
+        child: AnimatedOpacity(
+          opacity: enabled ? 1 : 0.45,
+          duration: AppMotion.of(context, AppMotion.quick),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: enabled ? onTap : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    chip,
+                    const SizedBox(height: 6),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A group title over a [TileGrid]: small and faint, on the page's 24 column
+/// (with the large title and every group title), 24 above, 8 below. The
+/// feature catalog's sections and the 星河 applet group share this one class.
+class FeatureGroupLabel extends StatelessWidget {
+  const FeatureGroupLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      child: Semantics(header: true, child: Text(text, style: groupTitleStyle(context))),
     );
   }
 }
