@@ -1,7 +1,7 @@
 // The in-app half of notifications: a glass banner over every page when
 // something happens in a conversation the person isn't looking at, plus the
-// glue that tells the alert controller whether the app and the chat are on
-// screen and routes notification taps.
+// glue that tells the alert controller whether the app is foreground and the
+// home route is current, and routes notification taps.
 
 import 'dart:async';
 
@@ -18,9 +18,10 @@ import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 
 /// Put it once inside the home route (the home shell does). It keeps the
-/// alert controller alive, feeds it the app lifecycle and whether the chat is
-/// the current route, routes notification taps, and shows the banner in the
-/// root overlay so it also appears over settings and other pages.
+/// alert controller alive, feeds it the app lifecycle and whether the home
+/// route is current (a page pushed over the shell covers the list), routes
+/// notification taps, and shows the banner in the root overlay so it also
+/// appears over settings and other pages.
 class ChatAlertHost extends ConsumerStatefulWidget {
   const ChatAlertHost({super.key, this.child, this.onReveal});
 
@@ -57,7 +58,7 @@ class _ChatAlertHostState extends ConsumerState<ChatAlertHost> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Rebuilt by the route whenever something is pushed over the chat or popped.
+    // Rebuilt by the route whenever a page is pushed over the shell or popped.
     final current = ModalRoute.of(context)?.isCurrent ?? true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(chatOnScreenProvider.notifier).set(current);

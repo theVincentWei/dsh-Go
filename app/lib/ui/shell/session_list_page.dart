@@ -218,7 +218,10 @@ class SessionListPage extends ConsumerWidget {
 
     // 宠物回到首页:会话 tab 上有舞台,其他会话的通知才走它的气泡
     // (改版把聊天页推入全屏后,舞台一度只剩聊天页里,首页的气泡就断了)。
+    // 气泡的「去看一眼」交给 onOpenChat:列表上点气泡要推入聊天页,光改
+    // 选中在屏上看不见。
     return PetStage(
+      onOpenChat: onOpenChat,
       child: Stack(
       children: [
         Positioned.fill(child: content),
