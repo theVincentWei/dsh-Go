@@ -42,6 +42,8 @@ import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../workspace/workspace_switcher.dart';
 import '../workspace/workspaces_page.dart';
+import '../pets/pet_perch.dart';
+import '../pets/pet_stage.dart';
 import 'adaptive/adaptive_layout.dart' show WindowClass;
 import 'drawer/drawer_actions.dart';
 import 'drawer/drawer_destination.dart';
@@ -214,7 +216,10 @@ class SessionListPage extends ConsumerWidget {
       ),
     );
 
-    return Stack(
+    // 宠物回到首页:会话 tab 上有舞台,其他会话的通知才走它的气泡
+    // (改版把聊天页推入全屏后,舞台一度只剩聊天页里,首页的气泡就断了)。
+    return PetStage(
+      child: Stack(
       children: [
         Positioned.fill(child: content),
         // 新对话: a floating round key above the bottom bar's glass pieces,
@@ -227,17 +232,22 @@ class SessionListPage extends ConsumerWidget {
             duration: quick,
             child: IgnorePointer(
               ignoring: selecting,
-              child: GlassIconButton(
-                icon: AppIcons.newChat,
-                tooltip: context.l10n.commonNewChat,
-                onPressed: newChat,
-                // 独立浮件,不在 BackdropGroup 里。
-                grouped: false,
+              child: PetPerch(
+                // 站杆:宠物落在新对话键的上沿。
+                kind: PerchKind.composer,
+                child: GlassIconButton(
+                  icon: AppIcons.newChat,
+                  tooltip: context.l10n.commonNewChat,
+                  onPressed: newChat,
+                  // 独立浮件,不在 BackdropGroup 里。
+                  grouped: false,
+                ),
               ),
             ),
           ),
         ),
       ],
+      ),
     );
   }
 }

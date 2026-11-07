@@ -11,7 +11,6 @@ import '../../../l10n/l10n.dart';
 import '../../../state/drawer_view_state.dart';
 import '../../../state/session_attention_state.dart';
 import '../../../state/session_created_state.dart';
-import '../../../state/sessions_state.dart';
 import '../../../state/workspaces_state.dart';
 import '../../common/empty_view.dart';
 import '../../theme/app_icons.dart';
@@ -62,7 +61,6 @@ class DrawerConversationList extends ConsumerWidget {
     final selection = ref.watch(drawerSelectionProvider);
     final selecting = !readOnly && selection != null;
     final filter = ref.watch(drawerFilterProvider);
-    final current = ref.watch(currentSessionProvider);
     final pending = ref.watch(pendingInteractionsProvider);
     final unread = ref.watch(unreadSessionIdsProvider);
     final pinned = ref.watch(workspacesProvider.select((s) => s.pinnedSessionIds)).toSet();
@@ -78,17 +76,23 @@ class DrawerConversationList extends ConsumerWidget {
     }
     final selectionNotifier = ref.read(drawerSelectionProvider.notifier);
 
-    Widget tile(SessionSummary s, {bool inFolder = false}) {
+    // Keep only builders for off-screen rows: preparing a title and a tile for
+    // every conversation makes even a selection change scale with the history.
+    final rows = <({Key key, WidgetBuilder builder})>[];
+    void add(Key key, WidgetBuilder builder) => rows.add((key: key, builder: builder));
+
+    Widget tile(SessionSummary s, {bool inFolder = false, SessionGroupPos pos = SessionGroupPos.single}) {
       final id = s.sessionId;
       final cwd = s.cwd?.trim();
       return SessionTile(
         key: ValueKey('session-$id'),
+        sessionId: id,
         title: sessionTitle(s),
         // 第二行:最近一条消息(引擎补 preview 后),还没有就回退 cwd;都空不渲染。
         subtitle: s.previewText ?? (cwd == null || cwd.isEmpty ? null : s.cwd),
         timeText: sessionTimeText(s.updatedAt, now),
         running: s.running,
-        current: id == current,
+        groupPosition: pos,
         pending: readOnly ? null : pending[id],
         unread: !readOnly && unread.contains(id),
         pinned: inFolder && pinned.contains(id),
@@ -104,13 +108,18 @@ class DrawerConversationList extends ConsumerWidget {
       );
     }
 
-    // Keep only builders for off-screen rows: preparing a title and a tile for
-    // every conversation makes even a selection change scale with the history.
-    final rows = <({Key key, WidgetBuilder builder})>[];
-    void add(Key key, WidgetBuilder builder) => rows.add((key: key, builder: builder));
+    /// 同组行拼一张卡:按位次给圆角(唯一/首/中/尾)。
     void addSessions(List<SessionSummary> items) {
-      for (final s in items) {
-        add(ValueKey('session-${s.sessionId}'), (_) => tile(s));
+      for (var i = 0; i < items.length; i++) {
+        final s = items[i];
+        final pos = items.length == 1
+            ? SessionGroupPos.single
+            : i == 0
+            ? SessionGroupPos.first
+            : i == items.length - 1
+            ? SessionGroupPos.last
+            : SessionGroupPos.middle;
+        add(ValueKey('session-${s.sessionId}'), (_) => tile(s, pos: pos));
       }
     }
 
@@ -140,10 +149,10 @@ class DrawerConversationList extends ConsumerWidget {
           final headerKey = ValueKey('folder-${folder.id}');
           add(
             headerKey,
-            // The header stays a plain row: it keeps the 10 edges the cards
-            // give themselves.
+            // The header stays a plain row: it keeps the same 16 edges the
+            // group cards give themselves.
             (_) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: DrawerFolderHeader(
                 key: headerKey,
                 folder: folder,
@@ -161,7 +170,20 @@ class DrawerConversationList extends ConsumerWidget {
             (_) => DrawerFolderBody(
               key: bodyKey,
               open: !folder.collapsed,
-              childrenBuilder: () => [for (final s in items) tile(s, inFolder: true)],
+              childrenBuilder: () => [
+                for (var i = 0; i < items.length; i++)
+                  tile(
+                    items[i],
+                    inFolder: true,
+                    pos: items.length == 1
+                        ? SessionGroupPos.single
+                        : i == 0
+                        ? SessionGroupPos.first
+                        : i == items.length - 1
+                        ? SessionGroupPos.last
+                        : SessionGroupPos.middle,
+                  ),
+              ],
             ),
           );
         case DayBlock(:final day, :final items):

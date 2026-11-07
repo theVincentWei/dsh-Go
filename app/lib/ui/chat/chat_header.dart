@@ -17,6 +17,7 @@ import '../common/smooth_size.dart';
 import '../common/status_dot.dart';
 import '../shell/adaptive/adaptive_scaffold.dart' show AdaptiveChrome;
 import '../shell/adaptive/detail_panel_keys.dart';
+import '../shell/page_frame.dart' show GlassIconButton;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'header_schedule.dart';
@@ -37,7 +38,8 @@ class HeaderStatus {
 /// 聊天顶栏:**没有整条色带**(Claude 式),只有几枚浮动玻璃件;
 /// 内容滚到下面时才浮现一层页面色渐隐,与二级页面同一套做法。
 /// 打开着对话时最右是「设置」圆键。≡ 菜单键只在提供了 onOpenDrawer 的旧
-/// 首页布局里显示；会话列表推入的聊天页没有它，返回手势回列表。对话有进行中的自动化任务时,
+/// 首页布局里显示;会话列表推入的聊天页左上是返回键(与二级页面浮条上同一枚
+/// 玻璃圆钮),回列表。对话有进行中的自动化任务时,
 /// 标题胶囊的尾端是一颗与它同心的时钟键([HeaderScheduleCap])。
 ///
 /// ```
@@ -168,11 +170,12 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                 children: [
                   // A subagent conversation shows 「‹ 上级对话」 here.
                   HeaderLeadSlot(
-                    // No drawer to pull (the chat is a pushed page): the key
-                    // goes away, the back button takes its place.
-                    menu: !(chrome?.showsMenuKey ?? true) || widget.onOpenDrawer == null
-                        ? const SizedBox.shrink()
-                        : SizedBox.square(
+                    // 旧首页布局里是 ≡ 菜单键。会话列表推入的聊天页没有抽屉
+                    // 可拉,左上是返回键 —— 与二级页面浮条上是同一枚
+                    // GlassIconButton(44 玻璃圆钮,22 回箭头),回列表。
+                    // 宽窗里聊天嵌在骨架里(列表在侧栏/轨上),什么都不放。
+                    menu: widget.onOpenDrawer != null && (chrome?.showsMenuKey ?? true)
+                        ? SizedBox.square(
                             key: const ValueKey('chat-menu'),
                             dimension: 44,
                             child: GlassSurface(
@@ -185,7 +188,15 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                                 child: Center(child: Icon(AppIcons.menu, size: 22, color: colors.onSurface)),
                               ),
                             ),
-                          ),
+                          )
+                        : chrome == null
+                        ? GlassIconButton(
+                            key: const ValueKey('chat-back'),
+                            icon: AppIcons.back,
+                            tooltip: l10n.commonBack,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                   Semantics(
                     button: widget.onTitleTap != null,

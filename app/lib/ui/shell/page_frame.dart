@@ -24,8 +24,8 @@ import '../theme/theme.dart';
 ///
 /// Home-tab pages drop the floating bar: the large header
 /// is pinned at the very top and the content scrolls below it. A page is
-/// compact when [compactHeader] is set, or automatically when it can't pop
-/// (a tab root); pushed pages can pop and keep the floating bar.
+/// compact when [compactHeader] is set, or automatically when it lives on
+/// the root route (a tab root); pushed pages keep the floating bar.
 ///
 /// On a window wider than [contentWidth] (tablets, open foldables) the
 /// headline and the content keep that width, centred; the bar's keys stay on
@@ -72,9 +72,9 @@ class AppPage extends StatefulWidget {
   /// top of the page — no floating bar above it (no [barHeight] inset, no
   /// back key, no bar-title hand-off, no [actions]) — and the content
   /// scrolls below it. False (pushed pages) keeps the floating bar. Either
-  /// way a page that can't pop is compact and one that can pop is not:
-  /// as tabs the pages can't pop (compact), pushed over the shell they can
-  /// (floating bar with the back key).
+  /// way a page on the root route is compact and a pushed one is not:
+  /// as tabs the pages live on the root route, pushed over the shell they
+  /// keep the floating bar with the back key.
   final bool compactHeader;
 
   /// The floating bar's height (back/menu keys, title hand-off); pages that
@@ -171,11 +171,15 @@ class _AppPageState extends State<AppPage> {
     const barHeight = AppPage.barHeight;
     // Compact (tab) pages pin the header at the very top: the floating bar's
     // 56dp are not reserved. A page is compact when it asks for it, or
-    // automatically when it can't pop — a tab root (小程序, 设置 are tabs
-    // without a page under them); a pushed page can pop and keeps the bar.
-    // Evaluated at build time: tab pages build once at startup, and a pushed
-    // page can always pop while it builds.
-    final compact = widget.compactHeader || Navigator.of(context).canPop() == false;
+    // when it lives on the root route — a tab root (小程序, 设置 are tabs
+    // on the shell's one route); a page pushed over the shell keeps the bar.
+    // Not canPop(): the tabs sit in the shell's IndexedStack and rebuild
+    // while any route is pushed above them (opening a conversation already
+    // is one), when canPop() lies — and after it pops they stay as they
+    // were, the 小程序 tab keeping a back key that should not be there.
+    // isFirst only asks "is this page's own route the root" and never flips
+    // under other routes. Evaluated at build time.
+    final compact = widget.compactHeader || (ModalRoute.of(context)?.isFirst ?? true);
     final top = padding.top + (compact ? 0.0 : barHeight);
     // Wide windows: one centred column (zero on phones). A phone on its side
     // keeps the column and the bar's keys clear of the cutout or navigation

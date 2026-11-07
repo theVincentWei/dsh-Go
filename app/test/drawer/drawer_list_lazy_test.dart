@@ -141,11 +141,14 @@ void main() {
       onLongPress: (s) => held.add(s.sessionId),
     );
     final position = tester.state<ScrollableState>(_scrollable).position;
-    position.jumpTo(500);
+    // s15 拉进视口并落在视口上部,s16 就在屏内;偏移不依赖行高魔法数。
+    await tester.scrollUntilVisible(_tile('s15'), 80, scrollable: _scrollable);
+    Scrollable.ensureVisible(tester.element(_tile('s15')), alignment: 0.2);
     await tester.pump();
+    final offset = position.pixels;
     container.read(drawerSelectionProvider.notifier).start('s0');
     await tester.pump();
-    expect(position.pixels, 500);
+    expect(position.pixels, offset);
 
     await tester.tap(_tile('s15'));
     await tester.pump();
@@ -237,7 +240,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     final partialHeight = tester.getSize(body).height;
     expect(partialHeight, greaterThan(0));
-    expect(partialHeight, lessThan(2 * SessionTile.height));
+    // 两颗成员行(夹具无副标题,52 单行):首行带组上距 4,尾行带组下距 16。
+    final full = SessionTile.heightSingle + 4 + SessionTile.heightSingle + SessionTile.groupGap;
+    expect(partialHeight, lessThan(full));
     await container.read(drawerViewProvider.notifier).updateFolder('f', name: 'Renamed');
     await tester.pump();
     expect(tester.state(reveal), same(state));
@@ -249,7 +254,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(_tile('s1'), findsOneWidget);
-    expect(tester.getSize(body).height, 2 * SessionTile.height);
+    expect(tester.getSize(body).height, full);
     expect(tester.takeException(), isNull);
   });
 }

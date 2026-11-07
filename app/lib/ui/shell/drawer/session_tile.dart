@@ -1,4 +1,8 @@
-// The drawer's conversation card and section label.
+// 会话列表的行与分组标签:与设置/技能等页同一套「分组卡片 + 行列表」
+// 解剖 —— 行自身不带卡片底,同一分组的相邻行拼成一张圆角卡(见
+// [SessionGroupPos]),行距、字号、左右内边距与设置行(SettingsTile)一致。
+// 行首是自动区分的头像:标题首字符 + 由会话 ID 哈希出的身份色,每个会话
+// 固定而互不相同。
 
 import 'package:flutter/material.dart';
 
@@ -9,19 +13,20 @@ import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 import '../session_list_page.dart' show sessionSelectionColor;
 
-/// One conversation as a glass card: the chat chip on the left, the title
-/// (plus [indent] inside a folder) and an optional [subtitle] in the middle,
-/// and at the right end one thing at most: what it waits for (待确认 /
-/// 待回答), a breathing dot while it works, a quiet dot when it moved on
-/// since it was last seen — or, when nothing claims the corner, the
-/// [timeText]. The open conversation wears the soft selection fill. In
-/// multi-select a check slides in before the chip.
+/// 分组里一颗行的位置:分组卡的圆角只出现在两端。
+enum SessionGroupPos { single, first, middle, last }
+
+/// 一条会话行:左 32 头像槽(身份色圆盘 + 标题首字符),标题(可带置顶
+/// 别针)与一行副标题,右端最多一件事:它等的回复(待确认/待回答)、运行中
+/// 的呼吸点、未读点 —— 或者,没人占角时的时间。多选时最左滑入勾选圈,选中
+/// 行铺软色底。放在分组卡里([groupPosition] 决定哪端圆角),见 drawer_list。
 class SessionTile extends StatelessWidget {
   const SessionTile({
     super.key,
+    required this.sessionId,
     required this.title,
     required this.running,
-    required this.current,
+    required this.groupPosition,
     required this.onTap,
     required this.onLongPress,
     this.subtitle,
@@ -34,20 +39,17 @@ class SessionTile extends StatelessWidget {
     this.selected = false,
   });
 
+  /// 头像的稳定种子:同一会话永远同一颜色。
+  final String sessionId;
   final String title;
+  final bool running;
 
-  /// One line under the title (where the conversation works); null hides it.
+  /// 一行副标题(最近消息/工作目录);null 只有一行,行高 52。
   final String? subtitle;
 
   /// The right end's text (today HH:mm, else M-D) — shown only when nothing
   /// else claims the corner: a marker always wins.
   final String? timeText;
-  final bool running;
-
-  /// The open conversation (soft fill; ignored while selecting).
-  final bool current;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
   final PendingKind? pending;
   final bool unread;
 
@@ -57,39 +59,44 @@ class SessionTile extends StatelessWidget {
 
   /// Content inset from the card's edge (folder members: [folderIndent]).
   final double indent;
+  final SessionGroupPos groupPosition;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool selecting;
   final bool selected;
 
-  /// The card's height at scale 1 (the 34 chip plus air); large text grows it.
-  static const height = 56.0;
+  /// 两行行的最小高(设置行 64);无副标题 52。
+  static const height = 64.0;
+  static const heightSingle = 52.0;
 
-  /// Space around a card: 5 above and below, 10 to the sides.
-  static const marginV = 4.0;
-  static const marginH = 10.0;
+  /// 分组卡离列表左右边 16,行内容离卡边 16 —— 设置行的 inset。
+  static const marginH = 16.0;
+  static const innerH = 16.0;
 
-  /// The card's inner padding: the chip and title sit 12 in from the sides,
-  /// 10 from top and bottom.
-  static const innerH = 12.0;
-  static const padV = 8.0;
+  /// 分组之间的空隙(每组尾行下方)。
+  static const groupGap = 16.0;
 
-  /// The left icon chip (34, radius 11) and its gap to the title column.
-  static const chipSize = 34.0;
-  static const chipRadius = 11.0;
-  static const chipGap = 10.0;
+  /// 头像圆盘直径与到标题的间距。
+  static const avatarSize = 32.0;
+  static const avatarGap = 12.0;
 
-  /// A folder's glyph (20) plus its gap (10): members' titles line up with
-  /// the folder's name.
+  /// 文件夹成员的缩进;多选勾选槽宽。
   static const folderIndent = 30.0;
-
-  /// Width of the check slot while selecting (a 20 circle and a 10 gap).
   static const checkSlot = 30.0;
 
-  /// Size of the quiet markers at the end of the card.
+  /// 圆点标记直径。
   static const dot = 7.0;
 
   /// The title Text's key: tests collect the conversation titles (and not
-  /// the cwd subtitle or the time) through it.
+  /// the subtitle or the time) through it.
   static const titleKey = ValueKey<String>('session-title');
+
+  BorderRadius get _radius => switch (groupPosition) {
+    SessionGroupPos.single => BorderRadius.circular(AppShape.lg),
+    SessionGroupPos.first => const BorderRadius.vertical(top: Radius.circular(AppShape.lg)),
+    SessionGroupPos.last => const BorderRadius.vertical(bottom: Radius.circular(AppShape.lg)),
+    SessionGroupPos.middle => BorderRadius.zero,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -97,12 +104,10 @@ class SessionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
-    final shape = Squircle.border(AppShape.md);
-    // The card's hairline (onSurface 0.07, 1px) rides on top of the fill as
-    // a foreground decoration, so it never squeezes the content's padding.
-    final outlined = Squircle.border(AppShape.md, side: BorderSide(color: scheme.onSurface.withValues(alpha: 0.07)));
-    final highlighted = selecting ? selected : current;
-    final Widget? marker = switch ((pending, running, unread)) {
+    // 多选时选中行的软色底;平时谁都不亮 —— 首页列表上聊天页总是全屏盖在
+    // 上面,「当前会话」高亮没有信息量。
+    final highlighted = selecting && selected;
+    final marker = switch ((pending, running, unread)) {
       (final PendingKind kind, _, _) => Text(
         kind.label,
         key: const ValueKey('pending'),
@@ -119,6 +124,7 @@ class SessionTile extends StatelessWidget {
       if (pending == null && !running && unread) l10n.shellUnread,
       if (pinned) l10n.shellPinned,
     ].join(l10n.shellSemanticsSeparator);
+    final two = subtitle?.isNotEmpty ?? false;
     return Semantics(
       selected: highlighted,
       checked: selecting ? selected : null,
@@ -128,113 +134,136 @@ class SessionTile extends StatelessWidget {
       onLongPress: onLongPress,
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: marginV, horizontal: marginH),
-        child: Container(
-          foregroundDecoration: ShapeDecoration(shape: outlined),
-          child: Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              onTap: onTap,
-              onLongPress: onLongPress,
-              customBorder: outlined,
-              // Ink (not a container's decoration), so the splash draws over the
-              // fill; the fill fades between the glass base and the selection.
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(end: highlighted ? 1 : 0),
-                duration: AppMotion.of(context, AppMotion.quick),
-                curve: AppMotion.std,
-                builder: (context, t, child) {
-                  final fill = sessionSelectionColor(context);
-                  final base = scheme.onSurface.withValues(alpha: 0.05);
-                  return Ink(
-                    decoration: ShapeDecoration(color: Color.lerp(base, fill, t), shape: shape),
-                    padding: EdgeInsets.fromLTRB(innerH + indent, padV, innerH, padV),
-                    child: child,
-                  );
-                },
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: height),
-                  child: Row(
+        // 分组间距:首行上方 4,尾行下方 [groupGap];组内的行相互贴住。
+        padding: EdgeInsets.fromLTRB(
+          marginH,
+          groupPosition == SessionGroupPos.first || groupPosition == SessionGroupPos.single ? 4 : 0,
+          marginH,
+          groupPosition == SessionGroupPos.last || groupPosition == SessionGroupPos.single ? groupGap : 0,
+        ),
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: two ? height : heightSingle),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: highlighted ? 1 : 0),
+              duration: AppMotion.of(context, AppMotion.quick),
+              curve: AppMotion.std,
+              builder: (context, t, child) {
+                return Ink(
+                  decoration: ShapeDecoration(
+                    color: Color.lerp(DshSurfaces.of(context).glass(GlassTier.card).fill, sessionSelectionColor(context), t),
+                    shape: RoundedSuperellipseBorder(borderRadius: _radius),
+                  ),
+                  padding: EdgeInsets.fromLTRB(innerH + indent, 6, innerH, 6),
+                  child: child,
+                );
+              },
+              child: Row(
+              children: [
+                _CheckSlot(selecting: selecting, selected: selected),
+                _SessionAvatar(sessionId: sessionId, title: title),
+                const SizedBox(width: avatarGap),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _CheckSlot(selecting: selecting, selected: selected),
-                      Container(
-                        width: chipSize,
-                        height: chipSize,
-                        decoration: ShapeDecoration(
-                          color: scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
-                          shape: Squircle.border(chipRadius),
-                        ),
-                        child: Icon(AppIcons.chat, size: 20, color: scheme.primary),
-                      ),
-                      const SizedBox(width: chipGap),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                if (pinned) ...[
-                                  Icon(AppIcons.pinActive, size: 14, color: colors.textTertiary),
-                                  const SizedBox(width: 4),
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    title,
-                                    key: SessionTile.titleKey,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontSize: 15,
-                                      height: 1.4,
-                                      color: scheme.onSurface,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (subtitle case final sub?)
-                              Text(
-                                sub,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: 11,
-                                  height: 1.3,
-                                  color: colors.textTertiary,
-                                ),
-                              ),
+                      Row(
+                        children: [
+                          if (pinned) ...[
+                            Icon(AppIcons.pinActive, size: 14, color: colors.textTertiary),
+                            const SizedBox(width: 4),
                           ],
-                        ),
-                      ),
-                      AnimatedSwitcher(
-                        duration: AppMotion.of(context, AppMotion.quick),
-                        layoutBuilder: (current, previous) =>
-                            Stack(alignment: Alignment.centerRight, children: [...previous, ?current]),
-                        child: switch ((marker, timeText)) {
-                          (final marker?, _) => Padding(
-                            key: marker.key,
-                            padding: const EdgeInsets.only(left: 10),
-                            child: marker,
-                          ),
-                          (null, final time?) => Padding(
-                            key: const ValueKey('time'),
-                            padding: const EdgeInsets.only(left: 10),
+                          Expanded(
                             child: Text(
-                              time,
-                              style: AppType.tabular(
-                                theme.textTheme.labelSmall!.copyWith(fontSize: 11, color: colors.textTertiary),
-                              ),
+                              title,
+                              key: SessionTile.titleKey,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.4, color: scheme.onSurface),
                             ),
                           ),
-                          _ => const SizedBox.shrink(key: ValueKey('none')),
-                        },
+                        ],
                       ),
+                      if (two) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(color: colors.textTertiary),
+                        ),
+                      ],
                     ],
                   ),
                 ),
+                AnimatedSwitcher(
+                  duration: AppMotion.of(context, AppMotion.quick),
+                  layoutBuilder: (current, previous) =>
+                      Stack(alignment: Alignment.centerRight, children: [...previous, ?current]),
+                  child: switch ((marker, timeText)) {
+                    (final marker?, _) => Padding(
+                      key: marker.key,
+                      padding: const EdgeInsets.only(left: 10),
+                      child: marker,
+                    ),
+                    (null, final time?) => Padding(
+                      key: const ValueKey('time'),
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Text(
+                        time,
+                        style: AppType.tabular(
+                          theme.textTheme.labelSmall!.copyWith(fontSize: 11, color: colors.textTertiary),
+                        ),
+                      ),
+                    ),
+                    _ => const SizedBox.shrink(key: ValueKey('none')),
+                  },
+                ),
+                ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 会话头像:标题首字符落在身份色圆盘里,色相由会话 ID 的稳定散列选出 ——
+/// 不依赖引擎、不随改名漂移,同一会话永远同一颜色(空标题回退「·」)。
+class _SessionAvatar extends StatelessWidget {
+  const _SessionAvatar({required this.sessionId, required this.title});
+
+  final String sessionId;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = DshColors.of(context);
+    var hash = 0;
+    for (final unit in sessionId.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    final tint = hash % colors.identity.length;
+    final initial = title.runes.isEmpty
+        ? '·'
+        : String.fromCharCodes([title.runes.first]).toUpperCase();
+    return DecoratedBox(
+      key: const ValueKey('session-avatar'),
+      decoration: ShapeDecoration(color: colors.identity[tint], shape: const CircleBorder()),
+      child: SizedBox.square(
+        dimension: SessionTile.avatarSize,
+        child: Center(
+          child: Text(
+            initial,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: colors.onIdentity[tint],
             ),
           ),
         ),
@@ -256,9 +285,9 @@ class _UnreadDot extends StatelessWidget {
   );
 }
 
-/// The check that slides in before the chip while selecting: a 20 ring,
+/// The check that slides in before the avatar while selecting: a 20 ring,
 /// filled with ink and a tick once chosen (ink, not the brand colour — the
-/// drawer keeps one primary element).
+/// list keeps one primary element).
 class _CheckSlot extends StatelessWidget {
   const _CheckSlot({required this.selecting, required this.selected});
 
@@ -318,9 +347,8 @@ class _CheckSlot extends StatelessWidget {
   }
 }
 
-/// A section label in the drawer list: small, faint, on the 20 line (the
-/// list's own inset is gone — the cards carry their 10 margins — so the
-/// label insets itself).
+/// A section label above a group card: small, faint, on the card's 16 edge
+/// plus 8, like the settings sections' titles.
 class DrawerEyebrow extends StatelessWidget {
   const DrawerEyebrow(this.text, {super.key});
 
@@ -329,7 +357,7 @@ class DrawerEyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 6),
       child: Semantics(
         header: true,
         child: Text(text, style: AppType.eyebrow(color: DshColors.of(context).textTertiary)),

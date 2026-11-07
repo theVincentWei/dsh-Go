@@ -17,7 +17,6 @@ import 'package:dsh_app/ui/shell/drawer/folder_mark.dart';
 import 'package:dsh_app/ui/shell/drawer/selection_bars.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/session_list_page.dart';
-import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:dsh_client/dsh_client.dart' show SessionSummary;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,30 +77,30 @@ void main() {
       final mark = _rect(tester, find.descendant(of: header, matching: find.byType(FolderMarkGlyph)));
       final name = _rect(tester, find.descendant(of: header, matching: find.text('工作')));
       final member = find.widgetWithText(SessionTile, '解释 proot 的 link2symlink');
-      final memberChip = _rect(tester, find.descendant(of: member, matching: find.byIcon(AppIcons.chat)));
-      // The card (the Ink) inside the tile: the tile itself spans the list.
+      final memberAvatar = _rect(tester, find.descendant(of: member, matching: find.byKey(const ValueKey('session-avatar'))));
+      // The card slice (the Ink) inside the tile: margins live outside it.
       final memberCard = _rect(tester, find.descendant(of: member, matching: find.byType(Ink)));
       final loose = find.widgetWithText(SessionTile, '修复登录按钮重复提交');
       final looseTitle = _rect(tester, find.descendant(of: loose, matching: find.text('修复登录按钮重复提交')));
 
-      // Equal edges on the 10 lines; the folder's row stays 44 high, the
-      // cards are 56 plus their 5 margins and 10 inner padding.
+      // Equal edges on the 16 lines; the folder's row stays 44 high, the
+      // member rows are 64 (两行,设置行同款) and touch their group's edges.
       expect(headerRect.height, _near(DrawerFolderHeader.height));
-      expect(_rect(tester, member).height, _near(SessionTile.height + 2 * (SessionTile.marginV + SessionTile.padV)));
-      expect(headerRect.left - page.left, _near(10));
-      expect(page.right - headerRect.right, _near(10));
+      expect(memberCard.height, _near(SessionTile.height));
+      expect(headerRect.left - page.left, _near(16));
+      expect(page.right - headerRect.right, _near(16));
       expect(memberCard.left - page.left, _near(SessionTile.marginH));
       expect(page.right - memberCard.right, _near(SessionTile.marginH));
-      // Mark on the 20 line, centred in the row; a member's chip keeps the
-      // folder's indent inside the card's 12 inner edge, and the title
-      // follows the chip.
-      expect(mark.left - page.left, _near(20));
+      // Mark on the header's inner 10 line; a member's avatar keeps the
+      // folder's indent inside the card's 16 inner edge, and the title
+      // follows the avatar.
+      expect(mark.left - page.left, _near(26));
       expect(mark.center.dy, _near(headerRect.center.dy));
-      expect(name.left - page.left, _near(20 + SessionTile.folderIndent));
-      expect(memberChip.left - page.left, _near(SessionTile.marginH + SessionTile.innerH + SessionTile.folderIndent));
+      expect(name.left - page.left, _near(26 + SessionTile.folderIndent));
+      expect(memberAvatar.left - page.left, _near(SessionTile.marginH + SessionTile.innerH + SessionTile.folderIndent));
       expect(
         looseTitle.left - page.left,
-        _near(SessionTile.marginH + SessionTile.innerH + SessionTile.chipSize + SessionTile.chipGap),
+        _near(SessionTile.marginH + SessionTile.innerH + SessionTile.avatarSize + SessionTile.avatarGap),
       );
     });
 
@@ -170,7 +169,11 @@ void main() {
       expect(
         title.left - page.left,
         _near(
-          SessionTile.marginH + SessionTile.innerH + SessionTile.checkSlot + SessionTile.chipSize + SessionTile.chipGap,
+          SessionTile.marginH +
+              SessionTile.innerH +
+              SessionTile.checkSlot +
+              SessionTile.avatarSize +
+              SessionTile.avatarGap,
         ),
       );
       final member = find.widgetWithText(SessionTile, '解释 proot 的 link2symlink');
@@ -182,8 +185,8 @@ void main() {
               SessionTile.innerH +
               SessionTile.folderIndent +
               SessionTile.checkSlot +
-              SessionTile.chipSize +
-              SessionTile.chipGap,
+              SessionTile.avatarSize +
+              SessionTile.avatarGap,
         ),
       );
     });

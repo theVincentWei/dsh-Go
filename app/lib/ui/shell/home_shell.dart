@@ -77,6 +77,20 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
 
   int _tab = 0;
 
+  /// 高亮胶囊流出来的那个 tab(切换动画的起点,见 [_TabGlow])。
+  int _tabFrom = 0;
+
+  /// 液态玻璃底栏:高亮胶囊从旧 tab 流到新 tab 的一段动画(0 → 1)。
+  late final AnimationController _tabFlow = AnimationController(vsync: this, duration: AppMotion.emphasized);
+
+  /// 三个 tab 的页面翻页控制器:切换时页面横向滑动(与「计划与目标」的
+  /// TabBarView 同一套位移动画);翻页只由底栏驱动,手势不抢快捷面板。
+  late final PageController _tabPages = PageController();
+
+  /// 顶层双击返回退出的窗口与上一次按下的时刻。
+  static const _backExitWindow = Duration(seconds: 2);
+  DateTime? _lastBackAt;
+
   /// Whether the conversation page currently covers the tabs.
   bool _chatOpen = false;
 
@@ -108,14 +122,31 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     try {
       final prefs = await SharedPreferences.getInstance();
       final tab = prefs.getInt(_tabKey) ?? 0;
-      if (mounted && tab >= 0 && tab <= 2 && tab != _tab) setState(() => _tab = tab);
+      if (mounted && tab >= 0 && tab <= 2 && tab != _tab) {
+        setState(() => _tab = tab);
+        // 启动恢复直接落位,不播切换动画;控制器随首帧挂上,等一帧再跳。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _tabPages.hasClients) _tabPages.jumpToPage(tab);
+        });
+      }
     } catch (_) {
       // Startup continues on the first tab.
     }
   }
 
   Future<void> _selectTab(int tab) async {
-    setState(() => _tab = tab);
+    if (tab != _tab) {
+      setState(() {
+        _tabFrom = _tab;
+        _tab = tab;
+      });
+      // 高亮从旧 tab 流到新 tab;页面跟着滑过去。「移除动画」时两个时长都
+      // 归零,胶囊与页面直接落位。
+      _tabPages.animateToPage(tab, duration: AppMotion.of(context, AppMotion.emphasized), curve: AppMotion.glide);
+      _tabFlow
+        ..duration = AppMotion.of(context, AppMotion.emphasized)
+        ..forward(from: 0);
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_tabKey, tab);
@@ -128,6 +159,8 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   void dispose() {
     unawaited(_petSettings?.cancel());
     _quickPanel.dispose();
+    _tabFlow.dispose();
+    _tabPages.dispose();
     super.dispose();
   }
 
@@ -279,9 +312,25 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
               ref.read(drawerSelectionProvider.notifier).end();
             } else if (_tab != 0) {
               unawaited(_selectTab(0));
+            } else {
+              // 顶层:两秒内再按一次返回才退出(第一次提示);系统默认的
+              // 返回退出被 canPop:false 拦下,这里自己收尾。
+              final now = DateTime.now();
+              if (_lastBackAt != null && now.difference(_lastBackAt!) < _backExitWindow) {
+                unawaited(SystemNavigator.pop());
+              } else {
+                _lastBackAt = now;
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(context.l10n.commonBackAgainToExit),
+                      behavior: SnackBarBehavior.floating,
+                      duration: _backExitWindow,
+                    ),
+                  );
+              }
             }
-            // On 聊天 with nothing selected there is nothing to pop into —
-            // the app stays; leaving it is the system's back-exit flow.
           },
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: dshSystemOverlay(Theme.of(context).brightness),
@@ -331,14 +380,23 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                               bottom: MediaQuery.of(context).padding.bottom + 76,
                             ),
                           ),
-                          child: IndexedStack(index: _tab, children: [
-                            RepaintBoundary(
-                              child: widget.sessionListBuilder ??
-                                  SessionListPage(onOpenChat: _openChat, onDestination: _openDestination),
-                            ),
-                            const RepaintBoundary(child: AllFeaturesPage()),
-                            const RepaintBoundary(child: SettingsScreen()),
-                          ]),
+                          child: PageView(
+                            // 三页都保活(等同旧 IndexedStack 的常驻);翻页
+                            // 只由 [_selectTab] 驱动,不响应横滑手势 —— 左右
+                            // 滑动留给快捷面板。
+                            controller: _tabPages,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _TabPage(
+                                child: RepaintBoundary(
+                                  child: widget.sessionListBuilder ??
+                                      SessionListPage(onOpenChat: _openChat, onDestination: _openDestination),
+                                ),
+                              ),
+                              const _TabPage(child: RepaintBoundary(child: AllFeaturesPage())),
+                              const _TabPage(child: RepaintBoundary(child: SettingsScreen())),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -378,20 +436,38 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                           onDetails: () => _openDestination(DrawerDestination.engine),
                         ),
                         const SizedBox(width: 12),
-                        // 右件:三连胶囊。纯图标(无文字):每颗是垂直居中的
-                        // 44 圆形图标钮,选中 primary 圆底 + primary 图标。
+                        // 右件:三连胶囊。液态玻璃:选中的高亮是一颗胶囊
+                        // (不是圆点),切换时从旧 tab 流到新 tab(见
+                        // [_TabGlow])。纯图标(无文字),图标 22,选中
+                        // primary 着色。
                         Expanded(
                           child: GlassSurface(
                             tier: GlassTier.chrome,
                             stadium: true,
-                            child: SizedBox(
-                              height: 56,
-                              child: Row(
-                                children: [
-                                  _homeTab(0, tooltip: context.l10n.tabChats, icon: AppIcons.chat),
-                                  _homeTab(1, tooltip: context.l10n.tabMiniApps, icon: AppIcons.allFeatures),
-                                  _homeTab(2, tooltip: context.l10n.commonSettings, icon: AppIcons.settings),
-                                ],
+                            // 格宽在这里量好传下去:Positioned 必须直接做
+                            // Stack 的孩子,中间不能隔 LayoutBuilder。
+                            child: LayoutBuilder(
+                              builder: (context, constraints) => SizedBox(
+                                height: 56,
+                                child: Stack(
+                                  children: [
+                                    _TabGlow(
+                                      flow: _tabFlow,
+                                      from: _tabFrom,
+                                      to: _tab,
+                                      slot: constraints.maxWidth / 3,
+                                    ),
+                                    Positioned.fill(
+                                      child: Row(
+                                        children: [
+                                          _homeTab(0, tooltip: context.l10n.tabChats, icon: AppIcons.chat),
+                                          _homeTab(1, tooltip: context.l10n.tabMiniApps, icon: AppIcons.allFeatures),
+                                          _homeTab(2, tooltip: context.l10n.commonSettings, icon: AppIcons.settings),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -408,9 +484,10 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     );
   }
 
-  /// 底栏右件的一颗 tab:等宽格里垂直居中的 44 圆形图标钮。选中 primary
-  /// 圆底 + primary 图标,未选中无底 + onSurfaceVariant 图标。无文字,
-  /// 语义和 tooltip 都用 [tooltip];点按先收起键盘再切 tab。
+  /// 底栏右件的一颗 tab:等分格里垂直居中的 22 图标。选中的高亮整条玻璃
+  /// 只有一份,在 [_TabGlow] 里流到这一格;这里只管图标的着色(选中
+  /// primary,未选中 onSurfaceVariant,随选中渐变)和点按。无文字,语义
+  /// 和 tooltip 都用 [tooltip];点按先收起键盘再切 tab。
   Widget _homeTab(int index, {required String tooltip, required IconData icon}) {
     final scheme = Theme.of(context).colorScheme;
     final selected = _tab == index;
@@ -433,16 +510,14 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
               customBorder: const StadiumBorder(),
               onTap: select,
               child: Center(
-                child: SizedBox.square(
-                  dimension: 44,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: selected ? scheme.primary.withValues(alpha: 0.18) : null,
-                    ),
-                    child: Center(
-                      child: Icon(icon, size: 22, color: selected ? scheme.primary : scheme.onSurfaceVariant),
-                    ),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: selected ? 1.0 : 0.0),
+                  duration: AppMotion.of(context, AppMotion.quick),
+                  curve: AppMotion.std,
+                  builder: (context, t, _) => Icon(
+                    icon,
+                    size: 22,
+                    color: Color.lerp(scheme.onSurfaceVariant, scheme.primary, t),
                   ),
                 ),
               ),
@@ -451,6 +526,83 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
         ),
       ),
     );
+  }
+}
+
+/// 底栏三连胶囊里的选中高亮:一颗胶囊(上下 6 内缩,左右离格边 6,44 高,
+/// 与玻璃条同心),不是圆点。切换 tab 时从旧格「流」到新格:前缘(朝着
+/// 目标的那条边)走得快、后缘晚 12% 才动,胶囊中途被拉长、到站后缘追上
+/// 收拢落位 —— 液态玻璃从一个位置流到另一个位置的感觉。reduce motion
+/// 时 [_selectTab] 把时长归零,直接落位。动画被 [GlassSurface] 的玻璃
+/// 裁剪,不会越出胶囊条。
+class _TabGlow extends StatelessWidget {
+  const _TabGlow({required this.flow, required this.from, required this.to, required this.slot});
+
+  /// 0 → 1 的切换动画([_HomeShellState._tabFlow])。
+  final Animation<double> flow;
+  final int from;
+  final int to;
+
+  /// 一颗 tab 的等分格宽(玻璃条的 1/3,外层 [LayoutBuilder] 量好传来)。
+  final double slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = slot * 3;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // 视觉序:RTL 时 Row 的格序镜像,第 i 颗 tab 的格从左数是 2-i。
+    int visual(int index) => rtl ? 2 - index : index;
+    final fromL = visual(from) * slot + 6;
+    final fromR = (visual(from) + 1) * slot - 6;
+    final toL = visual(to) * slot + 6;
+    final toR = (visual(to) + 1) * slot - 6;
+    return AnimatedBuilder(
+      animation: flow,
+      builder: (context, _) {
+        final t = flow.value;
+        final lead = AppMotion.glide.transform(t);
+        final trail = AppMotion.glide.transform(((t - 0.12) / 0.88).clamp(0.0, 1.0));
+        final going = toL >= fromL;
+        final left = (going ? _lerp(fromL, toL, trail) : _lerp(fromL, toL, lead)).clamp(0.0, width);
+        final right = math.max(left + 12, math.min(going ? _lerp(fromR, toR, lead) : _lerp(fromR, toR, trail), width));
+        return Positioned(
+          left: left,
+          top: 6,
+          bottom: 6,
+          width: right - left,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static double _lerp(double a, double b, double t) => a + (b - a) * t;
+}
+
+/// PageView 的一页保活包装:翻过去之后状态照旧活着(滚动位置、草稿、
+/// 各 tab 自己的控制器),等同旧 IndexedStack 的常驻语义。
+class _TabPage extends StatefulWidget {
+  const _TabPage({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_TabPage> createState() => _TabPageState();
+}
+
+class _TabPageState extends State<_TabPage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 

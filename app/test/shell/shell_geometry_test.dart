@@ -63,24 +63,24 @@ Future<void> _pumpChats(WidgetTester tester) async {
 
 void main() {
   group('chats tab', () {
-    testWidgets('cards on the 10 line, chip on the 12 inner line, keys end on the 10 line', (tester) async {
+    testWidgets('cards on the 16 line, avatar on the 16 inner line, keys end on the 10 line', (tester) async {
       await _pumpChats(tester);
       final page = tester.getRect(find.byType(SessionListPage));
-      // The list no longer insets its rows: each card carries its own 10
-      // margins, so the visual card is the Ink inside the tile.
+      // The list no longer insets its rows: each card slice carries its own
+      // 16 margins, so the visual card is the Ink inside the tile.
       final first = find.byType(SessionTile).first;
       final tile = tester.getRect(find.descendant(of: first, matching: find.byType(Ink)).first);
-      final chip = tester.getRect(find.descendant(of: first, matching: find.byIcon(AppIcons.chat)));
+      final avatar = tester.getRect(find.descendant(of: first, matching: find.byKey(const ValueKey('session-avatar'))));
       final title = tester.getRect(find.text('修复登录按钮重复提交'));
       final key = tester.getRect(find.byTooltip('对话列表'));
 
       expect(tile.left - page.left, _near(SessionTile.marginH));
       expect(page.right - tile.right, _near(SessionTile.marginH));
-      expect(tile.height, _near(SessionTile.height + 2 * SessionTile.padV));
-      // The chip sits on the card's 12 inner line; the title follows it.
-      expect(chip.left - page.left, _near(SessionTile.marginH + SessionTile.innerH));
-      expect(chip.size, const Size.square(34));
-      expect(title.left - chip.right, _near(10));
+      expect(tile.height, _near(SessionTile.height));
+      // The avatar sits on the card's 16 inner line; the title follows it.
+      expect(avatar.left - page.left, _near(SessionTile.marginH + SessionTile.innerH));
+      expect(avatar.size, const Size.square(SessionTile.avatarSize));
+      expect(title.left - avatar.right, _near(SessionTile.avatarGap));
       // The title row's 「对话列表」 round key ends where the cards do.
       expect(page.right - key.right, _near(10));
       expect(key.size, const Size.square(34));

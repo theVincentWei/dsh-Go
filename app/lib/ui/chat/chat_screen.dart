@@ -64,7 +64,6 @@ import '../safe_mode/engine_failure_card.dart';
 import '../safe_mode/safe_mode_banner.dart';
 import '../session/session_detail_page.dart';
 import '../settings/media_settings_page.dart' show MediaSettingsPage, showMediaInstallSheet, showMediaUnavailableSheet;
-import '../settings/settings_screen.dart';
 import '../settings/settings_widgets.dart' show SettingsTile;
 import '../shell/adaptive/adaptive_layout.dart' show WindowClass;
 import '../shell/drawer/folder_sheets.dart';
@@ -78,6 +77,7 @@ import 'chat_header.dart';
 import 'chat_list.dart';
 import 'composer.dart';
 import 'composer_toast.dart';
+import 'current_chat_page.dart';
 import 'dock/chat_dock.dart';
 import 'dock/dock_stack.dart';
 import 'empty_state.dart';
@@ -1655,10 +1655,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                   ),
                                 ),
                           onOpenDrawer: widget.onOpenDrawer,
+                          // 右上角的「设置」圆键:只开当前对话自己的设置页
+                          // (权限预设、计划模式、确认方式),不再整份设置中心。
                           onOpenSettings: sessionId == null || isChild
                               ? null
                               : () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(builder: (_) => const SettingsScreen())),
+                                  MaterialPageRoute<void>(builder: (_) => CurrentChatPage(sessionId: sessionId))),
                           // The title pill opens the whole session's details (on a
                           // wide window it folds and unfolds the panel beside us).
                           onTitleTap: sessionId == null
