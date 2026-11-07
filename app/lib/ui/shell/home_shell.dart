@@ -22,7 +22,7 @@ import '../bots/bot_alerts.dart';
 import '../chat/chat_screen.dart';
 import '../common/status_dot.dart' show StatusTone;
 import '../engine/engine_screen.dart';
-import '../applet/applet_home_page.dart';
+import '../features/all_features_page.dart';
 import '../forum/forum_link_host.dart';
 import '../notify/background_net_host.dart';
 import '../notify/chat_alert_host.dart';
@@ -393,7 +393,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                                       SessionListPage(onOpenChat: _openChat, onDestination: _openDestination),
                                 ),
                               ),
-                              const _TabPage(child: RepaintBoundary(child: AppletHomePage())),
+                              const _TabPage(child: RepaintBoundary(child: AllFeaturesPage())),
                               const _TabPage(child: RepaintBoundary(child: SettingsScreen())),
                             ],
                           ),

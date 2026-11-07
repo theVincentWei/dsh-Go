@@ -1,7 +1,5 @@
-/// 小程序 tab: installed applets first (~/dsh/apps/ on the active host), then
-/// every hub feature — one tile language, one grid, no nesting. The end state
-/// is that hub features become applets themselves; until then they share the
-/// grid.
+/// 小程序组:已安装的 Applet(`~/dsh/apps/`),渲染成和功能目录同一风格的
+/// 图标瓷贴组,插在全部功能页最前。只加这一组,不碰页面原有的分区。
 library;
 
 import 'dart:convert';
@@ -11,40 +9,15 @@ import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/l10n.dart';
 import '../../state/connection_state.dart';
 import '../../state/sessions_state.dart';
-import '../features/all_features_page.dart' show dshWebOpenerProvider;
-import '../features/feature_catalog.dart';
+import '../common/app_sheet.dart' show groupTitleStyle;
+import '../common/tile_grid.dart';
 import '../theme/app_icons.dart';
-import '../web/web_target.dart';
 import 'applet_bridge.dart';
 import 'applet_screen.dart';
 
-/// One grid tile, however it is backed.
-sealed class _Tile {
-  const _Tile();
-}
-
-/// An installed applet: opens the container.
-class _AppletTileData extends _Tile {
-  const _AppletTileData(this.id, this.name, this.icon, this.iconPng);
-
-  final String id;
-  final String name;
-  final String icon; // glyph name from the app's whitelist, or an emoji
-  final Uint8List? iconPng;
-}
-
-/// A hub feature: same behavior as its tile in 全部功能.
-class _FeatureTileData extends _Tile {
-  const _FeatureTileData(this.item);
-
-  final FeatureItem item;
-}
-
-/// Applet icon names that map into the app's own glyph system (AppIcons);
-/// anything else renders as the emoji it is. icon.png always wins.
+/// Applet 图标名映射进 App 自己的字形体系;不认识的当 emoji 渲染,icon.png 优先。
 final Map<String, IconData> _appletGlyphs = <String, IconData>{
   'balance': AppIcons.balance,
   'wallet': AppIcons.balance,
@@ -52,187 +25,126 @@ final Map<String, IconData> _appletGlyphs = <String, IconData>{
   'chart': AppIcons.chart,
 };
 
-class _AppletHomePageState extends ConsumerState<AppletHomePage> {
-  late Future<List<_Tile>> _tiles = _loadTiles();
+/// 一个已安装的 Applet。
+typedef AppletEntry = ({String id, String name, String icon, Uint8List? iconPng});
 
-  Future<List<_Tile>> _reload() async {
-    final List<_Tile> tiles = await _loadTiles();
-    if (mounted) setState(() => _tiles = Future.value(tiles));
-    return tiles;
-  }
-
-  Future<List<_Tile>> _loadTiles() async {
-    final List<_Tile> tiles = <_Tile>[];
-    final DshClient? client = ref.read(activeConnectionProvider).value?.client;
-    final String sessionId = ref.read(currentSessionProvider) ?? 'applet';
-    if (client != null) {
-      final DshAppletTransport transport =
-          DshAppletTransport(client: client, sessionId: sessionId);
+final appletEntriesProvider = FutureProvider.autoDispose<List<AppletEntry>>((ref) async {
+  final DshClient? client = ref.watch(activeConnectionProvider).value?.client;
+  if (client == null) return const <AppletEntry>[];
+  final String sessionId = ref.watch(currentSessionProvider) ?? 'applet';
+  final DshAppletTransport transport =
+      DshAppletTransport(client: client, sessionId: sessionId);
+  final String home = await transport.engineHome();
+  final String appsRoot = '$home/dsh/apps';
+  final List<AppletEntry> apps = <AppletEntry>[];
+  for (final String dir in await transport.listDir(appsRoot)) {
+    try {
+      final Object? appJson = jsonDecode(
+        utf8.decode(
+          await transport.readBytes('$appsRoot/$dir/app.json', maxBytes: 64 * 1024),
+        ),
+      );
+      Uint8List? iconPng;
       try {
-        final String home = await transport.engineHome();
-        final String appsRoot = '$home/dsh/apps';
-        for (final String dir in await transport.listDir(appsRoot)) {
-          try {
-            final Object? appJson = jsonDecode(
-              utf8.decode(
-                await transport.readBytes('$appsRoot/$dir/app.json', maxBytes: 64 * 1024),
-              ),
-            );
-            Uint8List? iconPng;
-            try {
-              iconPng = await transport.readBytes('$appsRoot/$dir/icon.png', maxBytes: 256 * 1024);
-            } catch (_) {
-              // icon.png is optional.
-            }
-            final String rawIcon =
-                appJson is Map && appJson['icon'] is String ? appJson['icon'] as String : '🧩';
-            tiles.add(_AppletTileData(
-              dir,
-              appJson is Map && appJson['name'] is String ? appJson['name'] as String : dir,
-              rawIcon,
-              iconPng,
-            ));
-          } catch (_) {
-            // A directory without a readable app.json is not an app; skip it.
-          }
-        }
+        iconPng = await transport.readBytes('$appsRoot/$dir/icon.png', maxBytes: 256 * 1024);
       } catch (_) {
-        // Host unreachable: the hub tiles below still render.
+        // icon.png 可选,缺了就用 app.json 的 icon 字段。
       }
+      apps.add((
+        id: dir,
+        name: appJson is Map && appJson['name'] is String ? appJson['name'] as String : dir,
+        icon: appJson is Map && appJson['icon'] is String ? appJson['icon'] as String : '🧩',
+        iconPng: iconPng,
+      ));
+    } catch (_) {
+      // 没有可读 app.json 的目录不是 App,跳过。
     }
-    for (final FeatureSection section in featureSections) {
-      for (final FeatureItem item in section.items) {
-        tiles.add(_FeatureTileData(item));
-      }
-    }
-    return tiles;
   }
+  return apps;
+});
 
-  void _openTile(_Tile tile) {
-    final String sessionId = ref.read(currentSessionProvider) ?? 'applet';
-    switch (tile) {
-      case _AppletTileData(:final id):
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => AppletScreen(appId: id)),
-        );
-      case _FeatureTileData(:final item):
-        if (item.native case final Widget Function(String) build) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => build(sessionId)),
-          );
-        } else if (item.webFor(sessionId) case final DshWebTarget target?) {
-          ref.read(dshWebOpenerProvider)(context, ref, target);
-        }
-    }
-  }
+/// 已安装 Applet 的图标瓷贴组:分组标签 + 4 列网格,与功能目录同款。
+class AppletGroup extends ConsumerWidget {
+  const AppletGroup({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final L10n l10n = context.l10n;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: _reload,
-        child: FutureBuilder<List<_Tile>>(
-          future: _tiles,
-          builder: (BuildContext context, AsyncSnapshot<List<_Tile>> snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final List<_Tile> tiles = snapshot.data ?? const <_Tile>[];
-            return ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<List<AppletEntry>>(
+      future: ref.watch(appletEntriesProvider.future),
+      builder: (BuildContext context, AsyncSnapshot<List<AppletEntry>> snapshot) {
+        final List<AppletEntry> apps = snapshot.data ?? const <AppletEntry>[];
+        if (apps.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('小程序', style: groupTitleStyle(context)),
+            TileGrid(
+              columns: 4,
+              spacing: 16,
               children: <Widget>[
-                if (tiles.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Text(
-                      l10n.appletEmpty,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                for (final AppletEntry app in apps)
+                  _AppletTile(
+                    app: app,
+                    onOpen: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => AppletScreen(appId: app.id)),
                     ),
-                  )
-                else
-                  GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 0.82,
-                    children: <Widget>[
-                      for (final _Tile tile in tiles) _GridTile(tile: tile, onOpen: _openTile),
-                    ],
                   ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _GridTile extends StatelessWidget {
-  const _GridTile({required this.tile, required this.onOpen});
+class _AppletTile extends StatelessWidget {
+  const _AppletTile({required this.app, required this.onOpen});
 
-  final _Tile tile;
-  final void Function(_Tile) onOpen;
+  final AppletEntry app;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-    final (Widget iconWidget, String label) = switch (tile) {
-      _AppletTileData(:final icon, :final iconPng, :final name) => (
-          iconPng != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(iconPng, width: 48, height: 48, fit: BoxFit.contain),
-                )
-              : _appletGlyphs.containsKey(icon)
-                  ? Icon(_appletGlyphs[icon], size: 28, color: colors.primary)
-                  : Text(icon, style: const TextStyle(fontSize: 28)),
-          name,
-        ),
-      _FeatureTileData(:final item) => (
-          Icon(item.icon, size: 28, color: colors.primary),
-          item.title,
-        ),
-    };
-    return InkWell(
-      onTap: () => onOpen(tile),
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Widget icon = app.iconPng != null
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(11),
+            child: Image.memory(app.iconPng!, width: 34, height: 34, fit: BoxFit.contain),
+          )
+        : _appletGlyphs.containsKey(app.icon)
+            ? Icon(_appletGlyphs[app.icon], size: 20, color: scheme.primary)
+            : Text(app.icon, style: const TextStyle(fontSize: 18));
+    return Semantics(
+      button: true,
+      label: app.name,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(14),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(14),
+            SizedBox.square(
+              dimension: 46,
+              child: DecoratedBox(
+                decoration: ShapeDecoration(
+                  color: scheme.primary.withValues(
+                    alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10,
+                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Center(child: icon),
               ),
-              alignment: Alignment.center,
-              child: iconWidget,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             Text(
-              label,
+              app.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.labelSmall,
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class AppletHomePage extends ConsumerStatefulWidget {
-  const AppletHomePage({super.key});
-
-  @override
-  ConsumerState<AppletHomePage> createState() => _AppletHomePageState();
 }
