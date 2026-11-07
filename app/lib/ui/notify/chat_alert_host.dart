@@ -264,6 +264,12 @@ class AlertBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
+    // The banner floats over ANY page, so legibility beats transparency: fill
+    // it with the matte material (chrome's fallbackFill, near-opaque) so the
+    // TopFade band behind a scrolled header can't split it into a milky upper
+    // half and a see-through lower half. The Gaussian blur itself stays on.
+    final surfaces = DshSurfaces.of(context);
+    final bannerGlass = surfaces.chrome.copyWith(fill: surfaces.chrome.fallbackFill);
     final (icon, bg, fg) = switch (alert.kind) {
       AlertKind.done => (AppIcons.done, colors.successContainer, colors.onSuccessContainer),
       AlertKind.failed => (AppIcons.error, colors.dangerContainer, colors.onDangerContainer),
@@ -281,6 +287,7 @@ class AlertBanner extends StatelessWidget {
       excludeSemantics: true,
       child: GlassSurface(
         tier: GlassTier.chrome,
+        style: bannerGlass,
         borderRadius: AppShape.radiusLg,
         onTap: onTap,
         child: Padding(
