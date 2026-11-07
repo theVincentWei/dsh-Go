@@ -10,8 +10,13 @@
   "appletAboutBody": "{appId} · version {version}",
   "@appletAboutBody": {
     "placeholders": {
-      "appId": { "type": "String" },
-      "version": { "type": "int" }
+      "appId": {
+        "type": "String"
+      },
+      "version": {
+        "type": "int"
+      }
     }
-  }
+  },
+  "appletAllFeatures": "All features"
 }

@@ -479,6 +479,7 @@
   "appletMenuRefresh": "Refresh",
   "appletMenuAbout": "About",
   "appletAboutBody": "{appId} · version {version}",
+  "appletAllFeatures": "All features",
   "botsFolderGone": "This folder is gone",
   "botsFolderReadFailed": "Couldn’t read this folder",
   "botsFolderOpenFailed": "Couldn’t open this folder",

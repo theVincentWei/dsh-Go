@@ -2966,6 +2966,12 @@ abstract class L10n {
   /// **'{appId} · 版本 {version}'**
   String appletAboutBody(String appId, int version);
 
+  /// No description provided for @appletAllFeatures.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部功能'**
+  String get appletAllFeatures;
+
   /// No description provided for @botsFolderGone.
   ///
   /// In zh, this message translates to:

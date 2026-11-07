@@ -1569,6 +1569,9 @@ class L10nZh extends L10n {
   }
 
   @override
+  String get appletAllFeatures => '全部功能';
+
+  @override
   String get botsFolderGone => '这个文件夹已经不在了';
 
   @override

@@ -957,6 +957,7 @@
       }
     }
   },
+  "appletAllFeatures": "全部功能",
   "botsFolderGone": "这个文件夹已经不在了",
   "botsFolderReadFailed": "没能读取这个文件夹",
   "botsFolderOpenFailed": "打不开这个文件夹",

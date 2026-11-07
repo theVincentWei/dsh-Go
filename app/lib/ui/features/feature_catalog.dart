@@ -1,4 +1,3 @@
-import '../applet/applet_launcher_screen.dart';
 
 // Every user-facing surface of the official DSH Web client (0.2.1-rc.2) and
 // where it lives in the app: a native page, the official page inside the app
@@ -188,15 +187,6 @@ const settingsFeatureSection = 'settings';
 /// What 全部功能 holds: things to do now. Settings live in 设置; the last
 /// group is a few shortcuts there (docs/design/settings-ia.md §4.6).
 final featureSections = <FeatureSection>[
-  FeatureSection('小程序', [
-    FeatureItem.localized(
-      id: 'applet-ledger',
-      title: (l10n) => l10n.appletEntry,
-      summary: (l10n) => '记一笔、看账目，Agent 协作落账',
-      icon: AppIcons.plugin,
-      native: (id) => const AppletLauncherScreen(),
-    ),
-  ]),
   FeatureSection.localized((l10n) => l10n.catalogCurrentChat, [
     FeatureItem.localized(
       id: 'session-detail',

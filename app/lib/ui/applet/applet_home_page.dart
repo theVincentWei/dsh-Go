@@ -1,0 +1,180 @@
+/// 小程序 tab: the applets the active host serves from `~/dsh/apps/`, one
+/// icon tile each — the tab IS the mini-program grid, no nesting.
+library;
+
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:dsh_client/dsh_client.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../l10n/l10n.dart';
+import '../../state/connection_state.dart';
+import '../../state/sessions_state.dart';
+import '../features/all_features_page.dart';
+import 'applet_bridge.dart';
+import 'applet_screen.dart';
+
+/// One installed applet: directory id, display name, and its icon (emoji, or
+/// raw PNG bytes when the app ships `icon.png`).
+typedef AppletHomeEntry = ({String id, String name, String icon, Uint8List? iconPng});
+
+class AppletHomePage extends ConsumerStatefulWidget {
+  const AppletHomePage({super.key});
+
+  @override
+  ConsumerState<AppletHomePage> createState() => _AppletHomePageState();
+}
+
+class _AppletHomePageState extends ConsumerState<AppletHomePage> {
+  late Future<List<AppletHomeEntry>> _apps = _loadApps();
+
+  Future<List<AppletHomeEntry>> _reload() async {
+    final List<AppletHomeEntry> apps = await _loadApps();
+    if (mounted) setState(() => _apps = Future.value(apps));
+    return apps;
+  }
+
+  Future<List<AppletHomeEntry>> _loadApps() async {
+    final DshClient? client = ref.read(activeConnectionProvider).value?.client;
+    if (client == null) return const <AppletHomeEntry>[];
+    final String sessionId = ref.read(currentSessionProvider) ?? 'applet';
+    final DshAppletTransport transport =
+        DshAppletTransport(client: client, sessionId: sessionId);
+    final String home = await transport.engineHome();
+    final String appsRoot = '$home/dsh/apps';
+    final List<AppletHomeEntry> apps = <AppletHomeEntry>[];
+    for (final String dir in await transport.listDir(appsRoot)) {
+      try {
+        final Object? appJson = jsonDecode(
+          utf8.decode(
+            await transport.readBytes('$appsRoot/$dir/app.json', maxBytes: 64 * 1024),
+          ),
+        );
+        Uint8List? iconPng;
+        try {
+          iconPng = await transport.readBytes('$appsRoot/$dir/icon.png', maxBytes: 256 * 1024);
+        } catch (_) {
+          // icon.png is optional; app.json's emoji icon stands in.
+        }
+        apps.add((
+          id: dir,
+          name: appJson is Map && appJson['name'] is String ? appJson['name'] as String : dir,
+          icon: appJson is Map && appJson['icon'] is String ? appJson['icon'] as String : '🧩',
+          iconPng: iconPng,
+        ));
+      } catch (_) {
+        // A directory without a readable app.json is not an app; skip it.
+      }
+    }
+    apps.sort((AppletHomeEntry a, AppletHomeEntry b) => a.name.compareTo(b.name));
+    return apps;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final L10n l10n = context.l10n;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        onRefresh: _reload,
+        child: FutureBuilder<List<AppletHomeEntry>>(
+          future: _apps,
+          builder: (BuildContext context, AsyncSnapshot<List<AppletHomeEntry>> snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final List<AppletHomeEntry> apps = snapshot.data ?? const <AppletHomeEntry>[];
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: <Widget>[
+                if (apps.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Text(
+                      l10n.appletEmpty,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  )
+                else ...<Widget>[
+                  GridView.count(
+                    crossAxisCount: 4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 0.82,
+                    children: <Widget>[
+                      for (final AppletHomeEntry app in apps)
+                        _AppletTile(
+                          app: app,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) => AppletScreen(appId: app.id)),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const AllFeaturesPage()),
+                  ),
+                  icon: const Icon(Icons.widgets_outlined, size: 18),
+                  label: Text(l10n.appletAllFeatures, style: const TextStyle(fontSize: 13)),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AppletTile extends StatelessWidget {
+  const _AppletTile({required this.app, required this.onTap});
+
+  final AppletHomeEntry app;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: app.iconPng != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(app.iconPng!, width: 48, height: 48, fit: BoxFit.contain),
+                    )
+                  : Text(app.icon, style: const TextStyle(fontSize: 30)),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              app.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
