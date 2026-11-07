@@ -18,7 +18,9 @@
 // onboarding they are held, natively and in the bridges.
 
 import 'dart:async';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,6 +50,7 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
   StreamSubscription<IncomingShare>? _shares;
   StreamSubscription<LauncherEntry>? _entries;
   VoidCallback? _offFiles;
+  VoidCallback? _offIntake;
 
   @override
   void initState() {
@@ -55,6 +58,13 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
     _shares = ref.read(shareIntakeProvider).shares.listen((share) => unawaited(_onShare(share)));
     _entries = ref.read(launcherBridgeProvider).entries.listen((entry) => unawaited(_onEntry(entry)));
     _offFiles = ref.read(linkRouterProvider).registerFileFallback(_onFile);
+    // iOS share intake: the ShareExtension saves the share into the shared
+    // container and opens `dshgo://intake` to bring the app forward; the link
+    // carries nothing and is swallowed here (the share itself arrives over
+    // dsh/share, _shares above). Android never opens this link.
+    if (!kIsWeb && Platform.isIOS) {
+      _offIntake = ref.read(linkRouterProvider).registerLinkHandler('intake', (_) async => true);
+    }
     ref.listenManual(recentShortcutsProvider, (_, recents) {
       if (recents != null) {
         unawaited(ref.read(launcherBridgeProvider).setRecent(recents));
@@ -67,6 +77,7 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
     unawaited(_shares?.cancel());
     unawaited(_entries?.cancel());
     _offFiles?.call();
+    _offIntake?.call();
     super.dispose();
   }
 
