@@ -96,6 +96,7 @@ import 'usage_sheet.dart';
 import 'voice/voice_controller.dart';
 import 'widgets/activity_strip.dart';
 import 'widgets/attachments.dart';
+import 'widgets/download_banner.dart';
 import 'widgets/notice_row.dart';
 import 'widgets/permission_pill.dart';
 import 'widgets/plus_panel.dart';
@@ -1874,6 +1875,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                         strip: false,
                                       ),
                                     ),
+                                  // 下载中的文件横条(跨会话可见,可取消);
+                                  // 无活动下载时不占任何布局。
+                                  const DownloadTasksBanner(),
                                   if (readOnly)
                                     const ReadOnlyBar()
                                   else
