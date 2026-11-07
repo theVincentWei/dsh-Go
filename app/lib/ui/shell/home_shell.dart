@@ -94,6 +94,12 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   /// Whether the conversation page currently covers the tabs.
   bool _chatOpen = false;
 
+  /// The in-flight chat push: completes when the pushed page pops. The
+  /// notification flow pops the chat and immediately reveals another — the
+  /// reveal waits on this so the pop's landing isn't mistaken for「already
+  /// open」(its flag lags the pop by a frame).
+  Completer<void>? _chatPop;
+
   late final AnimationController _quickPanel = AnimationController(vsync: this, duration: AppMotion.emphasized);
 
   /// The same for [_quickPanel].
@@ -190,8 +196,14 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   /// Shows the conversation over the tabs. The list page sets the session
   /// selection first; [ChatScreen] reads it.
   Future<void> _openChat() async {
-    if (_chatOpen || !mounted) return;
+    if (_chatOpen || !mounted) {
+      // Another push is in flight (the notification flow is about to reveal
+      // after popping it): piggyback on its landing.
+      return _chatPop?.future ?? Future.value();
+    }
     _chatOpen = true;
+    final popped = Completer<void>();
+    _chatPop = popped;
     final navigator = Navigator.of(context);
     try {
       await navigator.push(
@@ -199,14 +211,24 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
       );
     } finally {
       _chatOpen = false;
+      _chatPop = null;
+      popped.complete();
     }
   }
 
   /// A notification or a share/shortcut entry wants the conversation shown:
   /// one is already open, or there is nothing to open.
   void _revealChat(bool animate) {
-    if (_chatOpen) return;
-    if (ref.read(currentSessionProvider) == null) return;
+    if (_chatOpen) {
+      // The notification flow just popped the open chat to reveal another:
+      // wait for that landing (its flag resets with the pop), then push.
+      unawaited(_chatPop?.future.then((_) {
+        if (mounted) _revealChat(animate);
+      }));
+      return;
+    }
+    final current = ref.read(currentSessionProvider);
+    if (current == null) return;
     unawaited(_openChat());
   }
 
