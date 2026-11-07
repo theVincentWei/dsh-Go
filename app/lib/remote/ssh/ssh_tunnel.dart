@@ -292,8 +292,10 @@ final class IsolateSshTunnel implements SshTunnel {
 
   @override
   Future<({bool refused, Object? error})> probeTunnel(int remotePort, {required Duration timeout}) async {
-    final result = await _ask('probe', {'port': remotePort, 'timeout': timeout}) as Map;
-    return (refused: result['refused'] as bool, error: result['error']);
+    // The result is a Dart record; records cross SendPorts intact, but they
+    // are not Maps — casting broke every real (isolate) probeTunnel call.
+    final result = await _ask('probe', {'port': remotePort, 'timeout': timeout});
+    return result as ({bool refused, Object? error});
   }
 
   @override
@@ -505,6 +507,11 @@ void _sshTunnelMain(SendPort reply) {
           settle(id!, null);
         case 'close':
           engine.close().then((_) => settle(id!, null));
+        case 'hostKeyAnswer':
+          // Host-key decisions come back without a job id; without this case
+          // the pending verify completer never settles and the handshake
+          // hangs at fingerprint verification forever.
+          verifyAnswers.remove(job['verifyId'] as int)?.call(job['trust'] as bool, job['error']);
         default:
           if (id != null) fail(id, 'unknown tunnel op ${job['op']}');
       }
