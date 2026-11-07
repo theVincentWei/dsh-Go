@@ -20,6 +20,7 @@ import 'dart:typed_data';
 import 'carrier.dart';
 import 'errors.dart';
 import 'json.dart';
+import 'perf_probe.dart';
 import 'session_api.dart';
 
 /// One regular file as the Host sees it (`workspaceFiles/stat`).
@@ -231,7 +232,16 @@ extension DshFilesApi on DshClient {
 /// tunnel, a JSON byte array from a test double.
 Uint8List _bytesOf(Object? data) {
   if (data is Uint8List) return data;
-  if (data is String) return base64Decode(data);
+  if (data is String) {
+    if (perfProbe) {
+      final stopwatch = Stopwatch()..start();
+      final bytes = base64Decode(data);
+      stopwatch.stop();
+      ClientPerfProbe.noteBase64(stopwatch.elapsedMicroseconds, data.length);
+      return bytes;
+    }
+    return base64Decode(data);
+  }
   if (data is List) return Uint8List.fromList([for (final b in data) asInt(b) ?? 0]);
   return Uint8List(0);
 }

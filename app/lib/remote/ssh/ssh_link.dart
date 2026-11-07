@@ -4,10 +4,11 @@ import 'package:dsh_client/dsh_client.dart';
 
 import '../../l10n/l10n.dart';
 import '../link_status.dart';
-import 'local_forward.dart';
 import 'remote_bootstrap.dart';
+import 'remote_shell.dart';
 import 'ssh_host_config.dart';
 import 'ssh_transport.dart';
+import 'ssh_tunnel.dart';
 
 /// What the person is asked on first contact with a host.
 class HostKeyPrompt {
@@ -62,6 +63,7 @@ class SshHostLink implements HostLink {
     required this._loadSecrets,
     this.promptHostKey,
     this.pinHostKey,
+    SshTunnel? tunnel,
     SshTransportFactory? transportFactory,
     DshClientConnector? connectClient,
     Stream<void>? kicks,
@@ -71,17 +73,34 @@ class SshHostLink implements HostLink {
     this.keepAliveTimeout = const Duration(seconds: 10),
     this.tunnelProbeTimeout = const Duration(seconds: 10),
     this.retryFirstOpen = true,
-  }) : _transportFactory = transportFactory ?? DartSshTransport.connect,
+  }) : _tunnel = tunnel ??
+           // A caller that names a transport factory runs the tunnel engine
+           // in-process (tests with a fake server); without one, production
+           // gets the engine in its own isolate, off the UI thread.
+           (transportFactory != null
+               ? LocalSshTunnel(
+                   SshTunnelEngine(transportFactory: transportFactory, probeTimeout: tunnelProbeTimeout),
+                 )
+               : IsolateSshTunnel()),
        _connectClient = connectClient ?? _defaultConnector,
        _backoff = backoff ?? Backoff() {
     _kickSub = kicks?.listen((_) => kick());
+    _lostSub = _tunnel.lost.listen((_) {
+      if (_closed || _recovering) return;
+      if (_status.phase != HostLinkPhase.connected) return;
+      _lost(HostLinkError(HostLinkErrorKind.unreachable, appL10n.remoteErrSshDisconnected, retryable: true));
+    });
   }
 
   SshHostConfig _config;
   final Future<SshSecrets> Function() _loadSecrets;
   final HostKeyPrompter? promptHostKey;
   final HostKeyPinner? pinHostKey;
-  final SshTransportFactory _transportFactory;
+
+  /// Where dartssh2 and the forward listener run. Production spawns them in
+  /// their own isolate (SSH crypto must not compete with frame rendering);
+  /// tests inject [LocalSshTunnel] with a fake transport factory.
+  final SshTunnel _tunnel;
   final DshClientConnector _connectClient;
   final Backoff _backoff;
   final Map<String, String> remoteEnvironment;
@@ -98,13 +117,10 @@ class SshHostLink implements HostLink {
   final _clients = StreamController<DshClient>.broadcast();
   final _delay = InterruptibleDelay();
   StreamSubscription<void>? _kickSub;
+  StreamSubscription<void>? _lostSub;
   StreamSubscription<DshConnectionState>? _muxSub;
   HostLinkStatus _status = HostLinkStatus.idle;
 
-  SshTransport? _transport;
-  SshTransport? _connectingTransport;
-  Completer<SshTransport> _ready = Completer<SshTransport>();
-  LocalForwarder? _forwarder;
   RemoteDshEndpoint? _endpoint;
   DshClient? _client;
   Future<DshClient>? _opening;
@@ -131,7 +147,7 @@ class SshHostLink implements HostLink {
   RemoteDshEndpoint? get endpoint => _endpoint;
 
   /// The local forward port (null before the first tunnel).
-  int? get localPort => _forwarder?.port;
+  int? get localPort => _tunnel.localPort;
 
   /// Configured working directory with `~` resolved on the remote.
   String? get resolvedWorkingDirectory => RemoteDshBootstrap.absolutePath(_config.workingDirectory, _endpoint?.home);
@@ -209,7 +225,7 @@ class SshHostLink implements HostLink {
     at(HostLinkStep.connect, detail: _config.address);
     final secrets = await _loadSecrets();
     _checkOpen();
-    final transport = await _transportFactory(SshConnectParams.of(_config, secrets), (key) async {
+    await _tunnel.connect(SshConnectParams.of(_config, secrets), (key) async {
       if (_closed) return false;
       at(HostLinkStep.verifyHostKey, detail: '${key.shortType} ${key.fingerprint}');
       switch (checkHostKey(_config, key)) {
@@ -237,16 +253,11 @@ class SshHostLink implements HostLink {
           return true;
       }
     });
-    if (_closed) {
-      transport.close();
-      throw StateError('link closed');
-    }
     // Own the authenticated connection while bootstrap/probe are pending.
-    _connectingTransport = transport;
     at(HostLinkStep.startDsh, detail: appL10n.remoteCheckingDsh);
     try {
       final bootstrap = RemoteDshBootstrap(
-        transport,
+        _WorkerShell(_tunnel),
         launchCommand: _config.launchCommand,
         workingDirectory: _config.workingDirectory,
         environment: remoteEnvironment,
@@ -259,31 +270,21 @@ class SshHostLink implements HostLink {
       _forceRestart = false;
 
       at(HostLinkStep.tunnel, detail: '127.0.0.1:${endpoint.port}');
-      try {
-        // Destroy a late channel too: Future.timeout does not cancel the
-        // underlying SSH channel-open request.
-        await transport
-            .openTunnel('127.0.0.1', endpoint.port)
-            .then((channel) => channel.destroy())
-            .timeout(tunnelProbeTimeout);
-      } catch (e) {
+      final probe = await _tunnel.probeTunnel(endpoint.port, timeout: tunnelProbeTimeout);
+      if (probe.refused || probe.error != null) {
         // A reused DSH whose port no longer answers: start a fresh one.
-        if (endpoint.reused && e is TunnelRefused) _forceRestart = true;
-        throw HostLinkError(HostLinkErrorKind.tunnelFailed, appL10n.remoteErrDshPort, detail: '$e', retryable: true);
+        if (endpoint.reused && probe.refused) _forceRestart = true;
+        throw HostLinkError(
+          HostLinkErrorKind.tunnelFailed,
+          appL10n.remoteErrDshPort,
+          detail: '${probe.error ?? probe.refused}',
+          retryable: true,
+        );
       }
       _checkOpen();
       final previous = _endpoint;
       _endpoint = endpoint;
-      if (_forwarder == null) {
-        final forwarder = await LocalForwarder.bind(_openChannel);
-        if (_closed) {
-          await forwarder.close();
-          throw StateError('link closed');
-        }
-        _forwarder = forwarder;
-      }
-      _connectingTransport = null;
-      _installTransport(transport);
+      await _tunnel.setEndpoint(endpoint.port);
 
       at(HostLinkStep.login);
       final client = await _ensureClient(endpoint, previous);
@@ -298,11 +299,8 @@ class SshHostLink implements HostLink {
       _startKeepAlive();
       return client;
     } catch (e) {
-      transport.close();
-      if (identical(_transport, transport)) _teardownTransport();
+      _tunnel.reset();
       rethrow;
-    } finally {
-      if (identical(_connectingTransport, transport)) _connectingTransport = null;
     }
   }
 
@@ -318,7 +316,7 @@ class SshHostLink implements HostLink {
     final DshClient client;
     try {
       client = await _connectClient(
-        baseUri: Uri(scheme: 'http', host: '127.0.0.1', port: _forwarder!.port),
+        baseUri: Uri(scheme: 'http', host: '127.0.0.1', port: _tunnel.localPort!),
         token: endpoint.token,
         hostHeader: endpoint.authority,
       );
@@ -363,66 +361,19 @@ class SshHostLink implements HostLink {
   /// SSH answers but the mux can't get through: if nothing listens on DSH's
   /// port any more, reconnect, which starts it again.
   Future<void> _probeDsh() async {
-    final transport = _transport;
     final endpoint = _endpoint;
-    if (transport == null || endpoint == null || !_status.isConnected) return;
-    try {
-      // A channel that opens after the timeout is still closed.
-      final probe = transport.openTunnel('127.0.0.1', endpoint.port).then((channel) => channel.destroy());
-      await probe.timeout(const Duration(seconds: 5));
-    } catch (_) {
-      if (!identical(transport, _transport)) return;
+    if (endpoint == null || !_status.isConnected) return;
+    final probe = await _tunnel.probeTunnel(endpoint.port, timeout: const Duration(seconds: 5));
+    if (probe.refused || probe.error != null) {
       _backoff.reset();
       _lost(HostLinkError(HostLinkErrorKind.dshStartFailed, appL10n.remoteErrDshStopped, retryable: true));
     }
   }
 
-  void _installTransport(SshTransport transport) {
-    _transport = transport;
-    if (!_ready.isCompleted) _ready.complete(transport);
-    unawaited(
-      transport.done.then((_) {
-        if (identical(_transport, transport)) {
-          _lost(HostLinkError(HostLinkErrorKind.unreachable, appL10n.remoteErrSshDisconnected, retryable: true));
-        }
-      }),
-    );
-  }
-
   void _teardownTransport() {
     _keepAlive?.cancel();
     _keepAlive = null;
-    final transport = _transport;
-    _transport = null;
-    if (_ready.isCompleted) _ready = Completer<SshTransport>();
-    transport?.close();
-    _forwarder?.dropConnections();
-  }
-
-  /// Channels for the forwarder: waits (bounded) for a live SSH connection.
-  Future<TunnelChannel> _openChannel() async {
-    _checkOpen();
-    final transport = _transport ?? await _ready.future.timeout(const Duration(seconds: 20));
-    _checkOpen();
-    final port = _endpoint?.port;
-    if (port == null) throw StateError('no remote endpoint yet');
-    var abandoned = false;
-    try {
-      return await transport
-          .openTunnel('127.0.0.1', port)
-          .then((channel) {
-            if (abandoned || _closed || !identical(transport, _transport)) {
-              channel.destroy();
-              throw StateError('SSH channel no longer active');
-            }
-            return channel;
-          })
-          .timeout(tunnelProbeTimeout);
-    } catch (_) {
-      // A timeout does not cancel the SSH request: dispose a late success.
-      abandoned = true;
-      rethrow;
-    }
+    _tunnel.reset();
   }
 
   void _startKeepAlive() {
@@ -438,19 +389,17 @@ class SshHostLink implements HostLink {
   }
 
   Future<bool> _ping(Duration timeout) async {
-    final transport = _transport;
-    if (transport == null || _closed) return false;
-    try {
-      await transport.ping(timeout: timeout);
+    if (_closed) return false;
+    final alive = await _tunnel.ping(timeout: timeout);
+    if (alive) {
       _missedPings = 0;
       return true;
-    } catch (_) {
-      _missedPings++;
-      if (_missedPings >= 2 && identical(transport, _transport)) {
-        _lost(HostLinkError(HostLinkErrorKind.unreachable, appL10n.remoteErrSshUnresponsive, retryable: true));
-      }
-      return false;
     }
+    _missedPings++;
+    if (_missedPings >= 2) {
+      _lost(HostLinkError(HostLinkErrorKind.unreachable, appL10n.remoteErrSshUnresponsive, retryable: true));
+    }
+    return false;
   }
 
   void _lost(HostLinkError reason) {
@@ -510,7 +459,7 @@ class SshHostLink implements HostLink {
   }
 
   /// Kills the current SSH connection as if the network dropped (live tests).
-  void debugDropTransport() => _transport?.close();
+  void debugDropTransport() => _tunnel.debugDropTransport();
 
   @override
   void kick() {
@@ -557,20 +506,29 @@ class SshHostLink implements HostLink {
     _emit(HostLinkStatus.idle);
     _closed = true;
     _delay.cancel();
-    final connecting = _connectingTransport;
-    _connectingTransport = null;
-    connecting?.close();
     await _kickSub?.cancel();
+    await _lostSub?.cancel();
     await _muxSub?.cancel();
     _teardownTransport();
-    await _forwarder?.close();
-    _forwarder = null;
+    await _tunnel.close();
     final client = _client;
     _client = null;
     if (client != null) await client.close().catchError((_) {});
     await _statuses.close();
     await _clients.close();
   }
+}
+
+/// Runs bootstrap and management scripts through the tunnel worker; the
+/// low-rate command path, not the data path.
+class _WorkerShell implements RemoteShell {
+  const _WorkerShell(this._tunnel);
+
+  final SshTunnel _tunnel;
+
+  @override
+  Future<RemoteExecResult> run(String script, {Duration timeout = const Duration(seconds: 30)}) =>
+      _tunnel.run(script, timeout: timeout);
 }
 
 /// Connects just far enough to read the server's host key, without logging

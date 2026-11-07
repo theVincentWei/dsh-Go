@@ -123,9 +123,20 @@ android {
         release {
             // Use the release key when configured; local builds without key.properties fall back to debug.
             signingConfig = signingConfigs.getByName(if (keyProps.isEmpty) "debug" else "release")
+            // 没有发布签名的机器上的 release 构建同样换独立包名（.local）：
+            // 与已装正式版、.debug 包并存，互不覆盖。
+            if (keyProps.isEmpty) applicationIdSuffix = ".local"
             // Ours on top of Flutter's: phone control's privileged process and
             // its TLS libraries are reached by class name (see the file).
             proguardFiles("proguard-rules.pro")
+        }
+        getByName("profile") {
+            // 本机 profile 构建（性能排查用）与本地 release 同等待遇：独立包名
+            // + debug key，不冒充已装的正式版。
+            if (keyProps.isEmpty) {
+                applicationIdSuffix = ".local"
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 }

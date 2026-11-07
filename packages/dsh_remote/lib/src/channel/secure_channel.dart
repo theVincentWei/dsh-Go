@@ -9,6 +9,7 @@ import '../crypto/noise_ik.dart';
 import '../protocol/control.dart';
 import '../protocol/messages.dart';
 import '../transport/transport.dart';
+import 'perf_probe.dart';
 
 /// Why a secure channel ended.
 class SecureChannelClosed {
@@ -151,6 +152,7 @@ class SecureChannel {
 
   void _onData(Uint8List ciphertext, int? counter) {
     if (_closed) return;
+    final Stopwatch? probe = perfProbe ? (Stopwatch()..start()) : null;
     try {
       if (!_noise.complete) {
         throw const ProtocolError('Ciphertext arrived before the Noise handshake completed.');
@@ -160,6 +162,10 @@ class SecureChannel {
       }
       final message = _incoming.decode(_noise.decrypt(ciphertext));
       if (message == null) return;
+      if (probe != null) {
+        probe.stop();
+        RelayPerfProbe.noteDecrypt(probe.elapsedMicroseconds, ciphertext.length);
+      }
       final handler = _onMessage;
       if (handler == null) {
         _backlog.add(message);

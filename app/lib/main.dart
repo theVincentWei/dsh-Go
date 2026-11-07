@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'dev/download_perf_probe.dart';
 import 'dev/frame_probe.dart';
 import 'diagnostics/app_error_log.dart';
 import 'launch/launch_state.dart';
@@ -18,6 +19,7 @@ Future<void> main() => runWithFrameProbe(_startApp);
 Future<void> _startApp() async {
   if (!frameProbeEnabled) SteadyFrameBinding();
   WidgetsFlutterBinding.ensureInitialized();
+  startDownloadPerfProbe();
   appErrorCapture.install();
   // The first frame is already in the chosen language (设置 → 语言), and is the launch
   // window's own picture (启动画面, lib/launch/launch_state.dart).
