@@ -56,6 +56,18 @@ import UniformTypeIdentifiers
     notifyBridge.register(on: messenger)
     mediaBridge.register(on: messenger)
     filesBridge.register(on: messenger)
+
+    // Trivial app-level channel: the schedule editor's timezone picker reads
+    // the device zone; notification taps' bringToFront is a no-op (the app is
+    // already frontmost — iOS opens it by tapping the banner).
+    let appChannel = FlutterMethodChannel(name: "dsh/app", binaryMessenger: messenger)
+    appChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getTimeZoneId": result(TimeZone.current.identifier)
+      case "bringToFront": result(nil)
+      default: result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }
 
