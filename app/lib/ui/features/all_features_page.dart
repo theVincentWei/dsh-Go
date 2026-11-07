@@ -12,9 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../state/bots_state.dart';
 import '../../state/sessions_state.dart';
-import '../common/app_sheet.dart' show groupTitleStyle;
 import '../common/feature_tile.dart';
-import '../common/pressable.dart';
 import '../common/tile_grid.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -100,22 +98,6 @@ class AllFeaturesPage extends ConsumerWidget {
   }
 }
 
-/// A group title over a [TileGrid]: small and faint, on the page's 24 column
-/// (with the large title and every group title), 24 above, 8 below.
-class FeatureGroupLabel extends StatelessWidget {
-  const FeatureGroupLabel(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      child: Semantics(header: true, child: Text(text, style: groupTitleStyle(context))),
-    );
-  }
-}
-
 /// One feature as a card: its [FeatureTile] when it has one, else its icon on
 /// an accent circle; 「网页版」 in the corner for items that only live there, a
 /// small globe for items that have both.
@@ -174,8 +156,9 @@ class FeatureTileFor extends ConsumerWidget {
   }
 }
 
-/// 手机桌面式的一项:图标(功能磁贴,或圆底图标)在上、标签在下,无卡片底。
-/// 选中会话才可用的项在未选中时淡到 45%;DS Bot 的未读数是图标右上角的小圆点。
+/// 手机桌面式的一项:图标(功能磁贴,或圆底图标)在上、标签在下,无卡片底,
+/// 与「星河」小程序组共用 [IconTile]。选中会话才可用的项在未选中时淡到 45%;
+/// DS Bot 的未读数是图标右上角的小圆点。
 class _AppIconTile extends ConsumerWidget {
   const _AppIconTile({required this.item, required this.onOpen, this.enabled = true});
 
@@ -188,80 +171,26 @@ class _AppIconTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final unread = item.id == 'ds-bot' ? ref.watch(dsBotInboxProvider.select((inbox) => inbox.total)) : 0;
-    final chip = SizedBox.square(
-      dimension: 46,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Center(
-                child: switch (item.tile) {
-                  final kind? => FeatureTile(kind, size: 30),
-                  null => Icon(item.icon, size: 20, color: scheme.primary),
-                },
-              ),
-            ),
-          ),
-          if (unread > 0)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                width: 16,
-                height: 16,
-                alignment: Alignment.center,
-                decoration: ShapeDecoration(color: scheme.error, shape: const CircleBorder()),
-                child: Text(
-                  unread > 99 ? '99+' : '$unread',
-                  style: theme.textTheme.labelSmall?.copyWith(color: scheme.onError, fontSize: 9, height: 1),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-    return Semantics(
-      button: true,
-      enabled: enabled,
+    return IconTile(
+      icon: switch (item.tile) {
+        final kind? => FeatureTile(kind, size: 30),
+        null => Icon(item.icon, size: 20, color: scheme.primary),
+      },
       label: item.title,
-      child: Pressable(
-        enabled: enabled,
-        child: AnimatedOpacity(
-          opacity: enabled ? 1 : 0.45,
-          duration: AppMotion.of(context, AppMotion.quick),
-          child: Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              onTap: enabled ? onOpen : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    chip,
-                    const SizedBox(height: 6),
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
+      onTap: onOpen,
+      enabled: enabled,
+      badge: unread > 0
+          ? Container(
+              width: 16,
+              height: 16,
+              alignment: Alignment.center,
+              decoration: ShapeDecoration(color: scheme.error, shape: const CircleBorder()),
+              child: Text(
+                unread > 99 ? '99+' : '$unread',
+                style: theme.textTheme.labelSmall?.copyWith(color: scheme.onError, fontSize: 9, height: 1),
               ),
-            ),
-          ),
-        ),
-      ),
+            )
+          : null,
     );
   }
 }

@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/connection_state.dart';
 import '../../state/sessions_state.dart';
-import '../features/all_features_page.dart' show FeatureGroupLabel;
 import '../common/tile_grid.dart';
 import '../theme/app_icons.dart';
 import 'applet_bridge.dart';
@@ -113,38 +112,9 @@ class _AppletTile extends StatelessWidget {
             child: Image.memory(app.iconPng!, width: 34, height: 34, fit: BoxFit.contain),
           )
         : _appletGlyphs.containsKey(app.icon)
-            ? Icon(_appletGlyphs[app.icon], size: 20, color: scheme.primary)
-            : Text(app.icon, style: const TextStyle(fontSize: 18));
-    return Semantics(
-      button: true,
-      label: app.name,
-      child: InkWell(
-        onTap: onOpen,
-        borderRadius: BorderRadius.circular(14),
-        child: Column(
-          children: <Widget>[
-            SizedBox.square(
-              dimension: 46,
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: scheme.primary.withValues(
-                    alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10,
-                  ),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: Center(child: icon),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              app.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ],
-        ),
-      ),
-    );
+        ? Icon(_appletGlyphs[app.icon], size: 20, color: scheme.primary)
+        : Text(app.icon, style: const TextStyle(fontSize: 18));
+    // 名称与功能目录的图标项共用同一个 IconTile,字形、间距与按压反馈一致。
+    return IconTile(icon: icon, label: app.name, onTap: onOpen);
   }
 }
