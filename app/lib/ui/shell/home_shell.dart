@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +16,6 @@ import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/drawer_view_state.dart' show drawerSelectionProvider;
-import '../../state/quick_panel_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../bots/bot_alerts.dart';
 import '../chat/chat_screen.dart';
@@ -45,17 +43,12 @@ import '../theme/theme.dart';
 import '../update/update_launch_check.dart';
 import '../wallpaper/wallpaper_backdrop.dart';
 import '../web/local_web_screen.dart';
-import 'drawer_drag.dart' show QuickPanelDragRecognizer;
-import 'quick_panel.dart';
 import 'session_list_page.dart';
 import 'system_entry_host.dart';
 
 /// Home: three tabs — 聊天 (the conversation list), 小程序 (全部功能) and
 /// 设置 — over the wallpaper. A conversation opens as a full-screen page
 /// over the tabs; back returns to the list.
-///
-/// A left swipe pulls [QuickPanel] over from the right, on every tab, the
-/// same way it used to ride over the chat.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, this.chatBuilder, this.sessionListBuilder});
 
@@ -85,7 +78,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   late final AnimationController _tabFlow = AnimationController(vsync: this, duration: AppMotion.emphasized);
 
   /// 三个 tab 的页面翻页控制器:切换时页面横向滑动(与「计划与目标」的
-  /// TabBarView 同一套位移动画);翻页只由底栏驱动,手势不抢快捷面板。
+  /// TabBarView 同一套位移动画)。底栏点按与横滑手势都能翻页。
   late final PageController _tabPages = PageController();
 
   /// Whether the conversation page currently covers the tabs.
@@ -97,21 +90,12 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   /// open」(its flag lags the pop by a frame).
   Completer<void>? _chatPop;
 
-  late final AnimationController _quickPanel = AnimationController(vsync: this, duration: AppMotion.emphasized);
-
-  /// The same for [_quickPanel].
-  bool _quickPanelOpen = false;
-
   /// 「宠物设置」 from the floating pet's menu (every tap, not deduplicated).
   StreamSubscription<void>? _petSettings;
 
   @override
   void initState() {
     super.initState();
-    _quickPanel.addListener(() {
-      final open = _quickPanel.value > 0;
-      if (open != _quickPanelOpen) setState(() => _quickPanelOpen = open);
-    });
     _restoreTab();
     _petSettings = ref.read(petOverlayChannelProvider).settingsRequests.listen((_) {
       if (mounted) unawaited(PetSettingsPage.open(context));
@@ -158,6 +142,11 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
         ..duration = AppMotion.of(context, AppMotion.emphasized)
         ..forward(from: 0);
     }
+    await _persistTab(tab);
+  }
+
+  /// Tab persistence is best-effort: the tab still switches when it fails.
+  Future<void> _persistTab(int tab) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_tabKey, tab);
@@ -166,36 +155,26 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     }
   }
 
+  /// A swipe between tabs (the bottom bar's taps land here too, through the
+  /// page controller): move the highlight along and keep the choice.
+  void _onPageChanged(int tab) {
+    if (tab == _tab || !mounted) return;
+    setState(() {
+      _tabFrom = _tab;
+      _tab = tab;
+    });
+    _tabFlow
+      ..duration = AppMotion.of(context, AppMotion.emphasized)
+      ..forward(from: 0);
+    unawaited(_persistTab(tab));
+  }
+
   @override
   void dispose() {
     unawaited(_petSettings?.cancel());
-    _quickPanel.dispose();
     _tabFlow.dispose();
     _tabPages.dispose();
     super.dispose();
-  }
-
-  /// [QuickPanel.width] (or the conversation's), plus what it covers on a
-  /// phone on its side.
-  double _quickPanelWidth(BuildContext context) => math.min(
-    (ref.read(currentSessionProvider) == null ? QuickPanel.width : QuickPanel.conversationWidth) +
-        MediaQuery.paddingOf(context).right,
-    MediaQuery.sizeOf(context).width - 56,
-  );
-
-  void _slideOpen() {
-    FocusManager.instance.primaryFocus?.unfocus();
-    _quickPanel.animateTo(1, curve: AppMotion.glide, duration: AppMotion.of(context, AppMotion.emphasized));
-  }
-
-  void _slideClosed() {
-    FocusManager.instance.primaryFocus?.unfocus();
-    _quickPanel.animateBack(0, curve: AppMotion.glide, duration: AppMotion.of(context, AppMotion.standard));
-  }
-
-  void _onQuickPanelDragStart() {
-    _quickPanel.stop();
-    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   /// Shows the conversation over the tabs. The list page sets the session
@@ -211,9 +190,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     _chatPop = popped;
     final navigator = Navigator.of(context);
     try {
-      await navigator.push(
-        MaterialPageRoute<void>(builder: (_) => widget.chatBuilder ?? const ChatScreen()),
-      );
+      await navigator.push(MaterialPageRoute<void>(builder: (_) => widget.chatBuilder ?? const ChatScreen()));
     } finally {
       _chatOpen = false;
       _chatPop = null;
@@ -227,9 +204,11 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     if (_chatOpen) {
       // The notification flow just popped the open chat to reveal another:
       // wait for that landing (its flag resets with the pop), then push.
-      unawaited(_chatPop?.future.then((_) {
-        if (mounted) _revealChat(animate);
-      }));
+      unawaited(
+        _chatPop?.future.then((_) {
+          if (mounted) _revealChat(animate);
+        }),
+      );
       return;
     }
     final current = ref.read(currentSessionProvider);
@@ -239,8 +218,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
 
   /// Destinations that are not tabs still open as pushed pages (网页版 /
   /// 远程 / 插件 / 引擎 / 设置搜索); the rest switch tabs. A pushed page
-  /// covers the shell, so the quick panel goes in behind it — back lands on
-  /// a clean tab.
+  /// covers the shell — back lands on a clean tab.
   void _openDestination(DrawerDestination destination) {
     switch (destination) {
       case DrawerDestination.settings:
@@ -266,87 +244,27 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
 
   void _push(Widget page) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
-    // Close once the new page covers us, so "back" lands on a clean tab.
-    Future<void>.delayed(AppMotion.slow, () {
-      if (mounted) _quickPanel.value = 0;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final sessionId = ref.watch(currentSessionProvider);
     // Multi-select in the list: back ends it before anything else.
     final selecting = ref.watch(drawerSelectionProvider.select((s) => s != null));
-    // With a conversation open the panel has that to show, whatever shortcuts
-    // it lists. Off once it's turned off: one left open goes, at once.
-    final quickPanelOn = ref.watch(quickPanelProvider.select((p) => p.available || (p.swipe && sessionId != null)));
-    if (!quickPanelOn && _quickPanel.value > 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _quickPanel.value = 0;
-      });
-    }
-    final gestures = quickPanelOn
-        ? {
-            QuickPanelDragRecognizer: GestureRecognizerFactoryWithHandlers<QuickPanelDragRecognizer>(
-              () => QuickPanelDragRecognizer(
-                isOpen: () => _quickPanel.value > 0,
-                onStart: _onQuickPanelDragStart,
-                onDelta: (dx) {
-                  final width = _quickPanelWidth(context);
-                  if (width <= 0) return;
-                  _quickPanel.value = (_quickPanel.value - dx / width).clamp(0.0, 1.0);
-                },
-                onEnd: (velocity) {
-                  if (velocity.abs() >= kMinFlingVelocity && _quickPanelWidth(context) > 0) {
-                    final target = velocity < 0 ? 1.0 : 0.0;
-                    if (AppMotion.reduced(context)) {
-                      _quickPanel.value = target;
-                      return;
-                    }
-                    final spring = AppMotion.settle(
-                      AppMotion.flingSpring,
-                      _quickPanel.value,
-                      target,
-                      -velocity / _quickPanelWidth(context),
-                      landing: false,
-                    );
-                    if (velocity < 0) {
-                      _quickPanel.animateWith(spring);
-                    } else {
-                      _quickPanel.animateBackWith(spring);
-                    }
-                    return;
-                  }
-                  if (_quickPanel.value >= 0.5) {
-                    _slideOpen();
-                  } else {
-                    _slideClosed();
-                  }
-                },
-                debugOwner: this,
-              ),
-              (recognizer) => recognizer.gestureSettings = MediaQuery.maybeGestureSettingsOf(context),
-            ),
-          }
-        : const <Type, GestureRecognizerFactory>{};
     // The floating pet outside the app hears every pet state.
     ref.listen<void>(petOverlayBridgeProvider, (_, _) {});
     // Safe-mode notices come from the on-device engine; a phone that doesn't
     // offer it (the 「远程主机」 decline) shows none, so the listener is left out.
     final localEngine = ref.watch(localEngineAvailableProvider);
-    Widget withSafeModeNotices(Widget child) =>
-        localEngine ? SafeModeNoticeListener(child: child) : child;
+    Widget withSafeModeNotices(Widget child) => localEngine ? SafeModeNoticeListener(child: child) : child;
     return withSafeModeNotices(
       PhoneStopWatcher(
         child: PopScope(
-          // 顶层(会话 tab、面板关着、没多选)按系统默认第一次返回就退出,
-          // 与改版前一致,无二次提示;其余情况先收面板 / 退多选 / 回会话 tab。
-          canPop: !_quickPanelOpen && !selecting && _tab == 0,
+          // 顶层(会话 tab、没多选)按系统默认第一次返回就退出,与改版前
+          // 一致,无二次提示;其余情况先退多选 / 回会话 tab。
+          canPop: !selecting && _tab == 0,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            if (_quickPanelOpen) {
-              _slideClosed();
-            } else if (selecting) {
+            if (selecting) {
               ref.read(drawerSelectionProvider.notifier).end();
             } else {
               unawaited(_selectTab(0));
@@ -374,7 +292,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                     // The voice model chosen during setup: download, resume, ready / failed notices (draws nothing).
                     const VoiceModelHost(),
                     // 公测版: once in a while, an invitation to star the project.
-                    StarPromptHost(quickPanel: _quickPanel),
+                    const StarPromptHost(),
                     // App links / shared files: routes them to their feature (draws nothing).
                     const LinkHost(),
                     // Share codes (分享码): registers its links and files with the router.
@@ -385,56 +303,29 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                     const ForumLinkHost(),
                     // DS Bot: keeps its feed and notifications alive with the shell.
                     const BotAlertsHost(),
-                    ExcludeSemantics(
-                      excluding: _quickPanelOpen,
-                      child: RawGestureDetector(
-                        // translucent: join the hit chain without swallowing taps
-                        // meant for the pages; empty areas still drag the panel.
-                        behavior: HitTestBehavior.translucent,
-                        gestures: gestures,
-                        // 底栏高度计入底部内边距:各页的滚动余量据此让最后一行
-                        // 能完整滚出玻璃条。
-                        child: MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            padding: MediaQuery.of(context).padding.copyWith(
-                              bottom: MediaQuery.of(context).padding.bottom + 76,
+                    // 底栏高度计入底部内边距:各页的滚动余量据此让最后一行
+                    // 能完整滚出玻璃条。
+                    MediaQuery(
+                      data: MediaQuery.of(context).copyWith(
+                        padding: MediaQuery.of(context).padding
+                            .copyWith(bottom: MediaQuery.of(context).padding.bottom + 76),
+                      ),
+                      child: PageView(
+                        // 三页都保活(等同旧 IndexedStack 的常驻);底栏点按
+                        // 与横滑手势都能翻页。
+                        controller: _tabPages,
+                        onPageChanged: _onPageChanged,
+                        children: [
+                          _TabPage(
+                            child: RepaintBoundary(
+                              child:
+                                  widget.sessionListBuilder ??
+                                  SessionListPage(onOpenChat: _openChat, onDestination: _openDestination),
                             ),
                           ),
-                          child: PageView(
-                            // 三页都保活(等同旧 IndexedStack 的常驻);翻页
-                            // 只由 [_selectTab] 驱动,不响应横滑手势 —— 左右
-                            // 滑动留给快捷面板。
-                            controller: _tabPages,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              _TabPage(
-                                child: RepaintBoundary(
-                                  child: widget.sessionListBuilder ??
-                                      SessionListPage(onOpenChat: _openChat, onDestination: _openDestination),
-                                ),
-                              ),
-                              const _TabPage(child: RepaintBoundary(child: AllFeaturesPage())),
-                              const _TabPage(child: RepaintBoundary(child: SettingsScreen())),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: RawGestureDetector(
-                        behavior: HitTestBehavior.deferToChild,
-                        gestures: gestures,
-                        child: _PanelOverlay(
-                          animation: _quickPanel,
-                          width: _quickPanelWidth(context),
-                          fromRight: true,
-                          panel: QuickPanel(
-                            motion: _quickPanel,
-                            onOpen: _openDestination,
-                            sessionId: _quickPanelOpen ? sessionId : null,
-                          ),
-                          onClose: _slideClosed,
-                        ),
+                          const _TabPage(child: RepaintBoundary(child: AllFeaturesPage())),
+                          const _TabPage(child: RepaintBoundary(child: SettingsScreen())),
+                        ],
                       ),
                     ),
                   ],
@@ -449,10 +340,8 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                       children: [
                         // 左件:独立的主机圆钮(标签挂在圆外下方)。
                         _DeviceKey(
-                          onHost: () => showHostSheet(
-                            context,
-                            onManage: () => _openDestination(DrawerDestination.remote),
-                          ),
+                          onHost: () =>
+                              showHostSheet(context, onManage: () => _openDestination(DrawerDestination.remote)),
                           onDetails: () => _openDestination(DrawerDestination.engine),
                         ),
                         const SizedBox(width: 12),
@@ -471,12 +360,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                                 height: 56,
                                 child: Stack(
                                   children: [
-                                    _TabGlow(
-                                      flow: _tabFlow,
-                                      from: _tabFrom,
-                                      to: _tab,
-                                      slot: constraints.maxWidth / 3,
-                                    ),
+                                    _TabGlow(flow: _tabFlow, from: _tabFrom, to: _tab, slot: constraints.maxWidth / 3),
                                     Positioned.fill(
                                       child: Row(
                                         children: [
@@ -534,11 +418,8 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                   tween: Tween(end: selected ? 1.0 : 0.0),
                   duration: AppMotion.of(context, AppMotion.quick),
                   curve: AppMotion.std,
-                  builder: (context, t, _) => Icon(
-                    icon,
-                    size: 22,
-                    color: Color.lerp(scheme.onSurfaceVariant, scheme.primary, t),
-                  ),
+                  builder: (context, t, _) =>
+                      Icon(icon, size: 22, color: Color.lerp(scheme.onSurfaceVariant, scheme.primary, t)),
                 ),
               ),
             ),
@@ -680,73 +561,6 @@ class _DeviceKey extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Scrim + panel; the only part that rebuilds while the panel moves. The
-/// panel keeps its state when closed, while Visibility suppresses painting,
-/// semantics and tickers until the first drag frame reveals it.
-/// The fluid tier: as the panel slides over, the page below drifts a little
-/// the same way. Only a translation: scaling would make its glass re-sample
-/// at a new size.
-class _PanelOverlay extends StatelessWidget {
-  const _PanelOverlay({
-    required this.animation,
-    required this.width,
-    required this.panel,
-    required this.onClose,
-    this.fromRight = false,
-  });
-
-  final Animation<double> animation;
-  final double width;
-  final Widget panel;
-  final VoidCallback onClose;
-  final bool fromRight;
-
-  @override
-  Widget build(BuildContext context) {
-    final scrim = DshSurfaces.of(context).scrim;
-    return AnimatedBuilder(
-      animation: animation,
-      child: RepaintBoundary(child: panel),
-      builder: (context, panel) {
-        final progress = animation.value;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: progress == 0,
-                child: GestureDetector(
-                  onTap: onClose,
-                  child: ColoredBox(color: scrim.withValues(alpha: scrim.a * progress)),
-                ),
-              ),
-            ),
-            // 面板位置用 Transform 走(paint-only):每帧改 Positioned.left 会让
-            // Stack 和整块面板重新布局,拖动时白白多一层成本。
-            Positioned(
-              left: fromRight ? null : 0,
-              right: fromRight ? 0 : null,
-              top: 0,
-              bottom: 0,
-              width: width,
-              child: Visibility(
-                visible: progress > 0,
-                maintainState: true,
-                child: Transform.translate(
-                  // 面板位置用 Transform 走(paint-only):每帧改 Positioned.left 会让
-                  // Stack 和整块面板重新布局,拖动时白白多一层成本。
-                  offset: Offset((progress - 1) * (width + 24) * (fromRight ? -1 : 1), 0),
-                  child: panel!,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
