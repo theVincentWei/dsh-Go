@@ -116,4 +116,38 @@
   ['touchstart', 'touchmove', 'scroll', 'wheel'].forEach(function (type) {
     window.addEventListener(type, reportUi, { passive: true, capture: true });
   });
+
+  // Keyboard: the container keeps the WebView at full size and pushes the
+  // keyboard height here once per slide (a WebView that shrinks re-layouts
+  // the whole page on every frame of the slide — the keyboard stutter the
+  // containers avoid; same scheme as the 网页模式 host). The height lands in
+  // a targeted stylesheet — marked elements end at the keyboard's top and
+  // nothing else restyles (a variable on :root would restyle the whole
+  // page). Focused fields scroll themselves above the keyboard edge, since
+  // nothing shrinks to do it for them.
+  window.__hostInsets = function (px) {
+    var k = Number(px) || 0;
+    window.__dshKeyboard = k;
+    var s = document.getElementById('dsh-applet-keyboard');
+    if (!s) {
+      if (!(k > 0)) return;
+      s = document.createElement('style');
+      s.id = 'dsh-applet-keyboard';
+      document.head.appendChild(s);
+    }
+    s.textContent = k > 0 ? '[data-dsh-keyboard]{bottom:' + k + 'px!important}' : '';
+    if (!window.__dshAppReveal) {
+      window.__dshAppReveal = function () {
+        var kb = window.__dshKeyboard, a = document.activeElement;
+        if (!(kb > 0) || !a || !(a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+        var r = a.getBoundingClientRect();
+        if (r.bottom > window.innerHeight - kb) a.scrollIntoView({ block: 'nearest' });
+      };
+      document.addEventListener('focusin', function () {
+        requestAnimationFrame(window.__dshAppReveal);
+      });
+    }
+    if (k > 0) requestAnimationFrame(window.__dshAppReveal);
+  };
+  window.__hostInsets(0);
 })();
