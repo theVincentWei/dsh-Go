@@ -15,7 +15,6 @@ import 'package:http/http.dart' as http;
 
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
-import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import '../common/list_page_row.dart';
 import '../theme/theme.dart';
 import '../common/app_sheet.dart' show showAppSheet, kSheetGutter;
@@ -144,7 +143,6 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
     // 装完即把本地状态置为已装:从容器返回时按钮直接落成「打开」,
     // 不必等下一次进页面的全量核对。
     if (ok && mounted) {
-      ref.read(hubLayoutProvider.notifier).touch('mini:${app.appId}');
       setState(() {
         _installed[app.appId] = <String, Object?>{'installed': true, 'versionCode': app.versionCode};
       });
