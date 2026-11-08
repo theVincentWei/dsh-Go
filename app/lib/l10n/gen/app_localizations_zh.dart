@@ -7499,19 +7499,44 @@ class L10nZh extends L10n {
   String get hubHardwareEnterSendsHint => '开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。';
 
   @override
-  String get hubQuickPanel => '左滑快捷入口';
+  String get hubRecentGroup => '最近使用';
 
   @override
-  String get hubQuickPanelSwipe => '左滑打开';
+  String get hubEditing => '整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理';
 
   @override
-  String get hubQuickPanelSwipeHint => '在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。';
+  String get hubDefaultGroup => '应用';
 
   @override
-  String get hubQuickPanelItems => '显示的入口';
+  String get hubNewGroup => '新建分组';
 
   @override
-  String get hubQuickPanelItemsNone => '没有选择，左滑不会打开';
+  String get hubGroupName => '分组名称';
+
+  @override
+  String get hubRename => '重命名';
+
+  @override
+  String get hubMoveUp => '上移';
+
+  @override
+  String get hubMoveDown => '下移';
+
+  @override
+  String get hubDeleteGroup => '删除分组';
+
+  @override
+  String hubDeleteGroupBody(String group) {
+    return '「$group」里的应用会移回「应用」组，应用本身不受影响。';
+  }
+
+  @override
+  String get hubDropHere => '拖应用到这里';
+
+  @override
+  String hubNoMatch(String query) {
+    return '没有找到「$query」';
+  }
 
   @override
   String get launchScreenTitle => '启动画面';
@@ -14081,9 +14106,6 @@ class L10nZh extends L10n {
   String get searchKwUsageStats => '统计,使用统计,匿名,隐私,数据,改进,遥测,分析';
 
   @override
-  String get searchKwQuickPanel => '左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口';
-
-  @override
   String get searchNeedsLocalEngineOn => '启用本机引擎后可用';
 
   @override
@@ -15087,14 +15109,6 @@ class L10nZh extends L10n {
 
   @override
   String get shellPanelNoPlugins => '这段对话还没有插件面板';
-
-  @override
-  String get shellQuickPanel => '快捷入口';
-
-  @override
-  String shellQuickPanelHint(String path) {
-    return '在「$path」里调整';
-  }
 
   @override
   String starPromptTitle(int hours) {

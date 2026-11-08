@@ -4837,11 +4837,32 @@
   "hubPermissionPhoneConfirm": "手机操控确认",
   "hubHardwareEnterSends": "外接键盘按 Enter 发送",
   "hubHardwareEnterSendsHint": "开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。",
-  "hubQuickPanel": "左滑快捷入口",
-  "hubQuickPanelSwipe": "左滑打开",
-  "hubQuickPanelSwipeHint": "在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。",
-  "hubQuickPanelItems": "显示的入口",
-  "hubQuickPanelItemsNone": "没有选择，左滑不会打开",
+  "hubRecentGroup": "最近使用",
+  "hubEditing": "整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理",
+  "hubDefaultGroup": "应用",
+  "hubNewGroup": "新建分组",
+  "hubGroupName": "分组名称",
+  "hubRename": "重命名",
+  "hubMoveUp": "上移",
+  "hubMoveDown": "下移",
+  "hubDeleteGroup": "删除分组",
+  "hubDeleteGroupBody": "「{group}」里的应用会移回「应用」组，应用本身不受影响。",
+  "@hubDeleteGroupBody": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "hubDropHere": "拖应用到这里",
+  "hubNoMatch": "没有找到「{query}」",
+  "@hubNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "launchScreenTitle": "启动画面",
   "launchDefault": "默认",
   "launchCustom": "自定义",
@@ -8811,7 +8832,6 @@
   "searchKwWebBusySend": "发送,排队,插话,AI 工作时",
   "searchKwPluginsMarket": "插件市场,安装插件,市场,获取插件",
   "searchKwUsageStats": "统计,使用统计,匿名,隐私,数据,改进,遥测,分析",
-  "searchKwQuickPanel": "左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口",
   "searchNeedsLocalEngineOn": "启用本机引擎后可用",
   "shellDeletePermanently": "永久删除",
   "shellDeleteNoUndo": "无法撤销，与归档不同",
@@ -9487,15 +9507,6 @@
   "shellPanelHost": "主机",
   "shellPanelOpenFull": "打开完整页面",
   "shellPanelNoPlugins": "这段对话还没有插件面板",
-  "shellQuickPanel": "快捷入口",
-  "shellQuickPanelHint": "在「{path}」里调整",
-  "@shellQuickPanelHint": {
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  },
   "starPromptTitle": "{hours, plural, =0{本鱼已经在 DSH Go 里陪你半个小时啦⁠~} =1{本鱼已经在 DSH Go 里陪你一个小时啦⁠~} other{本鱼已经在 DSH Go 里陪你 {hours} 个小时啦⁠~}}",
   "@starPromptTitle": {
     "description": "The star prompt's first line. hours is the whole hours of use so far, rounded down; 0 is half an hour (the first ask comes after 30 minutes). The word joiner keeps the ~ on the line of the word before it.",

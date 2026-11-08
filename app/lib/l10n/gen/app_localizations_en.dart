@@ -7929,20 +7929,44 @@ class L10nEn extends L10n {
       'When on, Shift+Enter inserts a new line. The on-screen keyboard keeps newlines; Ctrl/⌘+Enter always sends.';
 
   @override
-  String get hubQuickPanel => 'Swipe-left shortcuts';
+  String get hubRecentGroup => 'Recently used';
 
   @override
-  String get hubQuickPanelSwipe => 'Open with a left swipe';
+  String get hubEditing => 'Editing: drag icons to move them across groups; tap ⋯ by a group\'s name to manage it';
 
   @override
-  String get hubQuickPanelSwipeHint =>
-      'Swipe right to left over the chat. Code blocks, tables and other content that scrolls sideways aren’t affected.';
+  String get hubDefaultGroup => 'Apps';
 
   @override
-  String get hubQuickPanelItems => 'What it lists';
+  String get hubNewGroup => 'New group';
 
   @override
-  String get hubQuickPanelItemsNone => 'Nothing chosen: a left swipe won\'t open it';
+  String get hubGroupName => 'Group name';
+
+  @override
+  String get hubRename => 'Rename';
+
+  @override
+  String get hubMoveUp => 'Move up';
+
+  @override
+  String get hubMoveDown => 'Move down';
+
+  @override
+  String get hubDeleteGroup => 'Delete group';
+
+  @override
+  String hubDeleteGroupBody(String group) {
+    return 'Apps in \"$group\" move back to the Apps group; the apps themselves are untouched.';
+  }
+
+  @override
+  String get hubDropHere => 'Drop apps here';
+
+  @override
+  String hubNoMatch(String query) {
+    return 'Nothing matches \"$query\"';
+  }
 
   @override
   String get launchScreenTitle => 'Launch screen';
@@ -14799,9 +14823,6 @@ class L10nEn extends L10n {
   String get searchKwUsageStats => 'statistics,stats,usage data,analytics,telemetry,anonymous,privacy,data';
 
   @override
-  String get searchKwQuickPanel => 'swipe,left swipe,shortcuts,gesture,quick panel,quick access';
-
-  @override
   String get searchNeedsLocalEngineOn => 'Available while this phone runs the engine';
 
   @override
@@ -15920,14 +15941,6 @@ class L10nEn extends L10n {
 
   @override
   String get shellPanelNoPlugins => 'No plugin panels for this chat yet';
-
-  @override
-  String get shellQuickPanel => 'Shortcuts';
-
-  @override
-  String shellQuickPanelHint(String path) {
-    return 'Change these in $path';
-  }
 
   @override
   String starPromptTitle(int hours) {

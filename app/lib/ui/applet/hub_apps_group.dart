@@ -1,20 +1,17 @@
-/// AppHub 已安装小程序瓷贴组:插在全部功能页(「星河」组之后),取代静态目录
-/// 里的 AppHub 组。已装的小程序排前面,「应用市场」瓷贴固定收尾;数据来自
-/// 市场目录(/api/v1/apps)+ DiminaHost.installed 逐个核对,装没装一目了然。
+/// AppHub 已装小程序的数据与样式:清单(hubInstalledProvider,市场目录 +
+/// DiminaHost.installed 逐个核对)与字形映射(hubAppGlyph)。桌面
+/// (app_desktop)用它们渲染已装小程序组;「应用市场」入口已归桌面目录
+/// (hub_apps_catalog),这里不再自带瓷贴组。
 library;
 
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
-import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
-import '../common/tile_grid.dart';
 import '../theme/app_icons.dart';
-import 'apphub_market_page.dart' show ApphubMarketPage;
 import 'dimina/dimina_host.dart';
 
 /// AppHub 应用图标键 → App 字形(与市场页行内一致);不认识的落 allFeatures。
@@ -60,49 +57,3 @@ final hubInstalledProvider = FutureProvider.autoDispose<List<HubInstalledApp>>((
   }
   return installed;
 });
-
-/// 已安装小程序 + 应用市场入口的瓷贴组:分组标签 + 4 列网格,与功能目录同款。
-class HubAppsGroup extends ConsumerWidget {
-  const HubAppsGroup({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final L10n l10n = context.l10n;
-    final Color iconColor = Theme.of(context).colorScheme.primary;
-    return FutureBuilder<List<HubInstalledApp>>(
-      future: ref.watch(hubInstalledProvider.future),
-      builder: (BuildContext context, AsyncSnapshot<List<HubInstalledApp>> snapshot) {
-        final List<HubInstalledApp> apps = snapshot.data ?? const <HubInstalledApp>[];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            FeatureGroupLabel(l10n.catalogAppHubSection),
-            TileGrid(
-              columns: 4,
-              spacing: 16,
-              children: <Widget>[
-                for (final HubInstalledApp app in apps)
-                  IconTile(
-                    icon: Icon(hubAppGlyph(app.iconKey), size: 20, color: iconColor),
-                    label: app.name,
-                    onTap: () => unawaited(DiminaHost.open(
-                      appId: app.appId,
-                      name: app.name,
-                      updateManifestUrl: '$appHubBase/apps/${app.appId}/manifest.json',
-                    )),
-                  ),
-                IconTile(
-                  icon: Icon(AppIcons.allFeatures, size: 20, color: iconColor),
-                  label: l10n.catalogAppHubMarket,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const ApphubMarketPage()),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
