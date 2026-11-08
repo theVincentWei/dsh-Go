@@ -348,17 +348,20 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
 
   /// [s] with what was read for it: its title where the list had none (an
   /// older read beats 「未命名」 until the newer one lands), the second line
-  /// (`preview`, the conversation's latest message) likewise, and blank only
-  /// while the row is as it was read.
+  /// (`preview`, the conversation's latest message) — cold and Host-held rows
+  /// alike, since hints carry the title but never a preview — and blank only
+  /// while a cold row is as it was read.
   SessionSummary _withTitle(SessionSummary s) {
     final read = _titles[s.sessionId];
-    // A conversation the Host holds is served first-hand.
-    if (read == null || s.projectionsKind == 'sequenced') return s;
+    if (read == null) return s;
+    final warm = s.projectionsKind == 'sequenced';
     final title = read.title?.trim();
     final preview = read.preview?.trim();
-    final fillTitle = (s.title?.trim().isEmpty ?? true) && title != null && title.isNotEmpty;
+    // A conversation the Host holds is served first-hand: its hints' title
+    // wins, the read only fills the second line.
+    final fillTitle = !warm && (s.title?.trim().isEmpty ?? true) && title != null && title.isNotEmpty;
     final fillPreview = (s.previewText?.trim().isEmpty ?? true) && preview != null && preview.isNotEmpty;
-    final blank = read.blank == true && read.updatedAt == s.updatedAt;
+    final blank = !warm && read.blank == true && read.updatedAt == s.updatedAt;
     if (!fillTitle && !fillPreview && !blank) return s;
     return s.copyWith(
       blank: blank ? true : null,
@@ -377,9 +380,9 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
   bool _needsTitle(SessionSummary s, DateTime now) =>
       !s.isSubagent &&
       !s.blank &&
-      s.projectionsKind != 'sequenced' &&
       // The second line rides the same read: a row wants one until it has its
-      // title and its `preview` — the list hints carry either only sometimes.
+      // title and its `preview`. Host-held rows too — their hints carry the
+      // title but never a preview.
       ((s.title?.trim().isEmpty ?? true) || (s.previewText?.trim().isEmpty ?? true)) &&
       !_archived.contains(s.sessionId) &&
       !(_titleReads?.running.contains(s.sessionId) ?? false) &&

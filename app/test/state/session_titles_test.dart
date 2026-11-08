@@ -193,16 +193,35 @@ void main() {
 
   test('a conversation another DSH process wrote gets its title read, without being opened', () async {
     host.rows = [_row('own', title: 'Release notes'), _row('desktop', cold: true)];
+    host.folded['own'] = _folded(title: 'Release notes', response: 'Release notes are out');
     host.folded['desktop'] = _folded(title: 'Plan the garden party');
     start();
     await c.read(sessionsProvider.future);
     await _settle();
     expect(_titles(c), {'own': 'Release notes', 'desktop': 'Plan the garden party'});
-    // The conversation the Host serves first-hand isn't read again.
-    expect(host.reads, ['desktop']);
+    // Both rows are read once — the Host-held one too, for its second line.
+    expect(host.reads.toSet(), {'own', 'desktop'});
     expect(host.opened, isEmpty);
     // The lineage (agents_state) reads the same rows.
     expect(c.read(sessionsProvider.notifier).allSessions.map((s) => s.title), contains('Plan the garden party'));
+  });
+
+  test('a Host-held row is read once too, for its second line', () async {
+    // Hints carry the title first-hand but never a preview: the row is read
+    // once per version to fold one, and the hints' title stays authoritative
+    // even when the read saw something else.
+    host.rows = [_row('warm', title: 'Release notes')];
+    host.folded['warm'] = _folded(title: 'Renamed elsewhere', response: 'Shipped the fix');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'warm': 'Release notes'});
+    expect(_previews(c), {'warm': 'Shipped the fix'});
+    expect(host.reads, ['warm']);
+    // Unchanged rows are not read again.
+    await c.read(sessionsProvider.notifier).refresh();
+    await _settle();
+    expect(host.reads, ['warm']);
   });
 
   test('each row is read once, again only when it changed', () async {
