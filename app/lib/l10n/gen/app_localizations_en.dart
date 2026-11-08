@@ -4549,9 +4549,6 @@ class L10nEn extends L10n {
   String get commonBack => 'Back';
 
   @override
-  String get commonBackAgainToExit => 'Press back again to exit';
-
-  @override
   String get commonCopy => 'Copy';
 
   @override

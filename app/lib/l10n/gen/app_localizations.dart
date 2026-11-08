@@ -7844,12 +7844,6 @@ abstract class L10n {
   /// **'返回'**
   String get commonBack;
 
-  /// No description provided for @commonBackAgainToExit.
-  ///
-  /// In zh, this message translates to:
-  /// **'再按一次返回键退出'**
-  String get commonBackAgainToExit;
-
   /// No description provided for @commonCopy.
   ///
   /// In zh, this message translates to:
