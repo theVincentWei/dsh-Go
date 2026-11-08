@@ -11,6 +11,7 @@ import '../../../l10n/l10n.dart';
 import '../../../state/drawer_view_state.dart';
 import '../../../state/session_attention_state.dart';
 import '../../../state/session_created_state.dart';
+import '../../../state/sessions_state.dart';
 import '../../../state/workspaces_state.dart';
 import '../../common/empty_view.dart';
 import '../../theme/app_icons.dart';
@@ -65,6 +66,10 @@ class DrawerConversationList extends ConsumerWidget {
     final unread = ref.watch(unreadSessionIdsProvider);
     final pinned = ref.watch(workspacesProvider.select((s) => s.pinnedSessionIds)).toSet();
     final sort = ref.watch(drawerViewProvider.select((v) => v.sort));
+    // 副标题待定集合:补读在途的行显示三点占位。readOnly 的机器人抽屉
+    // 不触碰 sessionsProvider;重建由 watchDrawerBlocks 对 sessionsProvider
+    // 的 watch 带动,所以这里 read 一次即可拿到最新集合。
+    final pendingSubtitles = readOnly ? const <String>{} : ref.read(sessionsProvider.notifier).pendingSubtitleIds;
     if (!readOnly && sort == DrawerSort.created) {
       final ids = [
         for (final block in blocks)
@@ -89,7 +94,9 @@ class DrawerConversationList extends ConsumerWidget {
         sessionId: id,
         title: sessionTitle(s),
         // 第二行:最近一条消息(引擎补 preview 后),还没有就回退 cwd;都空不渲染。
+        // 待定(补读在途)时显示三点占位,行高锁定两行。
         subtitle: s.previewText ?? (cwd == null || cwd.isEmpty ? null : s.cwd),
+        subtitlePending: !readOnly && pendingSubtitles.contains(id),
         timeText: sessionTimeText(s.updatedAt, now),
         running: s.running,
         groupPosition: pos,

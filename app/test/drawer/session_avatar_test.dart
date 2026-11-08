@@ -90,6 +90,30 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('pending rows show the dots placeholder instead of cwd, at two-line height', (tester) async {
+    SessionTile tile({required bool pending}) => SessionTile(
+      sessionId: 'ssh-studio:abc123',
+      title: '修复登录按钮重复提交',
+      running: false,
+      groupPosition: SessionGroupPos.single,
+      onTap: () {},
+      onLongPress: null,
+      subtitle: '/root/workspace',
+      subtitlePending: pending,
+    );
+    await tester.pumpWidget(MaterialApp(theme: buildLightTheme(), home: Scaffold(body: tile(pending: true))));
+    await tester.pump();
+    // 待定:占位出现,cwd 文本被占住不显示;卡片(Ink)锁定两行 64。
+    expect(find.byKey(const ValueKey('subtitle-dots')), findsOneWidget);
+    expect(find.text('/root/workspace'), findsNothing);
+    expect(tester.getSize(find.byType(Ink)).height, moreOrLessEquals(SessionTile.height, epsilon: .5));
+    // 读完(不再待定):cwd 文本出现。
+    await tester.pumpWidget(MaterialApp(theme: buildLightTheme(), home: Scaffold(body: tile(pending: false))));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('subtitle-dots')), findsNothing);
+    expect(find.text('/root/workspace'), findsOneWidget);
+  });
+
   test('the gallery ships with the app', () async {
     for (final name in ['avatar_00.png', 'avatar_42.png', 'avatar_99.png']) {
       final data = await rootBundle.load('assets/session_avatars/$name');

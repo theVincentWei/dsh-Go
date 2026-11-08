@@ -519,6 +519,27 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
     });
   }
 
+  /// 当前版本还没读到副标题、且读管道仍会读的行 —— 列表用它显示三点占位
+  /// (行高锁定两行),读到或确认读不到(主机不支持/行 hints 已带全)即消失。
+  Set<String> get pendingSubtitleIds {
+    final ids = <String>{};
+    for (final s in _all) {
+      if (_subtitlePending(s)) ids.add(s.sessionId);
+    }
+    return ids;
+  }
+
+  bool _subtitlePending(SessionSummary s) {
+    // 主机不支持这种读(relay 等):占位会永远转点,直接终态。
+    if (_titlesUnsupported != null) return false;
+    // hints 已带全(未来的引擎 preview):无需占位。
+    if ((s.title?.trim().isNotEmpty ?? false) && (s.previewText?.trim().isNotEmpty ?? false)) return false;
+    // 这个版本已经读到过:即使没有副标题也已是终态(cwd 回退)。
+    final read = _titles[s.sessionId];
+    if (read != null && read.updatedAt == s.updatedAt) return false;
+    return !s.isSubagent && !s.blank && !_archived.contains(s.sessionId) && !_deleted.contains(s.sessionId);
+  }
+
   /// Archived sessions of the active host, newest first (session search lists
   /// them so they can be found and restored). Changes to the archived set
   /// re-emit [state], so watchers of [sessionsProvider] see them.

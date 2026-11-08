@@ -191,6 +191,30 @@ void main() {
     return c = _container(host);
   }
 
+  test('pendingSubtitleIds tracks rows until their read lands', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.holdReads = true;
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    // 读还在途:占位。
+    expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, {'desktop'});
+    host.heldReads.single.$2.complete(_folded(title: 'Plan the garden party', response: 'Garden party moved to Sunday'));
+    await _settle();
+    // 读落地:占位消失,副标题就位。
+    expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, isEmpty);
+    expect(_previews(c), {'desktop': 'Garden party moved to Sunday'});
+  });
+
+  test('a Host that can\'t read titles this way shows no pending placeholders', () async {
+    host.carrier.handlers.remove('session/projections');
+    host.rows = [_row('s0', cold: true), _row('own', title: 'Release notes')];
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, isEmpty);
+  });
+
   test('a conversation another DSH process wrote gets its title read, without being opened', () async {
     host.rows = [_row('own', title: 'Release notes'), _row('desktop', cold: true)];
     host.folded['own'] = _folded(title: 'Release notes', response: 'Release notes are out');

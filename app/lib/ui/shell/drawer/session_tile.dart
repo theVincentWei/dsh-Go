@@ -30,6 +30,7 @@ class SessionTile extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     this.subtitle,
+    this.subtitlePending = false,
     this.timeText,
     this.pending,
     this.unread = false,
@@ -46,6 +47,10 @@ class SessionTile extends StatelessWidget {
 
   /// 一行副标题(最近消息/工作目录);null 只有一行,行高 52。
   final String? subtitle;
+
+  /// 副标题待定:当前版本还没读到(补读在途)——占位三点,行高锁定两行;
+  /// 优先于 [subtitle] 显示,读完即换成最新消息或 cwd。
+  final bool subtitlePending;
 
   /// The right end's text (today HH:mm, else M-D) — shown only when nothing
   /// else claims the corner: a marker always wins.
@@ -124,7 +129,8 @@ class SessionTile extends StatelessWidget {
       if (pending == null && !running && unread) l10n.shellUnread,
       if (pinned) l10n.shellPinned,
     ].join(l10n.shellSemanticsSeparator);
-    final two = subtitle?.isNotEmpty ?? false;
+    // 占位也算两行:加载期间行高锁定,读完不跳变。
+    final two = subtitlePending || (subtitle?.isNotEmpty ?? false);
     return Semantics(
       selected: highlighted,
       checked: selecting ? selected : null,
@@ -189,12 +195,15 @@ class SessionTile extends StatelessWidget {
                       ),
                       if (two) ...[
                         const SizedBox(height: 2),
-                        Text(
-                          subtitle!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(color: colors.textTertiary),
-                        ),
+                        if (subtitlePending)
+                          const _SubtitleDots(key: ValueKey('subtitle-dots'))
+                        else
+                          Text(
+                            subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.textTertiary),
+                          ),
                       ],
                     ],
                   ),
@@ -276,6 +285,78 @@ class _SessionAvatar extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 副标题加载占位:三个错峰脉动的小点(系统减弱动效时静帧)。行高由
+/// SessionTile 的两行锁定,读完落到最新消息或 cwd,占位即消失。
+class _SubtitleDots extends StatefulWidget {
+  const _SubtitleDots({super.key});
+
+  @override
+  State<_SubtitleDots> createState() => _SubtitleDotsState();
+}
+
+class _SubtitleDotsState extends State<_SubtitleDots> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// 0..1 相位 → 0.25..1 的透明度(前 1/4 升到峰值,55% 前回落,其余保持)。
+  double _pulse(double phase) {
+    final p = phase % 1;
+    if (p < 0.25) return 0.25 + 0.75 * (p / 0.25);
+    if (p < 0.55) return 1 - 0.75 * ((p - 0.25) / 0.30);
+    return 0.25;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = DshColors.of(context).textTertiary;
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [for (var i = 0; i < 3; i++) _dot(color, 0.35, i < 2 ? 5.0 : 0)],
+      );
+    }
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        double opacity(int i) => _pulse((_controller.value * 2.4 - i * 0.2) / 2.4);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < 3; i++)
+              Transform.translate(
+                offset: Offset(0, -2 * (opacity(i) - 0.25) / 0.75),
+                child: _dot(color, opacity(i), i < 2 ? 5.0 : 0),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _dot(Color color, double opacity, double margin) {
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: 6,
+        height: 6,
+        margin: EdgeInsets.only(right: margin),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
