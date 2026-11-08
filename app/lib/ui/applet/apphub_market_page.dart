@@ -10,10 +10,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
+import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import '../common/list_page_row.dart';
 import '../theme/theme.dart';
 import '../common/app_sheet.dart' show showAppSheet, kSheetGutter;
@@ -48,14 +50,14 @@ class _HubApp {
   final String versionName;
 }
 
-class ApphubMarketPage extends StatefulWidget {
+class ApphubMarketPage extends ConsumerStatefulWidget {
   const ApphubMarketPage({super.key});
 
   @override
-  State<ApphubMarketPage> createState() => _ApphubMarketPageState();
+  ConsumerState<ApphubMarketPage> createState() => _ApphubMarketPageState();
 }
 
-class _ApphubMarketPageState extends State<ApphubMarketPage> {
+class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
   _MarketTab _tab = _MarketTab.apps;
   String _query = '';
   final TextEditingController _search = TextEditingController();
@@ -135,12 +137,14 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
     final bool ok = await DiminaHost.open(
       appId: app.appId,
       name: app.name,
+      dark: Theme.of(context).brightness == Brightness.dark,
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
       updateManifestUrl: '$appHubBase/apps/${app.appId}/manifest.json',
     );
     // 装完即把本地状态置为已装:从容器返回时按钮直接落成「打开」,
     // 不必等下一次进页面的全量核对。
     if (ok && mounted) {
+      ref.read(hubLayoutProvider.notifier).touch('mini:${app.appId}');
       setState(() {
         _installed[app.appId] = <String, Object?>{'installed': true, 'versionCode': app.versionCode};
       });

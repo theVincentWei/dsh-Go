@@ -14,7 +14,8 @@ final class DiminaHost {
   /// package, the SDK performs 无底包首次安装 from the manifest; with a package
   /// installed it still checks the manifest in the background and prepares any
   /// newer versionCode. `true` means the native side accepted the request —
-  /// not that the first frame has rendered.
+  /// not that the first frame has rendered. [dark] 是宿主当前亮度:首次打开
+  /// 时按它初始化容器胶囊配色(config 初始化后不可变,见 miniprogram-spec §8)。
   static Future<bool> open({
     required String appId,
     required String name,
@@ -22,6 +23,7 @@ final class DiminaHost {
     int versionCode = 0,
     String versionName = '',
     String? updateManifestUrl,
+    bool dark = false,
   }) async =>
       await _channel.invokeMethod<bool>('open', <String, Object?>{
         'appId': appId,
@@ -30,6 +32,7 @@ final class DiminaHost {
         'versionCode': versionCode,
         'versionName': versionName,
         'updateManifestUrl': ?updateManifestUrl,
+        'dark': dark,
       }) ??
       false;
 
