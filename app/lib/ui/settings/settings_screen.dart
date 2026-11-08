@@ -13,6 +13,7 @@ import '../../state/connection_state.dart';
 import '../../state/engine_settings_state.dart';
 import '../../state/features_state.dart';
 import '../../state/hosts_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/phone_state.dart';
 import '../../state/plugins_state.dart';
 import '../../state/sessions_state.dart';
@@ -22,12 +23,9 @@ import '../../state/update_state.dart';
 import '../account/account_page.dart';
 import '../account/account_widgets.dart';
 import '../chat/balance_widgets.dart' show formatMoney;
-import '../chat/widgets/plus_panel.dart' show PhoneConfirmCard, ThisChatCard;
-import '../common/app_sheet.dart';
 import '../common/ask_ai.dart';
 import '../common/overview_card.dart';
 import '../common/search_capsule.dart';
-import '../common/sheet_navigator.dart';
 import '../common/status_chip.dart';
 import '../engine/engine_screen.dart';
 import '../engine/engine_status.dart';
@@ -124,6 +122,7 @@ class SettingsScreen extends ConsumerWidget {
     final exempt = ref.watch(batteryExemptProvider).value;
     // 主机.
     final ssh = ref.watch(hostsProvider.select((s) => s.ssh.length));
+    final localEngine = ref.watch(localEngineAvailableProvider);
     final hostName = host.isLocal ? l10n.commonThisPhone : ref.watch(hostNameProvider(host)) ?? l10n.commonRemoteHost;
     // 帮助与关于.
     final update = ref.watch(appUpdateProvider);
@@ -141,20 +140,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         const SettingsOverview(),
-        // The open conversation's own settings (a bottom sheet); nothing
-        // open, nothing to show.
-        if (ref.watch(currentSessionProvider) case final sessionId?)
-          SettingsSection(
-            children: [
-              SettingsTile(
-                key: const ValueKey('settings-current-chat'),
-                icon: AppIcons.chat,
-                tint: SettingsHues.ai,
-                title: l10n.chatCurrentChat,
-                onTap: () => unawaited(showCurrentChatSheet(context, sessionId)),
-              ),
-            ],
-          ),
         SettingsSection(
           title: l10n.hubGroupAi,
           children: [
@@ -183,13 +168,14 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           title: l10n.hubGroupCapabilities,
           children: [
-            SettingsTile(
-              icon: AppIcons.phoneControl,
-              tint: SettingsHues.abilities,
-              spot: SettingsIndex.entry(SettingsPageId.phone),
-              value: text(phoneValue, color: phoneValue == l10n.hubValueOneStep ? colors.warning : null),
-              onTap: () => _push(context, const PhoneControlScreen()),
-            ),
+            if (localEngine)
+              SettingsTile(
+                icon: AppIcons.phoneControl,
+                tint: SettingsHues.abilities,
+                spot: SettingsIndex.entry(SettingsPageId.phone),
+                value: text(phoneValue, color: phoneValue == l10n.hubValueOneStep ? colors.warning : null),
+                onTap: () => _push(context, const PhoneControlScreen()),
+              ),
             SettingsTile(
               icon: AppIcons.webSearch,
               tint: SettingsHues.abilities,
@@ -255,22 +241,24 @@ class SettingsScreen extends ConsumerWidget {
             const NotificationSettingsTile(tint: SettingsHues.general),
             const VoiceSettingsTile(tint: SettingsHues.general),
             const PerformanceSettingsTile(tint: SettingsHues.general),
-            SettingsTile(
-              icon: AppIcons.keepAlive,
-              tint: SettingsHues.general,
-              spot: SettingsIndex.entry(SettingsPageId.background),
-              value: text(
-                exempt == null ? null : (exempt ? l10n.hubValueAllowed : l10n.hubValueNeedsSetup),
-                color: exempt == false ? colors.warning : null,
+            if (localEngine)
+              SettingsTile(
+                icon: AppIcons.keepAlive,
+                tint: SettingsHues.general,
+                spot: SettingsIndex.entry(SettingsPageId.background),
+                value: text(
+                  exempt == null ? null : (exempt ? l10n.hubValueAllowed : l10n.hubValueNeedsSetup),
+                  color: exempt == false ? colors.warning : null,
+                ),
+                onTap: () => _push(context, const BackgroundGuidePage()),
               ),
-              onTap: () => _push(context, const BackgroundGuidePage()),
-            ),
-            SettingsTile(
-              icon: AppIcons.systemAccess,
-              tint: SettingsHues.general,
-              spot: SettingsIndex.entry(SettingsPageId.systemAccess),
-              onTap: () => _push(context, const SystemAccessPage()),
-            ),
+            if (localEngine)
+              SettingsTile(
+                icon: AppIcons.systemAccess,
+                tint: SettingsHues.general,
+                spot: SettingsIndex.entry(SettingsPageId.systemAccess),
+                onTap: () => _push(context, const SystemAccessPage()),
+              ),
             SettingsTile(
               icon: AppIcons.privacy,
               tint: SettingsHues.general,
@@ -282,13 +270,14 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           title: l10n.hubGroupHosts,
           children: [
-            SettingsTile(
-              icon: AppIcons.engine,
-              tint: SettingsHues.hosts,
-              spot: SettingsIndex.entry(SettingsPageId.engine),
-              value: StatusChip(tone: engine.tone, label: engine.label),
-              onTap: () => _push(context, const EngineScreen()),
-            ),
+            if (localEngine)
+              SettingsTile(
+                icon: AppIcons.engine,
+                tint: SettingsHues.hosts,
+                spot: SettingsIndex.entry(SettingsPageId.engine),
+                value: StatusChip(tone: engine.tone, label: engine.label),
+                onTap: () => _push(context, const EngineScreen()),
+              ),
             SettingsTile(
               icon: AppIcons.remoteHosts,
               tint: SettingsHues.hosts,
@@ -374,39 +363,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// 「当前会话」: the open conversation's permission preset, plan mode and
-/// phone-control confirm mode — the same controls the composer's ＋ panel
-/// hosts under 本对话, reached from the settings hub.
-Future<void> showCurrentChatSheet(BuildContext context, String sessionId) {
-  final l10n = context.l10n;
-  return showAppSheet<void>(
-    context,
-    isScrollControlled: true,
-    builder: (sheet) => SafeArea(
-      top: false,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
-        child: SingleChildScrollView(
-          child: SheetNavigator(
-            root: (_) => Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SheetHeader(l10n.chatCurrentChat),
-                const SizedBox(height: 4),
-                ThisChatCard(sessionId: sessionId),
-                const SizedBox(height: 16),
-                const PhoneConfirmCard(),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
 /// The hub's overview card: who is paying (DeepSeek account or API Key) and
 /// the balance, with the engine's state underneath. The card opens 账号, the
 /// engine line opens 引擎. With no runtime on this phone and a remote host in
@@ -443,6 +399,7 @@ class _SettingsOverviewState extends ConsumerState<SettingsOverview> {
     final colors = DshColors.of(context);
     final active = ref.watch(activeHostProvider);
     final remoteOnly = runtime.status.runtimeMissing && !active.isLocal;
+    final localEngine = ref.watch(localEngineAvailableProvider);
 
     // The account's wallets when signed in; otherwise the key's balance.
     final money = account.signedIn && wallets != null ? balanceFromAccount(wallets) : balance.balance;
@@ -515,11 +472,13 @@ class _SettingsOverviewState extends ConsumerState<SettingsOverview> {
             ? l10n.hubSettingsHostSemantics(title, hostLink)
             : l10n.hubSettingsAccountSemantics(title, subtitle),
         onTap: () => _push(hostLink != null ? const RemoteScreen() : const AccountPage()),
-        footer: OverviewFooter(
-          tone: engine.tone,
-          text: [l10n.hubSettingsEngine, engine.label, if (dsh != null) 'DSH $dsh'].join(' · '),
-        ),
-        onFooterTap: () => _push(const EngineScreen()),
+        footer: localEngine
+            ? OverviewFooter(
+                tone: engine.tone,
+                text: [l10n.hubSettingsEngine, engine.label, if (dsh != null) 'DSH $dsh'].join(' · '),
+              )
+            : null,
+        onFooterTap: localEngine ? () => _push(const EngineScreen()) : null,
       ),
     );
   }

@@ -11,6 +11,7 @@ import '../../state/access_state.dart';
 import '../access/access_text.dart';
 import '../access/access_widgets.dart';
 import '../access/system_access_route.dart';
+import '../common/local_engine_gate.dart';
 import '../shell/page_frame.dart';
 import 'settings_widgets.dart';
 
@@ -57,6 +58,11 @@ class _SystemAccessPageState extends ConsumerState<SystemAccessPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.accessPageTitle, child: _page(context));
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     final readings = ref.watch(accessReadingsProvider).value;
     final visited = ref.watch(accessVisitedProvider);

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../common/app_sheet.dart';
 import '../common/list_page_row.dart' show ListPageRow;
 import '../common/overview_card.dart' show OverviewChevron;
+import '../common/row_anatomy.dart';
 import '../common/segmented_pill.dart';
 
 export '../common/segmented_pill.dart' show PillSegment, SegmentedPill;
@@ -32,28 +33,27 @@ const kSettingsGroupMargin = EdgeInsets.fromLTRB(16, 0, 16, 24);
 abstract final class SettingsMetrics {
   /// Card edge → icon disc / plain label on the left, and → switch track,
   /// chevron ink, segmented pill or a bare value on the right.
-  static const inset = 16.0;
+  static const inset = RowAnatomy.insetH;
 
   /// Right padding of a row ending in a switch or chevron: the switch's track
   /// sits 4 inside its box, the chevron is nudged out by
   /// [OverviewChevron.nudge] — both end at [inset].
   static const trailingPad = ListPageRow.trailingPad;
-  static const icon = 32.0;
+  static const icon = RowAnatomy.glyphSlot;
   static const iconGlyph = 18.0;
 
   /// Line icon on secondary pages (no tinted disc), centred in the [icon] slot.
   static const lineGlyph = 20.0;
-  static const iconGap = 12.0;
+  static const iconGap = RowAnatomy.glyphGap;
 
   /// Where titles start in rows with an icon.
   static const textStart = inset + icon + iconGap;
-  static const rowHeight = 52.0;
-  static const rowHeightTwoLine = 64.0;
+  static const rowHeight = RowAnatomy.rowHeight;
+  static const rowHeightTwoLine = RowAnatomy.rowHeightTwoLines;
 }
 
-/// Title style of every settings row (15 / 1.4).
-TextStyle? settingsTitleStyle(BuildContext context) =>
-    Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.4);
+/// Title style of every settings row (15 / 1.4), from the shared row anatomy.
+TextStyle? settingsTitleStyle(BuildContext context) => RowAnatomy.titleStyle(context);
 
 /// Round tinted icon for a settings row. [tint] picks one of the 8 fixed identity
 /// pairs (pastel container + deep glyph). On hub pages every row of a group uses

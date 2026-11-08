@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/voice_model_state.dart';
 import '../../state/voice_settings.dart';
 import '../common/app_dialog.dart';
@@ -101,6 +102,7 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final selected = ref.watch(voiceSettingsProvider);
+    final localEngine = ref.watch(localEngineAvailableProvider);
     return AppPage.list(
       title: l10n.voiceSettingsTitle,
       children: [
@@ -128,11 +130,14 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
               ),
           ],
         ),
-        SettingsSection(
-          title: l10n.voiceModelSection,
-          footer: Text(l10n.voiceModelFooter),
-          children: const [VoiceModelCard()],
-        ),
+        // The SenseVoice model lives on this phone's engine: gone without it.
+        // 引擎模式 stays above — a remote engine can provide the voice model.
+        if (localEngine)
+          SettingsSection(
+            title: l10n.voiceModelSection,
+            footer: Text(l10n.voiceModelFooter),
+            children: const [VoiceModelCard()],
+          ),
       ],
     );
   }

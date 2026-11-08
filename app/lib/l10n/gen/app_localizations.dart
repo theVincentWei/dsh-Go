@@ -14222,6 +14222,12 @@ abstract class L10n {
   /// **'安装后即可登录'**
   String get localEnvSignInInstallFirst;
 
+  /// No description provided for @localEnvGateBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。'**
+  String get localEnvGateBody;
+
   /// No description provided for @marketSectionOfficial.
   ///
   /// In zh, this message translates to:
@@ -25675,6 +25681,12 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口'**
   String get searchKwQuickPanel;
+
+  /// No description provided for @searchNeedsLocalEngineOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用本机引擎后可用'**
+  String get searchNeedsLocalEngineOn;
 
   /// No description provided for @shellDeletePermanently.
   ///

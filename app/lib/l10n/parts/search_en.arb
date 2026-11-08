@@ -116,5 +116,6 @@
   "searchKwWebBusySend": "send,queue,while AI works",
   "searchKwPluginsMarket": "plugin market,install plugins,marketplace",
   "searchKwUsageStats": "statistics,stats,usage data,analytics,telemetry,anonymous,privacy,data",
-  "searchKwQuickPanel": "swipe,left swipe,shortcuts,gesture,quick panel,quick access"
+  "searchKwQuickPanel": "swipe,left swipe,shortcuts,gesture,quick panel,quick access",
+  "searchNeedsLocalEngineOn": "Available while this phone runs the engine"
 }

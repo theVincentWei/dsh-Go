@@ -9,6 +9,7 @@ import '../settings/index/spots.dart' show SettingSpot;
 import '../theme/theme.dart';
 import 'app_sheet.dart' show groupTitleStyle;
 import 'overview_card.dart' show OverviewChevron;
+import 'row_anatomy.dart';
 
 /// 列表页的行:
 ///
@@ -90,13 +91,13 @@ class ListPageRow extends StatelessWidget {
   final bool danger;
   final Color? iconColor;
 
-  static const glyphSlot = 32.0;
-  static const gap = 12.0;
-  static const horizontal = 16.0;
+  static const glyphSlot = RowAnatomy.glyphSlot;
+  static const gap = RowAnatomy.glyphGap;
+  static const horizontal = RowAnatomy.insetH;
 
   /// Right padding of a row ending in a switch or chevron: the switch's track
   /// and the chevron's ink both end [horizontal] in, like a value or a capsule.
-  static const trailingPad = 12.0;
+  static const trailingPad = RowAnatomy.trailingPad;
 
   @override
   Widget build(BuildContext context) {
@@ -113,11 +114,7 @@ class ListPageRow extends StatelessWidget {
     final resolvedTitle = title ?? spot!.title(context.l10n);
     final resolvedTitleStyle =
         titleStyle ??
-        theme.textTheme.bodyLarge?.copyWith(
-          fontSize: 15,
-          height: 1.4,
-          color: danger ? colors.danger : scheme.onSurface,
-        );
+        RowAnatomy.titleStyle(context, color: danger ? colors.danger : scheme.onSurface);
     final note = titleNote;
     final titleText = note == null || note.isEmpty
         ? Text(resolvedTitle, maxLines: titleMaxLines, overflow: TextOverflow.ellipsis, style: resolvedTitleStyle)
@@ -138,7 +135,7 @@ class ListPageRow extends StatelessWidget {
     Widget row(double maxValueWidth) => InkWell(
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: two ? 64 : 52),
+        constraints: BoxConstraints(minHeight: two ? RowAnatomy.rowHeightTwoLines : RowAnatomy.rowHeight),
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             horizontal,

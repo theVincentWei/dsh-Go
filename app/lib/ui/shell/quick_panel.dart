@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/quick_panel_state.dart';
 import '../session/conversation_panel.dart';
 import '../theme/app_icons.dart';
@@ -63,7 +64,15 @@ class QuickPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final items = ref.watch(quickPanelProvider.select((p) => p.items));
+    // Stored choices keep 「引擎」/「网页版」: both are the on-device engine's
+    // pages, so an unavailable engine skips them at render (the storage keeps
+    // the user's order for when it's back).
+    final localEngine = ref.watch(localEngineAvailableProvider);
+    final items = [
+      for (final destination in ref.watch(quickPanelProvider.select((p) => p.items)))
+        if (localEngine || (destination != DrawerDestination.engine && destination != DrawerDestination.web))
+          destination,
+    ];
     final content = Material(
       type: MaterialType.transparency,
       child: SafeArea(

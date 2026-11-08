@@ -14,6 +14,7 @@ import '../../l10n/l10n.dart';
 import '../../plugins/native/native_icons.dart';
 import '../../plugins/native/native_state.dart';
 import '../../plugins/seams/seams.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/plugins_state.dart';
 import '../common/feature_tile.dart';
 import '../agents/team_page.dart';
@@ -400,12 +401,41 @@ final currentChatTools = <FeatureItem>[
 /// The section the host's plugin panels join.
 String get pluginFeatureSection => appL10n.catalogPlugins;
 
+/// The catalog's local-engine features: 「手机操控」 drives this phone with
+/// the engine, 「系统权限」 sets what it may do on it. A phone without the
+/// engine (first run went to 「远程主机」, or 卸载运行环境) lists none of
+/// them; installing from the remote hosts page brings them back.
+const _localEngineFeatureIds = {'phone', 'permission'};
+
+/// [sections] without [_localEngineFeatureIds]; a section left empty goes
+/// away, a trimmed one keeps its title, note and id.
+List<FeatureSection> _withoutLocalEngineFeatures(List<FeatureSection> sections) => [
+  for (final section in sections)
+    if (!section.items.any((item) => _localEngineFeatureIds.contains(item.id)))
+      section
+    else ...[
+      if (section.items.any((item) => !_localEngineFeatureIds.contains(item.id)))
+        FeatureSection.localized(
+          (l10n) => section.titleIn(l10n),
+          [for (final item in section.items) if (!_localEngineFeatureIds.contains(item.id)) item],
+          note: section.note,
+          id: section.id,
+        ),
+    ],
+];
+
 /// 全部功能's sections, with an entry per plugin panel the host has (`main`)
 /// at the end of 插件. Exactly [featureSections] without one.
 final featureSectionsProvider = Provider.autoDispose<List<FeatureSection>>((ref) {
+  // 「手机操控」「系统权限」 need the on-device engine: a phone that declined
+  // it doesn't list them here (and settings search, which reads this
+  // provider, doesn't find them either).
+  final sections = ref.watch(localEngineAvailableProvider)
+      ? featureSections
+      : _withoutLocalEngineFeatures(featureSections);
   final plan = ref.watch(seatPlanProvider(const SeatRequest(slot: Slots.main, placement: SeatPlacement.page)));
   final items = plan.visible;
-  if (items.isEmpty) return featureSections;
+  if (items.isEmpty) return sections;
   final bundles = ref.watch(installedPluginsProvider.select((s) => s.value));
   final inventory = ref.watch(seatInventoryProvider);
   final panels = [
@@ -419,7 +449,7 @@ final featureSectionsProvider = Provider.autoDispose<List<FeatureSection>>((ref)
       ),
   ];
   return [
-    for (final section in featureSections)
+    for (final section in sections)
       section.items.any((item) => item.id == 'plugins')
           ? FeatureSection.localized(
               (l10n) => l10n.catalogPlugins,

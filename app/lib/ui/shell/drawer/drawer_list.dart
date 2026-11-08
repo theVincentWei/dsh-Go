@@ -30,6 +30,7 @@ class DrawerConversationList extends ConsumerWidget {
     this.leading,
     this.now,
     this.readOnly = false,
+    this.topInset = 0,
   });
 
   /// Opens a conversation (and closes the drawer).
@@ -37,6 +38,11 @@ class DrawerConversationList extends ConsumerWidget {
 
   /// Closes the drawer after choosing a folder for a new conversation.
   final VoidCallback? onNewChat;
+
+  /// Extra top padding: the 聊天 tab floats its title row and filters over
+  /// the list (chat-style), so the first card clears exactly them; 0
+  /// elsewhere.
+  final double topInset;
 
   /// A conversation's actions.
   final void Function(SessionSummary session) onLongPress;
@@ -47,11 +53,6 @@ class DrawerConversationList extends ConsumerWidget {
   /// Clock override for the day groups (tests).
   final DateTime? now;
   final bool readOnly;
-
-  /// The list's padding. The cards carry their own 10 margins, so the list
-  /// only insets vertically; rows that stay plain (the DS Bot row, the
-  /// folders' headers) wrap themselves in the 10.
-  static const padding = EdgeInsets.fromLTRB(0, 4, 0, 16);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -205,7 +206,10 @@ class DrawerConversationList extends ConsumerWidget {
     return ListView.builder(
       key: ValueKey(filter),
       physics: AppMotion.scrollPhysics(context),
-      padding: padding,
+      // The cards carry their own 10 margins, so the list only insets
+      // vertically; rows that stay plain (the DS Bot row, the folders'
+      // headers) wrap themselves in the 10.
+      padding: EdgeInsets.fromLTRB(0, 4 + topInset, 0, 16),
       itemCount: rows.length,
       itemBuilder: (context, index) => rows[index].builder(context),
       findChildIndexCallback: (key) => indices[key],

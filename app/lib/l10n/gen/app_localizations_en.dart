@@ -8196,6 +8196,10 @@ class L10nEn extends L10n {
   String get localEnvSignInInstallFirst => 'Install it to sign in';
 
   @override
+  String get localEnvGateBody =>
+      'This phone doesn\'t run DSH locally, so these settings aren\'t available. To enable them, install the runtime under Remote hosts.';
+
+  @override
   String get marketSectionOfficial => 'Official';
 
   @override
@@ -14730,6 +14734,9 @@ class L10nEn extends L10n {
 
   @override
   String get searchKwQuickPanel => 'swipe,left swipe,shortcuts,gesture,quick panel,quick access';
+
+  @override
+  String get searchNeedsLocalEngineOn => 'Available while this phone runs the engine';
 
   @override
   String get shellDeletePermanently => 'Delete permanently';

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ui/shell/drawer/drawer_destination.dart';
+import 'onboarding_state.dart' show localEngineAvailableProvider;
 
 class QuickPanelPrefs {
   const QuickPanelPrefs({this.swipe = true, this.items = defaultItems});
@@ -34,11 +35,23 @@ class QuickPanelController extends Notifier<QuickPanelPrefs> {
 
   @override
   QuickPanelPrefs build() {
-    _loaded = _load();
-    return const QuickPanelPrefs();
+    // 「引擎」 defaults in only while the on-device engine is offered (the
+    // 「远程主机」 decline hides it, onboarding_state.dart); watching the gate
+    // re-runs [build] — and the load — when installing flips it back.
+    final defaults = _defaults(ref.watch(localEngineAvailableProvider));
+    _loaded = _load(defaults);
+    return QuickPanelPrefs(items: defaults);
   }
 
-  Future<void> _load() async {
+  /// The untouched install's list, minus 「引擎」 while the on-device engine
+  /// isn't offered. Stored choices are left alone; quick_panel.dart skips
+  /// them at render time.
+  static List<DrawerDestination> _defaults(bool localEngine) => [
+    for (final d in QuickPanelPrefs.defaultItems)
+      if (localEngine || d != DrawerDestination.engine) d,
+  ];
+
+  Future<void> _load(List<DrawerDestination> defaults) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (!ref.mounted) return;
@@ -47,7 +60,7 @@ class QuickPanelController extends Notifier<QuickPanelPrefs> {
         swipe: prefs.getBool(swipeKey) ?? true,
         // An id no destination answers to (one that was removed) is dropped.
         items: stored == null
-            ? QuickPanelPrefs.defaultItems
+            ? defaults
             : {for (final id in stored) ?DrawerDestination.values.asNameMap()[id]}.toList(),
       );
     } catch (_) {
