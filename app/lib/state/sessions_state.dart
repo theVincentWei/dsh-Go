@@ -438,10 +438,21 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
     var unsupported = false;
     try {
       final projections = await client.projections(row.sessionId);
+      var preview = projections?.turnOutlinePreview;
+      if (preview == null && projections != null && projections.asOfSeq >= 0) {
+        // 老主机的 projections 没有 turnOutline 投影:读一小页事件尾,取最后
+        // 一条有文本的助手/人写消息(与通知取文案同一套路,非激活读)。
+        try {
+          final page = await client.history(row.sessionId, throughSeq: projections.asOfSeq, maxMessages: 4);
+          preview = _tailPreview(page.events);
+        } on Object {
+          // 尾页读失败不致命:副标题落到 cwd。
+        }
+      }
       read = (
         updatedAt: row.updatedAt,
         title: projections?.title,
-        preview: projections?.turnOutlinePreview,
+        preview: preview,
         blank: projections?.blank,
       );
     } on DshRemoteException catch (error) {
@@ -869,6 +880,23 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
 }
 
 final sessionsProvider = AsyncNotifierProvider<SessionsController, List<SessionSummary>>(SessionsController.new);
+
+/// 事件尾页里最后一条有文本的助手/人写消息,折成一行(≤120 字)。老主机的
+/// projections 没有 turnOutline 时,副标题从这里取(与通知取文案同一套路)。
+String? _tailPreview(List<SessionLogEvent> events) {
+  for (final event in events.reversed) {
+    final text = switch (event) {
+      AssistantMessageEvent(:final message) => message.text,
+      UserMessageEvent(:final isHumanPrompt, :final message) when isHumanPrompt => message.text,
+      _ => null,
+    };
+    final line = text?.trim();
+    if (line != null && line.isNotEmpty) {
+      return line.length > 120 ? '${line.substring(0, 119)}…' : line;
+    }
+  }
+  return null;
+}
 
 /// A remote host with no working directory of its own: without a workspace, a
 /// new conversation would land wherever its `dsh web` happened to start.

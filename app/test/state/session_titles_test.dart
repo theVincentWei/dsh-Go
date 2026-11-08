@@ -114,6 +114,11 @@ class _SshHost {
       }
       return folded[id];
     };
+    carrier.handlers['session/page'] = (args) {
+      final address = ((args['request'] as Map)['address']) as Map;
+      final id = address['sessionId'] as String;
+      return pages[id];
+    };
     client = DshClient.withCarrier(carrier);
   }
 
@@ -122,6 +127,7 @@ class _SshHost {
   late final DshClient client;
   List<Map<String, Object?>> rows = [];
   final folded = <String, Object?>{};
+  final pages = <String, Object?>{};
   final reads = <String>[];
 
   /// What the next reads fail with, in turn (a Host or proxy erring just then).
@@ -213,6 +219,52 @@ void main() {
     await c.read(sessionsProvider.future);
     await _settle();
     expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, isEmpty);
+  });
+
+  test('a host without turnOutline falls back to the event tail for the second line', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party');
+    host.pages['desktop'] = {
+      'records': [
+        {
+          'event': {
+            'type': 'user/message',
+            'seq': 9,
+            'time': 1,
+            'data': {
+              'source': {'kind': 'user'},
+              'content': [
+                {'type': 'text', 'text': 'When is the garden party?'},
+              ],
+            },
+          },
+        },
+        {
+          'event': {
+            'type': 'assistant/message',
+            'seq': 12,
+            'time': 2,
+            'data': {
+              'turn': 0,
+              'step': 2,
+              'message': {
+                'content': [
+                  {'type': 'text', 'text': 'Garden party moved to Sunday'},
+                ],
+              },
+            },
+          },
+        },
+      ],
+      'hasMore': false,
+    };
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'desktop': 'Plan the garden party'});
+    // 老主机没有 turnOutline:副标题从事件尾页取到回复。
+    expect(_previews(c), {'desktop': 'Garden party moved to Sunday'});
+    expect(host.opened, isEmpty);
   });
 
   test('a conversation another DSH process wrote gets its title read, without being opened', () async {

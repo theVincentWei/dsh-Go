@@ -128,6 +128,23 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // 浮动 header 的高度逐帧盯着量:冷启动首帧时工作区/文案还没就位,量出来
+    // 会偏小(「今天」就滑进 header 底下),而内容就位后页面自己不一定再
+    // build。空闲时没有帧,这个回调也就不跑,零常驻开销。
+    WidgetsBinding.instance.addPostFrameCallback(_measureHeader);
+  }
+
+  void _measureHeader(Duration _) {
+    if (!mounted) return;
+    final box = _headerKey.currentContext?.findRenderObject() as RenderBox?;
+    final h = box?.size.height ?? 0;
+    if (h != 0 && h != _headerExtent) setState(() => _headerExtent = h);
+    WidgetsBinding.instance.addPostFrameCallback(_measureHeader);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final onOpenChat = widget.onOpenChat;
     final onDestination = widget.onDestination;
@@ -187,15 +204,10 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
     // 状态栏内边距手动管(不用 SafeArea):页面底要铺到屏幕最顶,渐变也从
     // 屏幕顶开始 —— 与设置/全部功能(AppPage)同一观感。
     final padTop = MediaQuery.paddingOf(context).top;
-    // Where the floating header ends: measured once a frame (the selection
-    // header and the banner change it); the list clears exactly it and the
-    // wash-out fade runs this tall.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final box = _headerKey.currentContext?.findRenderObject() as RenderBox?;
-      final h = box?.size.height ?? 0;
-      if (h != 0 && h != _headerExtent) setState(() => _headerExtent = h);
-    });
+    // Where the floating header ends: measured every frame (see
+    // _measureHeader — the selection header, the banner and the workspace
+    // pill all change it after the first build); the list clears exactly it
+    // and the wash-out fade runs this tall.
     final list = _EdgeFade(
       child: _SessionList(onOpenChat: onOpenChat, onDestination: onDestination, now: now, topInset: padTop + _headerExtent),
     );
