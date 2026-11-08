@@ -4233,6 +4233,17 @@ class L10nZh extends L10n {
   String get chatCurrentChat => '当前会话';
 
   @override
+  String get chatDownloadCenter => '下载';
+
+  @override
+  String chatDownloadCount(int count) {
+    return '$count 个下载任务';
+  }
+
+  @override
+  String get chatDownloadSheetHint => '点击条目跳到对应会话 · 断线后从断点续传';
+
+  @override
   String get commonCancel => '取消';
 
   @override

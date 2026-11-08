@@ -24,6 +24,7 @@ import '../../pets/pet_mood.dart';
 import '../../pets/pet_overlay_bridge.dart';
 import '../../pets/pet_pack.dart';
 import '../../pets/pet_prefs.dart';
+import '../../state/download_tasks.dart';
 import '../../pets/pet_sheets.dart';
 import '../../pets/pet_signals.dart';
 import '../../pets/pet_state.dart';
@@ -36,6 +37,7 @@ import '../chat/widgets/question_card.dart';
 import '../common/discard_guard.dart';
 import '../theme/theme.dart';
 import 'pet_bubble.dart';
+import 'pet_download_sheet.dart';
 import 'pet_menu.dart';
 import 'pet_perch.dart';
 import 'pet_sprite.dart';
@@ -735,6 +737,16 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
       HapticFeedback.selectionClick();
       final question = ref.read(petPendingProvider).where((p) => p.target == pet.target).firstOrNull?.question ?? false;
       widget.onReveal?.call(pet.target!, question ? PetBubbleKind.question : PetBubbleKind.approval);
+      return;
+    }
+    // Carrying: downloads in flight — tap opens the download center.
+    if (pet.state == PetStateName.carrying && ref.read(downloadTasksProvider).isNotEmpty) {
+      HapticFeedback.selectionClick();
+      unawaited(
+        showDownloadTasksSheet(context, onOpen: (host, sessionId) {
+          widget.onReveal?.call(PetTarget(host, sessionId), PetBubbleKind.done);
+        }),
+      );
       return;
     }
     final now = _now;

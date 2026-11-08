@@ -207,7 +207,15 @@ class ArtifactFiles {
       if (partVersion.existsSync()) partVersion.deleteSync();
     }
 
-    final task = taskLabel == null ? null : _tasks?.begin(key: key, label: taskLabel, total: stat.bytes);
+    final task = taskLabel == null
+        ? null
+        : _tasks?.begin(
+            key: key,
+            label: taskLabel,
+            host: connection!.hostRef,
+            sessionId: sessionId,
+            total: stat.bytes,
+          );
     task?.updateReceived(resumeOffset);
     // 记下本次 attempt 的版本:下一次 attempt 若版本对不上,分片整体作废。
     partVersion.writeAsStringSync(stat.version);

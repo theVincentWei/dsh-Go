@@ -309,5 +309,15 @@
   "chatTodoItemSemantics": "{content}, {state}",
   "chatMentionSemantics": "{kind}: {label}",
   "chatArtifactSemantics": "{name}, {description}",
-  "chatCurrentChat": "Current chat"
+  "chatCurrentChat": "Current chat",
+  "chatDownloadCenter": "Downloads",
+  "chatDownloadCount": "{count} download tasks",
+  "chatDownloadSheetHint": "Tap an entry to open its chat · resumes from the breakpoint",
+  "@chatDownloadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

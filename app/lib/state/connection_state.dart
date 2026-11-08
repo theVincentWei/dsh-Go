@@ -32,6 +32,13 @@ class HostConnection {
 
   final DshClient client;
 
+  /// The host reference for provider lookups (download tasks, pet targets).
+  HostRef get hostRef => switch (kind) {
+    HostKind.local => HostRef.local,
+    HostKind.ssh => HostRef.ssh(hostId ?? ''),
+    HostKind.relay => HostRef.relay(hostId ?? '', name: name),
+  };
+
   /// A fixed label (tests); null builds it from [kind] and [name].
   final String? _label;
 

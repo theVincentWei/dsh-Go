@@ -15,6 +15,7 @@ import '../notify/chat_alerts.dart';
 import '../performance/performance_state.dart';
 import '../state/chat_state.dart';
 import '../state/connection_state.dart';
+import '../state/download_tasks.dart';
 import '../state/hosts_state.dart';
 import '../state/notify_state.dart' show FlagController, appForegroundProvider, chatOnScreenProvider;
 import '../state/run_pulse.dart';
@@ -453,12 +454,16 @@ final petPendingProvider = Provider<List<PetPending>>((ref) {
 /// All level signals.
 final petSignalsProvider = Provider<PetSignals>((ref) {
   final focus = ref.watch(petFocusProvider);
+  final downloads = ref.watch(downloadTasksProvider);
   return PetSignals(
     focus: focus,
     viewed: focus != null && ref.watch(appForegroundProvider) && ref.watch(chatOnScreenProvider),
     runs: ref.watch(petRunsProvider),
     pending: ref.watch(petPendingProvider),
     lastInteraction: ref.watch(petInteractionProvider),
+    // 有下载在跑:宠物进入「搬东西」状态(优先级低于需要你处理的事件,
+    // 下载完成/失败会以 notification 闪现插队)。
+    carrying: downloads.isNotEmpty,
     quiet: ref.watch(petPrefsProvider.select((p) => p.quiet)),
   );
 });
