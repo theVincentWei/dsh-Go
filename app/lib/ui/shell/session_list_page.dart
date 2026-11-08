@@ -184,6 +184,9 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
         child: const DrawerFilterBar(),
       ),
     ];
+    // 状态栏内边距手动管(不用 SafeArea):页面底要铺到屏幕最顶,渐变也从
+    // 屏幕顶开始 —— 与设置/全部功能(AppPage)同一观感。
+    final padTop = MediaQuery.paddingOf(context).top;
     // Where the floating header ends: measured once a frame (the selection
     // header and the banner change it); the list clears exactly it and the
     // wash-out fade runs this tall.
@@ -193,29 +196,34 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
       final h = box?.size.height ?? 0;
       if (h != 0 && h != _headerExtent) setState(() => _headerExtent = h);
     });
-    final list = _EdgeFade(child: _SessionList(onOpenChat: onOpenChat, onDestination: onDestination, now: now, topInset: _headerExtent));
+    final list = _EdgeFade(
+      child: _SessionList(onOpenChat: onOpenChat, onDestination: onDestination, now: now, topInset: padTop + _headerExtent),
+    );
 
-    final content = SafeArea(
-      bottom: false,
+    // 与设置/全部功能同一块页面底:状态栏区不再透出壳层/壁纸。
+    final content = AppBackdrop(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (short)
             Expanded(
-              child: NestedScrollView(
-                headerSliverBuilder: (context, _) => [
-                  SliverToBoxAdapter(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: top),
-                  ),
-                ],
-                body: list,
+              child: SafeArea(
+                bottom: false,
+                child: NestedScrollView(
+                  headerSliverBuilder: (context, _) => [
+                    SliverToBoxAdapter(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: top),
+                    ),
+                  ],
+                  body: list,
+                ),
               ),
             )
           else
             // Chat-style: the list runs behind the floating header, and once
             // a card has slid 24px under it the header's wash-out fade comes
             // on (the same extentBefore/24 the chat list reports). At rest
-            // the header floats on the shell glass with nothing under it.
+            // the header floats on the page backdrop with nothing under it.
             Expanded(
               child: NotificationListener<ScrollNotification>(
                 onNotification: (n) {
@@ -232,13 +240,13 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
                       child: ValueListenableBuilder<double>(
                         valueListenable: _scrolledUnder,
                         builder: (context, t, child) => Opacity(opacity: t, child: child),
-                        child: TopFade(height: _headerExtent + 12),
+                        child: TopFade(height: padTop + _headerExtent + 12),
                       ),
                     ),
                     Positioned(
                       left: 0,
                       right: 0,
-                      top: 0,
+                      top: padTop,
                       child: KeyedSubtree(
                         key: _headerKey,
                         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: top),
