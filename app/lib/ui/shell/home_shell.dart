@@ -16,7 +16,7 @@ import '../../pets/pet_overlay_bridge.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
-import '../../state/drawer_view_state.dart' show drawerSelectionProvider;
+import '../../state/drawer_view_state.dart' show drawerScopeProvider, drawerSelectionProvider;
 import '../../state/quick_panel_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../bots/bot_alerts.dart';
@@ -46,7 +46,10 @@ import '../update/update_launch_check.dart';
 import '../wallpaper/wallpaper_backdrop.dart';
 import '../web/local_web_screen.dart';
 import 'drawer_drag.dart' show QuickPanelDragRecognizer;
+import 'drawer/drawer_actions.dart';
 import 'quick_panel.dart';
+import 'drawer/selection_bars.dart';
+import 'drawer/session_deletion.dart';
 import 'session_list_page.dart';
 import 'system_entry_host.dart';
 
@@ -443,56 +446,74 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                   top: false,
                   child: Padding(
                     // 悬浮玻璃件:左右留边、底部留手势条空间,内容从玻璃下穿过。
+                    // 多选(方案 A,2026-11-09 拍板):Tab 槽位整条换成操作栏,
+                    // 同玻璃件同高交叉淡切;主机圆钮让位,完成/返回退出。
                     padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 左件:独立的主机圆钮(标签挂在圆外下方)。
-                        _DeviceKey(
-                          onHost: () => showHostSheet(
-                            context,
-                            onManage: () => _openDestination(DrawerDestination.remote),
-                          ),
-                          onDetails: () => _openDestination(DrawerDestination.engine),
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.of(context, AppMotion.emphasized),
+                      reverseDuration: AppMotion.of(context, AppMotion.standard),
+                      switchInCurve: AppMotion.enter,
+                      switchOutCurve: AppMotion.exit,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween(begin: const Offset(0, 0.3), end: Offset.zero).animate(animation),
+                          child: child,
                         ),
-                        const SizedBox(width: 12),
-                        // 右件:三连胶囊。液态玻璃:选中的高亮是一颗胶囊
-                        // (不是圆点),切换时从旧 tab 流到新 tab(见
-                        // [_TabGlow])。纯图标(无文字),图标 22,选中
-                        // primary 着色。
-                        Expanded(
-                          child: GlassSurface(
-                            tier: GlassTier.chrome,
-                            stadium: true,
-                            // 格宽在这里量好传下去:Positioned 必须直接做
-                            // Stack 的孩子,中间不能隔 LayoutBuilder。
-                            child: LayoutBuilder(
-                              builder: (context, constraints) => SizedBox(
-                                height: 56,
-                                child: Stack(
-                                  children: [
-                                    _TabGlow(
-                                      flow: _tabFlow,
-                                      from: _tabFrom,
-                                      to: _tab,
-                                      slot: constraints.maxWidth / 3,
-                                    ),
-                                    Positioned.fill(
-                                      child: Row(
-                                        children: [
-                                          _homeTab(0, tooltip: context.l10n.tabChats, icon: AppIcons.chat),
-                                          _homeTab(1, tooltip: context.l10n.tabMiniApps, icon: AppIcons.allFeatures),
-                                          _homeTab(2, tooltip: context.l10n.commonSettings, icon: AppIcons.settings),
-                                        ],
+                      ),
+                      child: selecting
+                          ? const _SelectionDock(key: ValueKey('selection-dock'))
+                          : Row(
+                              key: const ValueKey('tab-dock'),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 左件:独立的主机圆钮(标签挂在圆外下方)。
+                                _DeviceKey(
+                                  onHost: () => showHostSheet(
+                                    context,
+                                    onManage: () => _openDestination(DrawerDestination.remote),
+                                  ),
+                                  onDetails: () => _openDestination(DrawerDestination.engine),
+                                ),
+                                const SizedBox(width: 12),
+                                // 右件:三连胶囊。液态玻璃:选中的高亮是一颗胶囊
+                                // (不是圆点),切换时从旧 tab 流到新 tab(见
+                                // [_TabGlow])。纯图标(无文字),图标 22,选中
+                                // primary 着色。
+                                Expanded(
+                                  child: GlassSurface(
+                                    tier: GlassTier.chrome,
+                                    stadium: true,
+                                    // 格宽在这里量好传下去:Positioned 必须直接做
+                                    // Stack 的孩子,中间不能隔 LayoutBuilder。
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) => SizedBox(
+                                        height: 56,
+                                        child: Stack(
+                                          children: [
+                                            _TabGlow(
+                                              flow: _tabFlow,
+                                              from: _tabFrom,
+                                              to: _tab,
+                                              slot: constraints.maxWidth / 3,
+                                            ),
+                                            Positioned.fill(
+                                              child: Row(
+                                                children: [
+                                                  _homeTab(0, tooltip: context.l10n.tabChats, icon: AppIcons.chat),
+                                                  _homeTab(1, tooltip: context.l10n.tabMiniApps, icon: AppIcons.allFeatures),
+                                                  _homeTab(2, tooltip: context.l10n.commonSettings, icon: AppIcons.settings),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -747,6 +768,45 @@ class _PanelOverlay extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+
+/// 多选时 Tab 槽位整条换成操作栏(方案 A,2026-11-09 拍板):同一玻璃件
+/// 同高(56),主机圆钮让位;完成/返回退出多选,槽位交还三连胶囊。
+class _SelectionDock extends ConsumerWidget {
+  const _SelectionDock({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(drawerSelectionProvider)?.toList() ?? const <String>[];
+    final readOnly = ref.watch(drawerScopeProvider)?.readOnly != false;
+    return GlassSurface(
+      tier: GlassTier.chrome,
+      stadium: true,
+      child: SizedBox(
+        height: 56,
+        child: SelectionActionBar(
+          height: 56,
+          onMove: () {
+            if (readOnly) return;
+            moveToFolderFlow(context, ref, selected);
+          },
+          onPin: () {
+            if (readOnly) return;
+            pinSelectionFlow(context, ref);
+          },
+          onArchive: () {
+            if (readOnly) return;
+            archiveSelectionFlow(context, ref);
+          },
+          onDelete: () {
+            if (readOnly) return;
+            unawaited(deleteSelectionFlow(context, ref));
+          },
+        ),
+      ),
     );
   }
 }

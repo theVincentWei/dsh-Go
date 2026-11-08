@@ -151,18 +151,16 @@ class DoneButton extends StatelessWidget {
 /// Replaces the identity bar: four equal keys, icon over label. Off until
 /// something is chosen.
 class SelectionActionBar extends ConsumerWidget {
-  const SelectionActionBar({
-    super.key,
-    required this.onMove,
-    required this.onPin,
-    required this.onArchive,
-    required this.onDelete,
-  });
+  const SelectionActionBar({super.key, required this.onMove, required this.onPin, required this.onArchive, required this.onDelete, this.height});
 
   final VoidCallback onMove;
   final VoidCallback onPin;
   final VoidCallback onArchive;
   final VoidCallback onDelete;
+
+  /// 定高模式:住在 shell 的 Tab 槽位里时传 56(与 Tab 玻璃件同高,交叉淡切
+  /// 才不跳)。为空保持浮层自量高。
+  final double? height;
 
   /// Least key height; the drawer lays the bar over the identity bar, so the
   /// keys fill that height.
@@ -185,12 +183,7 @@ class SelectionActionBar extends ConsumerWidget {
       sessions: scope?.sessions ?? const [],
       ids: selected,
     );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-      // The bar sizes itself now (the list page has no fixed-height slot for
-      // it any more): the keys still stretch to one equal height, at least
-      // the key height, growing with the text.
-      child: IntrinsicHeight(
+    final bar = IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -232,8 +225,11 @@ class SelectionActionBar extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
+    if (height case final h?) {
+      return SizedBox(height: h, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: bar));
+    }
+    return Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 10), child: bar);
   }
 }
 

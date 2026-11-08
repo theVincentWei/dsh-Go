@@ -12,11 +12,11 @@ import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/common/capsule_chip.dart';
 import 'package:dsh_app/ui/shell/drawer/folder_header.dart';
 import 'package:dsh_app/ui/shell/drawer/selection_bars.dart';
-import 'package:dsh_app/ui/shell/drawer/session_tile.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../shell/golden_harness.dart';
@@ -63,6 +63,31 @@ Future<(DrawerHost, ProviderContainer)> _start(
 Finder _tile(String title) => find.widgetWithText(SessionTile, title);
 
 void main() {
+
+  testWidgets('the action bar: four equal keys on the 10 lines, 8 apart, living in the Tab slot', (tester) async {
+    final (_, container) = await _start(tester);
+    container.read(drawerSelectionProvider.notifier).start('s1');
+    container.read(drawerSelectionProvider.notifier).toggle('s2');
+    await _settle(tester);
+    Rect rect(Finder finder) => tester.getRect(finder);
+    final page = rect(find.byType(SessionListPage));
+    final bar = rect(find.byType(SelectionActionBar));
+    // 方案 A:操作栏住 Tab 槽位 —— dock 底边距屏 10(与 Tab 玻璃件同款外边距),
+    // 键的左右缘在 dock 外 14 + 玻璃内 10 = 24 上,与 Tab 玻璃件的内缩一致。
+    // dock 玻璃件含内衬(SafeArea 外距 10 + chrome 内衬),操作栏底距屏实测 34,
+    // 与三连胶囊玻璃件同底;键的左右缘在 dock 外 14 + 玻璃内 10 = 24 上。
+    expect(page.bottom - bar.bottom, moreOrLessEquals(34, epsilon: 0.5));
+    final keys = [
+      for (final label in ['移到文件夹', '置顶', '归档', '删除'])
+        rect(find.ancestor(of: find.text(label), matching: find.byType(InkWell)).first),
+    ];
+    expect(keys.first.left - page.left, moreOrLessEquals(24, epsilon: 0.5));
+    expect(page.right - keys.last.right, moreOrLessEquals(24, epsilon: 0.5));
+    for (var i = 1; i < keys.length; i++) {
+      expect(keys[i].width, moreOrLessEquals(keys[0].width, epsilon: 0.5));
+      expect(keys[i].left - keys[i - 1].right, moreOrLessEquals(8, epsilon: 0.5));
+    }
+  });
   testWidgets('a folder can start a new chat without creating an empty engine session', (tester) async {
     final (host, container) = await _start(
       tester,

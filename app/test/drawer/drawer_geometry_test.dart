@@ -10,11 +10,11 @@ import 'package:dsh_app/state/drawer_view_state.dart';
 import 'package:dsh_app/state/session_attention_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/ui/common/capsule_chip.dart';
+import 'package:dsh_app/ui/shell/drawer/selection_bars.dart';
 import 'package:dsh_app/ui/common/empty_view.dart';
 import 'package:dsh_app/ui/shell/drawer/drawer_filter_bar.dart';
 import 'package:dsh_app/ui/shell/drawer/folder_header.dart';
 import 'package:dsh_app/ui/shell/drawer/folder_mark.dart';
-import 'package:dsh_app/ui/shell/drawer/selection_bars.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_client/dsh_client.dart' show SessionSummary;
@@ -191,28 +191,6 @@ void main() {
       );
     });
 
-    testWidgets('the action bar: four equal keys on the 10 lines, 8 apart, pinned to the bottom', (tester) async {
-      final container = await _pump(tester);
-      final page = _page(tester);
-      container.read(drawerSelectionProvider.notifier).start('s2');
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-      final bar = _rect(tester, find.byType(SelectionActionBar));
-      // The bar pins above the FAB's clearance: the 新对话 FAB keeps 78dp
-      // free above the bottom bar's glass capsule (78 = FAB 避让), so the
-      // bar's bottom edge sits 78 above the page's bottom.
-      expect(page.bottom - bar.bottom, _near(78));
-      final keys = [
-        for (final label in ['移到文件夹', '置顶', '归档', '删除'])
-          _rect(tester, find.ancestor(of: find.text(label), matching: find.byType(InkWell)).first),
-      ];
-      expect(keys.first.left - page.left, _near(10));
-      expect(page.right - keys.last.right, _near(10));
-      for (var i = 1; i < keys.length; i++) {
-        expect(keys[i].width, _near(keys[0].width));
-        expect(keys[i].left - keys[i - 1].right, _near(8));
-      }
-    });
   });
 
   group('empty', () {

@@ -268,41 +268,6 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
                 ),
               ),
             ),
-          // In multi-select the action bar pins to the bottom, over where
-          // the FAB floats.
-          Padding(
-            padding: const EdgeInsets.only(bottom: 78),
-            child: AnimatedSwitcher(
-              duration: quick,
-              child: selecting
-                ? SelectionActionBar(
-                    key: const ValueKey('selecting'),
-                    onMove: () {
-                      if (ref.read(drawerScopeProvider)?.readOnly == false) {
-                        moveToFolderFlow(
-                          context,
-                          ref,
-                          ref.read(drawerSelectionProvider)?.toList() ?? const [],
-                        );
-                      }
-                    },
-                    onPin: () {
-                      if (ref.read(drawerScopeProvider)?.readOnly == false) pinSelectionFlow(context, ref);
-                    },
-                    onArchive: () {
-                      if (ref.read(drawerScopeProvider)?.readOnly == false) {
-                        archiveSelectionFlow(context, ref);
-                      }
-                    },
-                    onDelete: () {
-                      if (ref.read(drawerScopeProvider)?.readOnly == false) {
-                        unawaited(deleteSelectionFlow(context, ref));
-                      }
-                    },
-                  )
-                : const SizedBox.shrink(),
-            ),
-          ),
         ],
       ),
     );
@@ -320,15 +285,17 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
         // out of the action bar's way in multi-select.
         Positioned(
           right: 16,
-          bottom: selecting ? 0 : 100,
+          bottom: 100,
           child: AnimatedOpacity(
             opacity: selecting ? 0 : 1,
             duration: quick,
             child: IgnorePointer(
               ignoring: selecting,
               child: PetPerch(
-                // 站杆:宠物落在新对话键的上沿。
+                // 站杆:宠物落在新对话键的上沿。多选时键整体隐去(操作栏
+                // 已住进 Tab 槽位,这里只保留淡出语义),站杆一并撤走。
                 kind: PerchKind.composer,
+                active: !selecting,
                 child: GlassIconButton(
                   icon: AppIcons.newChat,
                   tooltip: context.l10n.commonNewChat,
