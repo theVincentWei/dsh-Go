@@ -84,7 +84,10 @@ class SshHostLink implements HostLink {
                  )
                : IsolateSshTunnel()),
        _connectClient = connectClient ?? _defaultConnector,
-       _backoff = backoff ?? Backoff() {
+       // 退避不封顶(null = 永远重试,间隔 30s 封顶):主机卡死/离线一旦超过
+       // 原 8 次预算(约 2-4 分钟),链路就永久躺平,只能杀 App 重连——主机
+       // 恢复后永远等不到。非重试错误(密码/主机钥匙)仍走 _fail 停下等人。
+       _backoff = backoff ?? Backoff(maxAttempts: null) {
     _kickSub = kicks?.listen((_) => kick());
     _lostSub = _tunnel.lost.listen((_) {
       if (_closed || _recovering) return;

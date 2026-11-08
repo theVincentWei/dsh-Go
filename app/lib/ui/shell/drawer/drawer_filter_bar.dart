@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../state/connection_state.dart';
 import '../../../state/drawer_view_state.dart';
+import '../../../state/hosts_state.dart';
+import '../../../state/read_list_cache.dart' show ReadListStatus;
 import '../../../state/session_attention_state.dart';
 import '../../common/capsule_chip.dart';
 import '../../common/read_list_status.dart';
@@ -39,6 +42,13 @@ class DrawerFilterBar extends ConsumerWidget {
       _ => f.label,
     };
     final theme = Theme.of(context);
+    // 离线/失败快照的重连入口:列表只剩标题行(上次结果)时,重试按钮只在
+    // 空列表状态里有,这里不补上,用户面对死列表只能杀 App。本机引擎的
+    // 离线有自己的启动入口,不给这枚胶囊。
+    final reconnect = scope.readOnly &&
+        scope.status != ReadListStatus.current &&
+        ref.watch(activeHostProvider).kind != HostKind.local;
+    final host = ref.watch(activeHostProvider);
     // On the drawer's glass the chips' opaque canvas would hide their faint
     // fill (the capsule clears it only in dark mode).
     return Theme(
@@ -48,6 +58,29 @@ class DrawerFilterBar extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
         child: Row(
           children: [
+            if (reconnect) ...[
+              Semantics(
+                button: true,
+                label: l10n.commonRetry,
+                child: ActionChip(
+                  label: Text(l10n.commonRetry),
+                  onPressed: () => ref.read(remoteConnectionProvider(host).notifier).retry(),
+                  shape: const StadiumBorder(),
+                  side: BorderSide.none,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.07)
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                  labelStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(width: gap),
+            ],
             for (final (i, f) in DrawerFilter.values.indexed) ...[
               if (i > 0) const SizedBox(width: gap),
               Semantics(
