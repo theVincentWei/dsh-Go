@@ -4274,9 +4274,6 @@ class L10nZh extends L10n {
   String get commonBack => '返回';
 
   @override
-  String get commonBackAgainToExit => '再按一次返回键退出';
-
-  @override
   String get commonCopy => '复制';
 
   @override

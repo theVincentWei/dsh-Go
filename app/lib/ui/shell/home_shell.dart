@@ -87,10 +87,6 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   /// TabBarView 同一套位移动画);翻页只由底栏驱动,手势不抢快捷面板。
   late final PageController _tabPages = PageController();
 
-  /// 顶层双击返回退出的窗口与上一次按下的时刻。
-  static const _backExitWindow = Duration(seconds: 2);
-  DateTime? _lastBackAt;
-
   /// Whether the conversation page currently covers the tabs.
   bool _chatOpen = false;
 
@@ -325,33 +321,17 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     return SafeModeNoticeListener(
       child: PhoneStopWatcher(
         child: PopScope(
-          canPop: false,
+          // 顶层(会话 tab、面板关着、没多选)按系统默认第一次返回就退出,
+          // 与改版前一致,无二次提示;其余情况先收面板 / 退多选 / 回会话 tab。
+          canPop: !_quickPanelOpen && !selecting && _tab == 0,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             if (_quickPanelOpen) {
               _slideClosed();
             } else if (selecting) {
               ref.read(drawerSelectionProvider.notifier).end();
-            } else if (_tab != 0) {
-              unawaited(_selectTab(0));
             } else {
-              // 顶层:两秒内再按一次返回才退出(第一次提示);系统默认的
-              // 返回退出被 canPop:false 拦下,这里自己收尾。
-              final now = DateTime.now();
-              if (_lastBackAt != null && now.difference(_lastBackAt!) < _backExitWindow) {
-                unawaited(SystemNavigator.pop());
-              } else {
-                _lastBackAt = now;
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    SnackBar(
-                      content: Text(context.l10n.commonBackAgainToExit),
-                      behavior: SnackBarBehavior.floating,
-                      duration: _backExitWindow,
-                    ),
-                  );
-              }
+              unawaited(_selectTab(0));
             }
           },
           child: AnnotatedRegion<SystemUiOverlayStyle>(
