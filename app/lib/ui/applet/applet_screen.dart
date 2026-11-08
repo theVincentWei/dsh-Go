@@ -15,6 +15,7 @@ import '../../l10n/l10n.dart';
 import '../../state/compose_inbox.dart';
 import '../../state/connection_state.dart';
 import '../../state/sessions_state.dart';
+import '../common/web_keyboard.dart';
 import 'applet_bridge.dart';
 import 'applet_capsule.dart';
 
@@ -58,6 +59,14 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
 
   Completer<Map<Object?, Object?>>? _backReply;
 
+  /// The keyboard the page is laid out for ([WebKeyboard]): the WebView keeps
+  /// its size and the page lifts its marked elements instead — the same
+  /// once-per-slide scheme as the 网页模式 container (web_view_page.dart),
+  /// where per-frame resizes made the keyboard stutter.
+  final WebKeyboard _keyboard = WebKeyboard();
+  double _keyboardRaw = 0;
+  Timer? _keyboardRest;
+
   bool _started = false;
 
   @override
@@ -66,6 +75,7 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
     _brightness = Theme.of(context).brightness;
     _localeName = Localizations.localeOf(context).languageCode;
     _safeArea = MediaQuery.paddingOf(context);
+    _followKeyboard();
     if (!_started) {
       _started = true;
       _scheduleLoad();
@@ -75,6 +85,7 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
   @override
   void dispose() {
     _capsuleIdleTimer?.cancel();
+    _keyboardRest?.cancel();
     _capsuleExpanded.dispose();
     super.dispose();
   }
@@ -118,6 +129,11 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
       await controller.loadHtmlString(_inject(hostJs, html));
       if (!mounted) return;
       setState(() => _loading = false);
+      // A reload while the keyboard was open: re-sync the page with the
+      // height it is laid out for (host.js starts closed by itself).
+      if (_keyboard.height > 0) {
+        await _pushKeyboardInset(_keyboard.height);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -225,6 +241,32 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
     });
   }
 
+  /// Feeds every keyboard report to [_keyboard]; the page is pushed only when
+  /// the height it is laid out for changes — once per slide, never per frame
+  /// ([WebKeyboard] ; the 网页模式 container's proven scheme).
+  void _followKeyboard() {
+    final double raw = MediaQuery.viewInsetsOf(context).bottom;
+    if (raw == _keyboardRaw) return;
+    _keyboardRaw = raw;
+    final double width = MediaQuery.sizeOf(context).width;
+    if (_keyboard.report(raw, width)) _pushKeyboardInset(_keyboard.height);
+    _keyboardRest?.cancel();
+    _keyboardRest = Timer(WebKeyboard.rest, () {
+      if (mounted && _keyboard.settle(_keyboardRaw, width)) _pushKeyboardInset(_keyboard.height);
+    });
+  }
+
+  /// One push per keyboard move; the page's host.js turns the height into a
+  /// targeted stylesheet (marked elements only — never a root CSS variable,
+  /// which would restyle the whole page).
+  Future<void> _pushKeyboardInset(double bottomPx) async {
+    try {
+      await _controller?.runJavaScript('__hostInsets(${bottomPx.toStringAsFixed(1)})');
+    } catch (_) {
+      // Page not loaded yet or gone; the reload sync catches up.
+    }
+  }
+
   void _onNavMessage(JavaScriptMessage message) {
     final Completer<Map<Object?, Object?>>? reply = _backReply;
     if (reply == null || reply.isCompleted) return;
@@ -322,6 +364,10 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
         if (exit) Navigator.of(context).pop();
       },
       child: Scaffold(
+        // The keyboard never resizes the page as it slides (resize = a
+        // per-frame platform-view resize + full page reflow — the keyboard
+        // stutter this container must not have; see WebKeyboard).
+        resizeToAvoidBottomInset: false,
         backgroundColor: brightness == Brightness.dark ? const Color(0xFF151517) : const Color(0xFFFFFFFF),
         body: Stack(
           children: <Widget>[

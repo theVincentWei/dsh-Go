@@ -41,6 +41,14 @@
 - 已知副作用：`canPop:false` 同时禁用 iOS 边缘滑返。多级 App 必须自备页内返回按钮（手册条款）；胶囊常驻关闭兜底。
 - 阶段 1 的记账为单视图应用：不注册 `onBack`，一切返回直接退出容器。
 
+## 键盘（IME）
+
+- **WebView 永不随键盘缩放**（Scaffold `resizeToAvoidBottomInset: false`）。逐帧缩平台视图 + 逐帧重排网页正是键盘开合卡顿的根因——网页模式容器早已修过（`web_view_page.dart` 的 `WebKeyboard` 注释），小程序容器走同一方案（2026-11-08 第二次落地；第一次的「90ms 采样 + 根级 CSS 变量」真机更卡已 revert，教训见该类文档）。
+- 容器用共享的 `WebKeyboard`（`lib/ui/common/web_keyboard.dart`）：**每次滑动页面只动一次**——开键盘时高度若见过（按窗口宽度持久化、启动恢复）随滑动立即推终值，没见过则静默 100ms 后推；关键盘第一份收缩报告即归零。
+- 推送通道：App → 页 `runJavaScript('__hostInsets(px)')`；host.js 落成**点名样式表** `[data-dsh-keyboard]{bottom:Npx!important}`（fixed/absolute 元素才生效），并把聚焦输入框 scrollIntoView 到键盘上缘。
+- **禁止根级 CSS 变量**（`:root` 上的变量被全页继承，改一个 = 全页 restyle——网页模式注释里明说的反模式）。
+- 页面责任（作者手册同名条款）：底部弹层/贴底元素标 `data-dsh-keyboard`。
+
 ## 胶囊
 
 - **原生 Flutter 浮层**（Stack 叠在 WebView 上），主题跟随 App `ThemeData`；不做 HTML 内胶囊。
