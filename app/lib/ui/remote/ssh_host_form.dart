@@ -829,7 +829,33 @@ class _DevicePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(spacing: 8, runSpacing: 8, children: [for (final c in choices) _tile(context, c)]);
+    // Fixed 4 columns sharing the field's width, like every control in this
+    // form: rows align into true columns, whatever the label widths.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 8.0;
+        const columns = 4;
+        final tileWidth = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var row = 0; row < (choices.length / columns).ceil(); row++)
+              Padding(
+                padding: EdgeInsets.only(top: row == 0 ? 0 : gap),
+                child: Row(
+                  children: [
+                    for (var c = 0; c < columns; c++)
+                      if (row * columns + c < choices.length) ...[
+                        if (c > 0) const SizedBox(width: gap),
+                        SizedBox(width: tileWidth, child: _tile(context, choices[row * columns + c])),
+                      ],
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _tile(BuildContext context, _DeviceChoice c) {
@@ -844,7 +870,6 @@ class _DevicePicker extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () => onChanged(isOn && c.value != null ? null : c.value),
         child: Container(
-          width: 72,
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
             color: isOn ? scheme.primaryContainer : Colors.transparent,
