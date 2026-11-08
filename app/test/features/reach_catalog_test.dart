@@ -123,7 +123,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SessionSearchPage), findsOneWidget);
     expect(container.read(currentSessionProvider), 's1');
-    await tester.enterText(find.byType(TextField), '登录');
+    await tester.enterText(
+      find.descendant(of: find.byType(SessionSearchPage), matching: find.byType(TextField)),
+      '登录',
+    );
     await tester.pump(SessionSearchController.debounce);
     await tester.pumpAndSettle();
     final result = find.ancestor(of: find.text('登录页加上记住密码'), matching: find.byType(SearchResultTile));

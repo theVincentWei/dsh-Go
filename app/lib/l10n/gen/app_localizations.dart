@@ -13742,35 +13742,77 @@ abstract class L10n {
   /// **'开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。'**
   String get hubHardwareEnterSendsHint;
 
-  /// No description provided for @hubQuickPanel.
+  /// No description provided for @hubRecentGroup.
   ///
   /// In zh, this message translates to:
-  /// **'左滑快捷入口'**
-  String get hubQuickPanel;
+  /// **'最近使用'**
+  String get hubRecentGroup;
 
-  /// No description provided for @hubQuickPanelSwipe.
+  /// No description provided for @hubEditing.
   ///
   /// In zh, this message translates to:
-  /// **'左滑打开'**
-  String get hubQuickPanelSwipe;
+  /// **'整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理'**
+  String get hubEditing;
 
-  /// No description provided for @hubQuickPanelSwipeHint.
+  /// No description provided for @hubDefaultGroup.
   ///
   /// In zh, this message translates to:
-  /// **'在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。'**
-  String get hubQuickPanelSwipeHint;
+  /// **'应用'**
+  String get hubDefaultGroup;
 
-  /// No description provided for @hubQuickPanelItems.
+  /// No description provided for @hubNewGroup.
   ///
   /// In zh, this message translates to:
-  /// **'显示的入口'**
-  String get hubQuickPanelItems;
+  /// **'新建分组'**
+  String get hubNewGroup;
 
-  /// No description provided for @hubQuickPanelItemsNone.
+  /// No description provided for @hubGroupName.
   ///
   /// In zh, this message translates to:
-  /// **'没有选择，左滑不会打开'**
-  String get hubQuickPanelItemsNone;
+  /// **'分组名称'**
+  String get hubGroupName;
+
+  /// No description provided for @hubRename.
+  ///
+  /// In zh, this message translates to:
+  /// **'重命名'**
+  String get hubRename;
+
+  /// No description provided for @hubMoveUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'上移'**
+  String get hubMoveUp;
+
+  /// No description provided for @hubMoveDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'下移'**
+  String get hubMoveDown;
+
+  /// No description provided for @hubDeleteGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除分组'**
+  String get hubDeleteGroup;
+
+  /// No description provided for @hubDeleteGroupBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{group}」里的应用会移回「应用」组，应用本身不受影响。'**
+  String hubDeleteGroupBody(String group);
+
+  /// No description provided for @hubDropHere.
+  ///
+  /// In zh, this message translates to:
+  /// **'拖应用到这里'**
+  String get hubDropHere;
+
+  /// No description provided for @hubNoMatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到「{query}」'**
+  String hubNoMatch(String query);
 
   /// No description provided for @launchScreenTitle.
   ///
@@ -25754,12 +25796,6 @@ abstract class L10n {
   /// **'统计,使用统计,匿名,隐私,数据,改进,遥测,分析'**
   String get searchKwUsageStats;
 
-  /// No description provided for @searchKwQuickPanel.
-  ///
-  /// In zh, this message translates to:
-  /// **'左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口'**
-  String get searchKwQuickPanel;
-
   /// No description provided for @searchNeedsLocalEngineOn.
   ///
   /// In zh, this message translates to:
@@ -27571,18 +27607,6 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'这段对话还没有插件面板'**
   String get shellPanelNoPlugins;
-
-  /// No description provided for @shellQuickPanel.
-  ///
-  /// In zh, this message translates to:
-  /// **'快捷入口'**
-  String get shellQuickPanel;
-
-  /// No description provided for @shellQuickPanelHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'在「{path}」里调整'**
-  String shellQuickPanelHint(String path);
 
   /// The star prompt's first line. hours is the whole hours of use so far, rounded down; 0 is half an hour (the first ask comes after 30 minutes). The word joiner keeps the ~ on the line of the word before it.
   ///

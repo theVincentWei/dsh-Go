@@ -332,9 +332,30 @@
   "hubPermissionPhoneConfirm": "手机操控确认",
   "hubHardwareEnterSends": "外接键盘按 Enter 发送",
   "hubHardwareEnterSendsHint": "开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。",
-  "hubQuickPanel": "左滑快捷入口",
-  "hubQuickPanelSwipe": "左滑打开",
-  "hubQuickPanelSwipeHint": "在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。",
-  "hubQuickPanelItems": "显示的入口",
-  "hubQuickPanelItemsNone": "没有选择，左滑不会打开"
+  "hubRecentGroup": "最近使用",
+  "hubEditing": "整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理",
+  "hubDefaultGroup": "应用",
+  "hubNewGroup": "新建分组",
+  "hubGroupName": "分组名称",
+  "hubRename": "重命名",
+  "hubMoveUp": "上移",
+  "hubMoveDown": "下移",
+  "hubDeleteGroup": "删除分组",
+  "hubDeleteGroupBody": "「{group}」里的应用会移回「应用」组，应用本身不受影响。",
+  "@hubDeleteGroupBody": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "hubDropHere": "拖应用到这里",
+  "hubNoMatch": "没有找到「{query}」",
+  "@hubNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  }
 }

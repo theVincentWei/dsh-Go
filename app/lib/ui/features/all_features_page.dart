@@ -1,27 +1,19 @@
-// 全部功能: every official DSH Web feature with a way in — the app's own page
-// or the official page inside the app — as a hub of two-column cards in the
-// accent; the nine headline features carry their tile in the user's style.
-// It holds what you go to do now; settings live in 设置, and the last group
-// is a few shortcuts there plus 全部设置 (settings search over the hub).
-
-import 'dart:async';
+// 「小程序」Tab:现在是一张可整理的桌面(`hub/app_desktop.dart`)——统一
+// 应用清单、长按摇摆整理、跨组拖拽、最近使用、搜索。本文件只留三样:页面壳
+// (把可选的固定目录喂给桌面)、`dshWebOpenerProvider`(测试替换的网页打开
+// 口)和 `FeatureTileFor`(别处在用的功能卡片)。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/bots_state.dart';
-import '../../state/sessions_state.dart';
-import '../common/feature_tile.dart';
-import '../common/tile_grid.dart';
-import '../shell/page_frame.dart';
+import '../common/feature_tile.dart' show FeatureTile;
+import '../common/tile_grid.dart' show FeatureCard;
+import '../hub/app_desktop.dart';
 import '../theme/app_icons.dart';
-import '../theme/theme.dart';
 import '../web/dsh_web_launcher.dart';
 import '../web/web_target.dart';
-import '../plugins/seats/seat_probe.dart';
-import '../applet/applet_home_page.dart';
-import '../applet/hub_apps_group.dart';
 import 'feature_catalog.dart';
 
 /// Opens DSH Web on a target; tests swap it for a recorder.
@@ -36,68 +28,13 @@ final dshWebOpenerProvider = Provider<DshWebOpener>(
 class AllFeaturesPage extends ConsumerWidget {
   const AllFeaturesPage({super.key, this.sections});
 
-  /// Defaults to [featureSectionsProvider]: [featureSections] and the
-  /// host's plugin panels.
+  /// Desktop reads [featureSectionsProvider] (static catalog + the host's
+  /// plugin panels); tests may pass a fixed list instead.
   final List<FeatureSection>? sections;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final sessionId = ref.watch(currentSessionProvider);
-
-    void openWeb(FeatureItem item) => ref.read(dshWebOpenerProvider)(context, ref, item.webFor(sessionId)!);
-    void open(FeatureItem item) {
-      if (item.native case final page?) {
-        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page(sessionId)));
-      } else if (item.action case final action?) {
-        unawaited(Future.sync(() => action(context, ref, sessionId)));
-      } else {
-        openWeb(item);
-      }
-    }
-
-    final List<FeatureSection> all = sections ?? ref.watch(featureSectionsProvider);
-    final page = AppPage.list(
-      title: l10n.tabMiniApps,
-      children: [
-        const AppletGroup(),
-        const HubAppsGroup(),
-        for (final section in all) ...[
-          FeatureGroupLabel(section.title),
-          // 手机桌面式:4 列图标网格,图标在上、标签在下,无卡片底。
-          TileGrid(
-            columns: 4,
-            spacing: 16,
-            children: [
-              for (final item in section.items)
-                _AppIconTile(
-                  item: item,
-                  enabled: !item.needsSession || sessionId != null,
-                  onOpen: () => open(item),
-                ),
-            ],
-          ),
-          if (section.note case final note?)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
-              child: Text(
-                note,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: DshColors.of(context).textTertiary),
-              ),
-            ),
-        ],
-      ],
-    );
-    // Reads which plugins sit where when the engine hasn't said yet; outside
-    // the list, so it is built at once and never part of its layout.
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        page,
-        const Positioned(left: 0, top: 0, child: SeatProbe()),
-      ],
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) =>
+      HubDesktopPage(sections: sections);
 }
 
 /// One feature as a card: its [FeatureTile] when it has one, else its icon on
@@ -154,45 +91,6 @@ class FeatureTileFor extends ConsumerWidget {
               icon: Icon(AppIcons.webApp, color: scheme.onSurfaceVariant),
             ),
       onTap: onOpen,
-    );
-  }
-}
-
-/// 手机桌面式的一项:图标(功能磁贴,或圆底图标)在上、标签在下,无卡片底,
-/// 与「星河」小程序组共用 [IconTile]。选中会话才可用的项在未选中时淡到 45%;
-/// DS Bot 的未读数是图标右上角的小圆点。
-class _AppIconTile extends ConsumerWidget {
-  const _AppIconTile({required this.item, required this.onOpen, this.enabled = true});
-
-  final FeatureItem item;
-  final VoidCallback onOpen;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final unread = item.id == 'ds-bot' ? ref.watch(dsBotInboxProvider.select((inbox) => inbox.total)) : 0;
-    return IconTile(
-      icon: switch (item.tile) {
-        final kind? => FeatureTile(kind, size: 30),
-        null => Icon(item.icon, size: 20, color: scheme.primary),
-      },
-      label: item.title,
-      onTap: onOpen,
-      enabled: enabled,
-      badge: unread > 0
-          ? Container(
-              width: 16,
-              height: 16,
-              alignment: Alignment.center,
-              decoration: ShapeDecoration(color: scheme.error, shape: const CircleBorder()),
-              child: Text(
-                unread > 99 ? '99+' : '$unread',
-                style: theme.textTheme.labelSmall?.copyWith(color: scheme.onError, fontSize: 9, height: 1),
-              ),
-            )
-          : null,
     );
   }
 }
