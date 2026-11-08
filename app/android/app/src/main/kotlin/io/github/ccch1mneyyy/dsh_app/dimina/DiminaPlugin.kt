@@ -38,6 +38,11 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                 appContext,
                 Dimina.DiminaConfig.Builder()
                     .setDebugMode(true)
+                    // 多任务模式:小程序跑在独立 task 里。关着的时候,根页返回会走
+                    // exitMiniProgram 直接销毁整个小程序;开着才是「隐藏保栈、把宿主
+                    // 页面带回前台」,子页返回照旧一层一层弹(DiminaActivity 每页一个
+                    // Activity,back=finish)。
+                    .setEnableMultiTask(true)
                     .setVirtualFilePrefix("host-file://")
                     .build(),
             )
