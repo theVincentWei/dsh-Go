@@ -86,8 +86,10 @@ class SessionTile extends StatelessWidget {
   /// 分组之间的空隙(每组尾行下方)。
   static const groupGap = 16.0;
 
-  /// 头像圆盘直径与到标题的间距。
-  static const avatarSize = RowAnatomy.glyphSlot;
+  /// 头像圆盘直径与到标题的间距。头像(36)比列表行图标槽
+  /// ([RowAnatomy.glyphSlot] 32,给 20px 线形图标的)大一号——会话行首
+  /// 是头像不是图标,故意不共用这个 token。
+  static const avatarSize = 36.0;
   static const avatarGap = RowAnatomy.glyphGap;
 
   /// 文件夹成员的缩进;多选勾选槽宽。

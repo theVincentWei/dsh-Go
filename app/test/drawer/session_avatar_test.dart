@@ -58,7 +58,7 @@ void main() {
     expect(image.image, isA<AssetImage>());
     expect((image.image as AssetImage).assetName, SessionAvatarGallery.assetFor(SessionAvatarGallery.slotFor(id)));
     // 头像槽的大小固定,不随加载状态变。
-    expect(tester.getRect(find.byKey(const ValueKey('session-avatar'))).size, const Size(32, 32));
+    expect(tester.getRect(find.byKey(const ValueKey('session-avatar'))).size, Size.square(SessionTile.avatarSize));
   });
 
   testWidgets('precacheAll is idempotent and completes', (tester) async {

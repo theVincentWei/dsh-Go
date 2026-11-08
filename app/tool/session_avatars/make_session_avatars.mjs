@@ -28,7 +28,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, '..', '..', 'assets', 'session_avatars');
 
 const count = 100;
-const pixels = 96; // 32 dp at 3x; Flutter downsamples for lower densities.
+const pixels = 108; // 36 dp at 3x; Flutter downsamples for lower densities.
 const seedPrefix = 'dsh';
 
 const previewIndex = process.argv.indexOf('--preview');
