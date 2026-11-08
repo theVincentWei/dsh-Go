@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../l10n/l10n.dart';
-import '../../notify/apphub_notices.dart' show kAppHubBase;
+import '../../notify/apphub_base.dart' show appHubBase;
 import '../theme/app_icons.dart';
 import '../common/app_sheet.dart' show showAppSheet, kSheetGutter;
 import '../common/sheet_title_bar.dart' show SheetTitleBar;
@@ -77,7 +77,7 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
   Future<void> _load() async {
     try {
       final http.Response response = await http
-          .get(Uri.parse('$kAppHubBase/api/v1/apps'))
+          .get(Uri.parse('$appHubBase/api/v1/apps'))
           .timeout(const Duration(seconds: 8));
       final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
       if (body is! Map || body['apps'] is! List) throw StateError('bad body');
@@ -134,7 +134,7 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
       appId: app.appId,
       name: app.name,
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
-      updateManifestUrl: '$kAppHubBase/apps/${app.appId}/manifest.json',
+      updateManifestUrl: '$appHubBase/apps/${app.appId}/manifest.json',
     );
     // 首装/升级落沙盒需要一点时间,稍后刷新已装状态。
     Timer(const Duration(seconds: 6), () {

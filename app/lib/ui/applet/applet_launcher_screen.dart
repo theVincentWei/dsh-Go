@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
-import '../../notify/apphub_notices.dart' show kAppHubBase;
+import '../../notify/apphub_base.dart' show appHubBase;
 import '../../state/connection_state.dart';
 import '../../state/sessions_state.dart';
 import 'applet_bridge.dart';
@@ -93,7 +93,7 @@ class _AppletLauncherScreenState extends ConsumerState<AppletLauncherScreen> {
       final HttpClient client = HttpClient()
         ..connectionTimeout = const Duration(seconds: 3);
       final HttpClientResponse response =
-          await client.getUrl(Uri.parse('$kAppHubBase/api/v1/apps')).then((r) => r.close());
+          await client.getUrl(Uri.parse('$appHubBase/api/v1/apps')).then((r) => r.close());
       final Object? body = jsonDecode(await response.transform(utf8.decoder).join());
       client.close(force: false);
       if (body is! Map || body['apps'] is! List) return const <HubApp>[];
@@ -118,7 +118,7 @@ class _AppletLauncherScreenState extends ConsumerState<AppletLauncherScreen> {
       appId: app.appId,
       name: app.name.isEmpty ? app.appId : app.name,
       // Install-on-open: 无底包首装;已装旧版后台自动升级。
-      updateManifestUrl: '$kAppHubBase/apps/${app.appId}/manifest.json',
+      updateManifestUrl: '$appHubBase/apps/${app.appId}/manifest.json',
     );
     if (!mounted) return;
     if (!ok) {
@@ -236,7 +236,7 @@ class _AppletLauncherScreenState extends ConsumerState<AppletLauncherScreen> {
                             appId: app.id,
                             name: app.name,
                             updateManifestUrl:
-                                app.manifestUrl ?? '$kAppHubBase/apps/${app.id}/manifest.json',
+                                app.manifestUrl ?? '$appHubBase/apps/${app.id}/manifest.json',
                           );
                         } else {
                           if (!context.mounted) return;

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dsh_client/dsh_client.dart';
 
 import '../../l10n/l10n.dart';
+import '../../notify/apphub_base.dart' show appHubBase, kAppHubRemotePort, resetAppHubBase;
 import '../link_status.dart';
 import 'remote_bootstrap.dart';
 import 'remote_shell.dart';
@@ -285,6 +286,11 @@ class SshHostLink implements HostLink {
       final previous = _endpoint;
       _endpoint = endpoint;
       await _tunnel.setEndpoint(endpoint.port);
+      // AppHub: when the host also runs the AppHub server, carry it on the
+      // same SSH session as a second forward. Fire-and-forget — the engine
+      // link proceeds regardless, and a host without AppHub keeps the
+      // loopback default base.
+      unawaited(_ensureAppHubForward());
 
       at(HostLinkStep.login);
       final client = await _ensureClient(endpoint, previous);
@@ -300,7 +306,30 @@ class SshHostLink implements HostLink {
       return client;
     } catch (e) {
       _tunnel.reset();
+      // No live transport: point the AppHub base back at loopback so the
+      // market fails fast instead of queueing on a dead forward listener.
+      resetAppHubBase();
       rethrow;
+    }
+  }
+
+  /// Carries the host's AppHub port ([kAppHubRemotePort]) as a second
+  /// loopback forward and points the app's AppHub base at it. Probe first:
+  /// a host without AppHub keeps the default base. Never throws into the
+  /// connect path — AppHub is a passenger here, not the cargo.
+  Future<void> _ensureAppHubForward() async {
+    try {
+      final probe = await _tunnel.probeTunnel(kAppHubRemotePort, timeout: tunnelProbeTimeout);
+      if (_closed) return;
+      if (probe.refused || probe.error != null) {
+        resetAppHubBase();
+        return;
+      }
+      final port = await _tunnel.setExtraEndpoint(kAppHubRemotePort);
+      if (_closed) return;
+      appHubBase = 'http://127.0.0.1:$port';
+    } on Object {
+      resetAppHubBase();
     }
   }
 
@@ -374,6 +403,9 @@ class SshHostLink implements HostLink {
     _keepAlive?.cancel();
     _keepAlive = null;
     _tunnel.reset();
+    // The forward listeners stay bound across reconnects, but until a
+    // transport is back the extra forward cannot serve anything: fail fast.
+    resetAppHubBase();
   }
 
   void _startKeepAlive() {
