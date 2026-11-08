@@ -18,6 +18,7 @@ import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/plugins_state.dart';
 import '../common/feature_tile.dart';
 import '../agents/team_page.dart';
+import '../applet/apphub_market_page.dart';
 import '../bots/bots_page.dart';
 import '../community/community_page.dart';
 import '../cordis/cordis_page.dart';
@@ -236,6 +237,15 @@ final featureSections = <FeatureSection>[
       action: _backToChat,
       // l10n:keep DSH Web plugin title aliases used for deep-link matching
       web: const DshWebTarget(pluginItem: ['语音输入', 'Voice input']),
+    ),
+  ]),
+  FeatureSection.localized((l10n) => l10n.catalogAppHubSection, [
+    FeatureItem.localized(
+      id: 'apphub-market',
+      title: (l10n) => l10n.catalogAppHubMarket,
+      summary: (l10n) => l10n.catalogAppHubMarketSummary,
+      icon: AppIcons.allFeatures,
+      native: (_) => const ApphubMarketPage(),
     ),
   ]),
   FeatureSection.localized((l10n) => l10n.catalogCommunitySharingSection, [

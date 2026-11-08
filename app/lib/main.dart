@@ -9,10 +9,12 @@ import 'dev/download_perf_probe.dart';
 import 'dev/frame_probe.dart';
 import 'diagnostics/app_error_log.dart';
 import 'launch/launch_state.dart';
+import 'notify/apphub_notices.dart';
 import 'state/locale_state.dart';
 import 'ui/common/third_party_licenses.dart';
 import 'ui/settings/font_licenses.dart';
 import 'ui/theme/theme.dart';
+import 'ui/applet/dimina/dimina_poc_screen.dart' show DiminaPocScreen, kDiminaPoc;
 
 Future<void> main() => runWithFrameProbe(_startApp);
 
@@ -27,9 +29,14 @@ Future<void> _startApp() async {
   // MIT / OFL notices must ship with the APK, not just the sources.
   registerThirdPartyLicenses();
   registerFontLicenses();
+  // AppHub 小程序通知:60s 轮询 notices,进程活着期间推送本地通知(M3)。
+  AppHubNoticeService.start();
   // Edge-to-edge with transparent system bars; pages refine the icon brightness
   // through AnnotatedRegion(dshSystemOverlay(...)).
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(dshSystemOverlay(PlatformDispatcher.instance.platformBrightness));
-  runApp(const ProviderScope(child: DshApp()));
+  // DSH_DIMINA_POC=1 boots straight into the Dimina POC page instead of the
+  // connection root gate — AppHub M0 bring-up on an emulator without an engine
+  // (feat/apphub-dimina). Without the define this line compiles to plain DshApp.
+  runApp(const ProviderScope(child: DshApp(home: kDiminaPoc ? DiminaPocScreen() : null)));
 }

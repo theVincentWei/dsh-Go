@@ -3387,6 +3387,45 @@ class L10nEn extends L10n {
   String get diagnosticsForAiFailed => 'Not written: the local runtime is not installed';
 
   @override
+  String get catalogAppHubSection => 'AppHub apps';
+
+  @override
+  String get catalogAppHubMarket => 'App market';
+
+  @override
+  String get catalogAppHubMarketSummary => 'Install and update mini programs';
+
+  @override
+  String get apphubSearchHint => 'Search mini programs';
+
+  @override
+  String get apphubTabApps => 'Apps';
+
+  @override
+  String get apphubTabInstalled => 'Installed';
+
+  @override
+  String get apphubOpen => 'Open';
+
+  @override
+  String get apphubInstall => 'Install';
+
+  @override
+  String get apphubUpdate => 'Update';
+
+  @override
+  String get apphubUninstall => 'Uninstall';
+
+  @override
+  String get apphubUninstallBody => 'Removes the on-device package and local data; the engine-side database is kept.';
+
+  @override
+  String get apphubNoMarket => 'AppHub unreachable';
+
+  @override
+  String get apphubEmpty => 'No apps yet';
+
+  @override
   String get chatBackgroundTaskNotice => 'Background task notice';
 
   @override

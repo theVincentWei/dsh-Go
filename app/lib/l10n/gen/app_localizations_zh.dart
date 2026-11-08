@@ -3226,6 +3226,45 @@ class L10nZh extends L10n {
   String get diagnosticsForAiFailed => '写不进去：本机运行时还没装好';
 
   @override
+  String get catalogAppHubSection => 'AppHub 应用';
+
+  @override
+  String get catalogAppHubMarket => '应用市场';
+
+  @override
+  String get catalogAppHubMarketSummary => '小程序的安装与更新';
+
+  @override
+  String get apphubSearchHint => '搜索小程序';
+
+  @override
+  String get apphubTabApps => '应用';
+
+  @override
+  String get apphubTabInstalled => '已安装';
+
+  @override
+  String get apphubOpen => '打开';
+
+  @override
+  String get apphubInstall => '安装';
+
+  @override
+  String get apphubUpdate => '更新';
+
+  @override
+  String get apphubUninstall => '卸载';
+
+  @override
+  String get apphubUninstallBody => '删除手机上的小程序包与本地数据;引擎侧业务库保留。';
+
+  @override
+  String get apphubNoMarket => 'AppHub 未连接';
+
+  @override
+  String get apphubEmpty => '暂无应用';
+
+  @override
   String get chatBackgroundTaskNotice => '后台任务通知';
 
   @override

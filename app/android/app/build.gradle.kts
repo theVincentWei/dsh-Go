@@ -166,4 +166,9 @@ dependencies {
     // pulls in (bcprov-jdk15to18:1.81); adding jdk18on next to it duplicates every class.
     implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
     implementation("androidx.webkit:webkit:1.15.0") // Apache-2.0: web islands' force dark (webview_flutter's own version)
+
+    // Dimina(星河)小程序容器 — AppHub M0 POC (feat/apphub-dimina). Pinned JitPack
+    // tag (never latest.release in real builds); JitPack repo already configured
+    // in the root build.gradle.kts for libadb-android.
+    implementation("com.github.didi.dimina:dimina:1.8.1")
 }
