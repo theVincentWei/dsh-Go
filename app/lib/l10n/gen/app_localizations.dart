@@ -5960,6 +5960,84 @@ abstract class L10n {
   /// **'写不进去：本机运行时还没装好'**
   String get diagnosticsForAiFailed;
 
+  /// No description provided for @catalogAppHubSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'AppHub 应用'**
+  String get catalogAppHubSection;
+
+  /// No description provided for @catalogAppHubMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用市场'**
+  String get catalogAppHubMarket;
+
+  /// No description provided for @catalogAppHubMarketSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序的安装与更新'**
+  String get catalogAppHubMarketSummary;
+
+  /// No description provided for @apphubSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索小程序'**
+  String get apphubSearchHint;
+
+  /// No description provided for @apphubTabApps.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用'**
+  String get apphubTabApps;
+
+  /// No description provided for @apphubTabInstalled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已安装'**
+  String get apphubTabInstalled;
+
+  /// No description provided for @apphubOpen.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开'**
+  String get apphubOpen;
+
+  /// No description provided for @apphubInstall.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装'**
+  String get apphubInstall;
+
+  /// No description provided for @apphubUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新'**
+  String get apphubUpdate;
+
+  /// No description provided for @apphubUninstall.
+  ///
+  /// In zh, this message translates to:
+  /// **'卸载'**
+  String get apphubUninstall;
+
+  /// No description provided for @apphubUninstallBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除手机上的小程序包与本地数据;引擎侧业务库保留。'**
+  String get apphubUninstallBody;
+
+  /// No description provided for @apphubNoMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'AppHub 未连接'**
+  String get apphubNoMarket;
+
+  /// No description provided for @apphubEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无应用'**
+  String get apphubEmpty;
+
   /// No description provided for @chatBackgroundTaskNotice.
   ///
   /// In zh, this message translates to:
