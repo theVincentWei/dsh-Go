@@ -34,8 +34,6 @@ void registerThirdPartyLicenses() {
       LicenseEntryWithLineBreaks(<String>['Phosphor Icons'], _phosphorMit),
       LicenseEntryWithLineBreaks(<String>['Material Icons'], _materialIconsNotice + _apache2),
       LicenseEntryWithLineBreaks(<String>['discourse-emojis'], _discourseEmojisMit),
-      // Session-list avatar art (assets/session_avatars/), CC BY 4.0.
-      LicenseEntryWithLineBreaks(<String>['DiceBear Fun Emoji'], _diceBearFunEmojiNotice),
     ]),
   );
   LicenseRegistry.addLicense(() async* {
@@ -1374,16 +1372,4 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
-''';
-
-/// The session-list avatar art (assets/session_avatars/): the "Fun Emoji Set"
-/// by Davis Uche, rendered at build time by DiceBear and distributed as PNG.
-/// CC BY 4.0 requires attribution, so this notice ships in the APK.
-const _diceBearFunEmojiNotice = '''
-Session-list avatars: "Fun Emoji Set" by Davis Uche.
-Copyright (c) Davis Uche, licensed CC BY 4.0
-(https://creativecommons.org/licenses/by/4.0/).
-Source: https://www.figma.com/community/file/968125295144990435
-Rendered at build time with DiceBear (https://www.dicebear.com, MIT) by
-tool/session_avatars; files in assets/session_avatars/.
 ''';

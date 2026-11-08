@@ -1,5 +1,5 @@
 // Generates the session-list avatar gallery (app/assets/session_avatars/):
-// DiceBear "Fun Emoji" avatars, one transparent 96 px PNG per gallery slot,
+// DiceBear "Critters" avatars, one transparent 96 px PNG per gallery slot,
 // deterministic per seed so re-running with the pinned dependencies (see
 // package.json) reproduces the same images byte for byte.
 //
@@ -12,11 +12,12 @@
 // Run from app/:
 //   node tool/session_avatars/make_session_avatars.mjs [--preview out.png]
 //
-// Art: "Fun Emoji Set" by Davis Uche, CC BY 4.0 — the attribution lives in
-// lib/ui/common/third_party_licenses.dart.
+// Art: the "Critters" style from DiceBear 10 (https://www.dicebear.com/styles/critters/),
+// dedicated to the public domain under CC0 1.0 — no attribution required.
+// Provenance is documented in THIRD_PARTY_NOTICES.md (素材 section).
 
-import { createAvatar } from '@dicebear/core';
-import { funEmoji } from '@dicebear/collection';
+import { Avatar, Style } from '@dicebear/core';
+import critters from '@dicebear/styles/critters.json' with { type: 'json' };
 import { Resvg } from '@resvg/resvg-js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -36,7 +37,7 @@ const preview = previewIndex > 0 ? process.argv[previewIndex + 1] : null;
 await mkdir(outDir, { recursive: true });
 const cells = [];
 for (let i = 0; i < count; i++) {
-  const svg = createAvatar(funEmoji, { seed: `${seedPrefix}-${i}`, backgroundColor: ['transparent'] }).toString();
+  const svg = new Avatar(new Style(critters), { seed: `${seedPrefix}-${i}` }).toString();
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: pixels } }).render().asPng();
   const name = `avatar_${String(i).padStart(2, '0')}.png`;
   await writeFile(join(outDir, name), png);

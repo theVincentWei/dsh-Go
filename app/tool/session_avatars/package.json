@@ -4,8 +4,8 @@
   "description": "Generates the session-list avatar gallery (app/assets/session_avatars). Setup once: npm install; then from app/: node tool/session_avatars/make_session_avatars.mjs [--preview out.png]",
   "type": "module",
   "devDependencies": {
-    "@dicebear/collection": "9.4.2",
-    "@dicebear/core": "9.4.3",
+    "@dicebear/core": "10.7.0",
+    "@dicebear/styles": "10.6.0",
     "@resvg/resvg-js": "2.6.2"
   }
 }

@@ -232,10 +232,10 @@ class SessionTile extends StatelessWidget {
   }
 }
 
-/// 会话头像:DiceBear「Fun Emoji」表情(构建期图库,tool/session_avatars 生成的
-/// 100 槽透明 PNG)落在身份色圆盘里;槽位与圆盘色都由 FNV-1a(会话 id)选出
-/// —— 不依赖引擎与网络、不随改名漂移,同一会话永远同一只表情同一底色;
-/// 图库图缺失时回退标题首字符(空标题回退「·」)。
+/// 会话头像:DiceBear「Critters」小怪兽(构建期图库,tool/session_avatars 生成的
+/// 100 槽 96px PNG)落在圆盘槽里;槽位与底色都由 FNV-1a(会话 id)选出 —— 不依赖
+/// 引擎与网络、不随改名漂移,同一会话永远同一只小怪兽;图库图缺失时回退标题
+/// 首字符(空标题回退「·」)。
 class _SessionAvatar extends StatelessWidget {
   const _SessionAvatar({required this.sessionId, required this.title});
 
