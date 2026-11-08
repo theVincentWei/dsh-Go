@@ -53,7 +53,14 @@ class _ChangeDiffPageState extends State<ChangeDiffPage> {
 
   void _select(int index) {
     if (index == _index) return;
-    _pages.animateToPage(index, duration: AppMotion.of(context, AppMotion.standard), curve: AppMotion.std);
+    // 零时长(系统移除动画)下 animateToPage 会在 AnimationController 构造期
+    // 同步回调 tick,撞 DrivenScrollActivity 的 LateInitializationError。
+    final Duration motion = AppMotion.of(context, AppMotion.standard);
+    if (motion == Duration.zero) {
+      _pages.jumpToPage(index);
+    } else {
+      _pages.animateToPage(index, duration: motion, curve: AppMotion.std);
+    }
   }
 
   void _onPage(int index) {
