@@ -32,10 +32,47 @@ class DownloadTask {
   final int? total;
   int received = 0;
 
+  // 速度采样:最后一次样本的 bytes 与时刻,以及 EMA 平滑后的速率。
+  DateTime? _sampleAt;
+  int _sampleReceived = 0;
+  double _emaBps = 0;
+
+  /// 停滞判定:超过这么久没有新样本就报 0(横条不再显示速度)。
+  static const _stalledAfter = Duration(milliseconds: 2500);
+
   void cancel() => cancelToken.cancelled = true;
   bool get cancelled => cancelToken.cancelled;
 
-  void updateReceived(int value) => received = value;
+  /// 直改字段不通知:登记起点(如续传偏移),速度基线一并归零。
+  void updateReceived(int value) {
+    received = value;
+    _sampleReceived = value;
+    _sampleAt = null;
+    _emaBps = 0;
+  }
+
+  /// 采样一次进度并刷新速度(EMA);通知节流由控制器负责。
+  void sample(int value, DateTime now) {
+    final at = _sampleAt;
+    if (at != null) {
+      final dtMs = now.difference(at).inMilliseconds;
+      if (dtMs > 0) {
+        final inst = (value - _sampleReceived) * 1000 / dtMs;
+        _emaBps = _emaBps <= 0 ? inst : _emaBps * 0.7 + inst * 0.3;
+      }
+    }
+    _sampleAt = now;
+    _sampleReceived = value;
+    received = value;
+  }
+
+  /// 平滑后的下载速度(bytes/s);还没采到第二个样本时为 null,停滞时为 0。
+  double? get speedBps {
+    final at = _sampleAt;
+    if (at == null) return null;
+    if (DateTime.now().difference(at) > _stalledAfter) return 0;
+    return _emaBps;
+  }
 
   /// 0–1;总大小未知时为 null(横条退化为不定进度)。
   double? get progress {
@@ -46,6 +83,11 @@ class DownloadTask {
 }
 
 class DownloadTasksController extends Notifier<List<DownloadTask>> {
+  /// 通知节流:分片级调用很密,UI(横条/速度)每这个窗口刷一次足够。
+  static const notifyInterval = Duration(milliseconds: 250);
+
+  final Map<String, DateTime> _lastNotify = {};
+
   @override
   List<DownloadTask> build() => const [];
 
@@ -61,15 +103,27 @@ class DownloadTasksController extends Notifier<List<DownloadTask>> {
     return task;
   }
 
+  /// 每个分片都调:样本总在记(速度要连续),通知按 [notifyInterval] 节流。
   void progress({required String key, required int received}) {
-    state = [
-      for (final task in state)
-        if (task.key == key) task..received = received else task,
-    ];
+    final now = DateTime.now();
+    DownloadTask? task;
+    for (final t in state) {
+      if (t.key == key) {
+        t.sample(received, now);
+        task = t;
+        break;
+      }
+    }
+    if (task == null) return;
+    final last = _lastNotify[key];
+    if (last != null && now.difference(last) < notifyInterval) return;
+    _lastNotify[key] = now;
+    state = [...state];
   }
 
   /// 任务结束(无论成败)即出列。
   void finish({required String key}) {
+    _lastNotify.remove(key);
     state = state.where((task) => task.key != key).toList();
   }
 }

@@ -9,6 +9,7 @@ import '../../l10n/l10n.dart';
 import '../../state/download_tasks.dart';
 import '../../state/hosts_state.dart';
 import '../common/app_sheet.dart';
+import '../session/workspace_files.dart' show formatBytes;
 
 /// 打开下载列表;[onOpen] 把一个条目带到它发起的会话。
 Future<void> showDownloadTasksSheet(
@@ -37,12 +38,7 @@ class DownloadTasksPanel extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 8, bottom: 6),
-            decoration: BoxDecoration(color: scheme.outlineVariant, borderRadius: BorderRadius.circular(2)),
-          ),
+          // 拖拽把手由 showAppSheet 统一画(SheetDragHandle),这里别再画一条。
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
@@ -112,9 +108,19 @@ class _TaskRow extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              task.progress == null ? '' : '${(task.progress! * 100).round()}%',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  task.progress == null ? '' : '${(task.progress! * 100).round()}%',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+                if (task.speedBps case final bps? when bps > 0)
+                  Text(
+                    '${formatBytes(bps.round())}/s',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+              ],
             ),
             const SizedBox(width: 6),
             IconButton(

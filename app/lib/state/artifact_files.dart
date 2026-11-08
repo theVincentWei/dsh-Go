@@ -234,7 +234,8 @@ class ArtifactFiles {
             if (received + chunk.length > maxBytes) throw const ArtifactError('workspace-file/too-large');
             await sink.writeFrom(chunk);
             received += chunk.length;
-            task?.updateReceived(received);
+            // 必须走控制器(样本+节流通知),只改 task 字段 UI 永远看不到。
+            _tasks?.progress(key: key, received: received);
           },
           onProgress: onProgress == null
               ? null
