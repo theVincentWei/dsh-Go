@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dsh_app/state/artifact_files.dart';
+import 'package:dsh_app/state/hosts_state.dart';
+import 'package:flutter/material.dart';
 import 'package:dsh_app/state/artifacts.dart';
 import 'package:dsh_app/state/connection_state.dart';
+import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/state/download_tasks.dart';
+import 'package:dsh_app/ui/pets/pet_download_sheet.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -127,6 +131,13 @@ class _Rig {
     return artifacts.listSync().whereType<Directory>().single;
   }
 
+  bool get partExists {
+    final artifacts = cache.listSync().whereType<Directory>().toList();
+    if (artifacts.length != 1) return false;
+    final keyDirs = artifacts.single.listSync().whereType<Directory>().toList();
+    return keyDirs.length == 1 && File('${keyDirs.single.path}/a.png.part').existsSync();
+  }
+
   File get part => File('${keyDir.path}/a.png.part');
 
   File get partVersion => File('${keyDir.path}/a.png.part.version');
@@ -135,6 +146,8 @@ class _Rig {
 
   List<int> get windowBytes => const [1, 2, 3, 4, 5, 6, 7, 8];
 }
+
+void _noopOpen(HostRef host, String sessionId) {}
 
 Future<Object> _observed(Future<Object> future) =>
     future.then<Object>((value) => value, onError: (Object error, StackTrace _) => error);
@@ -176,6 +189,7 @@ void main() {
     final file = await rig.files.materialize('s', _artifact);
     expect(file.path, rig.target.path);
     expect(rig.carrier.offsets, [0, 8, 8], reason: '第二次尝试从分片长度 8 续传');
+
     expect(rig.target.readAsBytesSync(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(rig.part.existsSync(), isFalse, reason: '发布后分片改名,不再存在');
     expect(rig.partVersion.existsSync(), isFalse);
@@ -205,6 +219,37 @@ void main() {
     expect(rig.carrier.offsets, [0, 8, 8], reason: '续传:0 起跑过一次,重试从 8 开始');
     expect(rig.target.lengthSync(), 16);
     expect(rig.part.existsSync(), isFalse);
+  });
+
+  testWidgets('下载中:面板显示任务名与百分比,取消即出列', (tester) async {
+    final task = rig.tasks.begin(
+      key: 'k1',
+      label: 'a.png',
+      host: HostRef.ssh('box'),
+      sessionId: 's',
+      total: 16,
+    );
+    task.updateReceived(8); // 8/16 = 50%
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: rig.container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: DownloadTasksPanel(
+              onOpen: _noopOpen,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('a.png'), findsOneWidget);
+    expect(find.text('50%'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    await tester.tap(find.byTooltip(appL10n.updateCancelDownload));
+    expect(task.cancelled, isTrue, reason: '取消沿任务传导到下载循环');
+    expect(rig.container.read(downloadTasksProvider), isEmpty);
   });
 
   test('同一文件的并发调用只跑一份,后来者等缓存', () async {

@@ -57,6 +57,18 @@ void main() {
     expect(container.read(downloadTasksProvider).map((t) => t.key), ['k2']);
   });
 
+  test('container.listen 对任务表变更触发回调', () async {
+    final log = <List<DownloadTask>>[];
+    final sub = container.listen(downloadTasksProvider, (_, next) => log.add(next));
+    addTearDown(sub.close);
+    tasks.begin(key: 'x', label: 'l', host: HostRef.ssh('b'), sessionId: 's');
+    await Future<void>.delayed(Duration.zero);
+    expect(log, hasLength(1), reason: 'begin 必须通知监听者');
+    tasks.progress(key: 'x', received: 5);
+    await Future<void>.delayed(Duration.zero);
+    expect(log, hasLength(2), reason: 'progress 必须通知监听者');
+  });
+
   testWidgets('点行回跳:带回任务的 host 与会话', (tester) async {
     final opened = <(HostRef, String)>[];
     tasks.begin(key: 'k1', label: '季度报告.pdf', host: HostRef.ssh('box'), sessionId: 's1', total: 10);
