@@ -782,9 +782,13 @@ class _SelectionDock extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(drawerSelectionProvider)?.toList() ?? const <String>[];
     final readOnly = ref.watch(drawerScopeProvider)?.readOnly != false;
+    // 浮在壁纸上,可读性优先:用 chrome 的近实色兜底填充(AlertBanner 同款),
+    // 不做透明玻璃——2026-11-09 真机反馈玻璃太透,还原实底观感。
+    final surfaces = DshSurfaces.of(context);
     return GlassSurface(
       tier: GlassTier.chrome,
       stadium: true,
+      style: surfaces.chrome.copyWith(fill: surfaces.chrome.fallbackFill),
       child: SizedBox(
         height: 56,
         child: SelectionActionBar(
