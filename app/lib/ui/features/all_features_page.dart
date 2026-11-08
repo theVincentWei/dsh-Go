@@ -21,6 +21,7 @@ import '../web/dsh_web_launcher.dart';
 import '../web/web_target.dart';
 import '../plugins/seats/seat_probe.dart';
 import '../applet/applet_home_page.dart';
+import '../applet/hub_apps_group.dart';
 import 'feature_catalog.dart';
 
 /// Opens DSH Web on a target; tests swap it for a recorder.
@@ -60,6 +61,7 @@ class AllFeaturesPage extends ConsumerWidget {
       title: l10n.tabMiniApps,
       children: [
         const AppletGroup(),
+        const HubAppsGroup(),
         for (final section in all) ...[
           FeatureGroupLabel(section.title),
           // 手机桌面式:4 列图标网格,图标在上、标签在下,无卡片底。

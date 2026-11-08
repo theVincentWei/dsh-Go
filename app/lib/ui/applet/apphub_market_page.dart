@@ -14,13 +14,15 @@ import 'package:http/http.dart' as http;
 
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
-import '../theme/app_icons.dart';
+import '../common/list_page_row.dart';
+import '../theme/theme.dart';
 import '../common/app_sheet.dart' show showAppSheet, kSheetGutter;
 import '../common/sheet_title_bar.dart' show SheetTitleBar;
 import '../common/search_capsule.dart'
     show SearchCapsule;
 import '../common/segmented_pill.dart';
 import 'dimina/dimina_host.dart';
+import 'hub_apps_group.dart' show hubAppGlyph;
 
 enum _MarketTab { apps, installed }
 
@@ -130,12 +132,19 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
       app.description.toLowerCase().contains(_query);
 
   Future<void> _open(_HubApp app) async {
-    await DiminaHost.open(
+    final bool ok = await DiminaHost.open(
       appId: app.appId,
       name: app.name,
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
       updateManifestUrl: '$appHubBase/apps/${app.appId}/manifest.json',
     );
+    // 装完即把本地状态置为已装:从容器返回时按钮直接落成「打开」,
+    // 不必等下一次进页面的全量核对。
+    if (ok && mounted) {
+      setState(() {
+        _installed[app.appId] = <String, Object?>{'installed': true, 'versionCode': app.versionCode};
+      });
+    }
     // 首装/升级落沙盒需要一点时间,稍后刷新已装状态。
     Timer(const Duration(seconds: 6), () {
       if (mounted) unawaited(_queryInstalled());
@@ -190,7 +199,7 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
                     color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(_glyph(app.iconKey), size: 26),
+                  child: Icon(hubAppGlyph(app.iconKey), size: 26),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -233,14 +242,6 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
       ),
     );
   }
-
-  IconData _glyph(String? key) => switch (key) {
-        'book' => AppIcons.skill,
-        'chart' => AppIcons.sessionDetails,
-        'puzzle' => AppIcons.plugin,
-        'star' => AppIcons.favorite,
-        _ => AppIcons.allFeatures,
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -312,14 +313,19 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
                         }
                         return ListView(
                           children: <Widget>[
-                            for (final _HubApp app in apps)
-                              ListTile(
-                                leading: Icon(_glyph(app.iconKey)),
-                                title: Text(app.name.isEmpty ? app.appId : app.name),
-                                subtitle: Text(_rowSubtitle(app)),
-                                trailing: _action(app),
-                                onTap: () => unawaited(_showDetail(app)),
-                              ),
+                            ListPageCard(
+                              children: <Widget>[
+                                for (final _HubApp app in apps)
+                                  ListPageRow(
+                                    leading: Icon(hubAppGlyph(app.iconKey), size: 20),
+                                    leadingWidth: 40,
+                                    title: app.name.isEmpty ? app.appId : app.name,
+                                    subtitle: _rowSubtitle(app),
+                                    trailing: _action(app),
+                                    onTap: () => unawaited(_showDetail(app)),
+                                  ),
+                              ],
+                            ),
                           ],
                         );
                       },
@@ -342,25 +348,29 @@ class _ApphubMarketPageState extends State<ApphubMarketPage> {
 
   Widget _action(_HubApp app) {
     final L10n l10n = context.l10n;
+    final ThemeData theme = Theme.of(context);
     final bool installed = _isInstalled(app);
     final bool update = _hasUpdate(app);
-    if (!installed) {
-      return FilledButton.tonal(
-        onPressed: () => unawaited(_open(app)),
-        style: FilledButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-        ),
-        child: Text(l10n.apphubInstall),
-      );
-    }
-    return FilledButton(
-      onPressed: () => unawaited(_open(app)),
+    // 应用商店胶囊(与插件市场 PluginInstallButton 同款视觉):
+    // 未装=获取底、已装=透明+次级字,更新=获取底,都开详情/直接打开。
+    final String label = update
+        ? l10n.apphubUpdate
+        : (installed ? l10n.apphubOpen : l10n.apphubInstall);
+    return FilledButton.tonal(
       style: FilledButton.styleFrom(
-        visualDensity: VisualDensity.compact,
+        backgroundColor:
+            installed ? Colors.transparent : theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        foregroundColor: installed ? DshColors.of(context).textTertiary : theme.colorScheme.primary,
+        minimumSize: const Size(68, 30),
         padding: const EdgeInsets.symmetric(horizontal: 14),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        shape: const StadiumBorder(),
+        elevation: 0,
+        textStyle: theme.textTheme.labelLarge?.copyWith(fontSize: 13.5),
       ),
-      child: Text(update ? l10n.apphubUpdate : l10n.apphubOpen),
+      onPressed: () => unawaited(_open(app)),
+      child: Text(label),
     );
   }
 }
