@@ -168,7 +168,7 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                 titleFloor: titleFloor,
                 clockExtra: clockExtra,
                 children: [
-                  // A subagent conversation shows 「‹ 上级对话」 here.
+                  // A subagent conversation shows the plain back key (to its parent) here.
                   HeaderLeadSlot(
                     // 旧首页布局里是 ≡ 菜单键。会话列表推入的聊天页没有抽屉
                     // 可拉,左上是返回键 —— 与二级页面浮条上是同一枚
@@ -695,10 +695,7 @@ class _RenderStatusLine extends RenderBox
     final (status, detail) = _measure(constraints, ChildLayoutHelper.layoutChild);
     size = _sizeOf(constraints, status, detail);
     (firstChild!.parentData! as _StatusLineParentData).offset = Offset(0, (size.height - status.height) / 2);
-    (lastChild!.parentData! as _StatusLineParentData).offset = Offset(
-      status.width,
-      (size.height - detail.height) / 2,
-    );
+    (lastChild!.parentData! as _StatusLineParentData).offset = Offset(status.width, (size.height - detail.height) / 2);
   }
 
   @override
