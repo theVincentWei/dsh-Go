@@ -61,6 +61,35 @@ void main() {
     expect(tester.getRect(find.byKey(const ValueKey('session-avatar'))).size, const Size(32, 32));
   });
 
+  testWidgets('precacheAll is idempotent and completes', (tester) async {
+    const id = 'ssh-studio:abc123';
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: SessionTile(
+            sessionId: id,
+            title: '解释 proot 的 link2symlink',
+            running: false,
+            groupPosition: SessionGroupPos.single,
+            onTap: () {},
+            onLongPress: null,
+          ),
+        ),
+      ),
+    );
+    final context = tester.element(find.byType(SessionTile));
+    // 真实资产解码是真 IO,整个断言放在 runAsync 里走;identical 要比较
+    // precacheAll 自己存的同一趟 future,不能经过 runAsync 的二次包装。
+    await tester.runAsync(() async {
+      final first = SessionAvatarGallery.precacheAll(context);
+      final second = SessionAvatarGallery.precacheAll(context);
+      expect(identical(first, second), isTrue);
+      await first;
+    });
+    await tester.pump();
+  });
+
   test('the gallery ships with the app', () async {
     for (final name in ['avatar_00.png', 'avatar_42.png', 'avatar_99.png']) {
       final data = await rootBundle.load('assets/session_avatars/$name');

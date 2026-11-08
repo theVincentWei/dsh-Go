@@ -57,7 +57,9 @@ import 'session_search_page.dart';
 
 export '../../state/drawer_view_state.dart' show SessionDay, sessionDayOf;
 export 'drawer/drawer_destination.dart';
-export 'drawer/session_tile.dart' show SessionTile;
+export 'drawer/session_tile.dart' show SessionAvatarGallery, SessionTile;
+
+import 'drawer/session_tile.dart';
 
 /// Display title for a session: DSH's generated title (a generation
 /// request's header left out), else a neutral fallback.
@@ -387,6 +389,9 @@ class _SessionList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 头像图库一次性预解码进全局图片缓存: 否则从聊天页返回列表时,可见行
+    // 的头像各自异步解码,首帧只有圆盘没有图(precacheAll 自身幂等)。
+    unawaited(SessionAvatarGallery.precacheAll(context));
     final l10n = context.l10n;
     final sessions = ref.watch(sessionsProvider);
     final identity = ref.watch(readListIdentityProvider);

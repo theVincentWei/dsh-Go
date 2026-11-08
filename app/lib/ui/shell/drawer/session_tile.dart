@@ -262,6 +262,7 @@ class _SessionAvatar extends StatelessWidget {
               SessionAvatarGallery.assetFor(SessionAvatarGallery.slotFor(sessionId)),
               fit: BoxFit.contain,
               filterQuality: FilterQuality.medium,
+              gaplessPlayback: true,
               errorBuilder: (context, error, stack) => Center(
                 child: Text(
                   initial,
@@ -288,9 +289,27 @@ class SessionAvatarGallery {
 
   static const count = 100;
 
+  /// 每张 96×96 PNG 解码后约 36KB,全库 ~3.6MB;图库只增不减,预热一次即可
+  /// 让列表首帧就命中 Flutter 全局图片缓存,不再出现「圆盘先空一拍」。
+  static Future<void>? _precache;
+
   static int slotFor(String sessionId) => DshColors.identityIndex(sessionId, count);
 
   static String assetFor(int slot) => 'assets/session_avatars/avatar_${slot.toString().padLeft(2, '0')}.png';
+
+  /// 一次性把整个图库预解码进全局图片缓存。幂等:多次调用共享同一趟。
+  /// 失败(资产缺失等)只影响该槽的 errorBuilder 回退,不抛出。
+  static Future<void> precacheAll(BuildContext context) {
+    return _precache ??= () async {
+      for (var slot = 0; slot < count; slot++) {
+        try {
+          await precacheImage(AssetImage(assetFor(slot)), context);
+        } on Object {
+          // 缺图或没网都不致命:行上还有 errorBuilder 的首字符兜底。
+        }
+      }
+    }();
+  }
 }
 
 class _UnreadDot extends StatelessWidget {
