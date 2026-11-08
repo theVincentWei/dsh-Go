@@ -33,25 +33,34 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
-        if (!initialized) {
-            initialized = true
-            Dimina.init(
-                appContext,
-                Dimina.DiminaConfig.Builder()
-                    // vConsole 只跟 debug 包:release 用户不该看到调试悬浮窗。
-                    // 不用 BuildConfig(工程未开 buildFeatures.buildConfig),
-                    // 读实际安装包的 FLAG_DEBUGGABLE,flutter run 有、release 无。
-                    .setDebugMode((appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
-                    // 多任务模式:小程序跑在独立 task 里。关着的时候,根页返回会走
-                    // exitMiniProgram 直接销毁整个小程序;开着才是「隐藏保栈、把宿主
-                    // 页面带回前台」,子页返回照旧一层一层弹(DiminaActivity 每页一个
-                    // Activity,back=finish)。
-                    .setEnableMultiTask(true)
-                    .setVirtualFilePrefix("host-file://")
-                    .build(),
-            )
-        }
         channel = MethodChannel(binding.binaryMessenger, "dsh/dimina").also { it.setMethodCallHandler(this) }
+    }
+
+    /**
+     * 惰性初始化:首次 open 时才 init,以便按宿主当前亮度定胶囊配色
+     * (config 初始化后不可变,运行中切主题不跟随——见 miniprogram-spec.md §8)。
+     */
+    private fun ensureInitialized(dark: Boolean) {
+        if (initialized) return
+        initialized = true
+        Dimina.init(
+            appContext,
+            Dimina.DiminaConfig.Builder()
+                // vConsole 只跟 debug 包:release 用户不该看到调试悬浮窗。
+                // 不用 BuildConfig(工程未开 buildFeatures.buildConfig),
+                // 读实际安装包的 FLAG_DEBUGGABLE,flutter run 有、release 无。
+                .setDebugMode((appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+                // 多任务模式:小程序跑在独立 task 里。关着的时候,根页返回会走
+                // exitMiniProgram 直接销毁整个小程序;开着才是「隐藏保栈、把宿主
+                // 页面带回前台」,子页返回照旧一层一层弹(DiminaActivity 每页一个
+                // Activity,back=finish)。
+                .setEnableMultiTask(true)
+                // 胶囊配色跟宿主亮度:深色=深底白图标,浅色=白底深图标。
+                .setCapsuleBackgroundColor(if (dark) 0xFF2A2D34.toInt() else android.graphics.Color.WHITE)
+                .setCapsuleIconColor(if (dark) android.graphics.Color.WHITE else 0xFF1F1F1F.toInt())
+                .setVirtualFilePrefix("host-file://")
+                .build(),
+        )
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -83,6 +92,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     result.error("NO_ACTIVITY", "Flutter activity is not attached", null)
                     return
                 }
+                // 首次打开按宿主亮度初始化(胶囊配色跟主题)。
+                ensureInitialized(call.argument<Boolean>("dark") ?: false)
                 val miniProgram = MiniProgram(
                     appId = appId,
                     name = call.argument<String>("name") ?: appId,
