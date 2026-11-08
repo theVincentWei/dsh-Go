@@ -4522,6 +4522,17 @@ class L10nEn extends L10n {
   String get chatNowTools => 'For right now';
 
   @override
+  String get chatDownloadCenter => 'Downloads';
+
+  @override
+  String chatDownloadCount(int count) {
+    return '$count download tasks';
+  }
+
+  @override
+  String get chatDownloadSheetHint => 'Tap an entry to open its chat · resumes from the breakpoint';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override

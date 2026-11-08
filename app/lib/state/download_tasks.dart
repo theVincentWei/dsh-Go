@@ -7,17 +7,27 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'hosts_state.dart';
+
 /// 一个下载的取消开关:下载循环在每个窗口间隙检查。
 class DownloadCancelToken {
   bool cancelled = false;
 }
 
 class DownloadTask {
-  DownloadTask({required this.key, required this.label, this.total});
+  DownloadTask({
+    required this.key,
+    required this.label,
+    required this.host,
+    required this.sessionId,
+    this.total,
+  });
 
   /// 缓存键(host+session+path),也是任务的唯一标识。
   final String key;
   final String label;
+  final HostRef host;
+  final String sessionId;
   final DownloadCancelToken cancelToken = DownloadCancelToken();
   final int? total;
   int received = 0;
@@ -39,8 +49,14 @@ class DownloadTasksController extends Notifier<List<DownloadTask>> {
   @override
   List<DownloadTask> build() => const [];
 
-  DownloadTask begin({required String key, required String label, int? total}) {
-    final task = DownloadTask(key: key, label: label, total: total);
+  DownloadTask begin({
+    required String key,
+    required String label,
+    required HostRef host,
+    required String sessionId,
+    int? total,
+  }) {
+    final task = DownloadTask(key: key, label: label, host: host, sessionId: sessionId, total: total);
     state = [...state.where((t) => t.key != key), task];
     return task;
   }

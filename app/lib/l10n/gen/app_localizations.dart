@@ -7790,6 +7790,24 @@ abstract class L10n {
   /// **'现在要用的'**
   String get chatNowTools;
 
+  /// No description provided for @chatDownloadCenter.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载'**
+  String get chatDownloadCenter;
+
+  /// No description provided for @chatDownloadCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个下载任务'**
+  String chatDownloadCount(int count);
+
+  /// No description provided for @chatDownloadSheetHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击条目跳到对应会话 · 断线后从断点续传'**
+  String get chatDownloadSheetHint;
+
   /// No description provided for @commonCancel.
   ///
   /// In zh, this message translates to:

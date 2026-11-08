@@ -2773,6 +2773,16 @@
   },
   "chatCurrentChat": "当前会话",
   "chatNowTools": "现在要用的",
+  "chatDownloadCenter": "下载",
+  "chatDownloadCount": "{count} 个下载任务",
+  "@chatDownloadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatDownloadSheetHint": "点击条目跳到对应会话 · 断线后从断点续传",
   "commonCancel": "取消",
   "commonRetry": "重试",
   "commonClose": "关闭",
