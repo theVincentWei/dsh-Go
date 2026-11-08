@@ -10,6 +10,8 @@ import 'dart:io';
 import 'package:dsh_app/state/artifact_files.dart';
 import 'package:dsh_app/state/artifacts.dart';
 import 'package:dsh_app/state/connection_state.dart';
+import 'package:dsh_app/state/download_tasks.dart';
+import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/ui/chat/widgets/artifact_card.dart';
 import 'package:dsh_app/ui/share/share_card.dart';
 import 'package:dsh_app/ui/share/share_content.dart';
@@ -434,5 +436,34 @@ void main() {
       expect(artifactErrorText(PlatformException(code: 'permission')), '没有存储权限，存不进「下载」');
       expect(artifactErrorText(const DshTransportException('down')), '没能连上引擎');
     });
+  });
+
+  testWidgets('进行中的全局任务接管进度:别的页面发起/跳转重建后,聊天卡也显示', (tester) async {
+    await tester.pumpWidget(_card([_zip]));
+    expect(find.textContaining('%'), findsNothing, reason: '没任务时这一行只是类型 · 大小');
+
+    final container = ProviderScope.containerOf(tester.element(find.byType(ArtifactCard)));
+    final tasks = container.read(downloadTasksProvider.notifier);
+    tasks.begin(
+      key: 'k',
+      label: _zip.name,
+      path: _zip.path,
+      host: HostRef.ssh('box'),
+      sessionId: 's1',
+      total: 200,
+    );
+    tasks.progress(key: 'k', received: 50);
+    await tester.pump();
+
+    expect(find.text('正在下载… 25%'), findsOneWidget);
+    expect(
+      tester.widget<CircularProgressIndicator>(find.byType(CircularProgressIndicator)).value,
+      closeTo(0.25, 0.001),
+    );
+
+    tasks.progress(key: 'k', received: 200);
+    tasks.finish(key: 'k');
+    await tester.pump();
+    expect(find.textContaining('%'), findsNothing, reason: '任务出列后回落到类型 · 大小');
   });
 }

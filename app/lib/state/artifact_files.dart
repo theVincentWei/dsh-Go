@@ -212,6 +212,7 @@ class ArtifactFiles {
         : _tasks?.begin(
             key: key,
             label: taskLabel,
+            path: artifact.path,
             host: connection!.hostRef,
             sessionId: sessionId,
             total: stat.bytes,

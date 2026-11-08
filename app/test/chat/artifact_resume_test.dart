@@ -225,6 +225,7 @@ void main() {
     final task = rig.tasks.begin(
       key: 'k1',
       label: 'a.png',
+      path: '/home/me/a.png',
       host: HostRef.ssh('box'),
       sessionId: 's',
       total: 16,

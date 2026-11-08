@@ -18,6 +18,7 @@ class DownloadTask {
   DownloadTask({
     required this.key,
     required this.label,
+    required this.path,
     required this.host,
     required this.sessionId,
     this.total,
@@ -26,6 +27,10 @@ class DownloadTask {
   /// 缓存键(host+session+path),也是任务的唯一标识。
   final String key;
   final String label;
+
+  /// 源文件路径(workspace 内):聊天卡片跳转/重建后按它认领自己的任务,
+  /// 进度显示跟着全局任务表走,而不是跟着发起动作的那个 widget 闭包。
+  final String path;
   final HostRef host;
   final String sessionId;
   final DownloadCancelToken cancelToken = DownloadCancelToken();
@@ -94,11 +99,12 @@ class DownloadTasksController extends Notifier<List<DownloadTask>> {
   DownloadTask begin({
     required String key,
     required String label,
+    required String path,
     required HostRef host,
     required String sessionId,
     int? total,
   }) {
-    final task = DownloadTask(key: key, label: label, host: host, sessionId: sessionId, total: total);
+    final task = DownloadTask(key: key, label: label, path: path, host: host, sessionId: sessionId, total: total);
     state = [...state.where((t) => t.key != key), task];
     return task;
   }
@@ -131,3 +137,14 @@ class DownloadTasksController extends Notifier<List<DownloadTask>> {
 final downloadTasksProvider = NotifierProvider<DownloadTasksController, List<DownloadTask>>(
   DownloadTasksController.new,
 );
+
+/// 一个会话文件的进行中任务;没有则 null。
+///
+/// 聊天卡片用它在页面重建后找回进度(见 ArtifactTile);host 维度不参与
+/// 匹配——任务表里只有当前活跃连接发起的下载。
+DownloadTask? downloadTaskFor(List<DownloadTask> tasks, {required String sessionId, required String path}) {
+  for (final task in tasks) {
+    if (task.sessionId == sessionId && task.path == path) return task;
+  }
+  return null;
+}

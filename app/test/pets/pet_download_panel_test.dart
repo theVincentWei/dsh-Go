@@ -38,11 +38,19 @@ void main() {
     final a = tasks.begin(
       key: 'k1',
       label: '季度报告.pdf',
+      path: '/root/季度报告.pdf',
       host: HostRef.ssh('box'),
       sessionId: 's1',
       total: 100,
     );
-    tasks.begin(key: 'k2', label: '素材包.zip', host: HostRef.ssh('box'), sessionId: 's1', total: 200);
+    tasks.begin(
+      key: 'k2',
+      label: '素材包.zip',
+      path: '/root/素材包.zip',
+      host: HostRef.ssh('box'),
+      sessionId: 's1',
+      total: 200,
+    );
     tasks.progress(key: 'k1', received: 62);
     tasks.progress(key: 'k2', received: 30);
     await pumpPanel(tester);
@@ -58,7 +66,14 @@ void main() {
   });
 
   testWidgets('面板显示实时速度', (tester) async {
-    final task = tasks.begin(key: 'k1', label: 'pkg.bin', host: HostRef.ssh('box'), sessionId: 's1', total: 1 << 20);
+    final task = tasks.begin(
+      key: 'k1',
+      label: 'pkg.bin',
+      path: '/root/pkg.bin',
+      host: HostRef.ssh('box'),
+      sessionId: 's1',
+      total: 1 << 20,
+    );
     task.updateReceived(0);
     // widget 测试在 FakeAsync 里,不能真睡;直接喂两个相隔 60ms 的样本。
     task.sample(0, DateTime.now());
@@ -73,7 +88,7 @@ void main() {
     final log = <List<DownloadTask>>[];
     final sub = container.listen(downloadTasksProvider, (_, next) => log.add(next));
     addTearDown(sub.close);
-    tasks.begin(key: 'x', label: 'l', host: HostRef.ssh('b'), sessionId: 's');
+    tasks.begin(key: 'x', label: 'l', path: '/root/l', host: HostRef.ssh('b'), sessionId: 's');
     await Future<void>.delayed(Duration.zero);
     expect(log, hasLength(1), reason: 'begin 必须通知监听者');
     tasks.progress(key: 'x', received: 5);
@@ -85,7 +100,7 @@ void main() {
     final log = <List<DownloadTask>>[];
     final sub = container.listen(downloadTasksProvider, (_, next) => log.add(next));
     addTearDown(sub.close);
-    tasks.begin(key: 'x', label: 'l', host: HostRef.ssh('b'), sessionId: 's', total: 1000);
+    tasks.begin(key: 'x', label: 'l', path: '/root/l', host: HostRef.ssh('b'), sessionId: 's', total: 1000);
     await Future<void>.delayed(Duration.zero);
     expect(log, hasLength(1));
 
@@ -105,7 +120,7 @@ void main() {
   });
 
   test('速度:连续采样给出 EMA 速率,停滞不再报旧值', () async {
-    final task = tasks.begin(key: 'v', label: 'l', host: HostRef.ssh('b'), sessionId: 's', total: 1 << 20);
+    final task = tasks.begin(key: 'v', label: 'l', path: '/root/l', host: HostRef.ssh('b'), sessionId: 's', total: 1 << 20);
     expect(task.speedBps, isNull, reason: '只有一个样本前没有速度');
 
     tasks.progress(key: 'v', received: 0);
@@ -117,7 +132,7 @@ void main() {
 
   testWidgets('点行回跳:带回任务的 host 与会话', (tester) async {
     final opened = <(HostRef, String)>[];
-    tasks.begin(key: 'k1', label: '季度报告.pdf', host: HostRef.ssh('box'), sessionId: 's1', total: 10);
+    tasks.begin(key: 'k1', label: '季度报告.pdf', path: '/root/季度报告.pdf', host: HostRef.ssh('box'), sessionId: 's1', total: 10);
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
