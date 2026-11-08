@@ -969,18 +969,19 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
     if (shown) _bodyFullyHidden = false;
     final pauseSprite = !visible && (_bodyFullyHidden || fadeDuration == Duration.zero);
 
-    // The magic's scale and turn, pivoted on the foot: the pet grows out of
-    // its perch and drains back into it. After the trigger above, so the flip
-    // itself lands in the same build's transform and dust.
+    // The magic's scale and turn, pivoted on the foot: the pet pops out of
+    // its perch and sinks back into it, already half there both ways, so it
+    // reads as a soft pop — not pieces flying in. After the trigger above, so
+    // the flip itself lands in the same build's transform and dust.
     final magicT = _magic.isAnimating ? _magic.value : 1.0;
     final magicPlaying = _magicKind != null && magicT < 1;
     final pivot = Offset(pack.anchorX * s, pack.baseline * s);
-    final magicTurn = magicPlaying ? (_magicKind == PetMagic.enter ? (1 - magicT) * -0.4 : magicT * 0.6) : 0.0;
+    final magicTurn = magicPlaying ? (_magicKind == PetMagic.exit ? magicT * 0.15 : 0.0) : 0.0;
     final magicScale = !magicPlaying
         ? 1.0
         : switch (_magicKind!) {
-            PetMagic.enter => math.max(0.04, AppMotion.popCurve.transform(magicT)),
-            PetMagic.exit => (1 - 0.85 * Curves.easeIn.transform(magicT)).clamp(0.04, 1.0),
+            PetMagic.enter => 0.5 + 0.5 * AppMotion.popCurve.transform(magicT),
+            PetMagic.exit => (1 - 0.6 * Curves.easeIn.transform(magicT)).clamp(0.3, 1.0),
           };
 
     final sprite = SizedBox.fromSize(
@@ -1108,7 +1109,6 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
             child: IgnorePointer(
               child: CustomPaint(
                 painter: PetDustPainter(
-                  kind: _magicKind!,
                   t: magicT,
                   seed: _dustSeed,
                   body: (spot.rect.topLeft + origin) & canvas,
