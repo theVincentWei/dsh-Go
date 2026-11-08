@@ -338,14 +338,17 @@ ThemeData _build(
       showDragHandle: true,
     ),
 
+    // 同向色(M3 默认是 inverseSurface 反色:深色主题下 toast 反而近白,
+    // 与夜色玻璃界面相冲)。跟界面同向 + 发丝线撑对比,浅色 = 白胶囊、
+    // 深色 = 深胶囊。2026-11-08 拍板。
     snackBarTheme: SnackBarThemeData(
       elevation: 0,
       behavior: SnackBarBehavior.floating,
-      backgroundColor: scheme.inverseSurface,
-      contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.onInverseSurface),
-      actionTextColor: scheme.inversePrimary,
+      backgroundColor: scheme.surfaceContainerHighest,
+      contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.onSurface),
+      actionTextColor: scheme.primary,
       insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      shape: AppShape.card,
+      shape: AppShape.outlined(hairline, width: 0.5),
     ),
 
     dividerTheme: DividerThemeData(color: hairline, thickness: 0.5, space: 1),

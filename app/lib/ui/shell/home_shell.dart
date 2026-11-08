@@ -145,7 +145,15 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
       });
       // 高亮从旧 tab 流到新 tab;页面跟着滑过去。「移除动画」时两个时长都
       // 归零,胶囊与页面直接落位。
-      _tabPages.animateToPage(tab, duration: AppMotion.of(context, AppMotion.emphasized), curve: AppMotion.glide);
+      final Duration motion = AppMotion.of(context, AppMotion.emphasized);
+      if (motion == Duration.zero) {
+        // 框架坑:animateToPage 在 0 时长下 AnimationController 立即完成并同步
+        // 回调 tick,会撞 DrivenScrollActivity._controller 未初始化的
+        // LateInitializationError(页面从此卡在第 0 页)。零时长直接落位。
+        _tabPages.jumpToPage(tab);
+      } else {
+        _tabPages.animateToPage(tab, duration: motion, curve: AppMotion.glide);
+      }
       _tabFlow
         ..duration = AppMotion.of(context, AppMotion.emphasized)
         ..forward(from: 0);
