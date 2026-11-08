@@ -266,14 +266,5 @@
   "shellPanelModel": "Model",
   "shellPanelHost": "Host",
   "shellPanelOpenFull": "Open full page",
-  "shellPanelNoPlugins": "No plugin panels for this chat yet",
-  "shellQuickPanel": "Shortcuts",
-  "shellQuickPanelHint": "Change these in {path}",
-  "@shellQuickPanelHint": {
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  }
+  "shellPanelNoPlugins": "No plugin panels for this chat yet"
 }

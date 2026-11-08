@@ -32,7 +32,7 @@ abstract final class AppIcons {
   static const openExternal = DshGlyphs.arrowSquareOut;
   static const openLink = DshGlyphs.arrowUpRight;
   static const openWith = DshGlyphs.dotsNine;
-  static const allFeatures = DshGlyphs.dotsNine;
+  static const allFeatures = DshGlyphs.squaresFour;
   static const browser = DshGlyphs.browser;
   static const scrollToBottom = DshGlyphs.arrowDown;
   static const sidebar = DshGlyphs.sidebarSimpleRight;

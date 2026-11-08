@@ -97,17 +97,6 @@ Touch and hold a chat for **Pin**, **Rename**, **Move to folder**, **Share**, **
 - To get an archived chat back, tap **Search chats**, find it and tap **Restore and open**.
 - Filter the list with **All**, **Running**, **Pending** and **Unread**. Pick the conversation scope (**All chats** or one workspace) from the folder button in the title row; the ⋯ button there sorts by **Recent activity** or **Date created**, and has **New folder** and **Manage folders**.
 
-## Swipe-left shortcuts
-
-<!-- nav: commonSettings,hubSettingsInterface,hubQuickPanel -->
-`Settings › Interface › Swipe-left shortcuts`
-
-Swipe right to left anywhere on home (the chat list, Mini apps or Settings) and **Shortcuts** slides in from the right; tap one to open that page. It starts with **Plugins**, **Local engine** and **Settings**. Swiping on code blocks, tables and other content that scrolls sideways still scrolls them. Back closes the panel first.
-
-You can turn off **Open with a left swipe**, and under **What it lists** tick what to show and drag to reorder.
-
-With a conversation selected, the panel is about that conversation, in two parts, **Info** and **Plugins**: Info has the whole title, workspace, model and host, with the full page a tap away at the top right; Plugins has every plugin panel, switched along its top when there are several. The shortcuts you ticked sit along the bottom. On a phone the header has no model chip, with the status and workspace under the title, and while you type, the composer shows the model and thinking depth at its foot: tap them to change, or use Overview.
-
 ## Hardware keyboard
 
 Focus the chat's composer before using these shortcuts:
