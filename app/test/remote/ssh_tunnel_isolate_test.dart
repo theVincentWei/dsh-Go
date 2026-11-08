@@ -43,4 +43,14 @@ void main() {
     expect(probe.refused, isFalse);
     expect(probe.error, isA<TimeoutException>());
   });
+
+  test('extraEndpoint crosses the isolate boundary and binds its own listener', () async {
+    final tunnel = IsolateSshTunnel();
+    addTearDown(tunnel.close);
+    // 监听不需要传输:通道在数据到来时才懒打开。
+    final port = await tunnel.setExtraEndpoint(7610);
+    expect(port, greaterThan(0));
+    // 引擎转发口不受影响:仍是未设置。
+    expect(tunnel.localPort, isNull);
+  });
 }

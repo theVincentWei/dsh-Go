@@ -37,6 +37,8 @@ class SshTunnelEngine {
   Completer<SshTransport>? _ready;
   LocalForwarder? _forwarder;
   int? _endpointPort;
+  LocalForwarder? _extraForwarder;
+  int? _extraRemotePort;
   bool _closed = false;
 
   /// The transport died (network drop, server closed): the tunnel is down
@@ -81,6 +83,23 @@ class SshTunnelEngine {
     return forwarder.port;
   }
 
+  /// Binds (once) a second local forward; [remotePort] is where every
+  /// channel of this listener goes (e.g. the AppHub server port on the
+  /// engine host). Independent of [setEndpoint]: its own loopback port and
+  /// its own remote endpoint, both carried by the same SSH transport.
+  Future<int> setExtraEndpoint(int remotePort) async {
+    _extraRemotePort = remotePort;
+    final existing = _extraForwarder;
+    if (existing != null) return existing.port;
+    final forwarder = await LocalForwarder.bind(_openExtraChannel);
+    if (_closed) {
+      await forwarder.close();
+      throw StateError('tunnel closed');
+    }
+    _extraForwarder = forwarder;
+    return forwarder.port;
+  }
+
   Future<RemoteExecResult> run(String script, {required Duration timeout}) =>
       _withTransport((transport) => transport.run(script, timeout: timeout));
 
@@ -119,6 +138,7 @@ class SshTunnelEngine {
     if (_ready?.isCompleted ?? false) _ready = null;
     transport?.close();
     _forwarder?.dropConnections();
+    _extraForwarder?.dropConnections();
   }
 
   /// Kills the current transport as if the network dropped (live tests).
@@ -130,6 +150,8 @@ class SshTunnelEngine {
     _transport = null;
     await _forwarder?.close();
     _forwarder = null;
+    await _extraForwarder?.close();
+    _extraForwarder = null;
     await _events.close();
   }
 
@@ -147,12 +169,15 @@ class SshTunnelEngine {
     return (_ready ??= Completer<SshTransport>()).future.timeout(timeout);
   }
 
-  Future<TunnelChannel> _openChannel() async {
+  Future<TunnelChannel> _openChannel() => _openOn(_endpointPort, 'no remote endpoint yet');
+
+  Future<TunnelChannel> _openExtraChannel() => _openOn(_extraRemotePort, 'no extra forward endpoint yet');
+
+  Future<TunnelChannel> _openOn(int? port, String missing) async {
     if (_closed) throw StateError('tunnel closed');
     final transport = await _waitTransport(const Duration(seconds: 20));
     if (_closed) throw StateError('tunnel closed');
-    final port = _endpointPort;
-    if (port == null) throw StateError('no remote endpoint yet');
+    if (port == null) throw StateError(missing);
     var abandoned = false;
     try {
       return await transport.openTunnel('127.0.0.1', port).then((channel) {
@@ -188,6 +213,10 @@ abstract interface class SshTunnel {
   /// Sets the remote `dsh web` port; returns the stable loopback port.
   Future<int> setEndpoint(int remotePort);
 
+  /// Binds a second forward to [remotePort] on the SSH host (e.g. the
+  /// AppHub server); returns the stable loopback port of that listener.
+  Future<int> setExtraEndpoint(int remotePort);
+
   Future<RemoteExecResult> run(String script, {required Duration timeout});
 
   Future<bool> ping({required Duration timeout});
@@ -221,6 +250,9 @@ final class LocalSshTunnel implements SshTunnel {
 
   @override
   Future<int> setEndpoint(int remotePort) => _engine.setEndpoint(remotePort);
+
+  @override
+  Future<int> setExtraEndpoint(int remotePort) => _engine.setExtraEndpoint(remotePort);
 
   @override
   Future<RemoteExecResult> run(String script, {required Duration timeout}) =>
@@ -279,6 +311,14 @@ final class IsolateSshTunnel implements SshTunnel {
   Future<int> setEndpoint(int remotePort) async {
     final port = await _ask('endpoint', {'port': remotePort});
     return _localPort = port as int;
+  }
+
+  @override
+  Future<int> setExtraEndpoint(int remotePort) async {
+    // Not stored in _localPort: that stays the engine forward the DshClient
+    // points at; the extra listener's port comes straight from the worker.
+    final port = await _ask('extraEndpoint', {'port': remotePort});
+    return port as int;
   }
 
   @override
@@ -490,6 +530,10 @@ void _sshTunnelMain(SendPort reply) {
         case 'endpoint':
           engine
               .setEndpoint(job['port'] as int)
+              .then((port) => settle(id!, port), onError: (Object error) => fail(id!, error));
+        case 'extraEndpoint':
+          engine
+              .setExtraEndpoint(job['port'] as int)
               .then((port) => settle(id!, port), onError: (Object error) => fail(id!, error));
         case 'ping':
           engine

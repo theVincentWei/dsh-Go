@@ -16,10 +16,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../state/hosts_state.dart' show HostRef;
+import 'apphub_base.dart' show appHubBase;
 import 'notify_channel.dart';
-
-/// AppHub base URL(loopback:仿真器经 adb reverse,真机经 ssh 隧道/HTTPS)。
-const String kAppHubBase = 'http://127.0.0.1:7610';
 
 class AppHubNoticeService {
   AppHubNoticeService._();
@@ -43,7 +41,7 @@ class AppHubNoticeService {
     try {
       client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
       final HttpClientResponse response = await client
-          .getUrl(Uri.parse('$kAppHubBase/api/v1/notices?since=$_lastId'))
+          .getUrl(Uri.parse('$appHubBase/api/v1/notices?since=$_lastId'))
           .then((request) => request.close())
           .timeout(const Duration(seconds: 10));
       final Object? body =
