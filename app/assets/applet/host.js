@@ -87,8 +87,28 @@
     compose: function (text) {
       return call({ op: 'compose', text: text === undefined ? '' : String(text) }, 'DshAppHost')
         .then(function (reply) { return reply !== null && reply.ok === true; });
-    }
+    },
+
+    // Keyboard height in px as last pushed by the container (0 = closed).
+    // Prefer the --dsh-kb CSS var; this getter is for JS-side decisions.
+    keyboardHeight: function () { return window.__dshKeyboard || 0; }
   };
+
+  // Keyboard: the container never resizes the WebView (a resize is a full
+  // page reflow, and per-frame resizes during the IME animation are the
+  // keyboard jank the container avoids). It pushes at most a couple of
+  // mid-animation samples plus the settled height here instead. Pages pad
+  // bottom sheets with `var(--dsh-kb, 0px)`; 'dshinsets' fires on every push.
+  window.__hostInsets = function (px) {
+    var height = Number(px) || 0;
+    window.__dshKeyboard = height;
+    var root = document.documentElement;
+    if (root && root.style) root.style.setProperty('--dsh-kb', height + 'px');
+    try {
+      document.dispatchEvent(new CustomEvent('dshinsets', { detail: { keyboard: height } }));
+    } catch (e) { /* older engines without CustomEvent; the CSS var still works */ }
+  };
+  window.__hostInsets(0);
 
   // Dart's PopScope asks the page before popping the container.
   window.__dshHostBack = function () {

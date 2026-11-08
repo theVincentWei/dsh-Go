@@ -17,6 +17,7 @@ import '../../state/connection_state.dart';
 import '../../state/sessions_state.dart';
 import 'applet_bridge.dart';
 import 'applet_capsule.dart';
+import 'applet_insets.dart';
 
 /// Fallback workspace scope for `workspaceFiles/*` when no conversation is
 /// selected. Absolute paths are resolved by the Host either way; re-check on
@@ -58,6 +59,11 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
 
   Completer<Map<Object?, Object?>>? _backReply;
 
+  /// IME insets: the container never resizes the WebView (keyboard jank —
+  /// see applet_insets.dart), so the settled height is pushed to the page
+  /// instead and the page pads its bottom sheets with `--dsh-kb`.
+  KeyboardInsetRelay? _insetsRelay;
+
   bool _started = false;
 
   @override
@@ -75,6 +81,7 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
   @override
   void dispose() {
     _capsuleIdleTimer?.cancel();
+    _insetsRelay?.dispose();
     _capsuleExpanded.dispose();
     super.dispose();
   }
@@ -118,6 +125,12 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
       await controller.loadHtmlString(_inject(hostJs, html));
       if (!mounted) return;
       setState(() => _loading = false);
+      // A reload while the keyboard was open: re-sync the page with the
+      // inset it last knew (host.js already defaults the var to 0).
+      final KeyboardInsetRelay? relay = _insetsRelay;
+      if (relay != null && relay.current > 0) {
+        await _pushKeyboardInset(relay.current);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -225,6 +238,20 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
     });
   }
 
+  /// Per-frame raw IME inset from [_InsetsWatcher]; the relay only lets the
+  /// settled value through (see applet_insets.dart for why).
+  void _onInsetsFrame(double bottomPx) {
+    (_insetsRelay ??= KeyboardInsetRelay(push: _pushKeyboardInset)).update(bottomPx);
+  }
+
+  Future<void> _pushKeyboardInset(double bottomPx) async {
+    try {
+      await _controller?.runJavaScript('__hostInsets(${bottomPx.toStringAsFixed(0)})');
+    } catch (_) {
+      // Page not loaded yet or gone; the next settle or reload re-syncs it.
+    }
+  }
+
   void _onNavMessage(JavaScriptMessage message) {
     final Completer<Map<Object?, Object?>>? reply = _backReply;
     if (reply == null || reply.isCompleted) return;
@@ -322,6 +349,12 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
         if (exit) Navigator.of(context).pop();
       },
       child: Scaffold(
+        // Never resize with the keyboard: a resize is a full-page reflow, and
+        // the IME animates per frame — per-frame resizes are exactly the
+        // keyboard jank this container must not have. The settled (plus a few
+        // sampled) insets go to the page via __hostInsets/--dsh-kb instead
+        // (applet_insets.dart).
+        resizeToAvoidBottomInset: false,
         backgroundColor: brightness == Brightness.dark ? const Color(0xFF151517) : const Color(0xFFFFFFFF),
         body: Stack(
           children: <Widget>[
@@ -366,9 +399,26 @@ class _AppletScreenState extends ConsumerState<AppletScreen> {
                   ),
                 ),
               ),
+            _InsetsWatcher(onFrame: _onInsetsFrame),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Zero-size per-frame listener: reads the IME inset without rebuilding the
+/// container, so the WebView's constraints stay constant while the keyboard
+/// animates (see applet_insets.dart).
+class _InsetsWatcher extends StatelessWidget {
+  const _InsetsWatcher({required this.onFrame});
+
+  final ValueChanged<double> onFrame;
+
+  @override
+  Widget build(BuildContext context) {
+    final double bottom = MediaQuery.viewInsetsOf(context).bottom;
+    WidgetsBinding.instance.addPostFrameCallback((_) => onFrame(bottom));
+    return const SizedBox.shrink();
   }
 }

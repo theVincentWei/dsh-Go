@@ -41,6 +41,14 @@
 - 已知副作用：`canPop:false` 同时禁用 iOS 边缘滑返。多级 App 必须自备页内返回按钮（手册条款）；胶囊常驻关闭兜底。
 - 阶段 1 的记账为单视图应用：不注册 `onBack`，一切返回直接退出容器。
 
+## 键盘（IME）
+
+- **容器永不缩放 WebView**：Scaffold `resizeToAvoidBottomInset: false`。缩放即全页 reflow，而 IME insets 动画逐帧上报——逐帧缩放 = 逐帧全页重排，就是「只在键盘弹出时卡」的根因（2026-11-08 修复）。
+- 容器侧 `KeyboardInsetRelay`（`lib/ui/applet/applet_insets.dart`）：动画期间每 90ms 至多推送 1 次采样（≈11 次/秒上限），静默 120ms 判定停稳后推最终值——300ms 键盘动画约 4 次页面重排（修复前逐帧缩放为每帧全页重排，20-35 次）。
+- 推送通道：App → 页 `runJavaScript('__hostInsets(px)')`；host.js 落成 `<html>` 的 `--dsh-kb` CSS 变量 + `dshinsets` 事件 + `host.keyboardHeight()`（0 = 收起）。
+- **页面责任**（作者手册同名条款）：底部弹层/常驻贴底元素用 `var(--dsh-kb, 0px)` 垫高（先例 ledger `#sheet`）；禁止 `env(keyboard-inset-*)`（逐帧更新，等于把逐帧 reflow 请回来）。
+- 键盘开着刷新：容器在重载完成后回推最后一次已知高度；host.js 默认 0 兜底。
+
 ## 胶囊
 
 - **原生 Flutter 浮层**（Stack 叠在 WebView 上），主题跟随 App `ThemeData`；不做 HTML 内胶囊。
