@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import com.didi.dimina.Dimina
 import com.didi.dimina.bean.MiniProgram
+import io.github.ccch1mneyyy.dsh_app.BuildConfig
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -37,7 +38,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
             Dimina.init(
                 appContext,
                 Dimina.DiminaConfig.Builder()
-                    .setDebugMode(true)
+                    // vConsole 只跟 debug 构建:release 用户不该看到调试悬浮窗。
+                    .setDebugMode(BuildConfig.DEBUG)
                     // 多任务模式:小程序跑在独立 task 里。关着的时候,根页返回会走
                     // exitMiniProgram 直接销毁整个小程序;开着才是「隐藏保栈、把宿主
                     // 页面带回前台」,子页返回照旧一层一层弹(DiminaActivity 每页一个

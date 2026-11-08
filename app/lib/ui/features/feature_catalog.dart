@@ -18,7 +18,6 @@ import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/plugins_state.dart';
 import '../common/feature_tile.dart';
 import '../agents/team_page.dart';
-import '../applet/apphub_market_page.dart';
 import '../bots/bots_page.dart';
 import '../community/community_page.dart';
 import '../cordis/cordis_page.dart';
@@ -239,15 +238,8 @@ final featureSections = <FeatureSection>[
       web: const DshWebTarget(pluginItem: ['语音输入', 'Voice input']),
     ),
   ]),
-  FeatureSection.localized((l10n) => l10n.catalogAppHubSection, [
-    FeatureItem.localized(
-      id: 'apphub-market',
-      title: (l10n) => l10n.catalogAppHubMarket,
-      summary: (l10n) => l10n.catalogAppHubMarketSummary,
-      icon: AppIcons.allFeatures,
-      native: (_) => const ApphubMarketPage(),
-    ),
-  ]),
+  // AppHub 组改由动态瓷贴组渲染(hub_apps_group.dart:已装小程序 + 应用市场
+  // 入口),静态目录里不再保留这份列表。
   FeatureSection.localized((l10n) => l10n.catalogCommunitySharingSection, [
     FeatureItem.localized(
       id: 'forum',

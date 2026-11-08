@@ -14,7 +14,8 @@ const String _usage = '''
 apphubctl — AppHub CLI
 
   apphubctl publish <zip> --app <id> --name <name> [--path <p>]
-                    [--version-code N] [--version-name V] [--tools tools.json]
+                    [--version-code N] [--version-name V] [--icon <key>]
+                    [--tools tools.json]
   apphubctl list
   apphubctl rollback --app <id>
   apphubctl tools --app <id> --file tools.json
@@ -36,6 +37,7 @@ Future<void> main(List<String> args) async {
     ..addOption('path')
     ..addOption('version-code')
     ..addOption('version-name')
+    ..addOption('icon')
     ..addOption('tools')
     ..addOption('prefix')
     ..addOption('target');
@@ -118,6 +120,8 @@ Future<void> _publish(ArgResults parsed, String server, String key) async {
       'x-app-path-b64': base64Encode(utf8.encode(path)),
       if (parsed['version-code'] != null) 'x-version-code': parsed['version-code'] as String,
       if (parsed['version-name'] != null) 'x-version-name': parsed['version-name'] as String,
+      // 图标键(≤16 字符,如 book/chart/puzzle/star),客户端映射进 AppIcons。
+      if ((parsed['icon'] as String?)?.isNotEmpty ?? false) 'x-icon': parsed['icon'] as String,
       if (toolsFile != null && toolsFile.isNotEmpty)
         'x-tools-b64': base64Encode(File(toolsFile).readAsBytesSync()),
     },
