@@ -7,7 +7,9 @@
 // body takes touches.
 //
 // Interaction: tap left / right, a quick run of taps tickles, drag, sleep
-// after 60 s idle. The overlay twin lives in Kotlin.
+// after 60 s idle. Appearing and vanishing is a magic trick (PetMagic): the
+// pet pops out of its perch in dust, and drains back into it when a panel
+// sends it off. The overlay twin lives in Kotlin.
 
 import 'dart:async';
 import 'dart:math' as math;
@@ -39,6 +41,7 @@ import '../theme/theme.dart';
 import 'pet_bubble.dart';
 import 'pet_download_sheet.dart';
 import 'pet_menu.dart';
+import 'pet_magic.dart';
 import 'pet_perch.dart';
 import 'pet_sprite.dart';
 
@@ -76,6 +79,12 @@ abstract final class PetMetrics {
   /// A tickle: this many taps within [tickleWithin].
   static const tickleTaps = 3;
   static const tickleWithin = Duration(milliseconds: 1100);
+
+  /// The magic poof when it appears, and when it vanishes (PetMagic). The
+  /// vanishing lasts as long as the plain fade ([AppMotion.standard]) so both
+  /// end together; the appearing outlasts it a touch for the pop's settle.
+  static const magicIn = Duration(milliseconds: 280);
+  static const magicOut = Duration(milliseconds: 240);
 }
 
 /// The pet over the chat page. Wrap the page body; capsules inside report
@@ -351,6 +360,24 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
   PetPack? _statePack;
   PetPack? _pinned;
 
+  // ── Magic in / out ──
+  late final AnimationController _magic = AnimationController(vsync: this, duration: PetMetrics.magicIn)
+    ..addListener(_tick)
+    ..addStatusListener(_magicDone);
+
+  /// The spell under way, or null. Cleared on completion so the transform and
+  /// the dust leave the tree until the next one.
+  PetMagic? _magicKind;
+  int _dustSeed = 0;
+
+  /// What `shown` was at the last build: its flip arms a spell.
+  bool _shownLast = false;
+
+  void _magicDone(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    if (mounted && _magicKind != null) setState(() => _magicKind = null);
+  }
+
   /// Where the foot stands now, in stage coordinates (tests).
   @visibleForTesting
   Offset? get foot => _spot == null ? null : _spot!.rect.topLeft + Offset(_footX(_spot!), 0);
@@ -369,6 +396,13 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
   @visibleForTesting
   PetAnimation? get playing => _anim;
   PetAnimation? _anim;
+
+  /// The magic under way (tests).
+  @visibleForTesting
+  PetMagic? get magicKind => _magicKind;
+
+  @visibleForTesting
+  bool get magicPlaying => _magic.isAnimating;
 
   /// In the tree (not parked by a moving global key or a closing route).
   bool _active = true;
@@ -413,6 +447,7 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
     _hop.dispose();
     _walk.dispose();
     _drop.dispose();
+    _magic.dispose();
     super.dispose();
   }
 
@@ -911,9 +946,61 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
     );
     final shown = visible && _ready;
     final fadeDuration = AppMotion.of(context, AppMotion.standard);
+    // The magic: a fresh showing pops out of its perch, a live hiding (a
+    // panel, a hidden hour, a pack swap) drains back into it. A stage going
+    // away with its route never flips here — the page carries the pet off.
+    // Reduced motion (a zero fade) skips the spell, as §2.4 has it.
+    if (shown != _shownLast) {
+      _shownLast = shown;
+      if (fadeDuration == Duration.zero) {
+        _magic
+          ..stop()
+          ..value = 1;
+        _magicKind = null;
+      } else {
+        _magicKind = shown ? PetMagic.enter : PetMagic.exit;
+        _dustSeed++;
+        _magic
+          ..duration = shown ? PetMetrics.magicIn : PetMetrics.magicOut
+          ..forward(from: 0);
+      }
+    }
     // Resume before the first visible fade-in frame; a reversed fade keeps running.
     if (shown) _bodyFullyHidden = false;
     final pauseSprite = !visible && (_bodyFullyHidden || fadeDuration == Duration.zero);
+
+    // The magic's scale and turn, pivoted on the foot: the pet grows out of
+    // its perch and drains back into it. After the trigger above, so the flip
+    // itself lands in the same build's transform and dust.
+    final magicT = _magic.isAnimating ? _magic.value : 1.0;
+    final magicPlaying = _magicKind != null && magicT < 1;
+    final pivot = Offset(pack.anchorX * s, pack.baseline * s);
+    final magicTurn = magicPlaying ? (_magicKind == PetMagic.enter ? (1 - magicT) * -0.4 : magicT * 0.6) : 0.0;
+    final magicScale = !magicPlaying
+        ? 1.0
+        : switch (_magicKind!) {
+            PetMagic.enter => math.max(0.04, AppMotion.popCurve.transform(magicT)),
+            PetMagic.exit => (1 - 0.85 * Curves.easeIn.transform(magicT)).clamp(0.04, 1.0),
+          };
+
+    final sprite = SizedBox.fromSize(
+      key: const ValueKey('pet-body'),
+      size: canvas,
+      child: PetSprite(
+        pack: pack,
+        anim: anim,
+        scale: s,
+        flip: flip,
+        paused: pauseSprite,
+        onShown: () {
+          if (_ready) return;
+          // Shown during a frame: ready right after it.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_ready) setState(() => _ready = true);
+          });
+        },
+      ),
+    );
 
     final body = CompositedTransformFollower(
       link: spot.link,
@@ -950,24 +1037,16 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
               child: _HitRect(
                 rect: hitRect,
                 child: RepaintBoundary(
-                  child: SizedBox.fromSize(
-                    key: const ValueKey('pet-body'),
-                    size: canvas,
-                    child: PetSprite(
-                      pack: pack,
-                      anim: anim,
-                      scale: s,
-                      flip: flip,
-                      paused: pauseSprite,
-                      onShown: () {
-                        if (_ready) return;
-                        // Shown during a frame: ready right after it.
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted && !_ready) setState(() => _ready = true);
-                        });
-                      },
-                    ),
-                  ),
+                  child: magicPlaying
+                      ? Transform(
+                          transform: Matrix4.identity()
+                            ..translateByDouble(pivot.dx, pivot.dy, 0, 1)
+                            ..rotateZ(magicTurn)
+                            ..scaleByDouble(magicScale, magicScale, 1, 1)
+                            ..translateByDouble(-pivot.dx, -pivot.dy, 0, 1),
+                          child: sprite,
+                        )
+                      : sprite,
                 ),
               ),
             ),
@@ -1017,7 +1096,30 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
       ),
     );
 
-    return Stack(clipBehavior: Clip.none, children: [body, speech]);
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        body,
+        // The dust, in the layer's own coordinates: over the body (it pops
+        // out of / drains into the dust), never taking a touch.
+        if (magicPlaying)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: PetDustPainter(
+                  kind: _magicKind!,
+                  t: magicT,
+                  seed: _dustSeed,
+                  body: (spot.rect.topLeft + origin) & canvas,
+                  colors: [scheme.primary, scheme.tertiary],
+                ),
+              ),
+            ),
+          ),
+        speech,
+      ],
+    );
   }
 
   void _armUnhide(PetPrefs prefs) {
