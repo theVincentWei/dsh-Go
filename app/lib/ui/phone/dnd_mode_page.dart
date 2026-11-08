@@ -11,6 +11,7 @@ import '../common/app_dialog.dart';
 import '../common/brief_notice.dart';
 import '../common/expand_reveal.dart';
 import '../common/list_page_row.dart';
+import '../common/local_engine_gate.dart';
 import '../common/risk_notice.dart';
 import '../common/row_marks.dart';
 import '../engine_settings/field_row.dart' show FieldBadge;
@@ -173,6 +174,11 @@ class _PhoneDndPageState extends ConsumerState<PhoneDndPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.phoneDndTitle, child: _page(context));
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     final bg = ref.watch(phoneProvider.select((s) => s.status.background));
     final using = bg.effectiveMode;

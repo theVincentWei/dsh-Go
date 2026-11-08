@@ -15,6 +15,7 @@ import '../../state/app_info.dart';
 import '../../state/connection_state.dart';
 import '../../state/settings_state.dart';
 import '../common/list_page_row.dart';
+import '../common/local_engine_gate.dart';
 import '../engine/diagnostics_export_card.dart';
 import '../engine/engine_screen.dart' show shortRuntimeVersion;
 import '../engine/engine_status.dart';
@@ -63,6 +64,11 @@ class DiagnosticsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.pluginsDiagnostics, child: _page(context, ref));
+  }
+
+  Widget _page(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final runtime = ref.watch(localRuntimeProvider);
     final settings = ref.watch(settingsProvider);

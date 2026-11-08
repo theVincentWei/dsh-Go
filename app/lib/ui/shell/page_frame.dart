@@ -148,7 +148,12 @@ class _AppPageState extends State<AppPage> {
 
   void _measureHeader() {
     final box = _headerKey.currentContext?.findRenderObject();
-    if (box is RenderBox && box.hasSize) _headerHeight = box.size.height.clamp(40.0, 400.0);
+    if (box is RenderBox && box.hasSize) {
+      final h = box.size.height.clamp(40.0, 400.0);
+      // The floating header's height feeds the content spacer and the wash-out
+      // fade: rebuild once when the measurement lands (text scale, subtitle).
+      if (h != _headerHeight) setState(() => _headerHeight = h);
+    }
   }
 
   /// Header opacity: gone once ~60% of it has slid under the bar.
@@ -215,26 +220,47 @@ class _AppPageState extends State<AppPage> {
           body: Stack(
             children: [
               if (compact)
-                // 固定头部:大标题常驻,内容列表在其下滚动(视口顶边裁切)。
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                // 固定头部浮在最上,内容列表通到屏幕顶:滚上来时从标题底下
+                // 经过,被洗掉 —— 与聊天页、会话 tab 同一公式(offset/24)。
+                // 大标题常驻,不再随内容滚走、变淡。
+                Stack(
                   children: [
-                    SizedBox(height: top),
-                    if (header != null)
-                      Padding(
-                        padding: side,
-                        child: KeyedSubtree(key: _headerKey, child: header),
-                      ),
-                    Expanded(
+                    Positioned.fill(
                       child: CustomScrollView(
                         controller: _controller,
                         physics: AppMotion.scrollPhysics(context),
                         slivers: [
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: top + (header != null ? _headerHeight : 0)),
+                          ),
                           for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
                           if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
                         ],
                       ),
                     ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: _offset,
+                        // The same wash-out ramp as the chat list: fully on
+                        // 24px in. (Raw pixels before this.)
+                        builder: (context, offset, child) =>
+                            Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
+                        child: TopFade(height: top + (header != null ? _headerHeight : 0) + 12),
+                      ),
+                    ),
+                    if (header != null)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: top,
+                        child: Padding(
+                          padding: side,
+                          child: KeyedSubtree(key: _headerKey, child: header),
+                        ),
+                      ),
                   ],
                 )
               else
@@ -268,23 +294,25 @@ class _AppPageState extends State<AppPage> {
                     if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
                   ],
                 ),
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                // The veil paints the page's own backdrop, so it spans the page.
-                // Compact pages have no floating bar: just the light top fade.
-                bottom: !compact && widget.solidBar ? 0 : null,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _offset,
-                  // Only once content is under the bar: at rest it would just
-                  // tint the glow.
-                  builder: (context, offset, child) => Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
-                  child: compact || !widget.solidBar
-                      ? TopFade(height: top + 12)
-                      : BackdropVeil.top(height: top, feather: 12),
+              if (!compact)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  // The veil paints the page's own backdrop, so it spans the
+                  // page. Compact pages wash under their floating title
+                  // instead — inside the stack above.
+                  bottom: widget.solidBar ? 0 : null,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _offset,
+                    // Only once content is under the bar: at rest it would just
+                    // tint the glow.
+                    builder: (context, offset, child) => Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
+                    child: !widget.solidBar
+                        ? TopFade(height: top + 12)
+                        : BackdropVeil.top(height: top, feather: 12),
+                  ),
                 ),
-              ),
               if (!compact)
                 Positioned(
                   left: 0,

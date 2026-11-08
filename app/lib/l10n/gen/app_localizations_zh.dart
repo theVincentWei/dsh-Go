@@ -7754,6 +7754,9 @@ class L10nZh extends L10n {
   String get localEnvSignInInstallFirst => '安装后即可登录';
 
   @override
+  String get localEnvGateBody => '这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。';
+
+  @override
   String get marketSectionOfficial => '官方';
 
   @override
@@ -14013,6 +14016,9 @@ class L10nZh extends L10n {
 
   @override
   String get searchKwQuickPanel => '左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口';
+
+  @override
+  String get searchNeedsLocalEngineOn => '启用本机引擎后可用';
 
   @override
   String get shellDeletePermanently => '永久删除';

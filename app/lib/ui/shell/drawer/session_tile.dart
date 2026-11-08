@@ -1,13 +1,17 @@
-// 会话列表的行与分组标签:与设置/技能等页同一套「分组卡片 + 行列表」
-// 解剖 —— 行自身不带卡片底,同一分组的相邻行拼成一张圆角卡(见
-// [SessionGroupPos]),行距、字号、左右内边距与设置行(SettingsTile)一致。
-// 行首是自动区分的头像:DiceBear 图库表情 + 由会话 ID 哈希出的身份色圆盘,
-// 每个会话固定而互不相同。
+// 会话列表的行与分组标签:与设置/技能等页同一套「分组卡片 + 行列表」解剖
+// —— 行自身不带卡片底,同一分组的相邻行拼成一张圆角卡(见
+// [SessionGroupPos])。度量不靠口头约定:行高、图形槽、左右内边距与标题
+// 字号全部来自 [RowAnatomy](common/row_anatomy.dart),与设置行、通用列表行
+// 同源,想漂移也漂不了。行首是自动区分的头像:DiceBear 图库表情 + 由会话
+// ID 哈希出的身份色圆盘,每个会话固定而互不相同。
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../state/session_attention_state.dart';
+import '../../common/row_anatomy.dart';
 import '../../common/status_dot.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
@@ -70,20 +74,21 @@ class SessionTile extends StatelessWidget {
   final bool selecting;
   final bool selected;
 
-  /// 两行行的最小高(设置行 64);无副标题 52。
-  static const height = 64.0;
-  static const heightSingle = 52.0;
+  /// 两行行的最小高;无副标题 [heightSingle]。全部来自共享行解剖
+  /// (RowAnatomy),与设置行同源。
+  static const height = RowAnatomy.rowHeightTwoLines;
+  static const heightSingle = RowAnatomy.rowHeight;
 
-  /// 分组卡离列表左右边 16,行内容离卡边 16 —— 设置行的 inset。
-  static const marginH = 16.0;
-  static const innerH = 16.0;
+  /// 分组卡离列表左右边 16,行内容离卡边 16 —— 与设置行同一份常量。
+  static const marginH = RowAnatomy.insetH;
+  static const innerH = RowAnatomy.insetH;
 
   /// 分组之间的空隙(每组尾行下方)。
   static const groupGap = 16.0;
 
   /// 头像圆盘直径与到标题的间距。
-  static const avatarSize = 32.0;
-  static const avatarGap = 12.0;
+  static const avatarSize = RowAnatomy.glyphSlot;
+  static const avatarGap = RowAnatomy.glyphGap;
 
   /// 文件夹成员的缩进;多选勾选槽宽。
   static const folderIndent = 30.0;
@@ -131,6 +136,7 @@ class SessionTile extends StatelessWidget {
     ].join(l10n.shellSemanticsSeparator);
     // 占位也算两行:加载期间行高锁定,读完不跳变。
     final two = subtitlePending || (subtitle?.isNotEmpty ?? false);
+    final groupGlass = DshSurfaces.of(context).glass(GlassTier.card);
     return Semantics(
       selected: highlighted,
       checked: selecting ? selected : null,
@@ -150,7 +156,13 @@ class SessionTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
-          child: ConstrainedBox(
+          child: CustomPaint(
+            // 组卡的外缘高光:与设置卡同一副描边(hairline + 顶部渐隐的 rim),
+            // 逐行画、按组位裁掉组内接缝,相邻行的描边在同一 x 上接续,看
+            // 起来仍是一整张卡。模糊不加:列表坐在壳层自己的玻璃底上,叠糊
+            // 会出条带(GlassIconButton 文档里同一条规则)。
+            foregroundPainter: _GroupEdgePainter(pos: groupPosition, style: groupGlass, borderRadius: _radius),
+            child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: two ? height : heightSingle),
             child: TweenAnimationBuilder<double>(
               tween: Tween(end: highlighted ? 1 : 0),
@@ -188,7 +200,7 @@ class SessionTile extends StatelessWidget {
                               key: SessionTile.titleKey,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.4, color: scheme.onSurface),
+                              style: RowAnatomy.titleStyle(context, color: scheme.onSurface),
                             ),
                           ),
                         ],
@@ -223,9 +235,10 @@ class SessionTile extends StatelessWidget {
                       padding: const EdgeInsets.only(left: 10),
                       child: Text(
                         time,
-                        style: AppType.tabular(
-                          theme.textTheme.labelSmall!.copyWith(fontSize: 11, color: colors.textTertiary),
-                        ),
+                        // Same small tabular tertiary text a settings row's
+                        // meta uses — the shared anatomy covers the row's
+                        // right end too.
+                        style: AppType.tabular(theme.textTheme.bodySmall!.copyWith(color: colors.textTertiary)),
                       ),
                     ),
                     _ => const SizedBox.shrink(key: ValueKey('none')),
@@ -233,6 +246,7 @@ class SessionTile extends StatelessWidget {
                 ),
                 ],
               ),
+            ),
             ),
           ),
         ),
@@ -485,4 +499,61 @@ class DrawerEyebrow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 组卡的外缘描边:设置卡(GlassSurface)的那副高光 —— 一圈发丝线,加上
+/// 顶部往下的渐变 rim —— 但逐行画,并按 [SessionGroupPos] 裁掉组内的接缝
+/// 边:middle 行只留左右两条,相邻行的描边在同一 x 上接续,一整张卡的
+/// 轮廓不受行虚拟化影响。模糊不在这里做:列表坐在壳层自己的玻璃底上,叠
+/// 糊会出条带(GlassIconButton 文档里同一条规则)。
+class _GroupEdgePainter extends CustomPainter {
+  _GroupEdgePainter({required this.pos, required this.style, required this.borderRadius});
+
+  final SessionGroupPos pos;
+  final GlassStyle style;
+  final BorderRadiusGeometry borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    final width = math.max(style.hairlineWidth, 0.5);
+    final path = RoundedSuperellipseBorder(borderRadius: borderRadius).getOuterPath(rect.deflate(width / 2));
+    canvas.save();
+    // 裁掉与相邻行相对的接缝条(描边画在缩进 width/2 的路径上,笔画外沿
+    // 恰到行缘):first 裁底、middle 裁上下、last 裁顶,side 在同一 x 接续。
+    final clip = switch (pos) {
+      SessionGroupPos.single => null,
+      SessionGroupPos.first => Rect.fromLTWH(0, 0, size.width, size.height - width),
+      SessionGroupPos.middle => Rect.fromLTWH(0, width, size.width, size.height - width * 2),
+      SessionGroupPos.last => Rect.fromLTWH(0, width, size.width, size.height - width),
+    };
+    if (clip != null) canvas.clipRect(clip);
+    if (style.hairline.a > 0) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..color = style.hairline,
+      );
+    }
+    if (style.rim.a > 0) {
+      final highlight = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(width, 0.8)
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [style.rim, style.rim.withValues(alpha: 0)],
+          stops: const [0, 0.45],
+        ).createShader(rect);
+      canvas.drawPath(path, highlight);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_GroupEdgePainter old) =>
+      old.pos != pos || old.style != style || old.borderRadius != borderRadius;
 }

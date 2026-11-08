@@ -15,6 +15,7 @@ import '../../pets/overlay_channel.dart' show petOverlayChannelProvider;
 import '../../pets/pet_overlay_bridge.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/drawer_view_state.dart' show drawerSelectionProvider;
 import '../../state/quick_panel_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
@@ -239,12 +240,16 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
       case DrawerDestination.features:
         unawaited(_selectTab(1));
       case DrawerDestination.web:
+        // The engine's web build: without the engine offered, inert.
+        if (!ref.read(localEngineAvailableProvider)) return;
         _push(const LocalWebScreen());
       case DrawerDestination.remote:
         _push(const RemoteScreen());
       case DrawerDestination.plugins:
         _push(const PluginsScreen());
       case DrawerDestination.engine:
+        // Same gate as the web build.
+        if (!ref.read(localEngineAvailableProvider)) return;
         _push(const EngineScreen());
       case DrawerDestination.settingsSearch:
         _push(const SettingsSearchPage());
@@ -318,8 +323,13 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
         : const <Type, GestureRecognizerFactory>{};
     // The floating pet outside the app hears every pet state.
     ref.listen<void>(petOverlayBridgeProvider, (_, _) {});
-    return SafeModeNoticeListener(
-      child: PhoneStopWatcher(
+    // Safe-mode notices come from the on-device engine; a phone that doesn't
+    // offer it (the 「远程主机」 decline) shows none, so the listener is left out.
+    final localEngine = ref.watch(localEngineAvailableProvider);
+    Widget withSafeModeNotices(Widget child) =>
+        localEngine ? SafeModeNoticeListener(child: child) : child;
+    return withSafeModeNotices(
+      PhoneStopWatcher(
         child: PopScope(
           // 顶层(会话 tab、面板关着、没多选)按系统默认第一次返回就退出,
           // 与改版前一致,无二次提示;其余情况先收面板 / 退多选 / 回会话 tab。

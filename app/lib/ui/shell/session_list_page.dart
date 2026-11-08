@@ -21,6 +21,7 @@ import '../../state/connection_state.dart';
 import '../../state/drawer_view_state.dart';
 import '../../state/engine_control.dart';
 import '../../state/hosts_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/read_list_identity.dart';
 import '../../state/session_attention_state.dart';
 import '../../state/session_deletion_state.dart';
@@ -89,7 +90,7 @@ String sessionTimeText(DateTime at, DateTime now) {
 /// conversations and a floating 新对话. [onOpenChat] runs after the session
 /// selection state is already set: the shell shows the chat over the tabs.
 /// [onDestination] hosts pages that are not tabs (网页版, 远程, 引擎…).
-class SessionListPage extends ConsumerWidget {
+class SessionListPage extends ConsumerStatefulWidget {
   const SessionListPage({
     super.key,
     required this.onOpenChat,
@@ -106,7 +107,31 @@ class SessionListPage extends ConsumerWidget {
   final DateTime? now;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SessionListPage> createState() => _SessionListPageState();
+}
+
+class _SessionListPageState extends ConsumerState<SessionListPage> {
+  /// The list's scroll, 0 at rest → 1 once a card has slid 24px under the
+  /// title row; drives the header's wash-out fade — the chat list's own
+  /// formula (chat_list.dart).
+  final _scrolledUnder = ValueNotifier<double>(0);
+
+  /// The floating header (title row + filters): the list clears exactly it
+  /// (chat's topInset) and the wash-out fade runs this tall.
+  final _headerKey = GlobalKey();
+  double _headerExtent = 0;
+
+  @override
+  void dispose() {
+    _scrolledUnder.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final onOpenChat = widget.onOpenChat;
+    final onDestination = widget.onDestination;
+    final now = widget.now;
     void newChat() {
       ref.read(currentSessionProvider.notifier).select(null);
       onOpenChat();
@@ -146,10 +171,12 @@ class SessionListPage extends ConsumerWidget {
                 child: _TitleRow(onOpenChat: onOpenChat, onDestination: onDestination),
               ),
       ),
-      SafeModeBanner(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-        onDetails: () => onDestination(DrawerDestination.engine),
-      ),
+      // Local-engine only: with the 「远程主机」 decline nothing mounts.
+      if (ref.watch(localEngineAvailableProvider))
+        SafeModeBanner(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          onDetails: () => onDestination(DrawerDestination.engine),
+        ),
       SmoothSize(
         duration: AppMotion.of(context, AppMotion.standard),
         curve: AppMotion.std,
@@ -157,7 +184,16 @@ class SessionListPage extends ConsumerWidget {
         child: const DrawerFilterBar(),
       ),
     ];
-    final list = _EdgeFade(child: _SessionList(onOpenChat: onOpenChat, onDestination: onDestination, now: now));
+    // Where the floating header ends: measured once a frame (the selection
+    // header and the banner change it); the list clears exactly it and the
+    // wash-out fade runs this tall.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = _headerKey.currentContext?.findRenderObject() as RenderBox?;
+      final h = box?.size.height ?? 0;
+      if (h != 0 && h != _headerExtent) setState(() => _headerExtent = h);
+    });
+    final list = _EdgeFade(child: _SessionList(onOpenChat: onOpenChat, onDestination: onDestination, now: now, topInset: _headerExtent));
 
     final content = SafeArea(
       bottom: false,
@@ -175,10 +211,43 @@ class SessionListPage extends ConsumerWidget {
                 body: list,
               ),
             )
-          else ...[
-            ...top,
-            Expanded(child: list),
-          ],
+          else
+            // Chat-style: the list runs behind the floating header, and once
+            // a card has slid 24px under it the header's wash-out fade comes
+            // on (the same extentBefore/24 the chat list reports). At rest
+            // the header floats on the shell glass with nothing under it.
+            Expanded(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (n.depth == 0) _scrolledUnder.value = (n.metrics.extentBefore / 24).clamp(0.0, 1.0);
+                  return false;
+                },
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: list),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: _scrolledUnder,
+                        builder: (context, t, child) => Opacity(opacity: t, child: child),
+                        child: TopFade(height: _headerExtent + 12),
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: KeyedSubtree(
+                        key: _headerKey,
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: top),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           // In multi-select the action bar pins to the bottom, over where
           // the FAB floats.
           Padding(
@@ -381,9 +450,17 @@ class _EdgeFade extends StatelessWidget {
 }
 
 class _SessionList extends ConsumerWidget {
-  const _SessionList({required this.onOpenChat, required this.onDestination, this.now});
+  const _SessionList({
+    required this.onOpenChat,
+    required this.onDestination,
+    this.now,
+    this.topInset = 0,
+  });
 
   final VoidCallback onOpenChat;
+
+  /// Clears the floating header: the first card starts below it.
+  final double topInset;
   final ValueChanged<DrawerDestination> onDestination;
   final DateTime? now;
 
@@ -426,6 +503,7 @@ class _SessionList extends ConsumerWidget {
       now: now,
       onNewChat: onOpenChat,
       readOnly: scope.readOnly,
+      topInset: topInset,
       leading: showBots
           ? DsBotDrawerRow(
               running: scope.bots.any((s) => s.running),

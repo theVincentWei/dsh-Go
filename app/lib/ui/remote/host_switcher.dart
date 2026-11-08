@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../runtime/local_footprint.dart';
-import '../../runtime/local_runtime_supported.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../common/app_sheet.dart';
 import '../common/sheet_title_bar.dart';
 import '../common/status_chip.dart';
@@ -119,8 +119,11 @@ class HostSheet extends ConsumerWidget {
               SheetGroup(
                 margin: const EdgeInsets.fromLTRB(SheetTitleBar.inset, 0, SheetTitleBar.inset, 12),
                 children: [
-                  // iOS has no on-device runtime, so no 本机 to switch to.
-                  if (localRuntimeSupported)
+                  // iOS has no on-device runtime; a phone that declined the
+                  // engine (first run 「远程主机」, or 卸载运行环境) lists
+                  // no 本机 either — the remote hosts page holds the one
+                  // way to install it back.
+                  if (ref.watch(localEngineAvailableProvider))
                     _HostRow(
                       host: HostRef.local,
                       title: l10n.commonThisPhone,

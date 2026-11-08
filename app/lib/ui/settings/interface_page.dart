@@ -14,6 +14,7 @@ import '../../state/quick_panel_state.dart';
 import '../../state/settings_state.dart';
 import '../../state/table_tint_state.dart';
 import '../../state/ui_mode_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../engine_settings/namespace_copy.dart';
 import '../engine_settings/schema_form.dart';
 import '../shell/page_frame.dart';
@@ -48,6 +49,7 @@ class InterfacePage extends ConsumerWidget {
     final tableTint = ref.watch(tableTintProvider);
     final engine = ref.watch(engineSettingsProvider).value;
     final quickPanel = ref.watch(quickPanelProvider);
+    final localEngine = ref.watch(localEngineAvailableProvider);
     return AppPage.list(
       title: l10n.hubSettingsInterface,
       children: [
@@ -76,13 +78,15 @@ class InterfacePage extends ConsumerWidget {
           title: l10n.commonWeb,
           spot: Spots.webApp,
           children: [
-            SettingsTile(
-              spot: Spots.openWeb,
-              // In 网页模式 the web app is the home underneath.
-              onTap: () => mode == UiMode.web
-                  ? Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst)
-                  : Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalWebScreen())),
-            ),
+            // The web app lives on this phone's engine: gone without it.
+            if (localEngine)
+              SettingsTile(
+                spot: Spots.openWeb,
+                // In 网页模式 the web app is the home underneath.
+                onTap: () => mode == UiMode.web
+                    ? Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst)
+                    : Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalWebScreen())),
+              ),
             SettingsSwitchTile(
               spot: Spots.webPhoneLayout,
               subtitle: l10n.hubSettingsWebPhoneLayoutHint,

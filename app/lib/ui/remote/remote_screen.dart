@@ -12,10 +12,12 @@ import '../../runtime/runtime_state.dart';
 import '../../state/app_info.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../common/app_dialog.dart';
 import '../common/ask_ai.dart';
 import '../common/overview_card.dart';
 import '../common/status_chip.dart';
+import '../onboarding/local_install.dart' show openLocalInstall;
 import '../settings/settings_widgets.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -130,6 +132,22 @@ class RemoteScreen extends ConsumerWidget {
             ),
           ],
         ),
+        // The one way back onto 本机 after first run picked a remote host or
+        // the runtime was uninstalled: the same install page the host
+        // switcher opens (its controller clears the decline first thing, so
+        // every local entry returns). iOS has no runtime to install.
+        if (localRuntimeSupported && !ref.watch(localEngineAvailableProvider))
+          SettingsSection(
+            children: [
+              SettingsTile(
+                icon: hostKindIcon(HostKind.local),
+                tinted: false,
+                title: l10n.localEnvInstallTitle,
+                subtitle: l10n.localEnvInstallMessage,
+                onTap: () => unawaited(openLocalInstall(context, useWhenDone: true)),
+              ),
+            ],
+          ),
         SettingsSection(
           title: l10n.remoteOtherMethods,
           children: [
@@ -186,9 +204,12 @@ class _ActiveCard extends ConsumerWidget {
         (error?.kind == HostLinkErrorKind.hostKeyMismatch || error?.kind == HostLinkErrorKind.hostKeyUnverified);
     void reconnect() => ref.read(remoteConnectionProvider(active).notifier).retry();
     final failed = status.phase == HostLinkPhase.failed && error != null;
-    // No runtime on this phone: 本机 is nowhere to go back to.
+    // No runtime on this phone, or the engine was declined (first run went
+    // to a remote host): 本机 is nowhere to go back to.
     final canGoLocal =
-        localRuntimeSupported && ref.watch(localRuntimeProvider.select((s) => !s.status.runtimeMissing));
+        localRuntimeSupported &&
+        ref.watch(localEngineAvailableProvider) &&
+        ref.watch(localRuntimeProvider.select((s) => !s.status.runtimeMissing));
     return OverviewCard(
       leading: OverviewGlyph(hostKindIcon(active.kind), tint: hostKindTint(active.kind)),
       title: Text(l10n.remoteActiveHost(name)),
