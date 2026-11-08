@@ -23900,6 +23900,60 @@ abstract class L10n {
   /// **'基本信息'**
   String get remoteHostBasicInfo;
 
+  /// No description provided for @remoteHostIcon.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备图标'**
+  String get remoteHostIcon;
+
+  /// No description provided for @remoteHostIconHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'标在主机列表和切换器上，纯外观，随时可改'**
+  String get remoteHostIconHelp;
+
+  /// No description provided for @remoteHostIconDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认'**
+  String get remoteHostIconDefault;
+
+  /// No description provided for @remoteHostIconMacMini.
+  ///
+  /// In zh, this message translates to:
+  /// **'Mac mini'**
+  String get remoteHostIconMacMini;
+
+  /// No description provided for @remoteHostIconDesktop.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示器'**
+  String get remoteHostIconDesktop;
+
+  /// No description provided for @remoteHostIconDesktopTower.
+  ///
+  /// In zh, this message translates to:
+  /// **'台式机'**
+  String get remoteHostIconDesktopTower;
+
+  /// No description provided for @remoteHostIconTower.
+  ///
+  /// In zh, this message translates to:
+  /// **'机箱'**
+  String get remoteHostIconTower;
+
+  /// No description provided for @remoteHostIconLaptop.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记本'**
+  String get remoteHostIconLaptop;
+
+  /// No description provided for @remoteHostIconNas.
+  ///
+  /// In zh, this message translates to:
+  /// **'NAS'**
+  String get remoteHostIconNas;
+
   /// No description provided for @remoteHostNameHint.
   ///
   /// In zh, this message translates to:

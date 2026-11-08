@@ -13063,6 +13063,33 @@ class L10nZh extends L10n {
   String get remoteHostBasicInfo => '基本信息';
 
   @override
+  String get remoteHostIcon => '设备图标';
+
+  @override
+  String get remoteHostIconHelp => '标在主机列表和切换器上，纯外观，随时可改';
+
+  @override
+  String get remoteHostIconDefault => '默认';
+
+  @override
+  String get remoteHostIconMacMini => 'Mac mini';
+
+  @override
+  String get remoteHostIconDesktop => '显示器';
+
+  @override
+  String get remoteHostIconDesktopTower => '台式机';
+
+  @override
+  String get remoteHostIconTower => '机箱';
+
+  @override
+  String get remoteHostIconLaptop => '笔记本';
+
+  @override
+  String get remoteHostIconNas => 'NAS';
+
+  @override
   String get remoteHostNameHint => '比如：电脑、家里的 Mac';
 
   @override

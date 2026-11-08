@@ -13711,6 +13711,33 @@ class L10nEn extends L10n {
   String get remoteHostBasicInfo => 'Basic information';
 
   @override
+  String get remoteHostIcon => 'Device icon';
+
+  @override
+  String get remoteHostIconHelp => 'Shown on host lists and the switcher. Cosmetic; change any time.';
+
+  @override
+  String get remoteHostIconDefault => 'Default';
+
+  @override
+  String get remoteHostIconMacMini => 'Mac mini';
+
+  @override
+  String get remoteHostIconDesktop => 'Monitor';
+
+  @override
+  String get remoteHostIconDesktopTower => 'Desktop';
+
+  @override
+  String get remoteHostIconTower => 'Tower';
+
+  @override
+  String get remoteHostIconLaptop => 'Laptop';
+
+  @override
+  String get remoteHostIconNas => 'NAS';
+
+  @override
   String get remoteHostNameHint => 'For example: computer, home Mac';
 
   @override

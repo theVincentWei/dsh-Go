@@ -138,6 +138,7 @@ class HostSheet extends ConsumerWidget {
                       subtitle: 'SSH · ${h.address}',
                       active: active == HostRef.ssh(h.id),
                       onTap: () => pick(HostRef.ssh(h.id)),
+                      icon: sshDeviceIcon(h.icon),
                     ),
                   for (final h in relayHosts)
                     _HostRow(
@@ -192,6 +193,7 @@ class _HostRow extends ConsumerWidget {
     required this.active,
     required this.onTap,
     this.relay,
+    this.icon,
   });
 
   final HostRef host;
@@ -200,6 +202,9 @@ class _HostRow extends ConsumerWidget {
   final bool active;
   final VoidCallback onTap;
   final RelayHost? relay;
+
+  /// The host's own device glyph (「设备图标」); null falls back to the kind default.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -217,7 +222,7 @@ class _HostRow extends ConsumerWidget {
       selected: active,
       inMutuallyExclusiveGroup: true,
       child: SettingsTile(
-        icon: hostKindIcon(host.kind),
+        icon: icon ?? hostKindIcon(host.kind),
         tinted: false,
         title: title,
         subtitle: subtitle,

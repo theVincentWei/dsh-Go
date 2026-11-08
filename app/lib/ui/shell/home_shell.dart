@@ -31,7 +31,7 @@ import '../notify/voice_model_host.dart';
 import '../pets/pet_settings_page.dart';
 import '../phone/phone_stop_watcher.dart';
 import '../plugins/plugins_screen.dart';
-import '../remote/host_status.dart' show watchHostStatus, hostKindTint;
+import '../remote/host_status.dart' show watchHostIcon, watchHostStatus, hostKindTint;
 import '../remote/host_switcher.dart' show showHostSheet;
 import '../remote/network_details_sheet.dart' show showRemoteNetworkDetails;
 import '../remote/remote_screen.dart';
@@ -666,7 +666,7 @@ class _DeviceKey extends ConsumerWidget {
               onLongPress: longPress,
               child: SizedBox.square(
                 dimension: _size,
-                child: Center(child: Icon(AppIcons.remoteHosts, size: 24, color: scheme.onSurface)),
+                child: Center(child: Icon(watchHostIcon(ref, host), size: 24, color: scheme.onSurface)),
               ),
             ),
           ),

@@ -122,7 +122,11 @@ void main() {
   testWidgets('programmatic paste before storage completion is preserved', (tester) async {
     final rig = _Rig();
     await rig.pump(tester, privateKey: true);
-    await tester.ensureVisible(find.text('粘贴'));
+    // The device-icon picker made the form taller: the minimal scroll leaves
+    // the paste button under the fixed bottom bar, so centre it in the
+    // viewport before tapping.
+    await Scrollable.ensureVisible(find.text('粘贴').evaluate().first, alignment: 0.5);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('粘贴'));
     await tester.pumpAndSettle();
     expect(rig.text(tester, rig.key), 'pasted-private-key');

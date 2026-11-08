@@ -79,10 +79,13 @@ abstract final class DshGlyphs {
   static const cloudArrowDown = IconData(0xe04e, fontFamily: family);
   static const cloudSlash = IconData(0xe074, fontFamily: family);
   static const code = IconData(0xe09b, fontFamily: family);
+  static const computerTower = IconData(0xe0eb, fontFamily: family);
   static const copy = IconData(0xe01e, fontFamily: family);
   static const cpu = IconData(0xe077, fontFamily: family);
   static const crownSimple = IconData(0xe0c8, fontFamily: family);
   static const cursorText = IconData(0xe04b, fontFamily: family);
+  static const desktop = IconData(0xe0e9, fontFamily: family);
+  static const desktopTower = IconData(0xe0ea, fontFamily: family);
   static const deviceMobile = IconData(0xe07a, fontFamily: family);
   static const devices = IconData(0xe07b, fontFamily: family);
   static const dotsNine = IconData(0xe00c, fontFamily: family);
@@ -127,6 +130,7 @@ abstract final class DshGlyphs {
   static const handPalm = IconData(0xe0c0, fontFamily: family);
   static const handPointing = IconData(0xe0c3, fontFamily: family);
   static const handTap = IconData(0xe0be, fontFamily: family);
+  static const hardDrives = IconData(0xe0ec, fontFamily: family);
   static const headset = IconData(0xe0e3, fontFamily: family);
   static const heart = IconData(0xe05b, fontFamily: family);
   static const heartFill = IconData(0xe05c, fontFamily: family);
@@ -152,6 +156,7 @@ abstract final class DshGlyphs {
   static const lockSimple = IconData(0xe073, fontFamily: family);
   static const lockSimpleFill = IconData(0xe07f, fontFamily: family);
   static const lockSimpleOpen = IconData(0xe080, fontFamily: family);
+  static const macMini = IconData(0xe0e8, fontFamily: family);  // drawn
   static const magicWand = IconData(0xe0d4, fontFamily: family);
   static const magnifyingGlass = IconData(0xe03a, fontFamily: family);
   static const magnifyingGlassX = IconData(0xe06f, fontFamily: family);  // drawn
@@ -309,10 +314,13 @@ abstract final class DshGlyphs {
     'cloudArrowDown': cloudArrowDown,
     'cloudSlash': cloudSlash,
     'code': code,
+    'computerTower': computerTower,
     'copy': copy,
     'cpu': cpu,
     'crownSimple': crownSimple,
     'cursorText': cursorText,
+    'desktop': desktop,
+    'desktopTower': desktopTower,
     'deviceMobile': deviceMobile,
     'devices': devices,
     'dotsNine': dotsNine,
@@ -357,6 +365,7 @@ abstract final class DshGlyphs {
     'handPalm': handPalm,
     'handPointing': handPointing,
     'handTap': handTap,
+    'hardDrives': hardDrives,
     'headset': headset,
     'heart': heart,
     'heartFill': heartFill,
@@ -382,6 +391,7 @@ abstract final class DshGlyphs {
     'lockSimple': lockSimple,
     'lockSimpleFill': lockSimpleFill,
     'lockSimpleOpen': lockSimpleOpen,
+    'macMini': macMini,
     'magicWand': magicWand,
     'magnifyingGlass': magnifyingGlass,
     'magnifyingGlassX': magnifyingGlassX,

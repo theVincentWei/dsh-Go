@@ -211,7 +211,7 @@ class _ActiveCard extends ConsumerWidget {
         ref.watch(localEngineAvailableProvider) &&
         ref.watch(localRuntimeProvider.select((s) => !s.status.runtimeMissing));
     return OverviewCard(
-      leading: OverviewGlyph(hostKindIcon(active.kind), tint: hostKindTint(active.kind)),
+      leading: OverviewGlyph(watchHostIcon(ref, active), tint: hostKindTint(active.kind)),
       title: Text(l10n.remoteActiveHost(name)),
       subtitle: InkWell(
         onTap: active.kind == HostKind.relay && status.isConnected
@@ -379,7 +379,7 @@ class _SshRow extends ConsumerWidget {
       selected: active,
       inMutuallyExclusiveGroup: true,
       child: SettingsTile(
-        icon: hostKindIcon(HostKind.ssh),
+        icon: sshDeviceIcon(config.icon) ?? hostKindIcon(HostKind.ssh),
         tinted: false,
         title: config.name,
         subtitle: config.address,

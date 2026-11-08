@@ -52,6 +52,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
   final _passphrase = TextEditingController();
 
   late SshAuthMethod _auth = widget.existing?.auth ?? SshAuthMethod.password;
+  late SshHostDevice? _device = widget.existing?.icon;
   late String? _keyType = widget.existing?.hostKeyType;
   late String? _keyFingerprint = widget.existing?.hostKeyFingerprint;
 
@@ -97,6 +98,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
     'user': _user.text,
     'command': _command.text,
     'cwd': _cwd.text,
+    'icon': _device?.name,
     'password': _password.text,
     'privateKey': _privateKey.text,
     'passphrase': _passphrase.text,
@@ -217,6 +219,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       auth: _auth,
       launchCommand: _command.text.trim().isEmpty ? defaultDshLaunchCommand : _command.text.trim(),
       workingDirectory: _cwd.text.trim().isEmpty ? null : _cwd.text.trim(),
+      icon: _device,
       hostKeyType: keyValid ? _keyType : null,
       hostKeyFingerprint: keyValid ? _keyFingerprint : null,
     );
@@ -409,6 +412,23 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
                         controller: _name,
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(hintText: l10n.remoteHostNameHint),
+                      ),
+                    ),
+                    FormFieldBlock(
+                      label: l10n.remoteHostIcon,
+                      helper: l10n.remoteHostIconHelp,
+                      child: _DevicePicker(
+                        selected: _device,
+                        onChanged: (v) => setState(() => _device = v),
+                        choices: [
+                          _DeviceChoice(null, AppIcons.sshHost, l10n.remoteHostIconDefault),
+                          _DeviceChoice(SshHostDevice.macMini, AppIcons.deviceMacMini, l10n.remoteHostIconMacMini),
+                          _DeviceChoice(SshHostDevice.desktop, AppIcons.deviceDesktop, l10n.remoteHostIconDesktop),
+                          _DeviceChoice(SshHostDevice.desktopTower, AppIcons.deviceDesktopTower, l10n.remoteHostIconDesktopTower),
+                          _DeviceChoice(SshHostDevice.computerTower, AppIcons.deviceTower, l10n.remoteHostIconTower),
+                          _DeviceChoice(SshHostDevice.laptop, AppIcons.deviceLaptop, l10n.remoteHostIconLaptop),
+                          _DeviceChoice(SshHostDevice.hardDrives, AppIcons.deviceNas, l10n.remoteHostIconNas),
+                        ],
                       ),
                     ),
                     FormFieldBlock(
@@ -785,5 +805,68 @@ class _Reveal extends StatelessWidget {
     final duration = AppMotion.of(context, AppMotion.standard);
     if (duration == Duration.zero) return child;
     return SmoothSize(duration: duration, curve: AppMotion.std, alignment: Alignment.topCenter, child: child);
+  }
+}
+
+/// One choice in the 「设备图标」 picker.
+class _DeviceChoice {
+  const _DeviceChoice(this.value, this.glyph, this.label);
+
+  /// Null: the default terminal glyph, for hosts that are none of these.
+  final SshHostDevice? value;
+  final IconData glyph;
+  final String label;
+}
+
+/// The device picker: a tile per device, tap to pick, tap the picked one
+/// again to go back to the default terminal glyph.
+class _DevicePicker extends StatelessWidget {
+  const _DevicePicker({required this.selected, required this.choices, required this.onChanged});
+
+  final SshHostDevice? selected;
+  final List<_DeviceChoice> choices;
+  final ValueChanged<SshHostDevice?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(spacing: 8, runSpacing: 8, children: [for (final c in choices) _tile(context, c)]);
+  }
+
+  Widget _tile(BuildContext context, _DeviceChoice c) {
+    final scheme = Theme.of(context).colorScheme;
+    final colors = DshColors.of(context);
+    final isOn = c.value == selected;
+    return Semantics(
+      selected: isOn,
+      button: true,
+      label: c.label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => onChanged(isOn && c.value != null ? null : c.value),
+        child: Container(
+          width: 72,
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isOn ? scheme.primaryContainer : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isOn ? scheme.primary : colors.textTertiary.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            children: [
+              Icon(c.glyph, size: 22, color: isOn ? scheme.onPrimaryContainer : scheme.onSurface),
+              const SizedBox(height: 4),
+              Text(
+                c.label,
+                style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                  color: isOn ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

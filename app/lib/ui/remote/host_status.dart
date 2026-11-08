@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../../remote/ssh/ssh_host_config.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
@@ -47,6 +48,26 @@ IconData hostKindIcon(HostKind kind) => switch (kind) {
   HostKind.ssh => AppIcons.sshHost,
   HostKind.relay => AppIcons.computer,
 };
+
+/// The device glyph an SSH host picked for itself (「设备图标」), null when it
+/// hasn't (saved before the picker, or reset to the default).
+IconData? sshDeviceIcon(SshHostDevice? device) => switch (device) {
+  SshHostDevice.macMini => AppIcons.deviceMacMini,
+  SshHostDevice.desktop => AppIcons.deviceDesktop,
+  SshHostDevice.desktopTower => AppIcons.deviceDesktopTower,
+  SshHostDevice.computerTower => AppIcons.deviceTower,
+  SshHostDevice.laptop => AppIcons.deviceLaptop,
+  SshHostDevice.hardDrives => AppIcons.deviceNas,
+  null => null,
+};
+
+/// The glyph for the active host, reading the SSH config it points at (the
+/// host's own device glyph when it has one, the kind default otherwise).
+IconData watchHostIcon(WidgetRef ref, HostRef host) {
+  if (host.kind != HostKind.ssh) return hostKindIcon(host.kind);
+  final device = ref.watch(hostsProvider.select((s) => s.sshById(host.id)?.icon));
+  return sshDeviceIcon(device) ?? hostKindIcon(host.kind);
+}
 
 /// Identity tint per kind (one of the 8 fixed pairs), so rows read as a set.
 int hostKindTint(HostKind kind) => switch (kind) {
