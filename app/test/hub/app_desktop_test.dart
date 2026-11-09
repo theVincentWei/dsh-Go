@@ -3,8 +3,6 @@
 // 统一加载;动画关闭(goldenApp)时摇摆不转,可 pumpAndSettle。
 
 import 'package:dsh_app/state/hub_layout_state.dart';
-import 'package:dsh_app/ui/applet/applet_home_page.dart'
-    show AppletEntry, appletEntriesProvider;
 import 'package:dsh_app/ui/applet/hub_apps_group.dart'
     show HubInstalledApp, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
@@ -41,7 +39,6 @@ Future<ProviderContainer> _pump(
   List<HubInstalledApp> minis = const <HubInstalledApp>[],
 }) async {
   final ProviderContainer container = ProviderContainer(overrides: [
-    appletEntriesProvider.overrideWith((ref) async => const <AppletEntry>[]),
     hubInstalledProvider.overrideWith((ref) async => minis),
   ]);
   addTearDown(container.dispose);

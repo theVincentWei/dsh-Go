@@ -1,5 +1,5 @@
 // The hub pages' tiles: the two-column feature cards and the phone-desktop
-// icon tiles (feature catalog and the 星河 applet group share the latter).
+// icon tiles (the feature catalog uses the latter).
 
 import 'package:flutter/material.dart';
 
@@ -48,9 +48,9 @@ class TileGrid extends StatelessWidget {
 }
 
 /// 手机桌面式图标瓷贴:46 圆角方形图标在上、名称在下,无卡片底。功能目录的
-/// 功能项与「星河」小程序组共用这一个组件,保证各图标格下的名称是同一种字、
-/// 同一套间距与按压反馈。图标内容([icon])由调用方决定(功能图形、字形或
-/// App 的 icon.png);[badge] 叠在图标右上角(如未读数)。[enabled] 为 false
+/// 功能目录的功能项用这一个组件,保证各图标格下的名称是同一种字、同一套
+/// 间距与按压反馈。图标内容([icon])由调用方决定;[badge] 叠在图标右上角
+/// (如未读数)。[enabled] 为 false
 /// 时整块淡到 45%,不响应点击(要先选中会话的项用)。
 class IconTile extends StatelessWidget {
   const IconTile({
@@ -138,7 +138,7 @@ class IconTile extends StatelessWidget {
 
 /// A group title over a [TileGrid]: small and faint, on the page's 24 column
 /// (with the large title and every group title), 24 above, 8 below. The
-/// feature catalog's sections and the 星河 applet group share this one class.
+/// The feature catalog's sections share this one class.
 class FeatureGroupLabel extends StatelessWidget {
   const FeatureGroupLabel(this.text, {super.key});
 

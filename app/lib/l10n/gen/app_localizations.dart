@@ -2912,66 +2912,6 @@ abstract class L10n {
   /// **'、'**
   String get activityToolListSeparator;
 
-  /// No description provided for @appletEntry.
-  ///
-  /// In zh, this message translates to:
-  /// **'小程序'**
-  String get appletEntry;
-
-  /// No description provided for @searchKwApplet.
-  ///
-  /// In zh, this message translates to:
-  /// **'小程序,应用,容器,applet,mini,app'**
-  String get searchKwApplet;
-
-  /// No description provided for @appletEmpty.
-  ///
-  /// In zh, this message translates to:
-  /// **'还没有小程序。让 Agent 在主机的 ~/dsh/apps 下创建一个（见 ~/dsh/apps/README.md）。'**
-  String get appletEmpty;
-
-  /// No description provided for @appletOffline.
-  ///
-  /// In zh, this message translates to:
-  /// **'未连接主机'**
-  String get appletOffline;
-
-  /// No description provided for @appletLoadFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'加载失败'**
-  String get appletLoadFailed;
-
-  /// No description provided for @appletRetry.
-  ///
-  /// In zh, this message translates to:
-  /// **'重试'**
-  String get appletRetry;
-
-  /// No description provided for @appletMenuRefresh.
-  ///
-  /// In zh, this message translates to:
-  /// **'刷新'**
-  String get appletMenuRefresh;
-
-  /// No description provided for @appletMenuAbout.
-  ///
-  /// In zh, this message translates to:
-  /// **'关于'**
-  String get appletMenuAbout;
-
-  /// No description provided for @appletAboutBody.
-  ///
-  /// In zh, this message translates to:
-  /// **'{appId} · 版本 {version}'**
-  String appletAboutBody(String appId, int version);
-
-  /// No description provided for @appletAllFeatures.
-  ///
-  /// In zh, this message translates to:
-  /// **'全部功能'**
-  String get appletAllFeatures;
-
   /// No description provided for @botsFolderGone.
   ///
   /// In zh, this message translates to:

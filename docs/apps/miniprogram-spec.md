@@ -1,7 +1,6 @@
 # AppHub 小程序规范 v0.2(包格式 · 发布协议 · 生命周期 · 后端 · 数据 · 主题)
 
-> 配套:开发操作手册见 Skill `dsh-go-miniprogram`;契约 v1(引擎侧单文件 HTML 应用)见
-> docs/apps/container-contract.md。本文只管 **Dimina 包类小程序** 的完整生命周期。
+> 配套:开发操作手册见 Skill `dsh-go-miniprogram`。本文只管 **Dimina 包类小程序** 的完整生命周期。
 
 ## 1. 包格式(zip)
 

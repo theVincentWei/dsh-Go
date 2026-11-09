@@ -19,9 +19,6 @@ import '../../notify/apphub_base.dart' show appHubBase;
 import '../../state/bots_state.dart' show dsBotInboxProvider;
 import '../../state/hub_layout_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
-import '../applet/applet_home_page.dart'
-    show AppletEntry, appletEntriesProvider, appletIconWidget;
-import '../applet/applet_screen.dart' show AppletScreen;
 import '../applet/dimina/dimina_host.dart';
 import '../applet/hub_apps_group.dart'
     show HubInstalledApp, hubAppGlyph, hubInstalledProvider;
@@ -202,12 +199,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
       case FeatureAppRef(:final item):
         _touch(app.key);
         _openFeature(item);
-      case AppletAppRef(:final entry):
-        _touch(app.key);
-        if (!context.mounted) return;
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => AppletScreen(appId: entry.id)),
-        );
       case final MiniAppRef mini:
         final bool ok = await DiminaHost.open(
           appId: mini.app.appId,
@@ -342,7 +333,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
   // ---------- 渲染 ----------
 
   Widget _iconFor(HubAppRef app, BuildContext context) => switch (app) {
-        AppletAppRef(:final entry) => appletIconWidget(entry),
         MiniAppRef(:final app) =>
           Icon(hubAppGlyph(app.iconKey), size: 20, color: Theme.of(context).colorScheme.primary),
         FeatureAppRef(:final item) => switch (item.tile) {
@@ -509,15 +499,13 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     final HubLayout layout = ref.watch(hubLayoutProvider);
-    final AsyncValue<List<AppletEntry>> applets = ref.watch(appletEntriesProvider);
     final AsyncValue<List<HubInstalledApp>> minis = ref.watch(hubInstalledProvider);
     final List<FeatureSection> sections =
         widget.sections ?? ref.watch(featureSectionsProvider);
     final HubCatalog catalog = buildHubCatalog(
-      applets: applets.value ?? const <AppletEntry>[],
       minis: minis.value ?? const <HubInstalledApp>[],
       sections: sections,
-      settled: !applets.isLoading && !minis.isLoading,
+      settled: !minis.isLoading,
     );
     _byKey = <String, HubAppRef>{for (final HubAppRef app in catalog.apps) app.key: app};
     _catalogKeys = <String>[for (final HubAppRef app in catalog.apps) app.key];

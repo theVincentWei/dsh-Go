@@ -1619,39 +1619,6 @@ class L10nEn extends L10n {
   String get activityToolListSeparator => ', ';
 
   @override
-  String get appletEntry => 'Mini apps';
-
-  @override
-  String get searchKwApplet => 'mini apps,applet,container,apps,小程序';
-
-  @override
-  String get appletEmpty =>
-      'No mini apps yet. Ask the agent to create one under ~/dsh/apps on the host (see ~/dsh/apps/README.md).';
-
-  @override
-  String get appletOffline => 'Host not connected';
-
-  @override
-  String get appletLoadFailed => 'Failed to load';
-
-  @override
-  String get appletRetry => 'Retry';
-
-  @override
-  String get appletMenuRefresh => 'Refresh';
-
-  @override
-  String get appletMenuAbout => 'About';
-
-  @override
-  String appletAboutBody(String appId, int version) {
-    return '$appId · version $version';
-  }
-
-  @override
-  String get appletAllFeatures => 'All features';
-
-  @override
   String get botsFolderGone => 'This folder is gone';
 
   @override
