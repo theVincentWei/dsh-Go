@@ -40,9 +40,12 @@ class AppletAppRef extends HubAppRef {
 
 /// 一个已安装的 AppHub 小程序(Dimina)。
 class MiniAppRef extends HubAppRef {
-  const MiniAppRef(this.app);
+  const MiniAppRef(this.app, {required this.updateAvailable});
 
   final HubInstalledApp app;
+
+  /// 市场比本机新:桌面瓷贴挂「有更新」小点。
+  final bool updateAvailable;
 
   @override
   String get key => 'mini:${app.appId}';
@@ -101,7 +104,8 @@ HubCatalog buildHubCatalog({
 }) {
   final List<HubAppRef> apps = <HubAppRef>[
     for (final AppletEntry entry in applets) AppletAppRef(entry),
-    for (final HubInstalledApp app in minis) MiniAppRef(app),
+    for (final HubInstalledApp app in minis)
+      MiniAppRef(app, updateAvailable: app.updateAvailable),
     FeatureAppRef(hubMarketFeature()),
     for (final FeatureSection section in sections)
       for (final FeatureItem item in section.items) FeatureAppRef(item),

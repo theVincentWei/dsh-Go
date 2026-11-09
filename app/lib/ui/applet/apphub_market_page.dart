@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
+import 'hub_apps_group.dart' show hubInstalledProvider;
 import '../common/list_page_row.dart';
 import '../theme/theme.dart';
 import '../common/app_sheet.dart' show showAppSheet, kSheetGutter;
@@ -148,6 +149,12 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       setState(() {
         _installed[app.appId] = <String, Object?>{'installed': true, 'versionCode': app.versionCode};
       });
+      // 桌面的已装清单是另一个 provider(带缓存):装/升后让它重查,
+      // 否则重装的图标不回桌面。落沙盒要一点时间,稍后再复核一次。
+      ref.invalidate(hubInstalledProvider);
+      Timer(const Duration(seconds: 6), () {
+        if (mounted) ref.invalidate(hubInstalledProvider);
+      });
     }
     // 首装/升级落沙盒需要一点时间,稍后刷新已装状态。
     Timer(const Duration(seconds: 6), () {
@@ -171,6 +178,7 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
     if (ok != true) return;
     await DiminaHost.uninstall(app.appId, clearUserData: true);
     if (!mounted) return;
+    ref.invalidate(hubInstalledProvider); // 桌面同步摘掉图标(槽位保留)。
     setState(() => _installed[app.appId] = <String, Object?>{'installed': false});
   }
 
