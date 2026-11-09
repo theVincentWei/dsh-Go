@@ -1705,14 +1705,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                             onTitleTap: sessionId == null
                                 ? null
                                 : () => SessionDetailPage.open(context, sessionId, toggle: true),
-                            // 手机也回到顶栏:模型选择常驻右上角(2026-11-09 拍板恢复,
-                            // 宽度由 [_HeaderRow] 与标题胶囊协商,放不下时胶囊先让「· 高」)。
-                            trailing: ModelChip(
-                              key: const ValueKey('header-model'),
-                              selection: sessionId == null ? pendingModel : chat?.model,
-                              onSelected: _modelTarget(),
-                              grouped: true,
-                            ),
+                            // 顶栏模型胶囊:宽窗口照旧常驻;手机窄屏只挂新对话
+                            // (2026-11-09 拍板)——已有对话不占顶栏,模型在输入框
+                            // 脚下(打字时的 [ComposerModelPill]);新对话放不下的
+                            // 让位协商照旧走 [_HeaderRow]。
+                            trailing: !narrow || sessionId == null
+                                ? ModelChip(
+                                    key: const ValueKey('header-model'),
+                                    selection: sessionId == null ? pendingModel : chat?.model,
+                                    onSelected: _modelTarget(),
+                                    grouped: true,
+                                  )
+                                : null,
                           ),
                         ),
                       ),
@@ -1959,6 +1963,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                         hasAttachments: _drafts.isNotEmpty,
                                         leading: AttachButton(onPressed: connected ? _attach : null),
                                         keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
+                                        footer: _composerOpens(context) && !isChild
+                                            ? ComposerModelPill(
+                                                selection: sessionId == null ? pendingModel : chat?.model,
+                                                onSelected: _modelTarget(),
+                                              )
+                                            : null,
                                         tray: ComposerTrayStack.maybe(
                                           quote: switch (quote) {
                                             final quote? => QuoteChip(

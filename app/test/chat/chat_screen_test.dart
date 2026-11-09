@@ -353,6 +353,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.byIcon(AppIcons.newChat), findsNothing);
+    // An open conversation keeps the model at the composer's foot (打字时的
+    // ComposerModelPill); the bar's own chip is new-chat only (2026-11-09 拍板).
+    expect(find.byKey(const ValueKey('header-model')), findsNothing);
   });
 
   testWidgets('while a reply generates, auto-approve sits beside the activity strip, not on a row of its own', (
@@ -396,6 +399,9 @@ void main() {
       await pumpScreen(tester, ChatHarness());
       expect(find.text('早上好'), findsOneWidget);
       expect(find.text('新对话'), findsOneWidget);
+      // A new chat carries the model in the bar's top-right (2026-11-09 拍板);
+      // an open conversation moves it to the composer's foot instead.
+      expect(find.byKey(const ValueKey('header-model')), findsOneWidget);
 
       await tester.tap(find.text(defaultSuggestions.first.label));
       await tester.pump();
@@ -426,7 +432,7 @@ void main() {
       await tester.tap(find.byType(TextField));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.tap(find.byKey(const ValueKey('header-model')));
+      await tester.tap(find.byKey(const ValueKey('composer-model')));
       await pumpFrames(tester, 4);
       expect(find.text('选择模型'), findsOneWidget);
       await tester.tap(find.text('V41 Flash'));

@@ -112,7 +112,7 @@ Future<ChatHarness> _openSheet(
   await tester.tap(find.byType(TextField));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
-  await tester.tap(find.byKey(const ValueKey('header-model')));
+  await tester.tap(find.byKey(const ValueKey('composer-model')));
   await pumpFrames(tester, 8);
   return harness;
 }
@@ -292,7 +292,7 @@ void main() {
       expect(find.text('思考深度'), findsOneWidget, reason: 'thumb first');
       await pumpFrames(tester, 8);
       expect(find.text('思考深度'), findsNothing);
-      expect(find.text('V4 Pro · 最高'), findsOneWidget);
+      expect(find.text('V4 Pro 最高'), findsOneWidget);
     });
 
     testWidgets('cards read as selectable buttons to a screen reader', (tester) async {
