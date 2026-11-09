@@ -295,7 +295,8 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            // tab 底部留间隙,列表卡片不再贴死胶囊(与插件/定时页同款 16)。
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: SegmentedPill<_MarketTab>(
               segments: <PillSegment<_MarketTab>>[
                 PillSegment<_MarketTab>(_MarketTab.apps, l10n.apphubTabApps),
