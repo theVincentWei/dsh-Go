@@ -346,8 +346,12 @@ void main() {
     await pumpScreen(tester, ChatHarness(session: 's1'));
     expect(find.byKey(const ValueKey('chat-settings')), findsOneWidget);
     expect(find.byTooltip('设置'), findsOneWidget);
-    // It is the settings key, not the old 新对话 one.
-    expect(find.byIcon(AppIcons.settings), findsOneWidget);
+    // It is the settings key (the ⓘ that opens 当前对话, d3462b83), not the
+    // old 新对话 one.
+    expect(
+      find.descendant(of: find.byKey(const ValueKey('chat-settings')), matching: find.byIcon(AppIcons.info)),
+      findsOneWidget,
+    );
     expect(find.byIcon(AppIcons.newChat), findsNothing);
   });
 

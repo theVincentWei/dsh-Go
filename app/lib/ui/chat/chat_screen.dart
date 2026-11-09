@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -140,7 +141,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     // (alerts for the conversation on screen, its unread dot, seen marks).
     final pageFlag = ref.read(chatPageOnScreenProvider.notifier);
     _pageFlag = pageFlag;
-    pageFlag.set(current);
+    // Riverpod 禁止 build 相位里改 provider。真机有推入转场:首帧 current
+    // 还是 false、set 恰是空操作,转场结束的依赖更新已在帧外;测试里
+    // ChatScreen 不走路由,首帧即 current,直接 set 会把整个 chat 测试面
+    // 炸红(bdae9c3b 起)。撞上 build 相位就挪到帧尾再设,语义不变。
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && identical(_pageFlag, pageFlag)) pageFlag.set(ModalRoute.isCurrentOf(context) ?? true);
+      });
+    } else {
+      pageFlag.set(current);
+    }
     if (current == _routeCurrent) return;
     _routeCurrent = current;
     if (current) {
