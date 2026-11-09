@@ -383,3 +383,16 @@ class HubLayoutController extends Notifier<HubLayout> {
 
 final hubLayoutProvider =
     NotifierProvider<HubLayoutController, HubLayout>(HubLayoutController.new);
+
+/// 「小程序」桌面是否处于整理模式。UI 态,不持久化;home_shell 的返回键
+/// 分支读它:整理中按返回 = 退出整理(与多选「返回优先」同款先例),
+/// 桌面页 watch 它做实际的进出场。
+class HubEditingController extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool editing) => state = editing;
+}
+
+final hubEditingProvider =
+    NotifierProvider<HubEditingController, bool>(HubEditingController.new);

@@ -1,10 +1,11 @@
-// 「小程序」桌面的应用清单:AppHub 已装小程序、自带功能(含插件面板)与
-// 「应用市场」入口,合成本目录。桌面渲染这份清单 + 布局(hub_layout_state);
-// 分组与排序属于布局,这里只管「有哪些应用」。
+// 「小程序」桌面的应用清单:星河(引擎 HTML 应用)、AppHub 已装小程序、自带
+// 功能(含插件面板)与「应用市场」入口,三源合一本目录。桌面渲染这份清单 +
+// 布局(hub_layout_state);分组与排序属于布局,这里只管「有哪些应用」。
 //
-// 注意 hubInstalledProvider 的落定节奏:市场没连上时 settled 为 true 但小
-// 程序为空——迁移照做,小程序装好后按「新应用」进默认组;源还在加载
-// (settled=false)时页面先不做迁移,免得把本该回原位的应用当新应用。
+// 注意 featureSectionsProvider 与星河/AppHub 两个 FutureProvider 的落定节奏:
+// 市场没连上时 settled 为 true 但小程序为空——迁移照做,小程序装好后按
+// 「新应用」进默认组;源还在加载(settled=false)时页面先不做迁移,免得把
+// 本该回原位的应用当新应用。
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,8 +16,8 @@ import '../features/feature_catalog.dart'
     show FeatureItem, FeatureSection, featureSectionsProvider;
 import '../theme/app_icons.dart' show AppIcons;
 
-/// 桌面上一个可打开的应用。[key] 是布局身份:`mini:<appId>` /
-/// `feature:<id>`;两条命名空间互不相撞,卸载重装、换语言都不挪窝。
+/// 桌面上一个可打开的应用。[key] 是布局身份:`applet:<dir>` / `mini:<appId>` /
+/// `feature:<id>`;三条命名空间互不相撞,卸载重装、换语言都不挪窝。
 sealed class HubAppRef {
   const HubAppRef();
 
@@ -26,9 +27,12 @@ sealed class HubAppRef {
 
 /// 一个已安装的 AppHub 小程序(Dimina)。
 class MiniAppRef extends HubAppRef {
-  const MiniAppRef(this.app);
+  const MiniAppRef(this.app, {required this.updateAvailable});
 
   final HubInstalledApp app;
+
+  /// 市场比本机新:桌面瓷贴挂「有更新」小点。
+  final bool updateAvailable;
 
   @override
   String get key => 'mini:${app.appId}';
@@ -58,10 +62,10 @@ class HubCatalog {
 
   final List<HubAppRef> apps;
 
-  /// 迁移种子:AppHub、原静态目录各一条(应用 key 按展示顺序)。
+  /// 迁移种子:星河、AppHub、原静态目录各一条(应用 key 按展示顺序)。
   final List<({String title, List<String> keys})> seedGroups;
 
-  /// AppHub 动态源落定了(有值或出错)。落定前页面不做迁移。
+  /// 星河与 AppHub 两个动态源都落定了(有值或出错)。落定前页面不做迁移。
   final bool settled;
 
   HubAppRef? byKey(String key) =>
@@ -78,14 +82,15 @@ FeatureItem hubMarketFeature() => FeatureItem.localized(
     );
 
 /// 组装目录。[sections] 一般来自 featureSectionsProvider(含插件面板);
-/// 测试可以直接喂假 sections。
+/// 测试可以直接喂假 sections。种子里「星河」沿用星河组的固定名(非 l10n)。
 HubCatalog buildHubCatalog({
   required List<HubInstalledApp> minis,
   required List<FeatureSection> sections,
   required bool settled,
 }) {
   final List<HubAppRef> apps = <HubAppRef>[
-    for (final HubInstalledApp app in minis) MiniAppRef(app),
+    for (final HubInstalledApp app in minis)
+      MiniAppRef(app, updateAvailable: app.updateAvailable),
     FeatureAppRef(hubMarketFeature()),
     for (final FeatureSection section in sections)
       for (final FeatureItem item in section.items) FeatureAppRef(item),
@@ -110,7 +115,7 @@ HubCatalog buildHubCatalog({
   );
 }
 
-/// 生产目录:两个源都在 provider 里,页面直接 watch。
+/// 生产目录:三个源都在 provider 里,页面直接 watch。
 final hubCatalogProvider = Provider.autoDispose<HubCatalog>((ref) {
   final AsyncValue<List<HubInstalledApp>> minis = ref.watch(hubInstalledProvider);
   final List<FeatureSection> sections = ref.watch(featureSectionsProvider);

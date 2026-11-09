@@ -16,6 +16,7 @@ import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/drawer_view_state.dart' show drawerScopeProvider, drawerSelectionProvider;
+import '../../state/hub_layout_state.dart' show hubEditingProvider;
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../bots/bot_alerts.dart';
 import '../chat/chat_screen.dart';
@@ -271,6 +272,9 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
             if (didPop) return;
             if (selecting) {
               ref.read(drawerSelectionProvider.notifier).end();
+            } else if (_tab == 1 && ref.read(hubEditingProvider)) {
+              // 小程序桌面整理中:返回先退整理,再按才回会话 tab。
+              ref.read(hubEditingProvider.notifier).set(false);
             } else {
               unawaited(_selectTab(0));
             }

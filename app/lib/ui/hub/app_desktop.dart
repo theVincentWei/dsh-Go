@@ -56,7 +56,10 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
     with SingleTickerProviderStateMixin {
   final TextEditingController _search = TextEditingController();
   String _query = '';
-  bool _editing = false;
+
+  /// 编辑态的唯一事实源是 [hubEditingProvider](shell 的返回键分支也要读):
+  /// 这里用 getter 让 build 订阅、手势回调里读取。
+  bool get _editing => ref.watch(hubEditingProvider);
 
   /// 整理模式的摇摆钟摆;图标按 key 加相位差,不必整齐划一。
   late final AnimationController _wiggle = AnimationController(
@@ -86,23 +89,12 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
 
   void _enterEdit() {
     if (_editing) return;
-    setState(() {
-      _editing = true;
-      _query = '';
-      _search.clear();
-    });
-    // 系统开了「移除动画/减少动态效果」就不摇摆(测试环境同样走这条,可 settle)。
-    if (!MediaQuery.of(context).disableAnimations) {
-      _wiggle.repeat();
-    }
+    ref.read(hubEditingProvider.notifier).set(true);
   }
 
   void _exitEdit() {
     if (!_editing) return;
-    setState(() => _editing = false);
-    _wiggle
-      ..stop()
-      ..value = 0;
+    ref.read(hubEditingProvider.notifier).set(false);
   }
 
   // ---------- 拖拽预演 ----------
@@ -209,7 +201,15 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
           updateManifestUrl:
               '$appHubProxyBase/apps/${mini.app.appId}/manifest.json',
         );
-        if (ok) _touch(mini.key);
+        if (ok) {
+          _touch(mini.key);
+          // 升级/兜底首装后版本号变了:重查已装清单,更新角标随之准确。
+          // 落沙盒要一点时间,延迟复核一次(与市场页同款)。
+          ref.invalidate(hubInstalledProvider);
+          Timer(const Duration(seconds: 6), () {
+            if (mounted) ref.invalidate(hubInstalledProvider);
+          });
+        }
     }
   }
 
@@ -431,23 +431,40 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
   }
 
   Widget? _badgeFor(HubAppRef app) {
-    if (app is! FeatureAppRef || app.item.id != 'ds-bot') return null;
-    final int unread = ref.watch(dsBotInboxProvider.select((inbox) => inbox.total));
-    if (unread <= 0) return null;
-    final ThemeData theme = Theme.of(context);
-    return Container(
-      width: 16,
-      height: 16,
-      alignment: Alignment.center,
-      decoration: ShapeDecoration(
-        color: theme.colorScheme.error,
-        shape: const CircleBorder(),
-      ),
-      child: Text(
-        unread > 99 ? '99+' : '$unread',
-        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onError, fontSize: 9, height: 1),
-      ),
-    );
+    if (app is FeatureAppRef && app.item.id == 'ds-bot') {
+      final int unread = ref.watch(dsBotInboxProvider.select((inbox) => inbox.total));
+      if (unread > 0) {
+        final ThemeData theme = Theme.of(context);
+        return Container(
+          width: 16,
+          height: 16,
+          alignment: Alignment.center,
+          decoration: ShapeDecoration(
+            color: theme.colorScheme.error,
+            shape: const CircleBorder(),
+          ),
+          child: Text(
+            unread > 99 ? '99+' : '$unread',
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onError, fontSize: 9, height: 1),
+          ),
+        );
+      }
+    }
+    // 有更新:主色小点(与红色未读计数同一槽位,计数优先)。
+    if (app is MiniAppRef && app.updateAvailable) {
+      final ColorScheme scheme = Theme.of(context).colorScheme;
+      return Container(
+        key: const ValueKey('hub-update-dot'),
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          shape: BoxShape.circle,
+          border: Border.all(color: scheme.surface, width: 1.5),
+        ),
+      );
+    }
+    return null;
   }
 
   Widget _grid(List<String> keys, {required bool mirror, required String? sessionId}) => TileGrid(
@@ -501,6 +518,17 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    // 编辑态进出场:摇摆钟摆随 provider 启停(系统「移除动画」时不摇摆,
+    // 测试环境同样走这条,可 pumpAndSettle)。
+    ref.listen(hubEditingProvider, (bool? _, bool editing) {
+      if (editing && !MediaQuery.of(context).disableAnimations) {
+        _wiggle.repeat();
+      } else if (!editing) {
+        _wiggle
+          ..stop()
+          ..value = 0;
+      }
+    });
     final HubLayout layout = ref.watch(hubLayoutProvider);
     final AsyncValue<List<HubInstalledApp>> minis = ref.watch(hubInstalledProvider);
     final List<FeatureSection> sections =
@@ -543,8 +571,20 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
           },
         ),
       ),
-      // 根路由没有浮动栏(page_frame 的 compact 态),「完成」必须长在内容里。
-      if (_editing) _editBar(),
+      // 编辑态提示行:「完成」已上标题行右端,这里只留一句怎么用的说明。
+      if (_editing)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              l10n.hubEditing,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: DshColors.of(context).textTertiary,
+                  ),
+            ),
+          ),
+        ),
     ];
 
     if (_query.isNotEmpty) {
@@ -597,39 +637,30 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
       if (_editing) children.add(_newGroupButton());
     }
 
-    return AppPage.list(
-      title: l10n.tabMiniApps,
-      children: children,
-    );
-  }
-
-  /// 整理模式的工具行:左侧提示,右侧「完成」。放在内容顶部——根路由是
-  /// page_frame 的 compact 态,浮动栏(顶栏 actions)不存在。
-  Widget _editBar() {
-    final L10n l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(
-              l10n.hubEditing,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: DshColors.of(context).textTertiary,
-                  ),
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        AppPage.list(
+          title: l10n.tabMiniApps,
+          children: children,
+        ),
+        // 编辑态「完成」长在大标题行右端(与 iOS 桌面编辑同款):根路由没有
+        // 浮动栏(page_frame 的 compact 态),叠加是唯一的出处,固定不随滚动。
+        if (_editing)
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 10,
+            right: 24,
+            child: FilledButton.tonalIcon(
+              onPressed: _exitEdit,
+              icon: const Icon(Icons.check, size: 17),
+              label: Text(l10n.commonDone),
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ),
-          FilledButton.tonalIcon(
-            onPressed: _exitEdit,
-            icon: const Icon(Icons.check, size: 17),
-            label: Text(l10n.commonDone),
-            style: FilledButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 

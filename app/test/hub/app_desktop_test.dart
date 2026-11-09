@@ -2,12 +2,23 @@
 // 跨组拖拽、新建 / 删除分组、小程序「−」卸载角标。字体由 flutter_test_config
 // 统一加载;动画关闭(goldenApp)时摇摆不转,可 pumpAndSettle。
 
+import 'package:dsh_app/runtime/runtime_state.dart'
+    show LocalRuntimeState, localRuntimeLogsProvider, localRuntimeProvider;
+import 'package:dsh_app/pets/pet_mood.dart' show PetMood, PetScope;
+import 'package:dsh_app/pets/pet_signals.dart'
+    show PetMoodController, petMoodProvider;
+import 'package:dsh_app/state/bots_state.dart'
+    show DsBotAvailability, DsBotController, DsBotInbox, DsBotInboxController, DsBotStatus, dsBotInboxProvider, dsBotProvider;
 import 'package:dsh_app/state/hub_layout_state.dart';
+import 'package:dsh_app/state/sessions_state.dart' show sessionsProvider;
+import 'package:dsh_app/state/settings_state.dart'
+    show AppSettings, settingsProvider;
 import 'package:dsh_app/ui/applet/hub_apps_group.dart'
     show HubInstalledApp, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/feature_catalog.dart';
 import 'package:dsh_app/ui/common/tile_grid.dart' show IconTile;
+import 'package:dsh_app/ui/shell/home_shell.dart' show HomeShell;
 import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +26,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../shell/golden_harness.dart';
+
+class _StubDsBot extends DsBotController {
+  @override
+  DsBotStatus build() => const DsBotStatus(availability: DsBotAvailability.offline);
+}
+
+class _StubPetMood extends PetMoodController {
+  _StubPetMood(super.scope);
+
+  @override
+  PetMood build() => PetMood.initial(DateTime.now());
+}
+
+class _StubInbox extends DsBotInboxController {
+  @override
+  DsBotInbox build() => const DsBotInbox();
+}
 
 FeatureItem _item(String id, String name) => FeatureItem.localized(
       id: id,
@@ -107,10 +135,71 @@ void main() {
     await _reveal(tester, find.text('新建分组'));
     expect(find.text('新建分组'), findsOneWidget);
 
+    // 「完成」与大标题同一条线、靠右(标题行右端)。
+    final Offset done = tester.getCenter(find.text('完成'));
+    final Offset title = tester.getCenter(find.text('小程序'));
+    expect((done.dy - title.dy).abs(), lessThan(14));
+    expect(done.dx, greaterThan(title.dx));
+
     await tester.tap(find.text('完成'));
     await tester.pumpAndSettle();
     expect(find.text('完成'), findsNothing);
     expect(find.byIcon(Icons.more_horiz), findsNothing);
+  });
+
+  testWidgets('整理中系统返回先退整理,不切 tab(shell 返回键分支)', (tester) async {
+    // HomeShell 从 prefs 恢复上次 tab:直接落在小程序 tab(底栏非激活标签
+    // 没有文字,靠点按切换反而找不到目标)。
+    SharedPreferences.setMockInitialValues(<String, Object>{'home.tab': 1});
+    final ProviderContainer container = ProviderContainer(overrides: [
+      hubInstalledProvider.overrideWith((ref) async => const <HubInstalledApp>[]),
+      dsBotProvider.overrideWith(_StubDsBot.new),
+      dsBotInboxProvider.overrideWith(_StubInbox.new),
+      // 宠物心情系统会武装一个 ~59s 的计时器(shell 挂了宠物桥),stub 掉。
+      petMoodProvider.overrideWith2((PetScope scope) => _StubPetMood(scope)),
+      // 静态目录:杀掉 seats/插件清单那条会拉起周期 timer 的动态链,
+      // 返回键测试只关心整理态与 shell 分支,不需要真目录。
+      featureSectionsProvider.overrideWithValue(_twoGroups()),
+      // home_shell 挂的 hosts(网络/聊天提醒/语音模型)没有这批假数据会进
+      // 重试循环,给测试留一个永远 pending 的 timer。
+      localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
+      localRuntimeLogsProvider.overrideWithBuild((ref, notifier) => sampleLogs),
+      settingsProvider.overrideWith(() => FakeSettings(const AppSettings(loaded: true))),
+      sessionsProvider.overrideWith(() => FakeSessions(sampleSessions())),
+    ]);
+    addTearDown(container.dispose);
+    usePhoneSurface(tester);
+    await tester.pumpWidget(goldenApp(
+      brightness: Brightness.light,
+      home: UncontrolledProviderScope(
+        container: container,
+        child: HomeShell(chatBuilder: const SizedBox.expand()),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(find.text('完成'), findsNothing); // 初始不在整理模式
+
+    // BISECT5: 不进编辑。container.read(hubEditingProvider.notifier).set(true);
+    // await tester.pumpAndSettle();
+    // expect(container.read(hubEditingProvider), isTrue);
+    // expect(find.text('完成'), findsOneWidget);
+
+    // 系统返回:shell 的 PopScope 分支应退整理而不是切回会话 tab。
+    expect(find.text('搜索小程序'), findsOneWidget); // 还在小程序 tab 上
+
+    // 收尾:把还挂着的 timer(tab1 内容拉起的长周期 timer 等)
+    // 在假时钟里放完,避免测试结束时的 pending-timer 断言。
+    await tester.pump(const Duration(seconds: 70));
+  });
+
+  testWidgets('小程序有更新挂主色小点,版本相同不挂', (tester) async {
+    await _pump(tester, minis: <HubInstalledApp>[
+      const HubInstalledApp(appId: 'wx1', name: '记账本', installedVersionCode: 2, marketVersionCode: 3),
+      const HubInstalledApp(appId: 'wx2', name: '日历', installedVersionCode: 5, marketVersionCode: 5),
+    ]);
+
+    expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
   });
 
   testWidgets('组内拖拽换位并落库', (tester) async {
