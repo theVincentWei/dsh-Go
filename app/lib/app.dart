@@ -13,6 +13,8 @@ import 'state/locale_state.dart';
 import 'state/star_prompt.dart' show starPromptGateProvider, starPromptProvider;
 import 'state/tile_style_state.dart';
 import 'ui/chat/dsh_ui/dsh_ui_model.dart' show DshUiAppAccent;
+import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
+import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
 import 'ui/common/side_insets.dart';
 import 'ui/launch/launch_overlay.dart';
 import 'ui/shell/root_gate.dart';
@@ -147,6 +149,13 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
       RefreshRateService.instance.setMode(ref.watch(performancePrefsProvider.select((p) => p.refreshRate))),
     );
     final themeMode = ref.watch(uiThemeModeProvider.select((s) => s.value));
+    // Dimina 容器主题集中同步:宿主当前亮度(跟随系统或用户显式选择),
+    // 所有 DiminaHost.open 调用点缺省用它——调用点无需各自关心主题。
+    DiminaHost.themeDark = switch (themeMode) {
+      ThemeMode.dark => true,
+      ThemeMode.light => false,
+      ThemeMode.system => MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+    };
     final appearance = ref.watch(appearanceProvider);
     final waiting =
         !appearance.loaded ||

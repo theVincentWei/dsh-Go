@@ -10,6 +10,10 @@ final class DiminaHost {
 
   static const MethodChannel _channel = MethodChannel('dsh/dimina');
 
+  /// 宿主当前亮度(集中同步点:app 根组件每次构建刷新,见 app.dart;
+  /// 未显式传 dark 的 open 调用都用它,调用点无需各自关心主题)。
+  static bool themeDark = false;
+
   /// Opens a mini program. With [updateManifestUrl] and no locally installed
   /// package, the SDK performs 无底包首次安装 from the manifest; with a package
   /// installed it still checks the manifest in the background and prepares any
@@ -23,7 +27,7 @@ final class DiminaHost {
     int versionCode = 0,
     String versionName = '',
     String? updateManifestUrl,
-    bool dark = false,
+    bool? dark,
   }) async =>
       await _channel.invokeMethod<bool>('open', <String, Object?>{
         'appId': appId,
@@ -32,7 +36,7 @@ final class DiminaHost {
         'versionCode': versionCode,
         'versionName': versionName,
         'updateManifestUrl': ?updateManifestUrl,
-        'dark': dark,
+        'dark': dark ?? themeDark,
       }) ??
       false;
 
