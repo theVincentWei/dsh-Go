@@ -4820,6 +4820,7 @@
   "hubRecentGroup": "最近使用",
   "hubEditing": "整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理",
   "hubDefaultGroup": "应用",
+  "hubConversationTools": "本对话",
   "hubNewGroup": "新建分组",
   "hubGroupName": "分组名称",
   "hubRename": "重命名",

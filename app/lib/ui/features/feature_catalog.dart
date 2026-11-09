@@ -336,6 +336,33 @@ final featureSections = <FeatureSection>[
   ], id: settingsFeatureSection),
 ];
 
+/// 「文件」与「终端」：当前对话页的两个工具，也是「小程序」桌面上的两枚原生
+/// 应用（2026-11-09 拍板：不做成 Dimina 小程序，走 Flutter 原生页；两处共用
+/// 这一份定义，id 与副标题都不另起一套）。
+final filesFeature = FeatureItem.localized(
+  id: 'files',
+  title: (l10n) => l10n.catalogFiles,
+  summary: (l10n) => l10n.catalogFilesSummary,
+  icon: AppIcons.files,
+  tile: FeatureKind.files,
+  needsSession: true,
+  native: (id) => WorkspaceFilesPage(sessionId: _session(id)),
+);
+
+final terminalFeature = FeatureItem.localized(
+  id: 'terminal',
+  title: (l10n) => l10n.catalogTerminal,
+  summary: (l10n) => l10n.catalogTerminalSummary,
+  icon: AppIcons.terminal,
+  tile: FeatureKind.terminal,
+  needsSession: true,
+  native: (id) => TerminalPage(sessionId: _session(id)),
+);
+
+/// 「小程序」桌面上的会话工具：文件与终端，与当前对话页共用上面的定义。
+/// 桌面上按「本对话」分组落座（新装由目录种子给出，老布局按新应用进默认组）。
+final hubConversationTools = <FeatureItem>[filesFeature, terminalFeature];
+
 /// 当前对话的工具：已不在全部功能（2026-11-07 拍板），住进聊天页右上角
 /// ⓘ › 当前对话（`ui/chat/current_chat_page.dart`）。id 仍是插件 `open`
 /// 动作与 ui.json 的合法目标：`UiSchema.pages`、`native_taps.dart` 都认这份数据。
@@ -348,24 +375,9 @@ final currentChatTools = <FeatureItem>[
     needsSession: true,
     native: (id) => SessionArtifactsPage(sessionId: _session(id)),
   ),
-  FeatureItem.localized(
-    id: 'files',
-    title: (l10n) => l10n.catalogFiles,
-    summary: (l10n) => l10n.catalogFilesSummary,
-    icon: AppIcons.files,
-    tile: FeatureKind.files,
-    needsSession: true,
-    native: (id) => WorkspaceFilesPage(sessionId: _session(id)),
-  ),
-  FeatureItem.localized(
-    id: 'terminal',
-    title: (l10n) => l10n.catalogTerminal,
-    summary: (l10n) => l10n.catalogTerminalSummary,
-    icon: AppIcons.terminal,
-    tile: FeatureKind.terminal,
-    needsSession: true,
-    native: (id) => TerminalPage(sessionId: _session(id)),
-  ),
+  // 文件与终端同时是「小程序」桌面上的原生应用（见 hubConversationTools）。
+  filesFeature,
+  terminalFeature,
   FeatureItem.localized(
     id: 'export',
     title: (l10n) => l10n.catalogExport,

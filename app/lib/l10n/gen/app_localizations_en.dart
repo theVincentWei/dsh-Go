@@ -7905,6 +7905,9 @@ class L10nEn extends L10n {
   String get hubDefaultGroup => 'Apps';
 
   @override
+  String get hubConversationTools => 'This chat';
+
+  @override
   String get hubNewGroup => 'New group';
 
   @override

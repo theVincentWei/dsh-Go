@@ -2268,6 +2268,7 @@
   "hubRecentGroup": "Recently used",
   "hubEditing": "Editing: drag icons to move them across groups; tap ⋯ by a group's name to manage it",
   "hubDefaultGroup": "Apps",
+  "hubConversationTools": "This chat",
   "hubNewGroup": "New group",
   "hubGroupName": "Group name",
   "hubRename": "Rename",

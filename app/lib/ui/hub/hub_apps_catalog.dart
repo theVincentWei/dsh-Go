@@ -13,7 +13,7 @@ import '../../l10n/l10n.dart';
 import '../applet/apphub_market_page.dart' show ApphubMarketPage;
 import '../applet/hub_apps_group.dart' show HubInstalledApp, hubInstalledProvider;
 import '../features/feature_catalog.dart'
-    show FeatureItem, FeatureSection, featureSectionsProvider;
+    show FeatureItem, FeatureSection, featureSectionsProvider, hubConversationTools;
 import '../theme/app_icons.dart' show AppIcons;
 
 /// 桌面上一个可打开的应用。[key] 是布局身份:`applet:<dir>` / `mini:<appId>` /
@@ -92,12 +92,20 @@ HubCatalog buildHubCatalog({
     for (final HubInstalledApp app in minis)
       MiniAppRef(app, updateAvailable: app.updateAvailable),
     FeatureAppRef(hubMarketFeature()),
+    // 「文件」「终端」是 Flutter 原生页,这里当普通应用上桌面(与当前对话页
+    // 同一份定义,不是 Dimina 小程序)。
+    for (final FeatureItem item in hubConversationTools) FeatureAppRef(item),
     for (final FeatureSection section in sections)
       for (final FeatureItem item in section.items) FeatureAppRef(item),
   ];
   return HubCatalog(
     apps: apps,
     seedGroups: <({String title, List<String> keys})>[
+      // 会话工具排在最前:文件 / 终端是桌面上的「本对话」组。
+      (
+        title: appL10n.hubConversationTools,
+        keys: <String>[for (final FeatureItem item in hubConversationTools) 'feature:${item.id}'],
+      ),
       (
         title: appL10n.catalogAppHubSection,
         keys: <String>[

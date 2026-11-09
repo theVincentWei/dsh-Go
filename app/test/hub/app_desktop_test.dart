@@ -10,12 +10,13 @@ import 'package:dsh_app/pets/pet_signals.dart'
 import 'package:dsh_app/state/bots_state.dart'
     show DsBotAvailability, DsBotController, DsBotInbox, DsBotInboxController, DsBotStatus, dsBotInboxProvider, dsBotProvider;
 import 'package:dsh_app/state/hub_layout_state.dart';
-import 'package:dsh_app/state/sessions_state.dart' show sessionsProvider;
+import 'package:dsh_app/state/sessions_state.dart' show currentSessionProvider, sessionsProvider;
 import 'package:dsh_app/state/settings_state.dart'
     show AppSettings, settingsProvider;
 import 'package:dsh_app/ui/applet/hub_apps_group.dart'
     show HubInstalledApp, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
+import 'package:dsh_app/ui/hub/hub_apps_catalog.dart' show HubCatalog, buildHubCatalog;
 import 'package:dsh_app/ui/features/feature_catalog.dart';
 import 'package:dsh_app/ui/common/tile_grid.dart' show IconTile;
 import 'package:dsh_app/ui/shell/home_shell.dart' show HomeShell;
@@ -113,6 +114,42 @@ void main() {
     expect(find.text('应用市场'), findsOneWidget); // AppHub 组里的市场入口
     expect(find.text('最近使用'), findsNothing);
     expect(find.text('完成'), findsNothing); // 默认不在整理模式
+  });
+
+  test('目录:文件/终端以原生应用身份进桌面,种子组「本对话」排最前', () {
+    final HubCatalog catalog = buildHubCatalog(
+      minis: const <HubInstalledApp>[],
+      sections: _twoGroups(),
+      settled: true,
+    );
+
+    expect(
+      catalog.apps.map((app) => app.key),
+      containsAll(<String>['feature:files', 'feature:terminal']),
+    );
+    // 同一枚应用不重复进目录(同名 feature 组里没有它们,key 也不撞)。
+    expect(catalog.apps.map((app) => app.key).toSet().length, catalog.apps.length);
+    expect(catalog.seedGroups.first.title, '本对话');
+    expect(catalog.seedGroups.first.keys, <String>['feature:files', 'feature:terminal']);
+  });
+
+  testWidgets('文件与终端是两个桌面应用:有当前对话才可点', (tester) async {
+    final ProviderContainer container = await _pump(tester, sections: _twoGroups());
+
+    expect(find.text('本对话'), findsOneWidget);
+    expect(find.widgetWithText(IconTile, '文件'), findsOneWidget);
+    expect(find.widgetWithText(IconTile, '终端'), findsOneWidget);
+
+    // 没打开对话:needsSession 的原生应用置灰,点不开。
+    IconTile tile(String label) => tester.widget<IconTile>(find.widgetWithText(IconTile, label));
+    expect(tile('文件').enabled, isFalse);
+    expect(tile('终端').enabled, isFalse);
+
+    // 选了对话(从「当前对话」页或会话列表进来都是这个状态)后就能点。
+    container.read(currentSessionProvider.notifier).select('s1');
+    await tester.pumpAndSettle();
+    expect(tile('文件').enabled, isTrue);
+    expect(tile('终端').enabled, isTrue);
   });
 
   testWidgets('搜索:平铺结果,分组头消失', (tester) async {
@@ -228,6 +265,11 @@ void main() {
 
   testWidgets('跨组拖拽:甲从组A落到组B的丁前', (tester) async {
     final ProviderContainer container = await _pump(tester, sections: _twoGroups());
+    // 桌面多了「本对话」组,844 高的画布上「组B」会落到折叠线以下(拖动落点
+    // 在视口外就收不到 onMove)。这条测的是跨组落表,用更高的画布让起点与
+    // 落点同屏。
+    tester.view.physicalSize = const Size(390 * 2, 1000 * 2);
+    await tester.pumpAndSettle();
     await _enterEdit(tester, '甲');
 
     final Offset from = tester.getCenter(find.text('甲'));
@@ -265,8 +307,8 @@ void main() {
     await _pump(tester, sections: _twoGroups());
     await _enterEdit(tester, '甲');
 
-    // 分组头从上到下:AppHub、组A、组B、应用;组A 的菜单是第 1 个。
-    await tester.tap(find.byIcon(Icons.more_horiz).at(1));
+    // 分组头从上到下:本对话、AppHub、组A、组B、应用;组A 的菜单是第 2 个。
+    await tester.tap(find.byIcon(Icons.more_horiz).at(2));
     await tester.pumpAndSettle();
     await tester.tap(find.text('删除分组'));
     await tester.pumpAndSettle();

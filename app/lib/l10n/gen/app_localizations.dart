@@ -13700,6 +13700,12 @@ abstract class L10n {
   /// **'应用'**
   String get hubDefaultGroup;
 
+  /// No description provided for @hubConversationTools.
+  ///
+  /// In zh, this message translates to:
+  /// **'本对话'**
+  String get hubConversationTools;
+
   /// No description provided for @hubNewGroup.
   ///
   /// In zh, this message translates to:

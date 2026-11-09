@@ -7476,6 +7476,9 @@ class L10nZh extends L10n {
   String get hubDefaultGroup => '应用';
 
   @override
+  String get hubConversationTools => '本对话';
+
+  @override
   String get hubNewGroup => '新建分组';
 
   @override
