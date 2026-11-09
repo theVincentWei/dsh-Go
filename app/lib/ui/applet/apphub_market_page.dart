@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
+import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import '../common/list_page_row.dart';
 import '../theme/theme.dart';
@@ -64,18 +65,33 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
   List<_HubApp> _apps = const <_HubApp>[];
   bool _loaded = false;
   bool _failed = false;
+  StreamSubscription<DiminaUpdateEvent>? _updateSub;
   final Map<String, Map<String, Object?>?> _installed = <String, Map<String, Object?>?>{};
 
   @override
   void initState() {
     super.initState();
+    // 容器升级链路事件(installed/applied/declined/failed/ready)→ 按真实状态刷新。
+    _updateSub = DiminaHost.updateEvents.listen(_onUpdateEvent);
     unawaited(_load());
   }
 
   @override
   void dispose() {
+    _updateSub?.cancel();
     _search.dispose();
     super.dispose();
+  }
+
+  /// 升级里程碑回传后重查该应用的真实已装版本:升级确认/生效在容器弹窗里完成,
+  /// Flutter 只认 config.json 的事实,不做乐观推断。
+  Future<void> _onUpdateEvent(DiminaUpdateEvent event) async {
+    try {
+      _installed[event.appId] = await DiminaHost.installed(event.appId);
+    } catch (_) {
+      // 查询失败保留旧值,下一次页面加载/定时刷新兜底。
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -138,15 +154,19 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       appId: app.appId,
       name: app.name,
       dark: Theme.of(context).brightness == Brightness.dark,
-      // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
-      updateManifestUrl: '$appHubBase/apps/${app.appId}/manifest.json',
+      // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。必须走固定端口
+      // 反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被重连换掉。
+      updateManifestUrl: '$appHubProxyBase/apps/${app.appId}/manifest.json',
     );
-    // 装完即把本地状态置为已装:从容器返回时按钮直接落成「打开」,
-    // 不必等下一次进页面的全量核对。
+    // 装完即把状态置为已装;版本号不做乐观改写——升级要等用户在容器弹窗里确认
+    // 生效后,由升级事件回传/定时核对拿到真实 versionCode。
     if (ok && mounted) {
       ref.read(hubLayoutProvider.notifier).touch('mini:${app.appId}');
       setState(() {
-        _installed[app.appId] = <String, Object?>{'installed': true, 'versionCode': app.versionCode};
+        _installed[app.appId] = <String, Object?>{
+          ...?_installed[app.appId],
+          'installed': true,
+        };
       });
     }
     // 首装/升级落沙盒需要一点时间,稍后刷新已装状态。

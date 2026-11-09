@@ -6,6 +6,7 @@ import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import com.didi.dimina.Dimina
+import com.didi.dimina.MiniProgramUpdateListener
 import com.didi.dimina.bean.MiniProgram
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -66,6 +67,49 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
         // 同步主题覆写:否则菜单面板读 isCapsuleThemeDark() 拿到 null→浅色,
         // 而胶囊(init 配置)已是深色——两处不一致。
         Dimina.getInstance().updateCapsuleTheme(dark)
+        // 框架升级链路:升级的检测/下载/弹窗确认/换包全在容器侧,小程序不参与;
+        // 这里只把升级里程碑转发给 Flutter(市场页按真实状态刷新,不再轮询猜)。
+        Dimina.getInstance().setOnMiniProgramUpdateListener(object : MiniProgramUpdateListener {
+            override fun onUpdateReady(appId: String, versionCode: Int, versionName: String) =
+                forwardUpdateEvent("ready", appId, versionCode, versionName, null)
+
+            override fun onUpdateDeclined(appId: String, versionCode: Int) =
+                forwardUpdateEvent("declined", appId, versionCode, "", null)
+
+            override fun onUpdateApplied(appId: String, versionCode: Int, versionName: String) =
+                forwardUpdateEvent("applied", appId, versionCode, versionName, null)
+
+            override fun onUpdateFailed(appId: String, message: String?) =
+                forwardUpdateEvent("failed", appId, 0, "", message)
+
+            override fun onInstalled(appId: String, versionCode: Int, versionName: String) =
+                forwardUpdateEvent("installed", appId, versionCode, versionName, null)
+        })
+    }
+
+    private fun forwardUpdateEvent(
+        event: String,
+        appId: String,
+        versionCode: Int,
+        versionName: String,
+        message: String?,
+    ) {
+        main.post {
+            try {
+                channel.invokeMethod(
+                    "onUpdateEvent",
+                    mapOf(
+                        "event" to event,
+                        "appId" to appId,
+                        "versionCode" to versionCode,
+                        "versionName" to versionName,
+                        "message" to message,
+                    ),
+                )
+            } catch (_: Throwable) {
+                // Dart 侧没挂 handler 或引擎正在销毁:静默,只丢这一次。
+            }
+        }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

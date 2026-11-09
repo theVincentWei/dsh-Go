@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
-import '../../notify/apphub_base.dart' show appHubBase;
+import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/bots_state.dart' show dsBotInboxProvider;
 import '../../state/hub_layout_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
@@ -204,7 +204,10 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
           appId: mini.app.appId,
           name: mini.app.name,
           // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
-          updateManifestUrl: '$appHubBase/apps/${mini.app.appId}/manifest.json',
+          // 固定端口反代:原生容器拿到 URL 后才发请求,动态隧道端口可能
+          // 已被重连换掉(见 apphub_proxy.dart)。
+          updateManifestUrl:
+              '$appHubProxyBase/apps/${mini.app.appId}/manifest.json',
         );
         if (ok) _touch(mini.key);
     }

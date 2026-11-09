@@ -3,7 +3,29 @@
 /// feat/apphub-dimina; the real market surface lands with 容器契约 v2.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/services.dart';
+
+/// 容器框架升级链路的事件(升级由框架全权负责,小程序不参与):
+/// ready=新包下载校验完毕待确认;declined=用户选了暂不升级;
+/// applied=用户确认且新包已激活(容器随后冷重启);failed=下载/校验/安装失败;
+/// installed=无底包首装完成。
+final class DiminaUpdateEvent {
+  const DiminaUpdateEvent({
+    required this.event,
+    required this.appId,
+    this.versionCode,
+    this.versionName = '',
+    this.message,
+  });
+
+  final String event;
+  final String appId;
+  final int? versionCode;
+  final String versionName;
+  final String? message;
+}
 
 final class DiminaHost {
   const DiminaHost._();
@@ -13,6 +35,31 @@ final class DiminaHost {
   /// 宿主当前亮度(集中同步点:app 根组件每次构建刷新,见 app.dart;
   /// 未显式传 dark 的 open 调用都用它,调用点无需各自关心主题)。
   static bool themeDark = false;
+
+  static final StreamController<DiminaUpdateEvent> _updateEvents =
+      StreamController<DiminaUpdateEvent>.broadcast();
+  static bool _nativeHandlerInstalled = false;
+
+  /// 升级链路事件广播流:市场页/Hub 订阅后按真实状态刷新,不必轮询。
+  static Stream<DiminaUpdateEvent> get updateEvents => _updateEvents.stream;
+
+  static void _ensureNativeEventHandler() {
+    if (_nativeHandlerInstalled) return;
+    _nativeHandlerInstalled = true;
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onUpdateEvent' && call.arguments is Map) {
+        final Map args = call.arguments as Map;
+        _updateEvents.add(DiminaUpdateEvent(
+          event: args['event'] as String? ?? '',
+          appId: args['appId'] as String? ?? '',
+          versionCode: (args['versionCode'] as num?)?.toInt(),
+          versionName: args['versionName'] as String? ?? '',
+          message: args['message'] as String?,
+        ));
+      }
+      return null;
+    });
+  }
 
   /// Opens a mini program. With [updateManifestUrl] and no locally installed
   /// package, the SDK performs 无底包首次安装 from the manifest; with a package
@@ -28,17 +75,20 @@ final class DiminaHost {
     String versionName = '',
     String? updateManifestUrl,
     bool? dark,
-  }) async =>
-      await _channel.invokeMethod<bool>('open', <String, Object?>{
-        'appId': appId,
-        'name': name,
-        'path': ?path,
-        'versionCode': versionCode,
-        'versionName': versionName,
-        'updateManifestUrl': ?updateManifestUrl,
-        'dark': dark ?? themeDark,
-      }) ??
-      false;
+  }) async {
+    // 首次 open 前挂好原生→Dart 的事件通道(升级里程碑回传,见 updateEvents)。
+    _ensureNativeEventHandler();
+    return await _channel.invokeMethod<bool>('open', <String, Object?>{
+      'appId': appId,
+      'name': name,
+      'path': ?path,
+      'versionCode': versionCode,
+      'versionName': versionName,
+      'updateManifestUrl': ?updateManifestUrl,
+      'dark': dark ?? themeDark,
+    }) ??
+        false;
+  }
 
   /// Closes the running mini program (lifecycle-safe close, main thread).
   static Future<bool> close(String appId) async =>

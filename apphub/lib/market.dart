@@ -320,6 +320,16 @@ class Market {
     final donor = await store.versionBelow(appId, latest['version_code'] as int);
     if (donor == null) return _json(<String, Object?>{'error': 'only one version'}, 409);
     final int newCode = (latest['version_code'] as int) + 1;
+    // 下载 URL 按 <appId>-<versionCode>.zip 拼,所以必须把捐体 zip 落到新
+    // 版本号的文件名下——只插版本行复用旧路径的话,客户端拉包 404。
+    final File donorFile = File(donor['zip_path'] as String);
+    final File rollbackTarget = File(cfg.packagePath(appId, newCode));
+    if (!await rollbackTarget.exists()) {
+      if (!await donorFile.exists()) {
+        return _json(<String, Object?>{'error': 'donor package file missing'}, 500);
+      }
+      await donorFile.copy(rollbackTarget.path);
+    }
     await store.insertVersion(
       appId: appId,
       versionCode: newCode,
