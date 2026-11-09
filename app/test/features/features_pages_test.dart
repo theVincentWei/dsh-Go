@@ -9,9 +9,11 @@ import 'package:dsh_app/state/features_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/common/app_sheet.dart';
+import 'package:dsh_app/ui/common/sheet_title_bar.dart';
 import 'package:dsh_app/ui/remote/remote_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
 import 'package:dsh_app/ui/chat/current_chat_page.dart';
+import 'package:dsh_app/ui/chat/widgets/plus_panel.dart';
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
 import 'package:dsh_app/ui/features/permission_page.dart';
@@ -27,6 +29,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../chat/support/harness.dart';
 import '../plugins/support/fake_plugin_host.dart';
+import '../phone/support.dart';
 import '../shell/golden_harness.dart' show FakeRuntime, runningStatus;
 
 final _now = DateTime(2026, 10, 24, 15, 20);
@@ -466,6 +469,59 @@ void main() {
       }
       expect(find.text('本对话'), findsOneWidget);
       expect(find.text('手机操控'), findsOneWidget);
+    });
+
+    testWidgets('当前对话页:权限进真路由(页面自己的头),返回回上一级', (tester) async {
+      carrier.handlers['permissionPresets/catalog'] = (_) => {
+        'options': [
+          {'value': 'read-only', 'name': 'read-only'},
+          {'value': 'workspace-write', 'name': 'workspace-write'},
+        ],
+        'defaultPreset': 'workspace-write',
+      };
+      carrier.handlers['session/projections'] = (_) => {
+        'kind': 'sequenced',
+        'asOfSeq': 3,
+        'values': {
+          'permissions': {'currentValue': 'read-only'},
+        },
+      };
+      await _pump(tester, const CurrentChatPage(sessionId: 's1'), overrides: live());
+      await _reveal(tester, find.text('权限'));
+      await tester.tap(find.text('权限'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SessionPermissionPage), findsOneWidget);
+      // 真路由:不再是当前对话页里的页内换页。
+      expect(ModalRoute.of(tester.element(find.byType(SessionPermissionPage)))!.isFirst, isFalse);
+      // 头只有页面自己的:弹层标题行不再画;大标题(滚上去后换栏标题)照常交接。
+      expect(find.byType(SheetTitleBar), findsNothing);
+      expect(find.text('本对话的权限'), findsWidgets);
+      // 返回手势/返回键:回上一级,当前对话页不退出。
+      expect(tester.binding.handlePopRoute(), completion(isTrue));
+      await tester.pumpAndSettle();
+      expect(find.byType(SessionPermissionPage), findsNothing);
+      expect(find.text('本对话'), findsOneWidget);
+    });
+
+    testWidgets('当前对话页:确认方式进真路由,选完留在本页,返回回上一级', (tester) async {
+      final native = FakePhoneNative(status: phoneStatus(enabled: true))..install();
+      await _pump(tester, const CurrentChatPage(sessionId: 's1'), overrides: live());
+      await tester.pumpAndSettle();
+      await _reveal(tester, find.text('确认方式'));
+      await tester.tap(find.text('确认方式'));
+      await tester.pumpAndSettle();
+      // 根上的行 + 新页的大标题:头只有页面自己的,弹层标题行不再画。
+      expect(find.text('确认方式'), findsNWidgets(2));
+      expect(find.byType(SheetTitleBar), findsNothing);
+      await tester.tap(find.text('本任务免确认'));
+      await tester.pumpAndSettle();
+      // 页面宿主里选完不弹走:留在本页,勾选就在眼前(弹层里才选完即回)。
+      expect(find.text('本任务免确认'), findsWidgets);
+      expect((native.callsOf('setPolicies').single.arguments as Map)['confirmMode'], 'task');
+      expect(tester.binding.handlePopRoute(), completion(isTrue));
+      await tester.pumpAndSettle();
+      expect(find.text('确认方式'), findsOneWidget);
+      expect(find.text('本对话'), findsOneWidget);
     });
   });
 
