@@ -158,6 +158,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     versionCode = call.argument<Number>("versionCode")?.toInt() ?: 0,
                     versionName = call.argument<String>("versionName") ?: "",
                     updateManifestUrl = call.argument<String>("updateManifestUrl") ?: "",
+                    // 宿主栅格化的应用图标(桌面/市场同款字形);null=弹层回落首字母瓦片
+                    iconPng = call.argument<ByteArray>("iconPng"),
                 )
                 try {
                     // SDK manages its own activity stack; must be called on the main thread.

@@ -155,6 +155,9 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       appId: app.appId,
       name: app.name,
       dark: Theme.of(context).brightness == Brightness.dark,
+      // 菜单弹层头部图标:与市场格子同款同色(iconKey→主题色栅格 PNG)。
+      iconKey: app.iconKey,
+      iconColor: Theme.of(context).colorScheme.primary,
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。必须走固定端口
       // 反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被重连换掉。
       updateManifestUrl: '$appHubProxyBase/apps/${app.appId}/manifest.json',

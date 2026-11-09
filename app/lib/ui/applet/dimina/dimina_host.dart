@@ -7,6 +7,8 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import 'glyph_raster.dart';
+
 /// 容器框架升级链路的事件(升级由框架全权负责,小程序不参与):
 /// ready=新包下载校验完毕待确认;declined=用户选了暂不升级;
 /// applied=用户确认且新包已激活(容器随后冷重启);failed=下载/校验/安装失败;
@@ -67,6 +69,9 @@ final class DiminaHost {
   /// newer versionCode. `true` means the native side accepted the request —
   /// not that the first frame has rendered. [dark] 是宿主当前亮度:首次打开
   /// 时按它初始化容器胶囊配色(config 初始化后不可变,见 miniprogram-spec §8)。
+  /// [iconKey] 是 AppHub 图标键(桌面/市场同款),宿主栅格化成 PNG 传给原生,
+  /// 菜单弹层头部展示;null=弹层回落首字母瓦片。[iconColor] 是栅格化用色,
+  /// 调用点传当前主题色以与桌面格子同色。
   static Future<bool> open({
     required String appId,
     required String name,
@@ -75,9 +80,12 @@ final class DiminaHost {
     String versionName = '',
     String? updateManifestUrl,
     bool? dark,
+    String? iconKey,
+    Color iconColor = const Color(0xFF4F6BFF),
   }) async {
     // 首次 open 前挂好原生→Dart 的事件通道(升级里程碑回传,见 updateEvents)。
     _ensureNativeEventHandler();
+    final iconPng = await rasterizeGlyphPng(iconKey, color: iconColor);
     return await _channel.invokeMethod<bool>('open', <String, Object?>{
       'appId': appId,
       'name': name,
@@ -86,6 +94,7 @@ final class DiminaHost {
       'versionName': versionName,
       'updateManifestUrl': ?updateManifestUrl,
       'dark': dark ?? themeDark,
+      'iconPng': ?iconPng,
     }) ??
         false;
   }

@@ -195,6 +195,9 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
         final bool ok = await DiminaHost.open(
           appId: mini.app.appId,
           name: mini.app.name,
+          // 菜单弹层头部图标:与桌面格子同款同色(iconKey→主题色栅格 PNG)。
+          iconKey: mini.app.iconKey,
+          iconColor: Theme.of(context).colorScheme.primary,
           // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
           // 固定端口反代:原生容器拿到 URL 后才发请求,动态隧道端口可能
           // 已被重连换掉(见 apphub_proxy.dart)。
