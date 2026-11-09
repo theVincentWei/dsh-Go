@@ -253,6 +253,8 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   Widget build(BuildContext context) {
     // Multi-select in the list: back ends it before anything else.
     final selecting = ref.watch(drawerSelectionProvider.select((s) => s != null));
+    // 底栏玻璃件走近实色兜底填充(2026-11-09 真机反馈:72% 玻璃透壁纸太透)。
+    final surfaces = DshSurfaces.of(context);
     // The floating pet outside the app hears every pet state.
     ref.listen<void>(petOverlayBridgeProvider, (_, _) {});
     // Safe-mode notices come from the on-device engine; a phone that doesn't
@@ -375,6 +377,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                                   child: GlassSurface(
                                     tier: GlassTier.chrome,
                                     stadium: true,
+                                    style: surfaces.chrome.copyWith(fill: surfaces.chrome.fallbackFill),
                                     // 格宽在这里量好传下去:Positioned 必须直接做
                                     // Stack 的孩子,中间不能隔 LayoutBuilder。
                                     child: LayoutBuilder(
