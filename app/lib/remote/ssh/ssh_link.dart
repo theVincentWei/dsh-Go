@@ -74,6 +74,7 @@ class SshHostLink implements HostLink {
     this.keepAliveTimeout = const Duration(seconds: 10),
     this.tunnelProbeTimeout = const Duration(seconds: 10),
     this.retryFirstOpen = true,
+    int? appHubLocalPort,
   }) : _tunnel = tunnel ??
            // A caller that names a transport factory runs the tunnel engine
            // in-process (tests with a fake server); without one, production
@@ -87,7 +88,10 @@ class SshHostLink implements HostLink {
        // 退避不封顶(null = 永远重试,间隔 30s 封顶):主机卡死/离线一旦超过
        // 原 8 次预算(约 2-4 分钟),链路就永久躺平,只能杀 App 重连——主机
        // 恢复后永远等不到。非重试错误(密码/主机钥匙)仍走 _fail 停下等人。
-       _backoff = backoff ?? Backoff(maxAttempts: null) {
+       _backoff = backoff ?? Backoff(maxAttempts: null),
+       // 小程序硬编码 127.0.0.1:7610(网关是后端唯一对外口),真机侧转发必须
+       // 绑同一个固定口;测试注入别的口,免得占用真 7610。
+       _appHubLocalPort = appHubLocalPort ?? kAppHubRemotePort {
     _kickSub = kicks?.listen((_) => kick());
     _lostSub = _tunnel.lost.listen((_) {
       if (_closed || _recovering) return;
@@ -107,6 +111,10 @@ class SshHostLink implements HostLink {
   final SshTunnel _tunnel;
   final DshClientConnector _connectClient;
   final Backoff _backoff;
+
+  /// 本地绑死的 AppHub 转发口(默认 = kAppHubRemotePort):小程序硬编码
+  /// `http://127.0.0.1:7610`,与仿真器 adb reverse tcp:7610 同款语义。
+  final int _appHubLocalPort;
   final Map<String, String> remoteEnvironment;
   final Duration keepAliveInterval;
   final Duration keepAliveTimeout;
@@ -317,9 +325,15 @@ class SshHostLink implements HostLink {
   }
 
   /// Carries the host's AppHub port ([kAppHubRemotePort]) as a second
-  /// loopback forward and points the app's AppHub base at it. Probe first:
-  /// a host without AppHub keeps the default base. Never throws into the
-  /// connect path — AppHub is a passenger here, not the cargo.
+  /// loopback forward pinned to the same port locally ([_appHubLocalPort]):
+  /// mini programs hardcode `http://127.0.0.1:7610` — the AppHub gateway is
+  /// the only door to mini-program backends (miniprogram-spec §7) — the same
+  /// way `adb reverse tcp:7610` serves emulators, so the app's own market
+  /// base stays the loopback default. Probe first: a host without AppHub
+  /// keeps the default base. If the pinned local port is taken (another
+  /// linked host bound it first) that existing listener keeps serving —
+  /// first linked AppHub host wins. Never throws into the connect path —
+  /// AppHub is a passenger here, not the cargo.
   Future<void> _ensureAppHubForward() async {
     try {
       final probe = await _tunnel.probeTunnel(kAppHubRemotePort, timeout: tunnelProbeTimeout);
@@ -328,10 +342,9 @@ class SshHostLink implements HostLink {
         resetAppHubBase();
         return;
       }
-      final port = await _tunnel.setExtraEndpoint(kAppHubRemotePort);
-      if (_closed) return;
-      appHubBase = 'http://127.0.0.1:$port';
+      await _tunnel.setExtraEndpoint(kAppHubRemotePort, localPort: _appHubLocalPort);
     } on Object {
+      // 本地口被占或绑定失败:已有监听继续答(首占为主),base 保持默认。
       resetAppHubBase();
     }
   }

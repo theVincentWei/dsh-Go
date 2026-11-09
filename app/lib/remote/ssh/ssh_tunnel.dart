@@ -85,13 +85,16 @@ class SshTunnelEngine {
 
   /// Binds (once) a second local forward; [remotePort] is where every
   /// channel of this listener goes (e.g. the AppHub server port on the
-  /// engine host). Independent of [setEndpoint]: its own loopback port and
-  /// its own remote endpoint, both carried by the same SSH transport.
-  Future<int> setExtraEndpoint(int remotePort) async {
+  /// engine host). [localPort] pins the loopback port — mini programs
+  /// hardcode it (the AppHub gateway on 7610); null binds an ephemeral port
+  /// whose base URL the caller carries at runtime. Independent of
+  /// [setEndpoint]: its own loopback port and its own remote endpoint, both
+  /// carried by the same SSH transport.
+  Future<int> setExtraEndpoint(int remotePort, {int? localPort}) async {
     _extraRemotePort = remotePort;
     final existing = _extraForwarder;
     if (existing != null) return existing.port;
-    final forwarder = await LocalForwarder.bind(_openExtraChannel);
+    final forwarder = await LocalForwarder.bind(_openExtraChannel, port: localPort);
     if (_closed) {
       await forwarder.close();
       throw StateError('tunnel closed');
@@ -214,8 +217,10 @@ abstract interface class SshTunnel {
   Future<int> setEndpoint(int remotePort);
 
   /// Binds a second forward to [remotePort] on the SSH host (e.g. the
-  /// AppHub server); returns the stable loopback port of that listener.
-  Future<int> setExtraEndpoint(int remotePort);
+  /// AppHub server); [localPort] pins the loopback port (mini programs
+  /// hardcode it), null picks an ephemeral one. Returns the loopback port
+  /// of that listener.
+  Future<int> setExtraEndpoint(int remotePort, {int? localPort});
 
   Future<RemoteExecResult> run(String script, {required Duration timeout});
 
@@ -252,7 +257,8 @@ final class LocalSshTunnel implements SshTunnel {
   Future<int> setEndpoint(int remotePort) => _engine.setEndpoint(remotePort);
 
   @override
-  Future<int> setExtraEndpoint(int remotePort) => _engine.setExtraEndpoint(remotePort);
+  Future<int> setExtraEndpoint(int remotePort, {int? localPort}) =>
+      _engine.setExtraEndpoint(remotePort, localPort: localPort);
 
   @override
   Future<RemoteExecResult> run(String script, {required Duration timeout}) =>
@@ -314,10 +320,13 @@ final class IsolateSshTunnel implements SshTunnel {
   }
 
   @override
-  Future<int> setExtraEndpoint(int remotePort) async {
+  Future<int> setExtraEndpoint(int remotePort, {int? localPort}) async {
     // Not stored in _localPort: that stays the engine forward the DshClient
     // points at; the extra listener's port comes straight from the worker.
-    final port = await _ask('extraEndpoint', {'port': remotePort});
+    final port = await _ask('extraEndpoint', {
+      'port': remotePort,
+      if (localPort != null) 'localPort': localPort,
+    });
     return port as int;
   }
 
@@ -533,7 +542,7 @@ void _sshTunnelMain(SendPort reply) {
               .then((port) => settle(id!, port), onError: (Object error) => fail(id!, error));
         case 'extraEndpoint':
           engine
-              .setExtraEndpoint(job['port'] as int)
+              .setExtraEndpoint(job['port'] as int, localPort: job['localPort'] as int?)
               .then((port) => settle(id!, port), onError: (Object error) => fail(id!, error));
         case 'ping':
           engine
