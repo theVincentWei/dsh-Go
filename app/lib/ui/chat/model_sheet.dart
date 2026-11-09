@@ -57,62 +57,6 @@ String effortLabel(String id, [String? fallback]) => switch (id) {
   _ => fallback ?? id,
 };
 
-/// The model in a phone's open composer: a plain pill beside the +, the same weight as
-/// it, saying what this message goes out with and a tap from changing it.
-class ComposerModelPill extends ConsumerWidget {
-  const ComposerModelPill({super.key, required this.selection, required this.onSelected});
-
-  final ModelSelection? selection;
-  final ValueChanged<ModelSelection> onSelected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final catalog = ref.watch(currentModelCatalogProvider);
-    final effective = selection ?? catalog?.defaultSelection;
-    final effort = effective?.reasoningEffort;
-    final name = modelShortName(effective, catalog);
-    void open() => showModelSheet(context, current: effective, onSelected: onSelected);
-    return Semantics(
-      button: true,
-      label: [
-        l10n.viewModelLabel(name),
-        if (effort != null) l10n.viewModelEffortLabel(effortLabel(effort)),
-      ].join(l10n.viewListSeparator),
-      excludeSemantics: true,
-      onTap: open,
-      child: InkResponse(
-        key: const ValueKey('composer-model'),
-        onTap: open,
-        highlightShape: BoxShape.rectangle,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 36),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: ShapeDecoration(color: colors.onSurface.withValues(alpha: 0.06), shape: const StadiumBorder()),
-          // As wide as its words: the row's free space stays between it and the keys.
-          child: Center(
-            widthFactor: 1,
-            heightFactor: 1,
-            child: Text(
-              effort == null ? name : '$name ${effortLabel(effort)}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontSize: 12.5,
-                color: colors.onSurface,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 顶栏右侧的模型胶囊:"✦ V4 Pro · 高 ⌄"。换模型时宽度平滑过渡、文字淡变。
 ///
 /// 位置不够时依次让出:先收起「· 高」(读屏照读),再截短模型名,最后只留

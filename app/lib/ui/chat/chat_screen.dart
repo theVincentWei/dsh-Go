@@ -1705,15 +1705,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                             onTitleTap: sessionId == null
                                 ? null
                                 : () => SessionDetailPage.open(context, sessionId, toggle: true),
-                            // A phone has no room for it: the model is shown and picked at the
-                            // composer's foot while typing.
-                            trailing: narrow
-                                ? null
-                                : ModelChip(
-                                    selection: sessionId == null ? pendingModel : chat?.model,
-                                    onSelected: _modelTarget(),
-                                    grouped: true,
-                                  ),
+                            // 手机也回到顶栏:模型选择常驻右上角(2026-11-09 拍板恢复,
+                            // 宽度由 [_HeaderRow] 与标题胶囊协商,放不下时胶囊先让「· 高」)。
+                            trailing: ModelChip(
+                              key: const ValueKey('header-model'),
+                              selection: sessionId == null ? pendingModel : chat?.model,
+                              onSelected: _modelTarget(),
+                              grouped: true,
+                            ),
                           ),
                         ),
                       ),
@@ -1960,12 +1959,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                         hasAttachments: _drafts.isNotEmpty,
                                         leading: AttachButton(onPressed: connected ? _attach : null),
                                         keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
-                                        footer: _composerOpens(context) && !isChild
-                                            ? ComposerModelPill(
-                                                selection: sessionId == null ? pendingModel : chat?.model,
-                                                onSelected: _modelTarget(),
-                                              )
-                                            : null,
                                         tray: ComposerTrayStack.maybe(
                                           quote: switch (quote) {
                                             final quote? => QuoteChip(

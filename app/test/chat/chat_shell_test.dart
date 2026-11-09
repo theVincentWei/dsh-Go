@@ -123,7 +123,7 @@ void main() {
     await tester.tap(find.byType(TextField));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.byKey(const ValueKey('composer-model')));
+    await tester.tap(find.byKey(const ValueKey('header-model')));
     await pumpFrames(tester, 8);
     expect(find.text('思考深度'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -147,7 +147,7 @@ void main() {
       await tester.tap(find.byType(TextField));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.tap(find.byKey(const ValueKey('composer-model')));
+      await tester.tap(find.byKey(const ValueKey('header-model')));
       await pumpFrames(tester, 6);
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('V41 Flash'));
@@ -157,7 +157,7 @@ void main() {
       await pumpFrames(tester, 6);
       expect(tester.takeException(), isNull);
       expect(find.text('思考深度'), findsNothing, reason: 'closed at once');
-      expect(find.text('V41 Flash 不思考'), findsOneWidget);
+      expect(find.text('V41 Flash · 不思考'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '/');
       await pumpFrames(tester, 2);
