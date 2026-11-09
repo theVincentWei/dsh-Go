@@ -209,7 +209,9 @@ class DrawerConversationList extends ConsumerWidget {
       // The cards carry their own 10 margins, so the list only insets
       // vertically; rows that stay plain (the DS Bot row, the folders'
       // headers) wrap themselves in the 10.
-      padding: EdgeInsets.fromLTRB(0, 4 + topInset, 0, 16),
+      // 底部吃 shell 注入的底栏高度(MediaQuery.padding.bottom,含 76 的
+      // 底栏玻璃件),最后一行完整滚出玻璃条,与设置页同语言。
+      padding: EdgeInsets.fromLTRB(0, 4 + topInset, 0, MediaQuery.paddingOf(context).bottom + 16),
       itemCount: rows.length,
       itemBuilder: (context, index) => rows[index].builder(context),
       findChildIndexCallback: (key) => indices[key],
