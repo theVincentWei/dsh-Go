@@ -30,6 +30,7 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
     private lateinit var appContext: Context
     private var activity: Activity? = null
     private val main = Handler(Looper.getMainLooper())
+    private var lastDark: Boolean? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
@@ -43,6 +44,7 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
     private fun ensureInitialized(dark: Boolean) {
         if (initialized) return
         initialized = true
+        lastDark = dark
         Dimina.init(
             appContext,
             Dimina.DiminaConfig.Builder()
@@ -61,6 +63,9 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                 .setVirtualFilePrefix("host-file://")
                 .build(),
         )
+        // 同步主题覆写:否则菜单面板读 isCapsuleThemeDark() 拿到 null→浅色,
+        // 而胶囊(init 配置)已是深色——两处不一致。
+        Dimina.getInstance().updateCapsuleTheme(dark)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -92,8 +97,16 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     result.error("NO_ACTIVITY", "Flutter activity is not attached", null)
                     return
                 }
-                // 首次打开按宿主亮度初始化(胶囊配色跟主题)。
-                ensureInitialized(call.argument<Boolean>("dark") ?: false)
+                // 首次打开按宿主亮度初始化(胶囊配色跟主题);
+                // 已初始化但亮度变化 → 运行时更新(源码版 updateCapsuleTheme)。
+                val dark = call.argument<Boolean>("dark") ?: false
+                if (!initialized) {
+                    ensureInitialized(dark)
+                    lastDark = dark
+                } else if (lastDark != dark) {
+                    Dimina.getInstance().updateCapsuleTheme(dark)
+                    lastDark = dark
+                }
                 val miniProgram = MiniProgram(
                     appId = appId,
                     name = call.argument<String>("name") ?: appId,
