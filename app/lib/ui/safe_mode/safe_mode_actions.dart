@@ -10,6 +10,7 @@ import '../../state/engine_control.dart';
 import '../../state/safe_mode_state.dart';
 import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
+import '../shell/reveal_conversation.dart';
 import '../engine/log_view.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -173,11 +174,11 @@ abstract final class SafeModeActions {
       _container(context).read(runtimeBridgeProvider).clearFailure();
 
   /// Queues the repair prompt for the chat composer (not sent) and goes back to the chat.
-  static void requestRepair(BuildContext context, {bool popToRoot = true}) {
+  static void requestRepair(BuildContext context, {bool popToChat = true}) {
     final container = _container(context);
     final status = container.read(localRuntimeProvider).status;
     container.read(repairDraftProvider.notifier).request(repairPrompt(status));
-    if (popToRoot) Navigator.of(context).popUntil((route) => route.isFirst);
+    if (popToChat) revealConversation(context);
   }
 
   /// The output around the last failure (tokens masked), with copy / share.

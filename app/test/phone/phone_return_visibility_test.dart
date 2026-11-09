@@ -158,7 +158,7 @@ void main() {
     native.finish = {'closed': true, 'opened': true, 'launched': true, 'current': false};
     await end('s1');
     expect(native.callsOf('finishTask'), hasLength(1));
-    expect(container.read(chatRevealProvider), isNull);
+    expect(container.read(chatScrollRevealProvider), isNull);
     expect(channel.shown, isEmpty);
   });
 

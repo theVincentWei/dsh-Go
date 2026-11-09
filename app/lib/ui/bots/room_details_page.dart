@@ -27,6 +27,7 @@ import 'memory_card.dart';
 import 'working_folder_sheet.dart';
 import 'room_relay_limit_sheet.dart';
 import 'room_chat_page.dart' show GroupApprovalCard;
+import '../shell/reveal_conversation.dart' show chatRouteName;
 
 class RoomDetailsPage extends ConsumerWidget {
   const RoomDetailsPage({super.key, required this.roomId});
@@ -119,7 +120,7 @@ class RoomDetailsPage extends ConsumerWidget {
     await _update(context, ref, scope, (api) => api.deleteRoom(room.id));
     // Removal is expected after success; only connection identity may govern navigation.
     if (context.mounted && scope.connected(context, ref) && ref.read(dsBotProvider).team?.room(room.id) == null) {
-      navigator.popUntil((route) => route.isFirst);
+      navigator.popUntil((route) => route.isFirst || route.settings.name == chatRouteName);
     }
   }
 

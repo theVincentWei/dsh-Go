@@ -3,6 +3,7 @@
 
 import 'package:dsh_app/runtime/runtime_state.dart';
 import 'package:dsh_app/state/bots_state.dart';
+import 'package:dsh_app/state/chat_reveal_state.dart';
 import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/notify_state.dart';
@@ -121,6 +122,15 @@ void main() {
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
     expect(container.read(chatOnScreenProvider), isTrue);
+  });
+
+  testWidgets('the reveal request opens the conversation over the tabs', (tester) async {
+    await pumpHome(tester, chatOpen: true);
+    expect(find.text('聊天页替身'), findsNothing);
+    final container = ProviderScope.containerOf(tester.element(find.byType(HomeShell)));
+    container.read(chatRevealProvider.notifier).request();
+    await tester.pumpAndSettle();
+    expect(find.text('聊天页替身'), findsOneWidget);
   });
 
   testWidgets('a notification tap pops back to the chat and opens the session', (tester) async {

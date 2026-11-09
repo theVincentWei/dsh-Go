@@ -347,7 +347,7 @@ class _TitleRow extends ConsumerWidget {
           },
         ),
         const SizedBox(width: 8),
-        const _ViewOptionsKey(),
+        _ViewOptionsKey(onOpenChat: onOpenChat),
       ],
     );
   }
@@ -390,7 +390,9 @@ class _RoundKey extends StatelessWidget {
 /// 「对话列表」 options as one of the title row's keys; only while there are
 /// conversations to organise.
 class _ViewOptionsKey extends ConsumerWidget {
-  const _ViewOptionsKey();
+  const _ViewOptionsKey({required this.onOpenChat});
+
+  final VoidCallback onOpenChat;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -402,7 +404,7 @@ class _ViewOptionsKey extends ConsumerWidget {
     return _RoundKey(
       icon: AppIcons.more,
       tooltip: context.l10n.shellChatList,
-      onTap: () => openDrawerViewOptions(context, ref),
+      onTap: () => openDrawerViewOptions(context, ref, onOpenChat: onOpenChat),
     );
   }
 }

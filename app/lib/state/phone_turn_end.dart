@@ -27,9 +27,12 @@ import '../l10n/l10n.dart';
 import 'app_info.dart';
 import 'bots_state.dart';
 import 'chat_reveal.dart';
+import 'chat_reveal_state.dart';
 import 'connection_state.dart';
+import 'hosts_state.dart' show activeHostProvider;
 import 'notify_state.dart' show appForegroundProvider, notifyChannelProvider;
 import 'phone_state.dart';
+import 'sessions_state.dart' show currentSessionProvider;
 
 void _trace(String message) {
   if (!kReleaseMode && const bool.fromEnvironment('DSH_PHONE_TURN_TRACE')) {
@@ -395,7 +398,13 @@ class PhoneTurnEndController extends Notifier<void> {
       }
       if (result.busy) link.refused(alert.sessionId, taskId);
       if (result.opened && result.launched && !bot && ref.mounted && link.taskId == taskId) {
-        ref.read(chatRevealProvider.notifier).reveal(alert.sessionId);
+        // 对话要在面前:选中它并让 shell 把对话页推上来(home_shell 听
+        // chatRevealProvider)。旧 reveal 只是滚到底的信号,聊天页没挂在
+        // 栈上时没人听。
+        ref.read(activeHostProvider.notifier).select(alert.host);
+        ref.read(currentSessionProvider.notifier).select(alert.sessionId);
+        ref.read(chatScrollRevealProvider.notifier).reveal(alert.sessionId);
+        ref.read(chatRevealProvider.notifier).request();
       }
       if (result.closed && reopen && !result.opened && !result.notified && !bot && !scope.read(appForegroundProvider)) {
         // Return is an explicit phone-control preference. This operational

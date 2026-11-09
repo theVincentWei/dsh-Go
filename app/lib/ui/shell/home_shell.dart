@@ -12,6 +12,7 @@ import '../../l10n/l10n.dart';
 import '../../links/app_links.dart';
 import '../../pets/overlay_channel.dart' show petOverlayChannelProvider;
 import '../../pets/pet_overlay_bridge.dart';
+import '../../state/chat_reveal_state.dart' show chatRevealProvider;
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
@@ -47,6 +48,7 @@ import '../web/local_web_screen.dart';
 import 'drawer/drawer_actions.dart';
 import 'drawer/selection_bars.dart';
 import 'drawer/session_deletion.dart';
+import 'reveal_conversation.dart' show chatRouteName;
 import 'session_list_page.dart';
 import 'system_entry_host.dart';
 
@@ -104,6 +106,8 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     _petSettings = ref.read(petOverlayChannelProvider).settingsRequests.listen((_) {
       if (mounted) unawaited(PetSettingsPage.open(context));
     });
+    // 「回到对话」的请求(reveal_conversation):把对话页推到 tab 之上。
+    ref.listenManual(chatRevealProvider, (_, _) => unawaited(_openChat()));
   }
 
   /// Restores the last tab once, at startup, from the warmed prefs. Fails
@@ -194,12 +198,32 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
     _chatPop = popped;
     final navigator = Navigator.of(context);
     try {
-      await navigator.push(MaterialPageRoute<void>(builder: (_) => widget.chatBuilder ?? const ChatScreen()));
+      await navigator.push(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: chatRouteName),
+          builder: (_) => widget.chatBuilder ?? const ChatScreen(),
+        ),
+      );
     } finally {
       _chatOpen = false;
       _chatPop = null;
       popped.complete();
     }
+  }
+
+  /// The system entries' reveal (share, shortcuts, files, 任务完成回来):
+  /// unconditional, so 新对话 with no selection opens the composer too —
+  /// [_revealChat] stops there. An in-flight pop is waited out the same way.
+  void _openForEntry(bool animate) {
+    if (_chatOpen) {
+      unawaited(
+        _chatPop?.future.then((_) {
+          if (mounted) _openForEntry(animate);
+        }),
+      );
+      return;
+    }
+    unawaited(_openChat());
   }
 
   /// A notification or a share/shortcut entry wants the conversation shown:
@@ -307,7 +331,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                     // Share codes (分享码): registers its links and files with the router.
                     const ShareCodeHost(),
                     // Share sheet, launcher shortcuts, the tile: into the chat (draws nothing).
-                    SystemEntryHost(onReveal: _revealChat),
+                    SystemEntryHost(onReveal: _openForEntry),
                     // Forum links (sign-in return, topics): registers them with the router.
                     const ForumLinkHost(),
                     // DS Bot: keeps its feed and notifications alive with the shell.

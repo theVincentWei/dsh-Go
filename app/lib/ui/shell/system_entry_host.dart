@@ -114,17 +114,23 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
         if (voice) await _untilResumed();
         if (mounted) await _compose(ComposeRequest(text: text, voice: voice));
       case OpenChatEntry(:final host, :final sessionId):
-        if (!await _showChat() || !mounted) return;
+        if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
         final hosts = ref.read(hostsProvider);
-        if (host.kind == HostKind.ssh && hosts.loaded && hosts.sshById(host.id) == null) {
-          // Its host was removed since the shortcut was made.
-          ref.read(composeInboxProvider.notifier).push(ComposeRequest(problems: [appL10n.shellChatGone]));
-          return;
+        // Its host was removed since the shortcut was made.
+        final gone = host.kind == HostKind.ssh && hosts.loaded && hosts.sshById(host.id) == null;
+        if (!gone) {
+          // Always select the host: it also stops a pending restore of the
+          // last one from switching away on a cold start (as notification
+          // taps do). Select before the reveal: the shell opens the
+          // conversation only with its session already current.
+          ref.read(activeHostProvider.notifier).select(host);
+          ref.read(currentSessionProvider.notifier).select(sessionId);
         }
-        // Always select the host: it also stops a pending restore of the last
-        // one from switching away on a cold start (as notification taps do).
-        ref.read(activeHostProvider.notifier).select(host);
-        ref.read(currentSessionProvider.notifier).select(sessionId);
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+        widget.onReveal?.call(false);
+        if (gone) {
+          ref.read(composeInboxProvider.notifier).push(ComposeRequest(problems: [appL10n.shellChatGone]));
+        }
     }
   }
 
@@ -162,14 +168,17 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
   }
 
   /// Back to the chat: pages and sheets above it closed (unsaved edits only
-  /// with the person's say-so), the drawer pushed away. False when they chose
-  /// to stay.
+  /// with the person's say-so), then the shell puts the conversation (or the
+  /// new-chat composer) over the tabs. False when they chose to stay. Pop
+  /// first, reveal after — the shell pushes onto what is already standing
+  /// (chat_alert_host's contract); revealing before the pops had the pushed
+  /// page popped right back away.
   Future<bool> _showChat() async {
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) {
       return false;
     }
-    widget.onReveal?.call(false);
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+    widget.onReveal?.call(false);
     return true;
   }
 

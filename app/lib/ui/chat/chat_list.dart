@@ -660,7 +660,7 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
       if (_pinned) _follow();
     });
     // Back in the app to read a result (a finished phone task): the newest line.
-    ref.listen(chatRevealProvider, (_, reveal) {
+    ref.listen(chatScrollRevealProvider, (_, reveal) {
       if (reveal?.sessionId == widget.sessionId) jumpToBottom();
     });
     return MarkdownImageScope(

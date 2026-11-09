@@ -33,6 +33,7 @@ import '../remote/remote_screen.dart';
 import '../session/session_artifacts.dart';
 import '../session/session_detail_page.dart';
 import '../share_code/profile_share_sheet.dart';
+import '../shell/reveal_conversation.dart';
 import '../shell/session_search_page.dart';
 import '../terminal/terminal_page.dart';
 import '../theme/app_icons.dart';
@@ -154,8 +155,7 @@ Widget communityPage() =>
     Builder(builder: (context) => CommunityPage(onOpenForum: () => Navigator.of(context).push(ForumHomePage.route())));
 
 /// Back to the chat, where the composer does the rest (`@`, the mic).
-void _backToChat(BuildContext context, WidgetRef ref, String? _) =>
-    Navigator.of(context).popUntil((route) => route.isFirst);
+void _backToChat(BuildContext context, WidgetRef ref, String? _) => revealConversation(context);
 
 /// The settings sheet of an official optional bundle, when the host has it.
 Future<void> _bundleSheet(BuildContext context, WidgetRef ref, String name) async {
