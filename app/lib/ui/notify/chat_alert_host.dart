@@ -16,6 +16,7 @@ import '../bots/bot_alerts.dart';
 import '../common/discard_guard.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
+import 'notification_center.dart' show openMiniAppNoticeTap;
 
 /// Put it once inside the home route (the home shell does). It keeps the
 /// alert controller alive, feeds it the app lifecycle and whether the home
@@ -87,6 +88,12 @@ class _ChatAlertHostState extends ConsumerState<ChatAlertHost> {
 
   Future<void> _onTap(NotifyTap tap) async {
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
+    // 小程序通知（AppHub）：不进会话流（契约 §6.2），点开走小程序页/通知中心。
+    // 原生点击意图把通知 id 放在 eventId（见 notify/apphub_notices.dart）。
+    if (tap.kind == 'miniapp') {
+      await openMiniAppNoticeTap(context, ref, appId: tap.sessionId, notifyId: tap.eventId);
+      return;
+    }
     // A Bot or group chat notification opens that chat.
     if (openDsBotTap(context, tap)) return;
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);

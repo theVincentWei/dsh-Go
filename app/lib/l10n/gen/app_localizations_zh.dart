@@ -8523,6 +8523,57 @@ class L10nZh extends L10n {
   String get nearbyChange => '更换';
 
   @override
+  String get notifyCenterTitle => '服务通知';
+
+  @override
+  String get notifyCenterEmpty => '小程序的通知会出现在这里';
+
+  @override
+  String get notifyCenterMarkAll => '全部已读';
+
+  @override
+  String notifyCenterGroupCount(int count) {
+    return '$count 条';
+  }
+
+  @override
+  String notifyCenterUnread(int count) {
+    return '$count 条未读';
+  }
+
+  @override
+  String get notifyCenterLoadFailed => '连不上 AppHub，先看看已收到的通知';
+
+  @override
+  String get notifyCenterOpenFailed => '小程序页打不开，已留在通知中心';
+
+  @override
+  String get notifyCenterDismiss => '划掉';
+
+  @override
+  String get notifyCenterOpenMiniApp => '打开小程序';
+
+  @override
+  String get notifySubscribePanelTitle => '订阅通知';
+
+  @override
+  String notifySubscribePanelBody(String app) {
+    return '「$app」想在你操作后给你发通知。可以只订阅一次，发完就结束。';
+  }
+
+  @override
+  String get notifySubscribePanelMainSwitch => '接收通知';
+
+  @override
+  String get notifySubscribeAccept => '允许';
+
+  @override
+  String get notifySubscribeReject => '拒绝';
+
+  @override
+  String get notifySubscribeNoTemplates => '没有可订阅的模板';
+
+  @override
   String get performanceTitle => '性能';
 
   @override

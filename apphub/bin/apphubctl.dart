@@ -22,6 +22,7 @@ apphubctl — AppHub CLI
   apphubctl routes
   apphubctl route add --app <id> --prefix /v1 --target http://127.0.0.1:8081
   apphubctl route remove --app <id> --prefix /v1
+  apphubctl token --app <id>          # 发放/读取 notify 发送用的 app token
 
 Common flags: --server http://127.0.0.1:7610  --key <publisherKey>
 ''';
@@ -74,6 +75,14 @@ Future<void> main(List<String> args) async {
         await _get(server, key, '/api/v1/gateway/routes');
       case 'route':
         await _route(parsed, server, key);
+      case 'token':
+        final String? appId = parsed['app'] as String?;
+        if (appId == null || appId.isEmpty) {
+          stderr.writeln('--app is required');
+          exitCode = 64;
+          return;
+        }
+        await _post(server, key, '/api/v1/apps/$appId/notify/token');
       default:
         stdout.write(_usage);
     }

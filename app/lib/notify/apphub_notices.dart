@@ -1,12 +1,13 @@
-/// AppHub 小程序通知 poller(M3):轮询 AppHub 的 notices 端点,把小程序
-/// 后端的推送用既有通知管线(`NotifyChannel`)发成本地通知。
+/// AppHub 小程序通知 poller：轮询 AppHub 的 notices 端点，把通知对象交给通知
+/// 中心 store（`state/apphub_notices_state.dart`），并按前台/后台分流投递：
+/// 前台弹 in-app Banner，后台走既有系统通知管线 `NotifyChannel`。
 ///
-/// 边界(设计 §4.6.4「连接活着才推」):app 进程活着期间轮询生效;进程被杀
-/// 期间的通知不补发——服务端保留记录,启动器市场页与 Agent 都可见。
-/// 首次轮询只校准水位线(`_lastId`),不回放历史通知。
+/// 边界（契约 §9.6，设计 §4.6.4「连接活着才推」）：app 进程活着期间轮询生效；
+/// 进程被杀期间的通知不补发——服务端保留记录，下次启动通知中心仍可见。
+/// 首次轮询只校准水位线（`_lastId`），不回放历史通知。
 ///
-/// tap 行为:合成通知的 host 为空,原生侧只会把 app 拉到前台(不做会话
-/// 路由);点进小程序走市场页,是 v2 的体验增强项。
+/// 前台判定复用 `state/notify_state.dart` 的 [appForegroundProvider]（由
+/// ChatAlertHost 从 AppLifecycleListener 维护），不再另写生命周期监听。
 library;
 
 import 'dart:async';
@@ -14,8 +15,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../state/apphub_notices_state.dart';
 import '../state/hosts_state.dart' show HostRef;
+import '../state/notify_state.dart' show appForegroundProvider, notifyChannelProvider;
 import 'apphub_base.dart' show appHubBase;
 import 'notify_channel.dart';
 
@@ -25,6 +29,11 @@ class AppHubNoticeService {
   static Timer? _timer;
   static int _lastId = 0;
   static bool _primed = false;
+  static bool _polling = false;
+
+  /// The running app's provider container, bound by `AppHubNoticeHost` once the
+  /// ProviderScope exists ([start] runs before `runApp`).
+  static ProviderContainer? _container;
 
   /// Starts the 60s poll loop. Idempotent; safe before [runApp] (the timers
   /// live on the root isolate, same pattern as RefreshRateService).
@@ -34,9 +43,18 @@ class AppHubNoticeService {
     unawaited(_poll());
   }
 
+  /// Ties the poller to the UI's providers. The first [start] poll may already
+  /// have run (and only calibrated the watermark); poll once now so launch
+  /// doesn't wait a full interval for the first notification.
+  static void bind(ProviderContainer container) {
+    if (identical(_container, container)) return;
+    _container = container;
+    unawaited(_poll());
+  }
+
   static Future<void> _poll() async {
-    // ignore: avoid_print
-    print('[apphub-notice] poll start since=$_lastId');
+    if (_polling) return;
+    _polling = true;
     HttpClient? client;
     try {
       client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
@@ -44,47 +62,82 @@ class AppHubNoticeService {
           .getUrl(Uri.parse('$appHubBase/api/v1/notices?since=$_lastId'))
           .then((request) => request.close())
           .timeout(const Duration(seconds: 10));
-      final Object? body =
-          jsonDecode(await response.transform(utf8.decoder).join());
+      final Object? body = jsonDecode(await response.transform(utf8.decoder).join());
       if (body is! Map || body['notices'] is! List) {
         // ignore: avoid_print
-        print('[apphub-notice] poll bad body: $body');
+        debugPrint('[apphub-notice] poll bad body: $body');
         return;
       }
-      final List<dynamic> notices = body['notices'] as List<dynamic>;
-      // ignore: avoid_print
-      print('[apphub-notice] poll ok: ${notices.length} notices');
-      for (final dynamic notice in notices.reversed) {
-        if (notice is! Map) continue;
-        final int id = int.tryParse('${notice['id']}') ?? 0;
-        if (id <= _lastId) continue;
-        _lastId = id;
-        if (!_primed) continue; // 首轮只校准水位线。
-        final String detail = notice['detail'] as String? ?? '';
-        final int split = detail.indexOf(' | ');
-        final String title =
-            split < 0 ? detail : detail.substring(0, split);
-        final String text =
-            split < 0 ? '' : detail.substring(split + 3);
-        final String appId = notice['appId'] as String? ?? 'apphub';
-        unawaited(NotifyChannel().tryShow(NotifyPost(
-          group: 'apphub|$appId',
-          key: 'notice-$id',
-          attention: false,
-          title: title.isEmpty ? 'AppHub 通知' : title,
-          text: text,
-          publicText: '小程序通知',
-          sessionId: 'apphub',
-          host: HostRef.local,
-          kind: 'miniapp',
-        )));
+      final List<MiniAppNotice> parsed = <MiniAppNotice>[
+        for (final Object? raw in body['notices'] as List<Object?>) ?MiniAppNotice.fromJson(raw),
+      ];
+      parsed.sort((a, b) => a.id.compareTo(b.id));
+      final int maxId = parsed.isEmpty ? 0 : parsed.last.id;
+      if (body['unread'] is num) _container?.read(appHubNoticesProvider.notifier).ingest(const [], unread: (body['unread'] as num).toInt());
+      if (!_primed) {
+        // 首轮只校准水位线：启动前服务端攒着的旧通知不补弹。
+        _lastId = maxId > _lastId ? maxId : _lastId;
+        _primed = true;
+        return;
       }
-      _primed = true;
+      final List<MiniAppNotice> fresh = <MiniAppNotice>[
+        for (final MiniAppNotice notice in parsed)
+          if (notice.id > _lastId) notice,
+      ];
+      if (fresh.isEmpty) return;
+      _lastId = fresh.last.id;
+      if (_container == null) return; // 还没有 ProviderScope：只推进水位线。
+      _container!.read(appHubNoticesProvider.notifier).ingest(
+        fresh,
+        unread: body['unread'] is num ? (body['unread'] as num).toInt() : null,
+      );
+      _deliver(fresh);
     } catch (error) {
-      // AppHub 不可达是常态(出门/服务器没起),静默等下一个周期。
+      // AppHub 不可达是常态（出门/服务器没起），静默等下一个周期。
       debugPrint('[apphub-notice] poll failed: $error');
     } finally {
+      _polling = false;
       client?.close(force: false);
     }
+  }
+
+  /// 前台 Banner / 后台系统通知分流（契约 §6.2：两者共用投递管道，但不混流）。
+  static void _deliver(List<MiniAppNotice> fresh) {
+    final ProviderContainer container = _container!;
+    final bool foreground = container.read(appForegroundProvider);
+    if (foreground) {
+      // 一次只弹最新一条，别的在通知中心里等着。
+      container.read(appHubNoticesProvider.notifier).showBanner(fresh.last);
+      return;
+    }
+    final NotifyChannel channel = container.read(notifyChannelProvider);
+    for (final MiniAppNotice notice in fresh) {
+      unawaited(channel.tryShow(postFor(notice)));
+    }
+  }
+
+  /// 小程序通知的系统通知对象。`sessionId` 不是会话，而是 appId；`eventId`
+  /// 放通知 id——原生点击意图会原样带回这两个字段（不改原生契约），Dart 侧
+  /// 用 `kind == 'miniapp'` 认出它并路由到通知中心/小程序页。
+  static NotifyPost postFor(MiniAppNotice notice) => NotifyPost(
+    group: 'apphub|${notice.appId}',
+    key: 'notice-${notice.id}',
+    attention: false,
+    title: notice.title,
+    text: notice.body,
+    publicText: '小程序通知',
+    sessionId: notice.appId,
+    host: HostRef.local,
+    kind: 'miniapp',
+    eventId: '${notice.id}',
+    source: 'miniapp',
+    notifyId: notice.id,
+  );
+
+  /// 撤掉一条已划掉通知的系统通知（通知中心划掉时调）。
+  static void cancel(MiniAppNotice notice) {
+    final ProviderContainer? container = _container;
+    if (container == null) return;
+    unawaited(container.read(notifyChannelProvider).cancel('apphub|${notice.appId}', 'notice-${notice.id}'));
   }
 }

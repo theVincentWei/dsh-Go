@@ -67,6 +67,9 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
         // 同步主题覆写:否则菜单面板读 isCapsuleThemeDark() 拿到 null→浅色,
         // 而胶囊(init 配置)已是深色——两处不一致。
         Dimina.getInstance().updateCapsuleTheme(dark)
+        // 宿主扩展通道:小程序 requestSubscribeMessage → 原生订阅面板(契约 §5.2/§5.3)。
+        // 注册发生在 Dimina.init 之后(框架的扩展模块表此时才可用)。
+        registerNotifyExtModule()
         // 框架升级链路:升级的检测/下载/弹窗确认/换包全在容器侧,小程序不参与;
         // 这里只把升级里程碑转发给 Flutter(市场页按真实状态刷新,不再轮询猜)。
         Dimina.getInstance().setOnMiniProgramUpdateListener(object : MiniProgramUpdateListener {
@@ -85,6 +88,65 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
             override fun onInstalled(appId: String, versionCode: Int, versionName: String) =
                 forwardUpdateEvent("installed", appId, versionCode, versionName, null)
         })
+    }
+
+    /**
+     * 「dsh-notify」宿主扩展模块:订阅面板 + 订阅状态。面板结果的模板名来自
+     * AppHub GET /api/v1/apps/<id>/notify/templates——只有 Dart 侧知道当下的
+     * appHubBase(SSH 隧道端口会变),所以经同一个 dsh/dimina 通道问 Dart
+     * (`notifyTemplates`),结果回 Dart 上报 consent(`notifyConsent`)。
+     */
+    private fun registerNotifyExtModule() {
+        val module = NotifyExtModule(
+            activityProvider = { activity },
+            fetchTemplates = { appId, done -> requestTemplateNames(appId, done) },
+            reportConsent = { appId, results ->
+                main.post {
+                    try {
+                        channel.invokeMethod(
+                            "notifyConsent",
+                            mapOf("appId" to appId, "results" to results),
+                        )
+                    } catch (_: Throwable) {
+                        // Dart 没挂 handler 或引擎正在销毁:consent 的本地状态还在,
+                        // 下次拉 getSubscribeState 仍一致。
+                    }
+                }
+            },
+        )
+        Dimina.getInstance().registerExtModule(NOTIFY_EXT_MODULE, module)
+    }
+
+    /** 模板名向 Dart 要(带 app 名);拿不到就给空表,面板显示「通知 N」兜底。 */
+    private fun requestTemplateNames(appId: String, done: (String?, Map<String, String>) -> Unit) {
+        main.post {
+            try {
+                channel.invokeMethod(
+                    "notifyTemplates",
+                    mapOf("appId" to appId),
+                    object : MethodChannel.Result {
+                        override fun success(result: Any?) {
+                            val payload = result as? Map<*, *>
+                            val appName = payload?.get("appName") as? String
+                            val templates = payload?.get("templates") as? Map<*, *>
+                            val names = LinkedHashMap<String, String>()
+                            templates?.forEach { (key, value) ->
+                                val id = key as? String ?: return@forEach
+                                names[id] = value as? String ?: id
+                            }
+                            done(appName, names)
+                        }
+
+                        override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) =
+                            done(null, emptyMap())
+
+                        override fun notImplemented() = done(null, emptyMap())
+                    },
+                )
+            } catch (_: Throwable) {
+                done(null, emptyMap())
+            }
+        }
     }
 
     private fun forwardUpdateEvent(
@@ -225,5 +287,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
     companion object {
         @Volatile
         private var initialized = false
+
+        /** 与 Dimina 小程序侧 `module` 参数一致(契约 §5.3)。 */
+        private const val NOTIFY_EXT_MODULE = "dsh-notify"
     }
 }

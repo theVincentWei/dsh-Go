@@ -15656,6 +15656,96 @@ abstract class L10n {
   /// **'更换'**
   String get nearbyChange;
 
+  /// No description provided for @notifyCenterTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务通知'**
+  String get notifyCenterTitle;
+
+  /// No description provided for @notifyCenterEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序的通知会出现在这里'**
+  String get notifyCenterEmpty;
+
+  /// No description provided for @notifyCenterMarkAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部已读'**
+  String get notifyCenterMarkAll;
+
+  /// No description provided for @notifyCenterGroupCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条'**
+  String notifyCenterGroupCount(int count);
+
+  /// No description provided for @notifyCenterUnread.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条未读'**
+  String notifyCenterUnread(int count);
+
+  /// No description provided for @notifyCenterLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'连不上 AppHub，先看看已收到的通知'**
+  String get notifyCenterLoadFailed;
+
+  /// No description provided for @notifyCenterOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序页打不开，已留在通知中心'**
+  String get notifyCenterOpenFailed;
+
+  /// No description provided for @notifyCenterDismiss.
+  ///
+  /// In zh, this message translates to:
+  /// **'划掉'**
+  String get notifyCenterDismiss;
+
+  /// No description provided for @notifyCenterOpenMiniApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开小程序'**
+  String get notifyCenterOpenMiniApp;
+
+  /// No description provided for @notifySubscribePanelTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'订阅通知'**
+  String get notifySubscribePanelTitle;
+
+  /// No description provided for @notifySubscribePanelBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」想在你操作后给你发通知。可以只订阅一次，发完就结束。'**
+  String notifySubscribePanelBody(String app);
+
+  /// No description provided for @notifySubscribePanelMainSwitch.
+  ///
+  /// In zh, this message translates to:
+  /// **'接收通知'**
+  String get notifySubscribePanelMainSwitch;
+
+  /// No description provided for @notifySubscribeAccept.
+  ///
+  /// In zh, this message translates to:
+  /// **'允许'**
+  String get notifySubscribeAccept;
+
+  /// No description provided for @notifySubscribeReject.
+  ///
+  /// In zh, this message translates to:
+  /// **'拒绝'**
+  String get notifySubscribeReject;
+
+  /// No description provided for @notifySubscribeNoTemplates.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可订阅的模板'**
+  String get notifySubscribeNoTemplates;
+
   /// No description provided for @performanceTitle.
   ///
   /// In zh, this message translates to:

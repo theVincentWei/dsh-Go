@@ -4,9 +4,13 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../notify/apphub_base.dart' show appHubBase;
 import 'glyph_raster.dart';
 
 /// 容器框架升级链路的事件(升级由框架全权负责,小程序不参与):
@@ -48,19 +52,111 @@ final class DiminaHost {
   static void _ensureNativeEventHandler() {
     if (_nativeHandlerInstalled) return;
     _nativeHandlerInstalled = true;
+    // 双向通道:原生 → Dart 的事件/查询也走这一个注册点(契约 §9.1 只有一个
+    // setMethodCallHandler 注册点,新增分支不要覆盖)。分支:
+    //  - onUpdateEvent:容器升级里程碑(既有);
+    //  - notifyTemplates:宿主订阅面板要的模板名+app 名(原生不知道 appHubBase);
+    //  - notifyConsent:订阅面板结果 → 逐条上报 AppHub /api/v1/notices/consent。
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'onUpdateEvent' && call.arguments is Map) {
-        final Map args = call.arguments as Map;
-        _updateEvents.add(DiminaUpdateEvent(
-          event: args['event'] as String? ?? '',
-          appId: args['appId'] as String? ?? '',
-          versionCode: (args['versionCode'] as num?)?.toInt(),
-          versionName: args['versionName'] as String? ?? '',
-          message: args['message'] as String?,
-        ));
+      switch (call.method) {
+        case 'onUpdateEvent':
+          if (call.arguments is Map) {
+            final Map args = call.arguments as Map;
+            _updateEvents.add(DiminaUpdateEvent(
+              event: args['event'] as String? ?? '',
+              appId: args['appId'] as String? ?? '',
+              versionCode: (args['versionCode'] as num?)?.toInt(),
+              versionName: args['versionName'] as String? ?? '',
+              message: args['message'] as String?,
+            ));
+          }
+        case 'notifyTemplates':
+          final Map? args = call.arguments is Map ? call.arguments as Map : null;
+          return _notifyTemplates('${args?['appId'] ?? ''}');
+        case 'notifyConsent':
+          final Map? args = call.arguments is Map ? call.arguments as Map : null;
+          final Map<Object?, Object?> results = args?['results'] is Map ? args!['results'] as Map<Object?, Object?> : const <Object?, Object?>{};
+          unawaited(reportNotifyConsent(
+            appId: '${args?['appId'] ?? ''}',
+            results: <String, String>{
+              for (final MapEntry<Object?, Object?> entry in results.entries)
+                '${entry.key}': '${entry.value}',
+            },
+          ));
       }
       return null;
     });
+  }
+
+  /// 订阅面板的模板名:AppHub `GET /apps/<id>/notify/templates`(契约 §3.2)。
+  /// 返回 `{appName, templates:{tplId:name}}`;拿不到就空表,面板显示「通知 N」
+  /// 兜底——不把内部 template_id 摆给用户看。
+  static Future<Map<String, Object?>> _notifyTemplates(String appId) async {
+    String? appName;
+    final Map<String, String> templates = <String, String>{};
+    try {
+      final http.Response apps = await http
+          .get(Uri.parse('$appHubBase/api/v1/apps'))
+          .timeout(const Duration(seconds: 5));
+      final Object? body = jsonDecode(utf8.decode(apps.bodyBytes));
+      if (body is Map && body['apps'] is List) {
+        for (final Object? app in body['apps'] as List<Object?>) {
+          if (app is Map && '${app['appId'] ?? ''}' == appId) {
+            appName = '${app['name'] ?? appId}';
+            break;
+          }
+        }
+      }
+    } catch (_) {
+      // 市场目录不可达:appName 留空,面板用 appId。
+    }
+    try {
+      final http.Response response = await http
+          .get(Uri.parse('$appHubBase/api/v1/apps/$appId/notify/templates'))
+          .timeout(const Duration(seconds: 5));
+      final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
+      // 契约 §3.2 的 GET:成功信封里的 `templates:[{template_id,name}]`。
+      // 401(宿主无 app token)按失败处理 → 名字兜底。
+      if (body is Map && body['templates'] is List) {
+        for (final Object? row in body['templates'] as List<Object?>) {
+          if (row is! Map) continue;
+          final String id = '${row['template_id'] ?? row['templateId'] ?? ''}';
+          if (id.isEmpty) continue;
+          templates[id] = '${row['name'] ?? id}';
+        }
+      }
+    } catch (_) {
+      // 同上:空表 = 原生落「通知 N」。
+    }
+    return <String, Object?>{'appName': ?appName, 'templates': templates};
+  }
+
+  /// 订阅结果回传 AppHub(契约 §3.4):**单模板逐条** POST
+  /// `{appId, templateId, action:'accept'|'reject'}`,不是批量 map。
+  /// AppHub 不可达只记日志:面板结果仍已回给小程序 JS,配额下次重试。
+  static Future<void> reportNotifyConsent({
+    required String appId,
+    required Map<String, String> results,
+  }) async {
+    if (appId.isEmpty || results.isEmpty) return;
+    for (final MapEntry<String, String> entry in results.entries) {
+      final String action = entry.value == 'accept' ? 'accept' : 'reject';
+      try {
+        await http
+            .post(
+              Uri.parse('$appHubBase/api/v1/notices/consent'),
+              headers: const <String, String>{'content-type': 'application/json'},
+              body: jsonEncode(<String, Object?>{
+                'appId': appId,
+                'templateId': entry.key,
+                'action': action,
+              }),
+            )
+            .timeout(const Duration(seconds: 8));
+      } catch (error) {
+        debugPrint('[dimina-notify] consent report failed ${entry.key}: $error');
+      }
+    }
   }
 
   /// Opens a mini program. With [updateManifestUrl] and no locally installed

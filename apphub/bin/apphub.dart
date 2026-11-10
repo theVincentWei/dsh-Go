@@ -41,7 +41,7 @@ Future<void> main(List<String> args) async {
   final Market market = Market(cfg, db, store);
   final Gateway gateway = Gateway(cfg, db, store);
   final Obs obs = Obs(cfg);
-  final Notices notices = Notices(db);
+  final Notices notices = Notices(cfg, db);
   final AiGateway ai = AiGateway(cfg, db, cfg.engineLaunchUrlFile);
   await gateway.reload();
 
@@ -68,6 +68,7 @@ Future<void> main(List<String> args) async {
   stdout.writeln('AppHub listening on :${server.port}');
   stdout.writeln('  market   /apps/<appId>/manifest.json  /packages/…  /api/v1/apps');
   stdout.writeln('  gateway  /api/v1/apps/<appId>/<prefix>/… → backends');
+  stdout.writeln('  notify   /api/v1/apps/<appId>/notify(/templates)  /api/v1/notices');
   stdout.writeln('  packages ${cfg.packagesDir}');
   stdout.writeln('  logs     ${cfg.engineAppsDir}/<appId>/data/logs/');
 }

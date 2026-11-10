@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/bots_state.dart' show dsBotInboxProvider;
+import '../../state/apphub_notices_state.dart' show appHubNoticesProvider;
 import '../../state/hub_layout_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../applet/dimina/dimina_host.dart';
@@ -27,6 +28,7 @@ import '../applet/hub_apps_group.dart'
     show HubInstalledApp, hubAppGlyph, hubInstalledProvider;
 import '../applet/hub_icon_cache.dart'
     show HubBundleIcon, hubIconCache;
+import '../bots/bots_page.dart' show UnreadBadge;
 import '../common/app_sheet.dart' show kSheetGutter, groupTitleStyle, showAppSheet;
 import '../common/feature_tile.dart' show FeatureTile;
 import '../common/list_page_row.dart' show ListPageCard, ListPageRow;
@@ -527,10 +529,22 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
       );
 
   /// 分组头:常驻是老样式;整理模式挂 ⋯ 菜单,且整条是「追加到组尾」落点。
-  Widget _header(HubSectionData section) {
+  /// [appHubUnread] 只给 AppHub 组:未读小程序通知的角标(契约 §6.1)。
+  Widget _header(HubSectionData section, {int appHubUnread = 0}) {
     if (!_editing) {
       final L10n l10n = context.l10n;
-      return FeatureGroupLabel(section.name.isEmpty ? l10n.hubDefaultGroup : section.name);
+      final String name = section.name.isEmpty ? l10n.hubDefaultGroup : section.name;
+      if (appHubUnread <= 0) return FeatureGroupLabel(name);
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
+        child: Row(
+          children: <Widget>[
+            Semantics(header: true, child: Text(name, style: groupTitleStyle(context))),
+            const SizedBox(width: 8),
+            UnreadBadge(appHubUnread),
+          ],
+        ),
+      );
     }
     final L10n l10n = context.l10n;
     final Widget row = Padding(
@@ -690,7 +704,11 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
             ? (_preview!.firstWhere((_PreviewGroup g) => g.id == section.id).keys)
             : r.keys;
         if (keys.isEmpty && !_editing) continue;
-        children.add(_header(section));
+        // AppHub 组（装着小程序/市场入口的那组）挂未读通知角标。
+        final bool appHubGroup = section.name == l10n.catalogAppHubSection ||
+            r.keys.any((String key) => key.startsWith('mini:') || key == 'feature:apphub-market');
+        children.add(_header(section,
+            appHubUnread: appHubGroup ? ref.watch(appHubNoticesProvider.select((s) => s.unread)) : 0));
         if (keys.isEmpty) {
           children.add(_dropZone(section.id));
         } else {

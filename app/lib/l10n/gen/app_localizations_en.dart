@@ -8978,6 +8978,57 @@ class L10nEn extends L10n {
   String get nearbyChange => 'Change';
 
   @override
+  String get notifyCenterTitle => 'Service messages';
+
+  @override
+  String get notifyCenterEmpty => 'Mini program messages will show up here';
+
+  @override
+  String get notifyCenterMarkAll => 'Mark all read';
+
+  @override
+  String notifyCenterGroupCount(int count) {
+    return '$count';
+  }
+
+  @override
+  String notifyCenterUnread(int count) {
+    return '$count unread';
+  }
+
+  @override
+  String get notifyCenterLoadFailed => 'Can\'t reach AppHub — showing what already arrived';
+
+  @override
+  String get notifyCenterOpenFailed => 'Couldn\'t open that mini program page; it\'s still in the notification center';
+
+  @override
+  String get notifyCenterDismiss => 'Dismiss';
+
+  @override
+  String get notifyCenterOpenMiniApp => 'Open mini program';
+
+  @override
+  String get notifySubscribePanelTitle => 'Subscribe to notifications';
+
+  @override
+  String notifySubscribePanelBody(String app) {
+    return '“$app” would like to send you notifications after you act. One-time subscriptions end after one message.';
+  }
+
+  @override
+  String get notifySubscribePanelMainSwitch => 'Receive notifications';
+
+  @override
+  String get notifySubscribeAccept => 'Allow';
+
+  @override
+  String get notifySubscribeReject => 'Reject';
+
+  @override
+  String get notifySubscribeNoTemplates => 'No templates to subscribe to';
+
+  @override
   String get performanceTitle => 'Performance';
 
   @override

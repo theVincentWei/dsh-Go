@@ -303,4 +303,10 @@
     <string name="background_selection_cancelled">The channel selection was cancelled</string>
     <string name="background_keep_phone_disabled">Turn on phone control before keeping this connection.</string>
     <string name="background_keep_save_failed">Could not save the connection preference. Check it before restarting the app.</string>
+    <string name="dsh_notify_panel_title">Subscribe to notifications</string>
+    <string name="dsh_notify_panel_body">\u201c%1$s\u201d would like to send you notifications after you act. Each subscription covers one message.</string>
+    <string name="dsh_notify_main_switch">Receive notifications</string>
+    <string name="dsh_notify_template_fallback">Notification %1$d</string>
+    <string name="dsh_notify_allow">Allow</string>
+    <string name="dsh_notify_reject">Reject</string>
 </resources>
