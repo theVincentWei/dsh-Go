@@ -71,7 +71,9 @@ final class DiminaHost {
   /// 时按它初始化容器胶囊配色(config 初始化后不可变,见 miniprogram-spec §8)。
   /// [iconKey] 是 AppHub 图标键(桌面/市场同款),宿主栅格化成 PNG 传给原生,
   /// 菜单弹层头部展示;null=弹层回落首字母瓦片。[iconColor] 是栅格化用色,
-  /// 调用点传当前主题色以与桌面格子同色。
+  /// 调用点传当前主题色以与桌面格子同色。[iconPng] 是 bundle 图标
+  /// (小程序包内 main/icon.png,经 HubIconCache 取回)——给了就直通原生,
+  /// 不再按 key 栅格化;两者都缺才落首字母瓦片。
   static Future<bool> open({
     required String appId,
     required String name,
@@ -82,10 +84,12 @@ final class DiminaHost {
     bool? dark,
     String? iconKey,
     Color iconColor = const Color(0xFF4F6BFF),
+    Uint8List? iconPng,
   }) async {
     // 首次 open 前挂好原生→Dart 的事件通道(升级里程碑回传,见 updateEvents)。
     _ensureNativeEventHandler();
-    final iconPng = await rasterizeGlyphPng(iconKey, color: iconColor);
+    final Uint8List? resolvedPng =
+        iconPng ?? await rasterizeGlyphPng(iconKey, color: iconColor);
     return await _channel.invokeMethod<bool>('open', <String, Object?>{
       'appId': appId,
       'name': name,
@@ -94,7 +98,7 @@ final class DiminaHost {
       'versionName': versionName,
       'updateManifestUrl': ?updateManifestUrl,
       'dark': dark ?? themeDark,
-      'iconPng': ?iconPng,
+      'iconPng': ?resolvedPng,
     }) ??
         false;
   }

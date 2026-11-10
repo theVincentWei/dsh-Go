@@ -36,14 +36,15 @@ class Store {
     required int sizeBytes,
     String? changelog,
     String? icon,
+    String? iconFile,
     String? toolsJson,
     String? minContainer,
   }) async {
     await db.exec(
         'INSERT INTO app_versions '
-        '(app_id, version_code, version_name, zip_path, sha256, size_bytes, changelog, icon, tools_json, min_container) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [appId, versionCode, versionName, zipPath, sha256, sizeBytes, changelog, icon, toolsJson, minContainer]);
+        '(app_id, version_code, version_name, zip_path, sha256, size_bytes, changelog, icon, icon_file, tools_json, min_container) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [appId, versionCode, versionName, zipPath, sha256, sizeBytes, changelog, icon, iconFile, toolsJson, minContainer]);
   }
 
   Future<Map<String, Object?>?> latestVersion(String appId) async {
@@ -59,6 +60,9 @@ class Store {
             'zip_path': rows.first['zip_path'],
             'sha256': rows.first['sha256'],
             'size_bytes': _int(rows.first['size_bytes']),
+            'changelog': rows.first['changelog'],
+            'icon': rows.first['icon'],
+            'icon_file': rows.first['icon_file'],
             'tools_json': rows.first['tools_json'],
             'min_container': rows.first['min_container'],
           };
@@ -78,6 +82,9 @@ class Store {
             'zip_path': rows.first['zip_path'],
             'sha256': rows.first['sha256'],
             'size_bytes': _int(rows.first['size_bytes']),
+            'changelog': rows.first['changelog'],
+            'icon': rows.first['icon'],
+            'icon_file': rows.first['icon_file'],
             'tools_json': rows.first['tools_json'],
             'min_container': rows.first['min_container'],
           };
@@ -86,7 +93,7 @@ class Store {
   Future<List<Map<String, Object?>>> listApps() async {
     final List<Map<String, Object?>> rows = await db.q(
         'SELECT a.app_id, a.name, a.path, a.category, a.created_at, '
-        'v.version_code, v.version_name, v.sha256, v.changelog, v.icon '
+        'v.version_code, v.version_name, v.sha256, v.changelog, v.icon, v.icon_file '
         'FROM apps a LEFT JOIN app_versions v '
         'ON v.app_id = a.app_id AND v.version_code = '
         '(SELECT MAX(version_code) FROM app_versions WHERE app_id = a.app_id) '
@@ -103,6 +110,7 @@ class Store {
           'sha256': row['sha256'],
           'changelog': row['changelog'],
           'icon': row['icon'],
+          'iconFile': row['icon_file'],
         },
     ];
   }

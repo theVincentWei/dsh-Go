@@ -8,6 +8,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,7 @@ import '../common/segmented_pill.dart';
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
 import 'hub_apps_group.dart' show hubAppGlyph;
+import 'hub_icon_cache.dart' show HubBundleIcon, hubIconCache;
 
 enum _MarketTab { apps, installed }
 
@@ -40,6 +42,7 @@ class _HubApp {
         category = json['category'] as String? ?? '',
         changelog = json['changelog'] as String? ?? '',
         iconKey = json['icon'] as String?,
+        iconUrl = json['iconUrl'] as String?,
         versionCode = (json['versionCode'] as num?)?.toInt(),
         versionName = json['versionName'] as String? ?? '';
 
@@ -49,6 +52,9 @@ class _HubApp {
   final String category;
   final String changelog;
   final String? iconKey;
+
+  /// bundle 图标(包内 main/icon.png)的下载地址;空 = 没带图,渲染回落键。
+  final String? iconUrl;
   final int? versionCode;
   final String versionName;
 }
@@ -152,13 +158,20 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       app.description.toLowerCase().contains(_query);
 
   Future<void> _open(_HubApp app) async {
+    // async gap 前取齐主题值,免 BuildContext 跨 await。
+    final Color iconColor = Theme.of(context).colorScheme.primary;
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
+    // bundle 图标优先直通原生;没有再按 key 栅格化。
+    final Uint8List? bundlePng =
+        await hubIconCache.load(app.appId, app.versionCode, app.iconUrl);
     final bool ok = await DiminaHost.open(
       appId: app.appId,
       name: app.name,
-      dark: Theme.of(context).brightness == Brightness.dark,
-      // 菜单弹层头部图标:与市场格子同款同色(iconKey→主题色栅格 PNG)。
+      dark: dark,
+      // 菜单弹层头部图标:与市场格子同款(bundle 图标或图标库栅格)。
       iconKey: app.iconKey,
-      iconColor: Theme.of(context).colorScheme.primary,
+      iconColor: iconColor,
+      iconPng: bundlePng,
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。必须走固定端口
       // 反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被重连换掉。
       updateManifestUrl: '$appHubProxyBase/apps/${app.appId}/manifest.json',
@@ -228,19 +241,24 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
                 ),
               ]),
               Row(children: <Widget>[
-                // 图标库内:整颗实底彩块;库外:老的淡底 + 单色字形。
-                if (hubAppHasIcon(app.iconKey))
-                  HubAppIcon(iconKey: app.iconKey, size: 52)
-                else
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(hubAppGlyph(app.iconKey), size: 26),
-                  ),
+                // bundle 图标(包内 main/icon.png)> 图标库实底彩块 > 淡底单色字形。
+                HubBundleIcon(
+                  appId: app.appId,
+                  versionCode: app.versionCode,
+                  url: app.iconUrl,
+                  size: 52,
+                  fallback: hubAppHasIcon(app.iconKey)
+                      ? HubAppIcon(iconKey: app.iconKey, size: 52)
+                      : Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(hubAppGlyph(app.iconKey), size: 26),
+                        ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -358,9 +376,15 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
                               children: <Widget>[
                                 for (final _HubApp app in apps)
                                   ListPageRow(
-                                    leading: hubAppHasIcon(app.iconKey)
-                                        ? HubAppIcon(iconKey: app.iconKey, size: 32)
-                                        : Icon(hubAppGlyph(app.iconKey), size: 20),
+                                    leading: HubBundleIcon(
+                                      appId: app.appId,
+                                      versionCode: app.versionCode,
+                                      url: app.iconUrl,
+                                      size: 32,
+                                      fallback: hubAppHasIcon(app.iconKey)
+                                          ? HubAppIcon(iconKey: app.iconKey, size: 32)
+                                          : Icon(hubAppGlyph(app.iconKey), size: 20),
+                                    ),
                                     leadingWidth: 40,
                                     title: app.name.isEmpty ? app.appId : app.name,
                                     subtitle: _rowSubtitle(app),

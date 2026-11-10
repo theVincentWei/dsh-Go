@@ -69,6 +69,7 @@ class Market {
       // /manifest/<appId>.json — same handler, same headers.
       ..get('/manifest/<appIdJson>', _manifestAlias)
       ..get('/packages/<file>', _package)
+      ..get('/icons/<file>', _icon)
       ..get('/api/v1/apps', _list)
       ..get('/api/v1/apps/<appId>', _detail)
       ..post('/api/v1/apps/<appId>/versions', _publish)
@@ -103,6 +104,8 @@ class Market {
       // from (LAN IP, adb reverse loopback, or the ssh tunnel — all work).
       'packageUrl': 'http://${request.headers['host'] ?? '127.0.0.1:7610'}'
           '/packages/$zipName',
+      if ((version['icon_file'] as String?)?.isNotEmpty ?? false)
+        'iconUrl': _iconUrl(request.headers['host'] ?? '127.0.0.1:7610', version['icon_file']),
       'sha256': version['sha256'],
       'channel': 'stable',
     };
@@ -153,8 +156,42 @@ class Market {
         });
   }
 
+  /// GET /icons/<file> — a bundle icon extracted at publish time
+  /// (main/icon.png lives in the zip; the file lands beside the packages).
+  Future<shelf.Response> _icon(shelf.Request request, String file) async {
+    final String name = p.basename(file);
+    final File icon = File(p.join(cfg.packagesDir, name));
+    if (!await icon.exists()) {
+      return shelf.Response.notFound('no such icon');
+    }
+    final Uint8List bytes = await icon.readAsBytes();
+    return shelf.Response(200,
+        body: bytes,
+        headers: <String, String>{
+          'content-type': 'image/png',
+          'content-length': '${bytes.length}',
+          'cache-control': 'max-age=86400',
+        });
+  }
+
+  /// Absolute URL for a stored icon file — same-host trick as packageUrl:
+  /// whichever host the client used for this request also serves the icon.
+  String _iconUrl(String host, Object? iconFile) =>
+      iconFile == null ? '' : 'http://$host/icons/$iconFile';
+
   Future<shelf.Response> _list(shelf.Request request) async {
-    return _json(<String, Object?>{'apps': await store.listApps()});
+    final String host = request.headers['host'] ?? '127.0.0.1:7610';
+    final List<Map<String, Object?>> apps = await store.listApps();
+    return _json(<String, Object?>{
+      'apps': <Map<String, Object?>>[
+        for (final Map<String, Object?> app in apps)
+          <String, Object?>{
+            ...app,
+            if ((app['iconFile'] as String?)?.isNotEmpty ?? false)
+              'iconUrl': _iconUrl(host, app['iconFile']),
+          },
+      ],
+    });
   }
 
   /// GET /api/v1/apps/<appId> — everything a tool registrar needs: the latest
@@ -180,6 +217,8 @@ class Market {
       'versionName': version?['version_name'],
       'changelog': version?['changelog'],
       'icon': version?['icon'],
+      if ((version?['icon_file'] as String?)?.isNotEmpty ?? false)
+        'iconUrl': _iconUrl(request.headers['host'] ?? '127.0.0.1:7610', version?['icon_file']),
       'tools': tools,
       'routes': [
         for (final route in routes)
@@ -257,6 +296,28 @@ class Market {
     await tmp.writeAsBytes(bytes, flush: true);
     await tmp.rename(target.path);
 
+    // Bundle icon: main/icon.png ships with the package — extract it next to
+    // the zip so /icons/<appId>-<versionCode>-icon.png can serve it. Absent
+    // or oversized icons degrade gracefully (clients fall back to icon keys).
+    String? iconFile;
+    for (final ArchiveFile entry in archive.files) {
+      if (!entry.isFile || entry.name != 'main/icon.png') continue;
+      final Uint8List iconBytes = Uint8List.fromList(entry.content as List<int>);
+      if (iconBytes.isEmpty || iconBytes.lengthInBytes > 512 * 1024) break;
+      final File iconTarget = File(cfg.iconPath(appId, versionCode));
+      await iconTarget.writeAsBytes(iconBytes, flush: true);
+      iconFile = p.basename(iconTarget.path);
+      break;
+    }
+    // Publishes that ship no bundle icon (and no explicit x-icon) inherit the
+    // previous version's icon — a bare republish must never blank the icon
+    // out of the market. Explicit metadata always wins.
+    final String? icon =
+        (request.headers['x-icon']?.isNotEmpty ?? false)
+            ? request.headers['x-icon']
+            : iconFile ?? latest?['icon'] as String?;
+    iconFile ??= latest?['icon_file'] as String?;
+
     final String name = await _metaUtf8(request, 'x-app-name-b64') ??
         request.headers['x-app-name'] ??
         appId;
@@ -266,7 +327,6 @@ class Market {
     final String? description = await _metaUtf8(request, 'x-app-desc-b64');
     final String? category = request.headers['x-app-category'];
     final String? changelog = await _metaUtf8(request, 'x-changelog-b64');
-    final String? icon = request.headers['x-icon'];
     final String versionName = request.headers['x-version-name'] ?? '0.0.$versionCode';
     await store.upsertApp(appId, name, path, description: description, category: category);
     await store.insertVersion(
@@ -278,6 +338,7 @@ class Market {
       sizeBytes: bytes.length,
       changelog: changelog,
       icon: icon,
+      iconFile: iconFile,
       toolsJson: toolsJson,
       minContainer: request.headers['x-min-container'],
     );
@@ -330,6 +391,19 @@ class Market {
       }
       await donorFile.copy(rollbackTarget.path);
     }
+    // The donor's bundle icon rides along under the new version's name so
+    // /icons/<appId>-<newCode>-icon.png answers without a DB pointer dance.
+    String? iconFile = donor['icon_file'] as String?;
+    if (iconFile != null && iconFile.isNotEmpty) {
+      final File donorIcon = File(p.join(cfg.packagesDir, iconFile));
+      if (await donorIcon.exists()) {
+        final File iconTarget = File(cfg.iconPath(appId, newCode));
+        await donorIcon.copy(iconTarget.path);
+        iconFile = p.basename(iconTarget.path);
+      } else {
+        iconFile = null;
+      }
+    }
     await store.insertVersion(
       appId: appId,
       versionCode: newCode,
@@ -337,6 +411,9 @@ class Market {
       zipPath: donor['zip_path'] as String,
       sha256: donor['sha256'] as String,
       sizeBytes: donor['size_bytes'] as int? ?? 0,
+      changelog: donor['changelog'] as String?,
+      icon: donor['icon'] as String?,
+      iconFile: iconFile,
       toolsJson: donor['tools_json'] as String?,
       minContainer: donor['min_container'] as String?,
     );

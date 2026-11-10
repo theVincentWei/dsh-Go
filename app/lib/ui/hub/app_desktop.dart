@@ -9,6 +9,7 @@
 library;
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -24,6 +25,8 @@ import '../applet/hub_app_icon.dart'
     show HubAppIcon, hubAppHasIcon, hubAppIconSpec;
 import '../applet/hub_apps_group.dart'
     show HubInstalledApp, hubAppGlyph, hubInstalledProvider;
+import '../applet/hub_icon_cache.dart'
+    show HubBundleIcon, hubIconCache;
 import '../common/app_sheet.dart' show kSheetGutter, groupTitleStyle, showAppSheet;
 import '../common/feature_tile.dart' show FeatureTile;
 import '../common/list_page_row.dart' show ListPageCard, ListPageRow;
@@ -194,12 +197,21 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
         _touch(app.key);
         _openFeature(item);
       case final MiniAppRef mini:
+        // async gap 前取齐主题值,免 BuildContext 跨 await。
+        final Color iconColor = Theme.of(context).colorScheme.primary;
+        // bundle 图标优先直通原生;没有再按 key 栅格化。
+        final Uint8List? bundlePng = await hubIconCache.load(
+          mini.app.appId,
+          mini.app.installedVersionCode ?? mini.app.marketVersionCode,
+          mini.app.iconUrl,
+        );
         final bool ok = await DiminaHost.open(
           appId: mini.app.appId,
           name: mini.app.name,
-          // 菜单弹层头部图标:与桌面格子同款同色(iconKey→主题色栅格 PNG)。
+          // 菜单弹层头部图标:与桌面格子同款(bundle 图标或图标库栅格)。
           iconKey: mini.app.iconKey,
-          iconColor: Theme.of(context).colorScheme.primary,
+          iconColor: iconColor,
+          iconPng: bundlePng,
           // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。
           // 固定端口反代:原生容器拿到 URL 后才发请求,动态隧道端口可能
           // 已被重连换掉(见 apphub_proxy.dart)。
@@ -340,25 +352,35 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
 
   // ---------- 渲染 ----------
 
-  // 图标库内的小程序:实底彩块字形(白),底色由 _chipColorFor 染满瓷贴;
-  // 库外(含自带功能项)维持单色字形老路。
+  // 图标渲染顺序:bundle 图标(包内 main/icon.png,铺满瓷贴)> 图标库
+  // 实底彩块字形 + 实底瓷贴 > 万能单色字形。三档同一颗语义。
   Widget _iconFor(HubAppRef app, BuildContext context) => switch (app) {
-        MiniAppRef(:final app) when hubAppHasIcon(app.iconKey) => HubAppIcon(
-            iconKey: app.iconKey,
+        MiniAppRef(:final app) when app.iconUrl != null => HubBundleIcon(
+            appId: app.appId,
+            versionCode: app.installedVersionCode ?? app.marketVersionCode,
+            url: app.iconUrl,
             size: IconTile.dimension,
-            tiled: false,
+            fallback: _libraryIcon(app, context),
           ),
-        MiniAppRef(:final app) =>
-          Icon(hubAppGlyph(app.iconKey), size: 20, color: Theme.of(context).colorScheme.primary),
+        MiniAppRef(:final app) => _libraryIcon(app, context),
         FeatureAppRef(:final item) => switch (item.tile) {
             final kind? => FeatureTile(kind, size: 30),
             null => Icon(item.icon, size: 20, color: Theme.of(context).colorScheme.primary),
           },
       };
 
-  /// 小程序图标库里命中的键 → 瓷贴实底色;其余 null(主题淡染)。
+  /// 图标库兜底:库内键实底彩块白字形(瓷贴底色由 _chipColorFor 染),
+  /// 库外落万能单色字形(老行为)。
+  Widget _libraryIcon(HubInstalledApp app, BuildContext context) =>
+      hubAppHasIcon(app.iconKey)
+          ? HubAppIcon(iconKey: app.iconKey, size: IconTile.dimension, tiled: false)
+          : Icon(hubAppGlyph(app.iconKey),
+              size: 20, color: Theme.of(context).colorScheme.primary);
+
+  /// 小程序瓷贴底色:库内键且没有 bundle 图标时染实底;bundle 图标自带
+  /// 实底满铺,瓷贴保持默认淡染。
   Color? _chipColorFor(HubAppRef app) => switch (app) {
-        MiniAppRef(:final app) when hubAppHasIcon(app.iconKey) =>
+        MiniAppRef(:final app) when app.iconUrl == null && hubAppHasIcon(app.iconKey) =>
           hubAppIconSpec(app.iconKey)!.color,
         _ => null,
       };

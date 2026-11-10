@@ -29,6 +29,7 @@ class HubInstalledApp {
     required this.appId,
     required this.name,
     this.iconKey,
+    this.iconUrl,
     this.installedVersionCode,
     this.marketVersionCode,
   });
@@ -36,6 +37,10 @@ class HubInstalledApp {
   final String appId;
   final String name;
   final String? iconKey;
+
+  /// bundle 图标(小程序包内 main/icon.png)的下载地址,市场 API 回带;
+  /// 空 = 该版本包里没带图,渲染回落 [hubAppGlyph]/图标库。
+  final String? iconUrl;
 
   /// 本机已装版本(DiminaHost.installed);查不到为 null。
   final int? installedVersionCode;
@@ -74,6 +79,7 @@ final hubInstalledProvider = FutureProvider.autoDispose<List<HubInstalledApp>>((
       appId: appId,
       name: app['name'] as String? ?? appId,
       iconKey: app['icon'] as String?,
+      iconUrl: app['iconUrl'] as String?,
       installedVersionCode: (state['versionCode'] as num?)?.toInt(),
       marketVersionCode: marketVersion,
     ));

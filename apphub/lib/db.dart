@@ -73,6 +73,7 @@ class Db {
         'size_bytes INT NOT NULL DEFAULT 0,'
         'changelog MEDIUMTEXT NULL,'
         'icon VARCHAR(16) NULL,'
+        'icon_file VARCHAR(128) NULL,'
         'tools_json MEDIUMTEXT NULL,'
         'min_container VARCHAR(32) NULL,'
         'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,'
@@ -106,6 +107,7 @@ class Db {
       'ALTER TABLE apps ADD COLUMN category VARCHAR(32) NULL',
       'ALTER TABLE app_versions ADD COLUMN changelog MEDIUMTEXT NULL',
       'ALTER TABLE app_versions ADD COLUMN icon VARCHAR(16) NULL',
+      'ALTER TABLE app_versions ADD COLUMN icon_file VARCHAR(128) NULL',
     ]) {
       try {
         await exec(sql);

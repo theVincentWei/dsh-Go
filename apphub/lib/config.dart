@@ -73,6 +73,11 @@ class AppConfig {
   String packagePath(String appId, int versionCode) =>
       p.join(packagesDir, '$appId-$versionCode.zip');
 
+  /// The app icon extracted from the bundle's main/icon.png at publish time;
+  /// served back as /icons/<appId>-<versionCode>-icon.png.
+  String iconPath(String appId, int versionCode) =>
+      p.join(packagesDir, '$appId-$versionCode-icon.png');
+
   String logFileFor(String appId, DateTime now) {
     final String day =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
