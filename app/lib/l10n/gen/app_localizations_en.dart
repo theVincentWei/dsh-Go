@@ -3393,6 +3393,63 @@ class L10nEn extends L10n {
   String get apphubEmpty => 'No apps yet';
 
   @override
+  String get apphubGet => 'Get';
+
+  @override
+  String get apphubKindMiniProgram => 'Mini program';
+
+  @override
+  String get apphubMore => 'More';
+
+  @override
+  String get apphubCollapse => 'Less';
+
+  @override
+  String get apphubSectionAbout => 'Description';
+
+  @override
+  String get apphubSectionWhatsNew => 'What\'s New';
+
+  @override
+  String get apphubSectionInfo => 'Information';
+
+  @override
+  String get apphubSectionPermissions => 'Permissions & Privacy';
+
+  @override
+  String get apphubSectionVersions => 'Version History';
+
+  @override
+  String get apphubVersionPrefix => 'Version';
+
+  @override
+  String get apphubPrivacyNone => 'No Data Collected';
+
+  @override
+  String get apphubPrivacyNoneBody => 'The developer says this mini program does not collect any of your data.';
+
+  @override
+  String get apphubInfoCategory => 'Category';
+
+  @override
+  String get apphubInfoSize => 'Size';
+
+  @override
+  String get apphubInfoCompatibility => 'Compatibility';
+
+  @override
+  String get apphubInfoVersion => 'Version';
+
+  @override
+  String get apphubInfoUpdated => 'Updated';
+
+  @override
+  String get apphubInfoDeveloper => 'Developer';
+
+  @override
+  String get apphubInfoLanguage => 'Language';
+
+  @override
   String get chatBackgroundTaskNotice => 'Background task notice';
 
   @override
@@ -7315,6 +7372,36 @@ class L10nEn extends L10n {
 
   @override
   String get fileChatFallback => 'chat';
+
+  @override
+  String get hostFilesLocations => 'Locations';
+
+  @override
+  String get hostFilesShowHidden => 'Show hidden';
+
+  @override
+  String get hostFilesHideHidden => 'Hide hidden';
+
+  @override
+  String get hostFilesNew => 'New';
+
+  @override
+  String get hostFilesTypeFolder => 'Folder';
+
+  @override
+  String get hostFilesTypeFile => 'File';
+
+  @override
+  String get hostFilesNameFolderHint => 'Folder name';
+
+  @override
+  String get hostFilesNameFileHint => 'File name (with extension)';
+
+  @override
+  String get hostFilesFileNeedsEngine => 'Creating files needs a newer engine';
+
+  @override
+  String get hostFilesSummary => 'Browse the host\'s folders';
 
   @override
   String get hostDetailsConnectionType => 'Connection type';

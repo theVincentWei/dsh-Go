@@ -21,11 +21,10 @@ import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import 'hub_apps_group.dart' show hubInstalledProvider;
 import '../common/list_page_row.dart';
 import '../theme/theme.dart';
-import '../common/app_sheet.dart' show showAppSheet, kSheetGutter;
-import '../common/sheet_title_bar.dart' show SheetTitleBar;
 import '../common/search_capsule.dart'
     show SearchCapsule;
 import '../common/segmented_pill.dart';
+import 'apphub_app_detail_page.dart' show ApphubAppDetailPage, HubAppRef;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
 import 'hub_apps_group.dart' show hubAppGlyph;
@@ -199,106 +198,28 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
     });
   }
 
-  Future<void> _uninstall(_HubApp app) async {
-    final L10n l10n = context.l10n;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialog) => AlertDialog(
-        title: Text('${l10n.apphubUninstall} ${app.name}'),
-        content: Text(l10n.apphubUninstallBody),
-        actions: <Widget>[
-          TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(l10n.commonCancel)),
-          FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(l10n.apphubUninstall)),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await DiminaHost.uninstall(app.appId, clearUserData: true);
-    if (!mounted) return;
-    ref.invalidate(hubInstalledProvider); // 桌面同步摘掉图标(槽位保留)。
-    setState(() => _installed[app.appId] = <String, Object?>{'installed': false});
-  }
-
   Future<void> _showDetail(_HubApp app) async {
-    final L10n l10n = context.l10n;
-    await showAppSheet(
-      context,
-      heightFactor: 0.6,
-      builder: (BuildContext sheet) => SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(kSheetGutter),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              SheetTitleBar(app.name, actions: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: l10n.apphubUninstall,
-                  onPressed: () {
-                    Navigator.of(sheet).pop();
-                    unawaited(_uninstall(app));
-                  },
-                ),
-              ]),
-              Row(children: <Widget>[
-                // bundle 图标(包内 main/icon.png)> 图标库实底彩块 > 淡底单色字形。
-                HubBundleIcon(
-                  appId: app.appId,
-                  versionCode: app.versionCode,
-                  url: app.iconUrl,
-                  size: 52,
-                  fallback: hubAppHasIcon(app.iconKey)
-                      ? HubAppIcon(iconKey: app.iconKey, size: 52)
-                      : Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(hubAppGlyph(app.iconKey), size: 26),
-                        ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'v${app.versionName.isEmpty ? app.versionCode ?? '?' : app.versionName}'
-                    '${app.category.isEmpty ? '' : ' · ${app.category}'}',
-                    style: Theme.of(sheet).textTheme.bodySmall,
-                  ),
-                ),
-              ]),
-              if (app.description.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(app.description, style: Theme.of(sheet).textTheme.bodyMedium),
-                ),
-              if (app.changelog.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(app.changelog, style: Theme.of(sheet).textTheme.bodySmall),
-                ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(sheet).pop();
-                  unawaited(_open(app));
-                },
-                icon: const Icon(Icons.open_in_new, size: 17),
-                label: Text(_isInstalled(app)
-                    ? (_hasUpdate(app) ? l10n.apphubUpdate : l10n.apphubOpen)
-                    : l10n.apphubInstall),
-              ),
-            ],
+    // App Store 式整页详情:服务端从包内 store.json 抽取的元数据(截图/简介/
+    // 权限/版本历史)由详情页自己拉取渲染;卸载入口在详情页AppBar。
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ApphubAppDetailPage(
+          app: HubAppRef(
+            appId: app.appId,
+            name: app.name.isEmpty ? app.appId : app.name,
+            description: app.description,
+            category: app.category,
+            changelog: app.changelog,
+            iconKey: app.iconKey,
+            iconUrl: app.iconUrl,
+            versionCode: app.versionCode,
+            versionName: app.versionName,
           ),
         ),
       ),
     );
+    // 从详情页回来后已装状态可能变了(详情页里装/卸/升),重查一次。
+    if (mounted) unawaited(_queryInstalled());
   }
 
   @override

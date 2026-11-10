@@ -3233,6 +3233,63 @@ class L10nZh extends L10n {
   String get apphubEmpty => '暂无应用';
 
   @override
+  String get apphubGet => '获取';
+
+  @override
+  String get apphubKindMiniProgram => '小程序';
+
+  @override
+  String get apphubMore => '更多';
+
+  @override
+  String get apphubCollapse => '收起';
+
+  @override
+  String get apphubSectionAbout => '简介';
+
+  @override
+  String get apphubSectionWhatsNew => '新功能';
+
+  @override
+  String get apphubSectionInfo => '信息';
+
+  @override
+  String get apphubSectionPermissions => '权限与隐私';
+
+  @override
+  String get apphubSectionVersions => '版本历史';
+
+  @override
+  String get apphubVersionPrefix => '版本';
+
+  @override
+  String get apphubPrivacyNone => '不收集任何数据';
+
+  @override
+  String get apphubPrivacyNoneBody => '开发者声明：此小程序不会收集你的任何数据。';
+
+  @override
+  String get apphubInfoCategory => '类别';
+
+  @override
+  String get apphubInfoSize => '大小';
+
+  @override
+  String get apphubInfoCompatibility => '兼容性';
+
+  @override
+  String get apphubInfoVersion => '版本';
+
+  @override
+  String get apphubInfoUpdated => '更新日期';
+
+  @override
+  String get apphubInfoDeveloper => '开发者';
+
+  @override
+  String get apphubInfoLanguage => '语言';
+
+  @override
   String get chatBackgroundTaskNotice => '后台任务通知';
 
   @override
@@ -6923,6 +6980,36 @@ class L10nZh extends L10n {
 
   @override
   String get fileChatFallback => '对话';
+
+  @override
+  String get hostFilesLocations => '位置';
+
+  @override
+  String get hostFilesShowHidden => '显示隐藏';
+
+  @override
+  String get hostFilesHideHidden => '关闭隐藏';
+
+  @override
+  String get hostFilesNew => '新建';
+
+  @override
+  String get hostFilesTypeFolder => '文件夹';
+
+  @override
+  String get hostFilesTypeFile => '文件';
+
+  @override
+  String get hostFilesNameFolderHint => '文件夹名称';
+
+  @override
+  String get hostFilesNameFileHint => '文件名（含扩展名）';
+
+  @override
+  String get hostFilesFileNeedsEngine => '新建文件需引擎升级后可用';
+
+  @override
+  String get hostFilesSummary => '浏览主机的目录';
 
   @override
   String get hostDetailsConnectionType => '连接方式';

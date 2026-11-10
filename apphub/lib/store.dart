@@ -4,6 +4,8 @@
 /// here — callers see plain ints/strings.
 library;
 
+import 'dart:convert' show jsonDecode;
+
 import 'db.dart';
 
 /// Same character set as dsh-go's applet ids: lowercase letters, digits and
@@ -12,6 +14,29 @@ bool isValidAppId(String id) => RegExp(r'^[a-z0-9][a-z0-9-]{0,62}$').hasMatch(id
 
 int? _int(Object? value) =>
     value == null ? null : value is int ? value : int.tryParse(value.toString());
+
+/// TIMESTAMP values reach [Db.q] as [DateTime] and leave it as ISO-8601
+/// strings — accept both shapes so callers always get a string or null.
+String? _iso(Object? value) {
+  if (value is DateTime) return value.toIso8601String();
+  if (value is String && value.isNotEmpty) return value;
+  return null;
+}
+
+/// The listing's one-line subtitle for list rows — absent or malformed
+/// stored JSON degrades to '' so the market list never breaks on a bad
+/// store.json.
+String _subtitleFrom(Object? listingJson) {
+  if (listingJson is! String || listingJson.isEmpty) return '';
+  try {
+    final Object? listing = jsonDecode(listingJson);
+    final Object? subtitle =
+        listing is Map<String, Object?> ? listing['subtitle'] : null;
+    return subtitle is String ? subtitle : '';
+  } catch (_) {
+    return '';
+  }
+}
 
 class Store {
   Store(this.db);
@@ -39,12 +64,13 @@ class Store {
     String? iconFile,
     String? toolsJson,
     String? minContainer,
+    String? listingJson,
   }) async {
     await db.exec(
         'INSERT INTO app_versions '
-        '(app_id, version_code, version_name, zip_path, sha256, size_bytes, changelog, icon, icon_file, tools_json, min_container) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [appId, versionCode, versionName, zipPath, sha256, sizeBytes, changelog, icon, iconFile, toolsJson, minContainer]);
+        '(app_id, version_code, version_name, zip_path, sha256, size_bytes, changelog, icon, icon_file, tools_json, min_container, listing_json) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [appId, versionCode, versionName, zipPath, sha256, sizeBytes, changelog, icon, iconFile, toolsJson, minContainer, listingJson]);
   }
 
   Future<Map<String, Object?>?> latestVersion(String appId) async {
@@ -65,6 +91,10 @@ class Store {
             'icon_file': rows.first['icon_file'],
             'tools_json': rows.first['tools_json'],
             'min_container': rows.first['min_container'],
+            // listing_json 原样字符串(NULL 表示无 store.json 详情),detail/
+            // rollback 各自解析;created_at 保留原始值,market 层负责格式化。
+            'listing_json': rows.first['listing_json'],
+            'created_at': rows.first['created_at'],
           };
   }
 
@@ -87,13 +117,16 @@ class Store {
             'icon_file': rows.first['icon_file'],
             'tools_json': rows.first['tools_json'],
             'min_container': rows.first['min_container'],
+            'listing_json': rows.first['listing_json'],
           };
   }
 
   Future<List<Map<String, Object?>>> listApps() async {
     final List<Map<String, Object?>> rows = await db.q(
         'SELECT a.app_id, a.name, a.path, a.category, a.created_at, '
-        'v.version_code, v.version_name, v.sha256, v.changelog, v.icon, v.icon_file '
+        'v.version_code, v.version_name, v.sha256, v.changelog, v.icon, v.icon_file, '
+        // listing_json 只为取列表行的一行副标题,解析失败按空串降级。
+        'v.listing_json, v.size_bytes '
         'FROM apps a LEFT JOIN app_versions v '
         'ON v.app_id = a.app_id AND v.version_code = '
         '(SELECT MAX(version_code) FROM app_versions WHERE app_id = a.app_id) '
@@ -108,9 +141,31 @@ class Store {
           'versionCode': _int(row['version_code']),
           'versionName': row['version_name'],
           'sha256': row['sha256'],
+          'sizeBytes': _int(row['size_bytes']),
           'changelog': row['changelog'],
+          'subtitle': _subtitleFrom(row['listing_json']),
           'icon': row['icon'],
           'iconFile': row['icon_file'],
+        },
+    ];
+  }
+
+  /// The most recent [limit] versions, newest first — the store detail
+  /// page's version history.
+  Future<List<Map<String, Object?>>> versions(String appId,
+      {int limit = 10}) async {
+    final List<Map<String, Object?>> rows = await db.q(
+        'SELECT version_code, version_name, changelog, size_bytes, created_at '
+        'FROM app_versions WHERE app_id = ? ORDER BY version_code DESC LIMIT ?',
+        [appId, limit]);
+    return <Map<String, Object?>>[
+      for (final row in rows)
+        <String, Object?>{
+          'versionCode': _int(row['version_code']),
+          'versionName': row['version_name'],
+          'changelog': row['changelog'],
+          'sizeBytes': _int(row['size_bytes']),
+          'createdAt': _iso(row['created_at']),
         },
     ];
   }

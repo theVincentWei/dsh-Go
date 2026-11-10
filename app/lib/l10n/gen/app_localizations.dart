@@ -5978,6 +5978,120 @@ abstract class L10n {
   /// **'暂无应用'**
   String get apphubEmpty;
 
+  /// No description provided for @apphubGet.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取'**
+  String get apphubGet;
+
+  /// No description provided for @apphubKindMiniProgram.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序'**
+  String get apphubKindMiniProgram;
+
+  /// No description provided for @apphubMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get apphubMore;
+
+  /// No description provided for @apphubCollapse.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起'**
+  String get apphubCollapse;
+
+  /// No description provided for @apphubSectionAbout.
+  ///
+  /// In zh, this message translates to:
+  /// **'简介'**
+  String get apphubSectionAbout;
+
+  /// No description provided for @apphubSectionWhatsNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新功能'**
+  String get apphubSectionWhatsNew;
+
+  /// No description provided for @apphubSectionInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'信息'**
+  String get apphubSectionInfo;
+
+  /// No description provided for @apphubSectionPermissions.
+  ///
+  /// In zh, this message translates to:
+  /// **'权限与隐私'**
+  String get apphubSectionPermissions;
+
+  /// No description provided for @apphubSectionVersions.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本历史'**
+  String get apphubSectionVersions;
+
+  /// No description provided for @apphubVersionPrefix.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本'**
+  String get apphubVersionPrefix;
+
+  /// No description provided for @apphubPrivacyNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'不收集任何数据'**
+  String get apphubPrivacyNone;
+
+  /// No description provided for @apphubPrivacyNoneBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'开发者声明：此小程序不会收集你的任何数据。'**
+  String get apphubPrivacyNoneBody;
+
+  /// No description provided for @apphubInfoCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'类别'**
+  String get apphubInfoCategory;
+
+  /// No description provided for @apphubInfoSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'大小'**
+  String get apphubInfoSize;
+
+  /// No description provided for @apphubInfoCompatibility.
+  ///
+  /// In zh, this message translates to:
+  /// **'兼容性'**
+  String get apphubInfoCompatibility;
+
+  /// No description provided for @apphubInfoVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本'**
+  String get apphubInfoVersion;
+
+  /// No description provided for @apphubInfoUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新日期'**
+  String get apphubInfoUpdated;
+
+  /// No description provided for @apphubInfoDeveloper.
+  ///
+  /// In zh, this message translates to:
+  /// **'开发者'**
+  String get apphubInfoDeveloper;
+
+  /// No description provided for @apphubInfoLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言'**
+  String get apphubInfoLanguage;
+
   /// No description provided for @chatBackgroundTaskNotice.
   ///
   /// In zh, this message translates to:
@@ -12685,6 +12799,66 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'对话'**
   String get fileChatFallback;
+
+  /// No description provided for @hostFilesLocations.
+  ///
+  /// In zh, this message translates to:
+  /// **'位置'**
+  String get hostFilesLocations;
+
+  /// No description provided for @hostFilesShowHidden.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示隐藏'**
+  String get hostFilesShowHidden;
+
+  /// No description provided for @hostFilesHideHidden.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭隐藏'**
+  String get hostFilesHideHidden;
+
+  /// No description provided for @hostFilesNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建'**
+  String get hostFilesNew;
+
+  /// No description provided for @hostFilesTypeFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹'**
+  String get hostFilesTypeFolder;
+
+  /// No description provided for @hostFilesTypeFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件'**
+  String get hostFilesTypeFile;
+
+  /// No description provided for @hostFilesNameFolderHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹名称'**
+  String get hostFilesNameFolderHint;
+
+  /// No description provided for @hostFilesNameFileHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件名（含扩展名）'**
+  String get hostFilesNameFileHint;
+
+  /// No description provided for @hostFilesFileNeedsEngine.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建文件需引擎升级后可用'**
+  String get hostFilesFileNeedsEngine;
+
+  /// No description provided for @hostFilesSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'浏览主机的目录'**
+  String get hostFilesSummary;
 
   /// No description provided for @hostDetailsConnectionType.
   ///

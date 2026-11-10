@@ -112,6 +112,9 @@ class Db {
       // bundle 图标文件名(<appId>-<versionCode>-icon.png,27+ 字符)。
       // MODIFY 幂等,每次启动重跑无害。
       'ALTER TABLE app_versions MODIFY icon VARCHAR(128) NULL',
+      // 商店详情元数据(2026-11-10):main/store.json 白名单化后的整包 JSON,
+      // 读取侧解析失败一律按"无详情"降级,所以列保持可空、不设默认值。
+      'ALTER TABLE app_versions ADD COLUMN listing_json TEXT NULL',
     ]) {
       try {
         await exec(sql);

@@ -54,6 +54,50 @@ String? validateTools(Object? decoded) {
   return null;
 }
 
+/// The zip's file entry at [name], or null when absent or not a regular
+/// file — the read side of publish's `has()` gate.
+ArchiveFile? _archiveEntry(Archive archive, String name) {
+  for (final ArchiveFile file in archive.files) {
+    if (file.name == name && file.isFile) return file;
+  }
+  return null;
+}
+
+/// Normalises a decoded main/store.json to the listing schema: unknown keys
+/// are dropped and wrong-typed values are dropped too (collects coerces to
+/// false — a wrong "collects" must never read as "collects data"). Blank
+/// strings stay: detail falls back per field, so empties are harmless.
+/// Screenshots are left out here on purpose — they name zip entries and can
+/// only be resolved against the archive (see [_extractShots]).
+Map<String, Object?> _whitelistedListing(Map<String, Object?> raw) {
+  final Map<String, Object?> listing = <String, Object?>{};
+  for (final String key in const <String>[
+    'subtitle',
+    'category',
+    'developer',
+    'description',
+    'language',
+    'compatibility',
+    'whatsNew',
+  ]) {
+    final Object? value = raw[key];
+    if (value is String) listing[key] = value;
+  }
+  final Object? keywords = raw['keywords'];
+  if (keywords is List) listing['keywords'] = List<Object?>.from(keywords);
+  final Object? permissions = raw['permissions'];
+  if (permissions is List) {
+    listing['permissions'] = <Object?>[
+      for (final dynamic permission in permissions)
+        if (permission is Map<String, Object?>) permission,
+    ];
+  }
+  if (raw.containsKey('collects')) {
+    listing['collects'] = raw['collects'] is bool ? raw['collects'] : false;
+  }
+  return listing;
+}
+
 class Market {
   Market(this.cfg, this.db, this.store);
 
@@ -70,8 +114,10 @@ class Market {
       ..get('/manifest/<appIdJson>', _manifestAlias)
       ..get('/packages/<file>', _package)
       ..get('/icons/<file>', _icon)
+      ..get('/shots/<file>', _shot)
       ..get('/api/v1/apps', _list)
       ..get('/api/v1/apps/<appId>', _detail)
+      ..get('/api/v1/apps/<appId>/versions', _versions)
       ..post('/api/v1/apps/<appId>/versions', _publish)
       ..post('/api/v1/apps/<appId>/tools', _setTools)
       ..post('/api/v1/apps/<appId>/rollback', _rollback)
@@ -179,6 +225,25 @@ class Market {
   String _iconUrl(String host, Object? iconFile) =>
       iconFile == null ? '' : 'http://$host/icons/$iconFile';
 
+  /// GET /shots/<file> — a store screenshot extracted at publish time
+  /// (store.json's screenshots point into the zip; validated ones land
+  /// beside the packages). Same serve/sanitise shape as [_icon].
+  Future<shelf.Response> _shot(shelf.Request request, String file) async {
+    final String name = p.basename(file);
+    final File shot = File(p.join(cfg.packagesDir, name));
+    if (!await shot.exists()) {
+      return shelf.Response.notFound('no such screenshot');
+    }
+    final Uint8List bytes = await shot.readAsBytes();
+    return shelf.Response(200,
+        body: bytes,
+        headers: <String, String>{
+          'content-type': 'image/png',
+          'content-length': '${bytes.length}',
+          'cache-control': 'max-age=86400',
+        });
+  }
+
   Future<shelf.Response> _list(shelf.Request request) async {
     final String host = request.headers['host'] ?? '127.0.0.1:7610';
     final List<Map<String, Object?>> apps = await store.listApps();
@@ -195,10 +260,12 @@ class Market {
   }
 
   /// GET /api/v1/apps/<appId> — everything a tool registrar needs: the latest
-  /// version's tools manifest plus the gateway routes serving this app.
+  /// version's tools manifest, the gateway routes serving this app, and the
+  /// App Store-style listing from main/store.json (when one was published).
   Future<shelf.Response> _detail(shelf.Request request, String appId) async {
     final version = await store.latestVersion(appId);
     final routes = await store.listRoutes();
+    final String host = request.headers['host'] ?? '127.0.0.1:7610';
     Object? tools;
     if (version != null && version['tools_json'] != null) {
       try {
@@ -207,23 +274,99 @@ class Market {
         tools = null;
       }
     }
+    // Store listing: optional decoration — corrupt or missing stored JSON
+    // degrades field by field below, never a 500.
+    Map<String, Object?>? listing;
+    final String? listingJson = version?['listing_json'] as String?;
+    if (listingJson != null && listingJson.isNotEmpty) {
+      try {
+        final Object? decoded = jsonDecode(listingJson);
+        if (decoded is Map<String, Object?>) listing = decoded;
+      } catch (_) {
+        listing = null;
+      }
+    }
+    final String? listingDescription = listing?['description'] as String?;
+    final String description = listingDescription != null && listingDescription.isNotEmpty
+        ? listingDescription
+        : await _appMeta(appId, 'description');
+    // store.json 的 category 优先于 apps 表里 header 时代的旧分类。
+    final String? listingCategory = listing?['category'] as String?;
+    final String category = listingCategory != null && listingCategory.isNotEmpty
+        ? listingCategory
+        : await _appMeta(appId, 'category');
+    final String? listingWhatsNew = listing?['whatsNew'] as String?;
+    final String? whatsNew =
+        listingWhatsNew != null && listingWhatsNew.isNotEmpty
+            ? listingWhatsNew
+            : version?['changelog'] as String?;
+    final Object? rawKeywords = listing?['keywords'];
+    final Object? rawPermissions = listing?['permissions'];
+    final Object? rawShots = listing?['screenshots'];
+    // 不写成 `listing?['collects'] is bool ? listing?['collects'] : false`:
+    // 真分支的 ?[ 会被当成嵌套三元解析(实测 analyze 报错),先提升为变量。
+    final Object? rawCollects = listing?['collects'];
+    final bool collects = rawCollects is bool ? rawCollects : false;
+    final Object? createdAt = version?['created_at'];
     return _json(<String, Object?>{
       'appId': appId,
       'name': await _appName(appId, fallback: appId),
       'path': await _appPath(appId),
-      'description': await _appMeta(appId, 'description'),
-      'category': await _appMeta(appId, 'category'),
+      'description': description,
+      'category': category,
       'versionCode': version?['version_code'],
       'versionName': version?['version_name'],
       'changelog': version?['changelog'],
+      // Listing extras — every field falls back to an empty/default value so
+      // versions published before store.json answer the same response shape.
+      'subtitle': listing?['subtitle'] as String? ?? '',
+      'developer': listing?['developer'] as String? ?? '',
+      'keywords':
+          rawKeywords is List ? List<Object?>.from(rawKeywords) : <Object?>[],
+      'language': listing?['language'] as String? ?? '',
+      'compatibility': listing?['compatibility'] as String? ?? '',
+      'whatsNew': whatsNew,
+      'collects': collects,
+      'permissions': [
+        if (rawPermissions is List)
+          for (final dynamic permission in rawPermissions)
+            if (permission is Map<String, Object?>)
+              <String, Object?>{
+                // Keep only the three renderable string fields; anything
+                // else a package smuggled into a permission stays in the DB.
+                for (final String key in const <String>['key', 'title', 'usage'])
+                  if (permission[key] is String) key: permission[key] as String,
+              },
+      ],
+      // Stored file names become same-host absolute URLs (see [_iconUrl]).
+      'screenshots': [
+        if (rawShots is List)
+          for (final dynamic shot in rawShots)
+            if (shot is String && shot.isNotEmpty) 'http://$host/shots/$shot',
+      ],
+      'sizeBytes': version?['size_bytes'],
+      // TIMESTAMP arrives ISO-8601 via Db._normalize; guard the raw type
+      // anyway so a null/odd value can never leak into the JSON.
+      'updatedAt': createdAt is DateTime
+          ? createdAt.toIso8601String()
+          : (createdAt is String && createdAt.isNotEmpty ? createdAt : null),
       'icon': version?['icon'],
       if ((version?['icon_file'] as String?)?.isNotEmpty ?? false)
-        'iconUrl': _iconUrl(request.headers['host'] ?? '127.0.0.1:7610', version?['icon_file']),
+        'iconUrl': _iconUrl(host, version?['icon_file']),
       'tools': tools,
       'routes': [
         for (final route in routes)
           if (route['appId'] == appId) route,
       ],
+    });
+  }
+
+  /// GET /api/v1/apps/<appId>/versions — recent versions for the store
+  /// detail page's history list.
+  Future<shelf.Response> _versions(shelf.Request request, String appId) async {
+    return _json(<String, Object?>{
+      'appId': appId,
+      'versions': await store.versions(appId),
     });
   }
 
@@ -318,6 +461,31 @@ class Market {
             : iconFile ?? latest?['icon'] as String?;
     iconFile ??= latest?['icon_file'] as String?;
 
+    // Store listing: optional main/store.json carries the App Store-style
+    // detail metadata. Whole block inside one try — bad JSON, an unreadable
+    // entry or a failed screenshot write all degrade to "no listing"; a
+    // broken store.json must never fail the publish.
+    Map<String, Object?>? listing;
+    try {
+      final ArchiveFile? entry = _archiveEntry(archive, 'main/store.json');
+      if (entry != null) {
+        final Object? decoded = jsonDecode(utf8.decode(
+            Uint8List.fromList(entry.content as List<int>),
+            allowMalformed: true));
+        if (decoded is Map<String, Object?>) {
+          listing = _whitelistedListing(decoded);
+          await _extractShots(archive, decoded, listing, appId, versionCode);
+        }
+      }
+    } catch (_) {
+      listing = null;
+    }
+    // A bare republish inherits the previous version's listing just like its
+    // icon — shipping no store.json must never blank the store page out.
+    final bool hasListing = listing != null;
+    final String? listingJson =
+        listing != null ? jsonEncode(listing) : latest?['listing_json'] as String?;
+
     final String name = await _metaUtf8(request, 'x-app-name-b64') ??
         request.headers['x-app-name'] ??
         appId;
@@ -341,6 +509,7 @@ class Market {
       iconFile: iconFile,
       toolsJson: toolsJson,
       minContainer: request.headers['x-min-container'],
+      listingJson: listingJson,
     );
     await store.provisionAppDb(appId, cfg.appDbPassword);
     await db.audit('publisher', 'publish', '$appId v$versionCode sha=$sha256hex');
@@ -351,7 +520,58 @@ class Market {
       'versionName': versionName,
       'sha256': sha256hex,
       'sizeBytes': bytes.length,
+      // 本次发布是否真的带上了 store.json(继承来的不算),方便发布方核对。
+      'listing': hasListing,
     });
+  }
+
+  /// Resolves [rawStore]['screenshots'] (the as-authored store.json map —
+  /// the whitelisted [listing] deliberately drops the key, screenshot paths
+  /// are only meaningful against this archive) and rewrites
+  /// [listing]['screenshots'] to the stored file names: every entry must be a relative path under
+  /// main/ naming a real PNG file entry (no escapes, ≤2 MiB, magic bytes
+  /// checked). Survivors are written as
+  /// <appId>-<versionCode>-shot-<i>.png beside the zip where /shots/ serves
+  /// them; six is the storefront cap. Anything rejected is skipped, and an
+  /// empty survivor list removes the key — a bad screenshot never fails the
+  /// publish.
+  Future<void> _extractShots(Archive archive, Map<String, Object?> rawStore,
+      Map<String, Object?> listing, String appId, int versionCode) async {
+    final Object? raw = rawStore['screenshots'];
+    if (raw is! List) {
+      listing.remove('screenshots');
+      return;
+    }
+    final List<String> stored = <String>[];
+    for (final dynamic shot in raw) {
+      if (stored.length >= 6) break;
+      if (shot is! String || shot.isEmpty) continue;
+      // Zip paths are app-authored: reject anything that could climb out of
+      // main/ before it reaches the filesystem.
+      if (shot.startsWith('/') || shot.split('/').contains('..')) continue;
+      final ArchiveFile? entry = _archiveEntry(archive, 'main/$shot');
+      if (entry == null) continue;
+      final Uint8List png = Uint8List.fromList(entry.content as List<int>);
+      // Header must be the PNG magic — anything else would render broken in
+      // <img> tags on clients, so treat it as absent.
+      if (png.length < 4 ||
+          png[0] != 0x89 ||
+          png[1] != 0x50 ||
+          png[2] != 0x4E ||
+          png[3] != 0x47) {
+        continue;
+      }
+      if (png.length > 2 * 1024 * 1024) continue;
+      final File target = File(p.join(
+          cfg.packagesDir, '$appId-$versionCode-shot-${stored.length + 1}.png'));
+      await target.writeAsBytes(png, flush: true);
+      stored.add(p.basename(target.path));
+    }
+    if (stored.isEmpty) {
+      listing.remove('screenshots');
+    } else {
+      listing['screenshots'] = stored;
+    }
   }
 
   /// POST /api/v1/apps/<appId>/tools — set the tools manifest on the latest
@@ -404,6 +624,48 @@ class Market {
         iconFile = null;
       }
     }
+    // The donor's store listing rides along the same way: screenshot files
+    // are copied under the new code's names (missing ones drop out of the
+    // list — all gone means no listing), and the stored JSON is re-pointed
+    // by swapping only the '<code>-shot-' fragment; a bare donorCode swap
+    // could corrupt listing text that merely contains the number. Corrupt
+    // stored JSON degrades to no listing, same as publish.
+    final int donorCode = donor['version_code'] as int;
+    String? listingJson = donor['listing_json'] as String?;
+    if (listingJson != null && listingJson.isNotEmpty) {
+      try {
+        final Object? decoded = jsonDecode(listingJson);
+        if (decoded is Map<String, Object?>) {
+          final Object? rawShots = decoded['screenshots'];
+          if (rawShots is List) {
+            final List<String> kept = <String>[];
+            for (final dynamic shot in rawShots) {
+              if (shot is! String || shot.isEmpty) continue;
+              final File donorShot = File(p.join(cfg.packagesDir, shot));
+              if (!await donorShot.exists()) continue;
+              final String newShot =
+                  shot.replaceAll('$donorCode-shot-', '$newCode-shot-');
+              await donorShot.copy(p.join(cfg.packagesDir, newShot));
+              kept.add(newShot);
+            }
+            if (kept.isEmpty) {
+              listingJson = null;
+            } else {
+              decoded['screenshots'] = kept;
+              listingJson = jsonEncode(decoded);
+            }
+          }
+          // Only the shot-name fragment needs re-pointing; listings without
+          // screenshots pass through with the same fragment swap.
+          listingJson =
+              listingJson?.replaceAll('$donorCode-shot-', '$newCode-shot-');
+        } else {
+          listingJson = null;
+        }
+      } catch (_) {
+        listingJson = null;
+      }
+    }
     await store.insertVersion(
       appId: appId,
       versionCode: newCode,
@@ -416,6 +678,7 @@ class Market {
       iconFile: iconFile,
       toolsJson: donor['tools_json'] as String?,
       minContainer: donor['min_container'] as String?,
+      listingJson: listingJson,
     );
     await db.audit('publisher', 'rollback', '$appId -> v$newCode (donor ${donor['version_code']})');
     return _json(<String, Object?>{
