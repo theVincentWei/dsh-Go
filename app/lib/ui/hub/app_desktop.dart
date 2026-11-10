@@ -20,6 +20,8 @@ import '../../state/bots_state.dart' show dsBotInboxProvider;
 import '../../state/hub_layout_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../applet/dimina/dimina_host.dart';
+import '../applet/hub_app_icon.dart'
+    show HubAppIcon, hubAppHasIcon, hubAppIconSpec;
 import '../applet/hub_apps_group.dart'
     show HubInstalledApp, hubAppGlyph, hubInstalledProvider;
 import '../common/app_sheet.dart' show kSheetGutter, groupTitleStyle, showAppSheet;
@@ -338,13 +340,27 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
 
   // ---------- 渲染 ----------
 
+  // 图标库内的小程序:实底彩块字形(白),底色由 _chipColorFor 染满瓷贴;
+  // 库外(含自带功能项)维持单色字形老路。
   Widget _iconFor(HubAppRef app, BuildContext context) => switch (app) {
+        MiniAppRef(:final app) when hubAppHasIcon(app.iconKey) => HubAppIcon(
+            iconKey: app.iconKey,
+            size: IconTile.dimension,
+            tiled: false,
+          ),
         MiniAppRef(:final app) =>
           Icon(hubAppGlyph(app.iconKey), size: 20, color: Theme.of(context).colorScheme.primary),
         FeatureAppRef(:final item) => switch (item.tile) {
             final kind? => FeatureTile(kind, size: 30),
             null => Icon(item.icon, size: 20, color: Theme.of(context).colorScheme.primary),
           },
+      };
+
+  /// 小程序图标库里命中的键 → 瓷贴实底色;其余 null(主题淡染)。
+  Color? _chipColorFor(HubAppRef app) => switch (app) {
+        MiniAppRef(:final app) when hubAppHasIcon(app.iconKey) =>
+          hubAppIconSpec(app.iconKey)!.color,
+        _ => null,
       };
 
   /// 整理模式的摇摆 + 相位差。
@@ -368,6 +384,7 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
       label: app.name,
       enabled: enabled,
       badge: _badgeFor(app),
+      chipColor: _chipColorFor(app),
       onTap: () => unawaited(_open(app)),
     );
 
@@ -419,6 +436,7 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
           child: IconTile(
             icon: _iconFor(app, context),
             label: app.name,
+            chipColor: _chipColorFor(app),
             onTap: () {},
           ),
         ),

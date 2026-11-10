@@ -26,6 +26,7 @@ import '../common/search_capsule.dart'
     show SearchCapsule;
 import '../common/segmented_pill.dart';
 import 'dimina/dimina_host.dart';
+import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
 import 'hub_apps_group.dart' show hubAppGlyph;
 
 enum _MarketTab { apps, installed }
@@ -227,15 +228,19 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
                 ),
               ]),
               Row(children: <Widget>[
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(14),
+                // 图标库内:整颗实底彩块;库外:老的淡底 + 单色字形。
+                if (hubAppHasIcon(app.iconKey))
+                  HubAppIcon(iconKey: app.iconKey, size: 52)
+                else
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: Theme.of(sheet).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(hubAppGlyph(app.iconKey), size: 26),
                   ),
-                  child: Icon(hubAppGlyph(app.iconKey), size: 26),
-                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -353,7 +358,9 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
                               children: <Widget>[
                                 for (final _HubApp app in apps)
                                   ListPageRow(
-                                    leading: Icon(hubAppGlyph(app.iconKey), size: 20),
+                                    leading: hubAppHasIcon(app.iconKey)
+                                        ? HubAppIcon(iconKey: app.iconKey, size: 32)
+                                        : Icon(hubAppGlyph(app.iconKey), size: 20),
                                     leadingWidth: 40,
                                     title: app.name.isEmpty ? app.appId : app.name,
                                     subtitle: _rowSubtitle(app),

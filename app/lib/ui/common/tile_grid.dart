@@ -58,6 +58,7 @@ class IconTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.badge,
+    this.chipColor,
     required this.onTap,
     this.enabled = true,
   });
@@ -66,6 +67,9 @@ class IconTile extends StatelessWidget {
   final Widget icon;
   final String label;
   final Widget? badge;
+
+  /// 瓷贴底色覆盖:传实底色(如桌面小程序图标的色相),不传保持主题淡染。
+  final Color? chipColor;
   final VoidCallback onTap;
   final bool enabled;
 
@@ -85,7 +89,8 @@ class IconTile extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: ShapeDecoration(
-                color: scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
+                color: chipColor ??
+                    scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
               ),
               child: Center(child: icon),
