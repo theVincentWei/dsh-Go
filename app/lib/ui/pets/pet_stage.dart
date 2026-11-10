@@ -526,7 +526,12 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
     if (widget.registry.leading.value != leading) widget.registry.leading.value = leading;
     final occupied = shown ? spot?.kind : null;
     if (widget.registry.occupied.value != occupied) widget.registry.occupied.value = occupied;
-    ref.read(petLayerShownProvider.notifier).set(shown);
+    // The flag is shared by the two stages (the list's and the conversation
+    // page's). Under an opaque route this stage may be a kept-alive page
+    // parked off screen (the home's three tabs): a hidden stage must not veto
+    // the stage the person actually sees, so hidden is only reported while
+    // this stage's own route is current.
+    if (shown || _routeCurrent) ref.read(petLayerShownProvider.notifier).set(shown);
     final pack = _pack;
     ref
         .read(petHeadroomProvider.notifier)
@@ -613,7 +618,40 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
         !prefs.hiddenAt(_now) &&
         !ref.read(uiModeProvider).web &&
         _spot != null &&
-        !_covered;
+        !_covered &&
+        _touchesScreen;
+  }
+
+  /// This stage reaches the window. The home's three tabs keep every page
+  /// alive inside the PageView, so a mounted stage can sit a full page off
+  /// screen (the 会话 tab's stage under the 小程序/设置 tabs); kept-alive
+  /// pages are still laid out and still poll. Such a stage must report itself
+  /// hidden — otherwise alerts go to its bubble (one reminder, not two) where
+  /// nobody looks, and the banner never comes back.
+  bool get _touchesScreen {
+    final stage = context.findRenderObject();
+    if (stage is! RenderBox || !stage.hasSize || !stage.attached) return false;
+    final global = stage.localToGlobal(Offset.zero);
+    // A page culled into the keep-alive bucket keeps its render object but
+    // its layout is dropped: the position comes back NaN. NaN poisons every
+    // comparison, so the overlap test below alone would read as on screen.
+    if (!global.dx.isFinite || !global.dy.isFinite) return false;
+    final view = View.of(context);
+    final screen = Offset.zero & (view.physicalSize / view.devicePixelRatio);
+    return (global & stage.size).overlaps(screen);
+  }
+
+  /// False while an opaque route covers this stage's route (the conversation
+  /// page pushed over the home): the stage on top owns the shown flag then,
+  /// and an offscreen kept-alive page under it must not veto it.
+  bool get _routeCurrent => ModalRoute.of(context)?.isCurrent ?? true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A push/pop flips _routeCurrent (ModalRoute.of listens): re-report the
+    // flag this frame instead of waiting for the next unrelated one.
+    _schedulePoll();
   }
 
   PetScope get _scope => _spot?.kind == PerchKind.strip ? PetScope.focus : PetScope.global;
