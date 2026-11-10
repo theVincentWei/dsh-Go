@@ -108,6 +108,10 @@ class Db {
       'ALTER TABLE app_versions ADD COLUMN changelog MEDIUMTEXT NULL',
       'ALTER TABLE app_versions ADD COLUMN icon VARCHAR(16) NULL',
       'ALTER TABLE app_versions ADD COLUMN icon_file VARCHAR(128) NULL',
+      // Bundle 制图标(2026-11-10):icon 从 iconKey(≤16 字符)升格为可存
+      // bundle 图标文件名(<appId>-<versionCode>-icon.png,27+ 字符)。
+      // MODIFY 幂等,每次启动重跑无害。
+      'ALTER TABLE app_versions MODIFY icon VARCHAR(128) NULL',
     ]) {
       try {
         await exec(sql);
