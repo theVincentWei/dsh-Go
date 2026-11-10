@@ -13,7 +13,7 @@ import '../../l10n/l10n.dart';
 import '../applet/apphub_market_page.dart' show ApphubMarketPage;
 import '../applet/hub_apps_group.dart' show HubInstalledApp, hubInstalledProvider;
 import '../features/feature_catalog.dart'
-    show FeatureItem, FeatureSection, featureSectionsProvider, hubConversationTools;
+    show FeatureItem, FeatureSection, featureSectionsProvider, hubDesktopTools;
 import '../theme/app_icons.dart' show AppIcons;
 
 /// 桌面上一个可打开的应用。[key] 是布局身份:`applet:<dir>` / `mini:<appId>` /
@@ -72,9 +72,13 @@ class HubCatalog {
       apps.where((app) => app.key == key).firstOrNull;
 }
 
+/// 「应用市场」入口的布局 key(feature: 前缀见 [HubAppRef.key])。新装小程序
+/// 的自动安置(absorbUnplaced)拿它当锚点:落进市场入口所在的分组。
+const String hubMarketFeatureId = 'apphub-market';
+
 /// 「应用市场」入口 = 一个普通 feature 应用,桌面里可以拖去任何分组。
 FeatureItem hubMarketFeature() => FeatureItem.localized(
-      id: 'apphub-market',
+      id: hubMarketFeatureId,
       title: (l10n) => l10n.catalogAppHubMarket,
       summary: (l10n) => l10n.catalogAppHubMarketSummary,
       icon: AppIcons.allFeatures,
@@ -92,9 +96,9 @@ HubCatalog buildHubCatalog({
     for (final HubInstalledApp app in minis)
       MiniAppRef(app, updateAvailable: app.updateAvailable),
     FeatureAppRef(hubMarketFeature()),
-    // 「文件」「终端」是 Flutter 原生页,这里当普通应用上桌面(与当前对话页
-    // 同一份定义,不是 Dimina 小程序)。
-    for (final FeatureItem item in hubConversationTools) FeatureAppRef(item),
+    // 「文件」「终端」是 Flutter 原生页,这里当普通应用上桌面(不是 Dimina
+    // 小程序);文件是免会话的主机目录版(2026-11-10 拍板),不随会话置灰。
+    for (final FeatureItem item in hubDesktopTools) FeatureAppRef(item),
     for (final FeatureSection section in sections)
       for (final FeatureItem item in section.items) FeatureAppRef(item),
   ];
@@ -104,7 +108,7 @@ HubCatalog buildHubCatalog({
       // 会话工具排在最前:文件 / 终端是桌面上的「本对话」组。
       (
         title: appL10n.hubConversationTools,
-        keys: <String>[for (final FeatureItem item in hubConversationTools) 'feature:${item.id}'],
+        keys: <String>[for (final FeatureItem item in hubDesktopTools) 'feature:${item.id}'],
       ),
       (
         title: appL10n.catalogAppHubSection,

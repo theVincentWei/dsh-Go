@@ -22,6 +22,7 @@ import '../bots/bots_page.dart';
 import '../community/community_page.dart';
 import '../cordis/cordis_page.dart';
 import '../files/files_page.dart';
+import '../files/host_files_page.dart' show HostFilesPage;
 import '../forum/forum_home_page.dart';
 import '../phone/phone_control_screen.dart';
 import '../plugins/plugin_detail_sheet.dart';
@@ -336,9 +337,9 @@ final featureSections = <FeatureSection>[
   ], id: settingsFeatureSection),
 ];
 
-/// 「文件」与「终端」：当前对话页的两个工具，也是「小程序」桌面上的两枚原生
-/// 应用（2026-11-09 拍板：不做成 Dimina 小程序，走 Flutter 原生页；两处共用
-/// 这一份定义，id 与副标题都不另起一套）。
+/// 「文件」「终端」：当前对话页的两个工具。「终端」同时是「小程序」桌面上的
+/// 原生应用；「文件」的桌面形态另有免会话的 hostFilesFeature（2026-11-10
+/// 拍板：桌面=主机目录浏览，会话内=工作区文件页，两边各干各的）。
 final filesFeature = FeatureItem.localized(
   id: 'files',
   title: (l10n) => l10n.catalogFiles,
@@ -347,6 +348,17 @@ final filesFeature = FeatureItem.localized(
   tile: FeatureKind.files,
   needsSession: true,
   native: (id) => WorkspaceFilesPage(sessionId: _session(id)),
+);
+
+/// 「文件」桌面形态: 免会话的主机目录浏览页(engine directoryPicker/*),
+/// 不随会话置灰; 本机引擎浏览手机存储, 远程引擎浏览主机。
+final hostFilesFeature = FeatureItem.localized(
+  id: 'host-files',
+  title: (l10n) => l10n.catalogFiles,
+  summary: (l10n) => l10n.hostFilesSummary,
+  icon: AppIcons.files,
+  tile: FeatureKind.files,
+  native: (_) => const HostFilesPage(),
 );
 
 final terminalFeature = FeatureItem.localized(
@@ -359,9 +371,9 @@ final terminalFeature = FeatureItem.localized(
   native: (id) => TerminalPage(sessionId: _session(id)),
 );
 
-/// 「小程序」桌面上的会话工具：文件与终端，与当前对话页共用上面的定义。
-/// 桌面上按「本对话」分组落座（新装由目录种子给出，老布局按新应用进默认组）。
-final hubConversationTools = <FeatureItem>[filesFeature, terminalFeature];
+/// 「小程序」桌面上的自带工具: 文件(免会话主机目录版)与终端(仍随会话)。
+/// 桌面上按「本对话」分组落座(新装由目录种子给出, 老布局按新应用进默认组)。
+final hubDesktopTools = <FeatureItem>[hostFilesFeature, terminalFeature];
 
 /// 当前对话的工具：已不在全部功能（2026-11-07 拍板），住进聊天页右上角
 /// ⓘ › 当前对话（`ui/chat/current_chat_page.dart`）。id 仍是插件 `open`
@@ -375,7 +387,8 @@ final currentChatTools = <FeatureItem>[
     needsSession: true,
     native: (id) => SessionArtifactsPage(sessionId: _session(id)),
   ),
-  // 文件与终端同时是「小程序」桌面上的原生应用（见 hubConversationTools）。
+  // 文件与终端同时也是「小程序」桌面上的原生应用(桌面的文件是免会话的
+  // hostFilesFeature, 见 hubDesktopTools)。
   filesFeature,
   terminalFeature,
   FeatureItem.localized(

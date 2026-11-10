@@ -8,7 +8,9 @@
 // 应用 key 的两个命名空间:mini:<appId> AppHub 小程序 · feature:<id>
 // 自带功能(含插件面板与应用市场入口)。
 // 没写进 items 的应用按目录顺序排在默认组尾部;删分组把应用退回默认组;
-// 已卸载/暂时不可达的应用不渲染但槽位保留,重装原位恢复。
+// 已卸载/暂时不可达的应用不渲染但槽位保留,重装原位恢复。例外:迁移之后
+// 才装上的小程序由 absorbUnplaced 垫进市场入口所在分组,不再沉到最底部
+// 的默认组里没人看见。
 
 import 'dart:async';
 import 'dart:convert';
@@ -378,6 +380,30 @@ class HubLayoutController extends Notifier<HubLayout> {
         if (k != key) k,
     ].take(kHubRecentCap).toList();
     unawaited(_persist(state.copyWith(recent: recent)));
+  }
+
+  /// 新装应用自动安置:还没进 items 的 key 逐个垫到「锚点应用」所在分组的
+  /// 组尾(锚点 = 市场入口,效果就是新装小程序跟着进 AppHub 组,不再落到
+  /// 最底部的默认组里)。落点跟着锚点走:锚点被拖进别的组就垫进那个组;
+  /// 锚点自己没有 placement(分组被删退回默认组)时不接,维持默认组行为。
+  /// 只碰 items 里没有的 key,用户拖过的位置一律不动;整批无新增不写存储。
+  void absorbUnplaced(List<String> keys, {required String anchorKey}) {
+    if (!state.seeded || keys.isEmpty) return;
+    final HubPlacement? anchor = state.items[anchorKey];
+    if (anchor == null) return;
+    int next = anchor.order + 1;
+    for (final HubPlacement p in state.items.values) {
+      if (p.sectionId == anchor.sectionId && p.order >= next) next = p.order + 1;
+    }
+    final Map<String, HubPlacement> items = Map<String, HubPlacement>.of(state.items);
+    int added = 0;
+    for (final String key in keys) {
+      if (items.containsKey(key)) continue;
+      items[key] = HubPlacement(anchor.sectionId, next++);
+      added++;
+    }
+    if (added == 0) return;
+    unawaited(_persist(state.copyWith(items: items)));
   }
 }
 

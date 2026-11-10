@@ -155,6 +155,71 @@ void main() {
     expect(layout.section(hubDefaultSectionId), isNotNull);
   });
 
+  test('新装自动安置:未安置的 mini 垫进市场入口所在组尾,已安置的不动', () async {
+    // 复刻真机时序:种子落地时市场里还没有小程序(AppHub 组只有市场入口),
+    // 之后装了两个,依次垫在市场入口后面。
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await container.read(hubLayoutProvider.notifier).ensureSeeded(
+      <({String title, List<String> keys})>[
+        (title: 'AppHub', keys: <String>['feature:apphub-market']),
+      ],
+      defaultGroupName: '应用',
+    );
+    final HubLayoutController notifier = container.read(hubLayoutProvider.notifier);
+    notifier.absorbUnplaced(<String>['mini:wx1', 'mini:wx2'],
+        anchorKey: 'feature:apphub-market');
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['mini:wx1']!.sectionId, 'seed:AppHub');
+    expect(layout.items['mini:wx1']!.order, 1); // 市场入口(order 0)之后
+    expect(layout.items['mini:wx2']!.sectionId, 'seed:AppHub');
+    expect(layout.items['mini:wx2']!.order, 2);
+
+    // 解析时落在 AppHub 组里,排在市场入口后面;默认组不收它们。
+    final List<HubResolvedSection> resolved = resolveHubLayout(
+        layout, <String>['mini:wx2', 'mini:wx1', 'feature:apphub-market']);
+    final int at =
+        resolved.indexWhere((HubResolvedSection r) => r.section.id == 'seed:AppHub');
+    expect(resolved[at].keys,
+        <String>['feature:apphub-market', 'mini:wx1', 'mini:wx2']);
+    expect(resolved.last.keys, isEmpty);
+
+    // 再来一把:没有新 key 就不写存储(state 实例不动,_persist 都不进)。
+    final HubLayout before = container.read(hubLayoutProvider);
+    notifier.absorbUnplaced(<String>['mini:wx1'],
+        anchorKey: 'feature:apphub-market');
+    expect(container.read(hubLayoutProvider), same(before));
+  });
+
+  test('新装自动安置:锚点被拖进默认组就跟去默认组', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await seed(container);
+    final HubLayoutController notifier = container.read(hubLayoutProvider.notifier);
+    notifier.assignSections(<({String id, List<String> keys})>[
+      (id: hubDefaultSectionId,
+       keys: <String>['feature:apphub-market', 'feature:schedules']),
+    ]);
+    notifier.absorbUnplaced(<String>['mini:wx9'], anchorKey: 'feature:apphub-market');
+    expect(container.read(hubLayoutProvider).items['mini:wx9']!.sectionId,
+        hubDefaultSectionId);
+    expect(container.read(hubLayoutProvider).items['mini:wx9']!.order, 2);
+  });
+
+  test('新装自动安置:锚点无 placement(所在分组被删)时不接', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await seed(container);
+    final HubLayoutController notifier = container.read(hubLayoutProvider.notifier);
+    // 删掉市场入口所在的 AppHub 组:入口退回默认组(placement 被抹),锚点没了。
+    notifier.deleteGroup('seed:AppHub');
+    expect(container.read(hubLayoutProvider).items.containsKey('feature:apphub-market'),
+        isFalse);
+    notifier.absorbUnplaced(<String>['mini:wx8'], anchorKey: 'feature:apphub-market');
+    expect(container.read(hubLayoutProvider).items.containsKey('mini:wx8'), isFalse);
+  });
+
   test('分组排序与改名:非智能组间换位,改名不改 id', () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);

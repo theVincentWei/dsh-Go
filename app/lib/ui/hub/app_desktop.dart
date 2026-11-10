@@ -594,6 +594,26 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
       });
     }
 
+    // 新装小程序自动进 AppHub 组:布局种好、市场源落定后,把 items 里还没
+    // 有位置的小程序垫进市场入口所在分组(absorbUnplaced)。迁移种子本来就
+    // 会带上当时已装的小程序,这里只接「装在迁移之后」的;市场没连上时
+    // (settled 为 true 但清单为空)目录里没有 mini,自然也不接。
+    if (layout.loaded && layout.seeded && catalog.settled) {
+      final List<String> unplacedMinis = <String>[
+        for (final HubAppRef app in catalog.apps)
+          if (app is MiniAppRef && !layout.items.containsKey(app.key)) app.key,
+      ];
+      if (unplacedMinis.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ref.read(hubLayoutProvider.notifier).absorbUnplaced(
+                unplacedMinis,
+                anchorKey: 'feature:$hubMarketFeatureId',
+              );
+        });
+      }
+    }
+
     final List<HubResolvedSection> resolved = resolveHubLayout(layout, _catalogKeys);
     final bool previewing = _preview != null;
     final String? sessionId = ref.watch(currentSessionProvider);
