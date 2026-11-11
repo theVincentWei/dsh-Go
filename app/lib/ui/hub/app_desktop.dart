@@ -22,6 +22,7 @@ import '../../l10n/l10n.dart';
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../performance/performance_state.dart' show performanceDefaultsProvider;
 import '../../state/auto_sync_state.dart' show autoSyncProvider;
+import '../../state/hub_desktop_sync.dart' show hubNewMinisProvider;
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../applet/dimina/dimina_host.dart';
 import '../applet/hub_app_icon.dart' show HubAppIcon;
@@ -105,6 +106,9 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
         );
         if (ok) {
           ref.read(hubLayoutProvider.notifier).touch(mini.key);
+          // iOS 式新装指示:打开一次即熄灭「新装未打开」名字点(prefs 持久
+          // 化,跨重启保持;熄灭后注册者重发瓷贴)。
+          ref.read(hubNewMinisProvider.notifier).markOpened(mini.key);
           // 升级/兜底首装后版本号变了:重查已装清单,更新角标随之准确。
           // 落沙盒要一点时间,延迟复核一次(与市场页同款)。
           ref.invalidate(hubInstalledProvider);

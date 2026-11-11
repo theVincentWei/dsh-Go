@@ -570,15 +570,12 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   /// 实底彩块(chipColor 由 HubIconGlyph.color 染)+ 宿主构建的白色字形。
   Widget _iconFor(HubTile tile) => switch (tile.icon) {
         HubIconWidget(:final child) => child,
-        HubIconPng(:final bytes) => ClipRRect(
-            borderRadius: BorderRadius.circular(IconTile.radius),
-            child: Image.memory(
-              bytes,
-              width: IconTile.dimension,
-              height: IconTile.dimension,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-            ),
+        HubIconPng(:final bytes) => Image.memory(
+            bytes,
+            width: IconTile.dimension,
+            height: IconTile.dimension,
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
           ),
         HubIconGlyph(:final glyphKey) =>
           widget.glyphBuilder?.call(glyphKey) ?? const SizedBox.shrink(),
@@ -613,6 +610,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       enabled: tile.enabled,
       badge: _badgeFor(tile),
       chipColor: _chipColorFor(tile),
+      labelDot: tile.labelDot,
       onTap: () => _open(tile),
     );
 

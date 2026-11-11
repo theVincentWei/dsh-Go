@@ -4,10 +4,12 @@
 //   幂等 upsertTiles(锚点 = 市场入口,新 key 垫锚点组尾,即 absorbUnplaced
 //   语义);目录缩编的 key removeTile(槽位保留,重装原位恢复);
 // - 角标:ds-bot 未读 → setBadge('feature:ds-bot'),小程序通知未读计数 →
-//   setBadge('mini:<id>', count)(优先);无未读才让位给小程序更新红点 →
-//   setBadge('mini:<id>', dot);AppHub 组头未读 → 对「装着小程序或市场
-//   入口的非智能组」整批 setSectionBadge/clearSectionBadge(按内容匹配,
-//   组名命中分支已废——改名叫 AppHub 但没装小程序的组不该亮未读);
+//   setBadge('mini:<id>', count)(瓷贴角,读过即消);「有更新/新装未打开」
+//   指示走名字点(labelDot,iOS 式),瓷贴角不再挂 dot——两个指示器各管各的,
+//   同一颗 mini 可同时有角上未读计数 + 名字点;AppHub 组头未读 → 对「装着
+//   小程序或市场入口的非智能组」整批 setSectionBadge/clearSectionBadge
+//   (按内容匹配,组名命中分支已废——改名叫 AppHub 但没装小程序的组不该亮
+//   未读);
 // - 卸载钩子:mini: → [miniAppUninstallerProvider](经根 navigator 弹共用
 //   卸载弹窗 + 整包编排;市场详情页同弹窗同编排、不经此 provider)。
 //
@@ -35,6 +37,7 @@ import 'package:hub_desktop/hub_desktop.dart'
         hubSectionBadgesProvider,
         hubTilesProvider,
         resolveHubLayout;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ui/applet/apphub_uninstall_dialog.dart'
     show runWholeUninstall, showAppUninstallDialog;
@@ -60,6 +63,72 @@ import 'sessions_state.dart' show currentSessionProvider;
 import 'terminal_state.dart' show terminalBackendProvider;
 
 /// 小程序卸载执行函数(收敛点):桌面引擎钩子与市场详情页共用 —— 卸载
+/// 「新装未打开」的小程序名字点(iOS 式):[hubNewMinisProvider] 的值 =
+/// 当前亮着点的小程序 key 集(prefs `hub.new-minis`,跨重启保持);内部另
+/// 持「见过的 key 全集」(prefs `hub.seen-minis`,只增)——清单里首次出现
+/// (不在 seen)的 key 才点亮,防止重启后把老应用误判为新装。
+class HubNewMinisController extends Notifier<Set<String>> {
+  static const _newKey = 'hub.new-minis';
+  static const _seenKey = 'hub.seen-minis';
+
+  bool _loaded = false;
+  Set<String> _seen = const <String>{};
+
+  @override
+  Set<String> build() {
+    _load();
+    return const <String>{};
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!ref.mounted) return;
+      _seen = (prefs.getStringList(_seenKey) ?? const <String>[]).toSet();
+      _loaded = true;
+      state = (prefs.getStringList(_newKey) ?? const <String>[]).toSet();
+    } catch (_) {
+      // 没有 prefs 后端(测试外环境异常):不亮任何「新装点」,更新点照常。
+      _loaded = true;
+    }
+  }
+
+  Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_newKey, state.toList()..sort());
+      await prefs.setStringList(_seenKey, _seen.toList()..sort());
+    } catch (_) {
+      // 只留这轮。
+    }
+  }
+
+  /// 打开过一次 → 熄灭(无变化不通知,防与注册者的重推成环)。
+  void markOpened(String key) {
+    if (!_loaded || !state.contains(key)) return;
+    state = <String>{...state}..remove(key);
+    _persist();
+  }
+
+  /// 清单里首次出现的 key 记为「新装未打开」并点亮;seen 已见过的忽略。
+  /// 无新增不赋值 state(幂等,防与注册者的重推成环)。
+  void noteNew(Iterable<String> keys) {
+    if (!_loaded) return; // prefs 未就绪:不判定不点亮,就绪后的重推会补
+    final List<String> fresh = <String>[
+      for (final String key in keys)
+        if (!_seen.contains(key)) key,
+    ];
+    if (fresh.isEmpty) return;
+    _seen.addAll(keys);
+    state = <String>{...state, ...fresh};
+    _persist();
+  }
+}
+
+final hubNewMinisProvider =
+    NotifierProvider<HubNewMinisController, Set<String>>(HubNewMinisController.new);
+
+
 /// 桌面小程序卸载入口(引擎钩子的注入口):经根 navigator 打开共用卸载
 /// 弹窗(purge 勾选是产品定案,引擎不再自带确认框,避免双重确认),确认
 /// 后走整包卸载编排(先主机 wanqi bundle remove 后本机 DiminaHost.uninstall;
@@ -115,6 +184,8 @@ final hubDesktopSyncProvider = Provider<void>((ref) {
   ref.listen(appHubNoticesProvider.select((s) => s.unread), (_, _) => schedule());
   ref.listen(appHubUnreadByAppProvider, (_, _) => schedule());
   ref.listen(hubLayoutProvider, (_, _) => schedule());
+  // 名字点集变化(新装点亮 / 打开熄灭)→ 重发瓷贴;noteNew 幂等守卫防环。
+  ref.listen(hubNewMinisProvider, (_, _) => schedule());
   // 初始一轮(listen 只报变化,首次的现状靠这里);同一轮多源齐变只推一次。
   schedule();
 });
@@ -145,10 +216,13 @@ void _push(Ref ref) {
   // 桌面工具、feature 组)不带锚点——它们的未安置项由解析垫在默认组尾,
   // 用户拖过的位置引擎永远不动。注册表序保持 minis 在前(= P1 目录序)。
   const String marketKey = 'feature:$hubMarketFeatureId';
+  final Set<String> newMinis = ref.read(hubNewMinisProvider);
   hub.upsertTiles(<HubTile>[
     for (final HubAppRef app in catalog.apps)
       if (app is MiniAppRef)
-        hubTileOf(app, enabled: true),
+        hubTileOf(app,
+            enabled: true,
+            labelDot: app.updateAvailable || newMinis.contains('mini:${app.app.appId}')),
   ], anchorKey: marketKey);
   hub.upsertTiles(<HubTile>[
     for (final HubAppRef app in catalog.apps)
@@ -177,20 +251,27 @@ void _push(Ref ref) {
     hub.clearBadge(dsBotKey);
   }
 
-  // ── 小程序角标:通知未读计数优先,其次更新红点 ──
-  // 未读收件箱(契约 §6.1)按 appId 折叠出计数;没有未读再让位给「有更新」
-  // 红点,两者都没有清掉。同一 key 整批重算,setBadge 是替换语义,所以
-  // 计数与红点在这里二选一(引擎渲染时 count 也天然优先于 dot)。
+  // ── 小程序瓷贴角标:通知未读计数 ──
+  // 未读收件箱(契约 §6.1)按 appId 折叠出计数,读过即消。「有更新/新装
+  // 未打开」指示已迁名字点(labelDot),瓷贴角不再挂 dot(用户裁决:更新
+  // 不再回瓷贴角)——同一颗 mini 可以同时有角上未读计数 + 名字点,iOS 同款。
   for (final HubInstalledApp app in minis.value ?? const <HubInstalledApp>[]) {
     final String key = 'mini:${app.appId}';
     final int unread = unreadByApp[app.appId] ?? 0;
     if (unread > 0) {
       hub.setBadge(key, HubBadge(count: unread));
-    } else if (app.updateAvailable) {
-      hub.setBadge(key, const HubBadge(dot: true));
     } else {
       hub.clearBadge(key);
     }
+  }
+
+  // 「新装未打开」检测:清单(非 loading)里首次出现的 mini key 记入
+  // hubNewMinis(点亮名字点);seen 已见过的忽略,幂等无新增不通知。
+  if (!minis.isLoading) {
+    ref.read(hubNewMinisProvider.notifier).noteNew(<String>[
+      for (final HubInstalledApp app in minis.value ?? const <HubInstalledApp>[])
+        'mini:${app.appId}',
+    ]);
   }
 
   // ── AppHub 组头未读(整批同步)──

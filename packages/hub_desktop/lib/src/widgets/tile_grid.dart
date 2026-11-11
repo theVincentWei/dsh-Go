@@ -49,8 +49,10 @@ class TileGrid extends StatelessWidget {
 
 /// 手机桌面式图标瓷贴:46 圆角方形图标在上、名称在下,无卡片底。桌面引擎
 /// 的每颗图标格用这一个组件,保证名称是同一种字、同一套间距与按压反馈。
-/// 图标内容([icon])由调用方决定;[badge] 叠在图标右上角(如未读数)。
-/// [enabled] 为 false 时整块淡到 45%,不响应点击(要先选中会话的项用)。
+/// 图标内容([icon])由调用方决定,统一显示时裁切成瓷贴形状(方图 PNG 不
+/// 压圆角);[badge] 叠在图标右上角(如未读数);[labelDot] 在名字行尾挂
+/// 4px 主色圆点(iOS 式新装/更新指示),false 不占位。[enabled] 为 false
+/// 时整块淡到 45%,不响应点击(要先选中会话的项用)。
 class IconTile extends StatelessWidget {
   const IconTile({
     super.key,
@@ -58,6 +60,7 @@ class IconTile extends StatelessWidget {
     required this.label,
     this.badge,
     this.chipColor,
+    this.labelDot = false,
     required this.onTap,
     this.enabled = true,
   });
@@ -69,6 +72,9 @@ class IconTile extends StatelessWidget {
 
   /// 瓷贴底色覆盖:传实底色(如桌面小程序图标的色相),不传保持主题淡染。
   final Color? chipColor;
+
+  /// 名字行尾小点(iOS 式);false 不占位。
+  final bool labelDot;
   final VoidCallback onTap;
   final bool enabled;
 
@@ -92,7 +98,12 @@ class IconTile extends StatelessWidget {
                     scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
               ),
-              child: Center(child: icon),
+              // 图标内容统一显示时裁切成瓷贴形状:png/widget 档的满铺方图
+              // 不得压过圆角(交付约定=交付方图不预裁,见桌面契约注记)。
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: Center(child: icon),
+              ),
             ),
           ),
           if (badge case final badge?) Positioned(right: -2, top: -2, child: badge),
@@ -119,16 +130,44 @@ class IconTile extends StatelessWidget {
                   children: [
                     chip,
                     const SizedBox(height: 6),
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
+                    // 名字行:labelDot 时名字 + 4px 间距 + 4px 主色圆点
+                    // (iOS 式);无点保持纯文本,不占位。
+                    if (!labelDot)
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                      )
+                    else
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            key: const ValueKey('hub-label-dot'),
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+                          ),
+                        ],
                       ),
-                    ),
                   ],
                 ),
               ),

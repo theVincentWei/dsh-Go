@@ -19,7 +19,8 @@ import 'package:dsh_app/state/apphub_notices_state.dart'
     show AppHubNotices, AppHubNoticesController, MiniAppNotice, appHubNoticesProvider;
 import 'package:dsh_app/state/bots_state.dart'
     show DsBotAvailability, DsBotController, DsBotInbox, DsBotInboxController, DsBotStatus, dsBotInboxProvider, dsBotProvider;
-import 'package:dsh_app/state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
+import 'package:dsh_app/state/hub_desktop_sync.dart'
+    show hubDesktopSyncProvider, hubNewMinisProvider;
 import 'package:dsh_app/state/hub_layout_state.dart';
 import 'package:dsh_app/state/sessions_state.dart' show currentSessionProvider, sessionsProvider;
 import 'package:dsh_app/state/settings_state.dart'
@@ -294,18 +295,77 @@ void main() {
     await tester.pump(const Duration(seconds: 70));
   });
 
-  testWidgets('小程序有更新挂主色小点,版本相同不挂', (tester) async {
+  testWidgets('小程序有更新挂名字点(iOS 式),瓷贴角不再有 dot;新装未打开也亮', (tester) async {
     await _pump(tester, minis: <HubInstalledApp>[
       const HubInstalledApp(appId: 'wx1', name: '记账本', installedVersionCode: 2, marketVersionCode: 3),
       const HubInstalledApp(appId: 'wx2', name: '日历', installedVersionCode: 5, marketVersionCode: 5),
     ]);
 
-    expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
+    // 冷启动空 seen:wx1 亮「更新」、wx2 亮「新装未打开」——同名点同槽位。
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('hub-update-dot')), findsNothing); // 瓷贴角 dot 档退役
   });
 
-  testWidgets('注册者迁移:小程序通知未读挂计数角标,压过更新红点', (tester) async {
-    // wx1 有 2 条未读(计数角标,更新红点让位);wx2 无未读、有更新(红点保留);
-    // wx2 那条已读通知不进计数(未读收件箱语义)。
+  testWidgets('新装未打开亮名字点,markOpened 熄灭(跨重启保持)', (tester) async {
+    // 冷启动 + 空 seen:第一次清单里的 mini 都算「首次出现」→ 亮名字点。
+    final ProviderContainer container = await _pump(tester, minis: <HubInstalledApp>[
+      const HubInstalledApp(appId: 'wx1', name: '记账本'),
+    ]);
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsOneWidget);
+
+    // 打开一次(iOS:打开即熄):onOpen 分发里写的就是 markOpened。
+    container.read(hubNewMinisProvider.notifier).markOpened('mini:wx1');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsNothing);
+
+    // 重启保持:prefs 里 hub.new-minis 已无 wx1、seen 有它——新容器(重启)
+    // 后不亮;另一颗装了但从未打开的 wx2 保持亮。
+    final ProviderContainer reborn = ProviderContainer(overrides: <Override>[
+      hubInstalledProvider.overrideWith((ref) async => <HubInstalledApp>[
+            const HubInstalledApp(appId: 'wx1', name: '记账本'),
+            const HubInstalledApp(appId: 'wx2', name: '新装的', installedVersionCode: 1, marketVersionCode: 2),
+          ]),
+      featureSectionsProvider.overrideWithValue(_twoGroups()),
+    ]);
+    addTearDown(reborn.dispose);
+    reborn.read(hubDesktopSyncProvider);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: reborn,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        navigatorKey: rootNavigatorKey,
+        locale: const Locale('zh', 'CN'),
+        supportedLocales: const <Locale>[Locale('zh', 'CN')],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          L10n.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        theme: withTestFonts(buildLightTheme()),
+        builder: (BuildContext context, Widget? child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: AllFeaturesPage(sections: _twoGroups()),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsOneWidget); // 只有 wx2
+  });
+
+  testWidgets('重启不误判:seen 里的老应用不因冷启动清单而亮', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'hub.seen-minis': <String>['mini:wx1'],
+    });
+    await _pump(tester, minis: <HubInstalledApp>[
+      const HubInstalledApp(appId: 'wx1', name: '老朋友'),
+    ]);
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsNothing);
+  });
+
+  testWidgets('注册者迁移:通知未读挂瓷贴角计数,更新走名字点——两指示器并存', (tester) async {
+    // wx1 有 2 条未读(瓷贴角计数角标)且市场有更新 → 角上计数 + 名字点并存
+    // (iOS 同款);wx2 无未读、有更新 + 新装未打开 → 瓷贴角清掉(不再有红点
+    // 兜底)、只有名字点;wx2 那条已读通知不进计数(未读收件箱语义)。
     const AppHubNotices stubState = AppHubNotices(
       notices: <MiniAppNotice>[
         MiniAppNotice(id: 1, appId: 'wx1', title: 'a'),
@@ -325,15 +385,16 @@ void main() {
       ],
     );
 
-    // 引擎角标注册表(喂送层的真实输出,避开像素歧义):wx1 未读计数压过
-    // 更新红点;wx2 无未读保留更新红点;wx2 那条已读通知不计数(未读收件箱)。
+    // 引擎角标注册表(喂送层的真实输出,避开像素歧义):
+    // wx1 未读计数;wx2 无未读清掉——更新不再回瓷贴角(用户裁决)。
     final HubBadge? wx1Badge = container.read(hubBadgesProvider)['mini:wx1'];
     expect(wx1Badge?.count, 2);
     expect(wx1Badge?.dot, isFalse);
     final HubBadge? wx2Badge = container.read(hubBadgesProvider)['mini:wx2'];
-    expect(wx2Badge?.dot, isTrue);
-    expect(wx2Badge?.count ?? 0, 0);
-    expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget); // wx2 红点渲染
+    expect(wx2Badge, isNull);
+    // 名字点(更新/新装未打开):两颗都亮;瓷贴角无 dot 渲染。
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('hub-update-dot')), findsNothing);
   });
 
   testWidgets('整理模式下小程序图标出「−」卸载角标(注册者注册了 mini: 钩子)', (tester) async {

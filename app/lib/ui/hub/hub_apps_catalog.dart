@@ -150,8 +150,8 @@ final hubCatalogProvider = Provider.autoDispose<HubCatalog>((ref) {
 ///
 /// 不收 iconColor:装配端(state/hub_desktop_sync 的 keep-alive 注册者)
 /// 不是 widget 环境,拿不到 Theme——主色字形由 [_PrimaryIcon] 在引擎子树
-/// 渲染时自取。
-HubTile hubTileOf(HubAppRef app, {required bool enabled}) {
+/// 渲染时自取。[labelDot] = 名字行尾小点(iOS 式新装/更新指示)。
+HubTile hubTileOf(HubAppRef app, {required bool enabled, bool labelDot = false}) {
   final HubIcon icon = switch (app) {
     MiniAppRef(:final app) when app.iconUrl != null => HubIcon.widget(HubBundleIcon(
         appId: app.appId,
@@ -174,6 +174,7 @@ HubTile hubTileOf(HubAppRef app, {required bool enabled}) {
     icon: icon,
     enabled: enabled,
     uninstallable: app is MiniAppRef,
+    labelDot: labelDot,
   );
 }
 

@@ -8,6 +8,7 @@
 // 摇摆不转,可 pumpAndSettle。
 
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,6 +51,7 @@ HubTile _tile(
   String name, {
   bool enabled = true,
   bool uninstallable = false,
+  bool labelDot = false,
   List<String> aliases = const <String>[],
 }) =>
     HubTile(
@@ -59,6 +61,7 @@ HubTile _tile(
       enabled: enabled,
       uninstallable: uninstallable,
       searchAliases: aliases,
+      labelDot: labelDot,
     );
 
 HubTile _miniTile(String appId, String name, {bool uninstallable = true}) => HubTile(
@@ -366,6 +369,48 @@ void main() {
     expect(find.text('99+'), findsNothing);
     // 计数优先:丙格 count+dot 同挂,只显示红圈——全场仍只有乙一颗小点。
     expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
+  });
+
+  testWidgets('名字点:labelDot 在名字行尾挂 4px 主色点,无点不占位', (tester) async {
+    await _pump(tester, tiles: () => <HubTile>[
+          _tile('jia', '甲', labelDot: true),
+          _tile('yi', '乙'),
+        ]);
+
+    // 甲:名字行尾有点;乙:无点不占位。
+    expect(find.byKey(const ValueKey('hub-label-dot')), findsOneWidget);
+    final Offset dot = tester.getCenter(find.byKey(const ValueKey('hub-label-dot')));
+    expect(dot.dx, greaterThan(tester.getCenter(find.text('甲')).dx)); // 名字右侧
+    expect(dot.dy, tester.getCenter(find.text('甲')).dy); // 同一行
+  });
+
+  testWidgets('瓷贴内容层统一显示时裁切:icon 槽包 ClipRRect(圆角 14)', (tester) async {
+    // 满铺方图(png 档)由 IconTile 内容层的 ClipRRect 裁成瓷贴形状;
+    // glyph/widget 档居中不溢出,裁切无视觉差异但同一层兜底。
+    const String redDot1x1PngBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    final Uint8List pngBytes = base64Decode(redDot1x1PngBase64);
+    await _pump(tester, tiles: () => <HubTile>[
+          HubTile(
+            key: 'mini:png',
+            name: '方图',
+            icon: HubIcon.png(pngBytes),
+          ),
+          _tile('yi', '乙'),
+        ]);
+
+    // 每颗瓷贴的 icon 内容层都在 ClipRRect(半径=瓷贴圆角 14)内。
+    final List<Widget> tiles = tester.widgetList<Widget>(find.byType(IconTile)).toList();
+    expect(tiles, hasLength(2));
+    for (final Widget tile in tiles) {
+      final Finder inTile = find.descendant(
+        of: find.byWidgetPredicate((Widget w) => identical(w, tile)),
+        matching: find.byType(ClipRRect),
+      );
+      expect(inTile, findsWidgets, reason: '瓷贴内容层应有 ClipRRect');
+      final ClipRRect clip = tester.widget<ClipRRect>(inTile.first);
+      expect(clip.borderRadius, BorderRadius.circular(IconTile.radius));
+    }
   });
 
   testWidgets('计数封顶 99+', (tester) async {

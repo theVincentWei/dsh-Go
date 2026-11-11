@@ -18,6 +18,7 @@ class HubTile {
     this.uninstallable = false,
     this.sectionHint,
     this.searchAliases = const <String>[],
+    this.labelDot = false,
   });
 
   final String key;
@@ -38,6 +39,10 @@ class HubTile {
 
   /// 桌面搜索别名(可选)。
   final List<String> searchAliases;
+
+  /// 名字行尾小点(iOS 式新装/更新指示):true = 名字右侧 4px 主色圆点,
+  /// false 不占位。语义归宿主(如「有更新」「新装未打开」),引擎只渲染。
+  final bool labelDot;
 }
 
 /// 图标三档(声明式为主,引擎负责渲染;Widget 档只服务进程内宿主)。
