@@ -222,6 +222,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     updateManifestUrl = call.argument<String>("updateManifestUrl") ?: "",
                     // 宿主栅格化的应用图标(桌面/市场同款字形);null=弹层回落首字母瓦片
                     iconPng = call.argument<ByteArray>("iconPng"),
+                    // autoSync 静默同步(autoSync 扩展):升级跳过确认弹窗直接激活
+                    autoUpdate = call.argument<Boolean>("autoUpdate") ?: false,
                 )
                 try {
                     // SDK manages its own activity stack; must be called on the main thread.
@@ -229,6 +231,41 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     result.success(true)
                 } catch (error: Throwable) {
                     result.error("OPEN_FAILED", error.message, null)
+                }
+            }
+            "sync" -> {
+                // autoSync 静默同步(autoSync 扩展):不拉任何界面,后台装/升。
+                // 需要 Activity 的只有 open;这里用 applicationContext 即可。
+                val appId = call.argument<String>("appId")
+                if (appId.isNullOrBlank()) {
+                    result.error("BAD_ARGS", "appId is required", null)
+                    return
+                }
+                // 容器未初始化时按默认浅色初始化(首次 open 仍会按宿主亮度校正,
+                // updateCapsuleTheme 走运行时更新,见 ensureInitialized 注释)。
+                ensureInitialized(call.argument<Boolean>("dark") ?: false)
+                val miniProgram = MiniProgram(
+                    appId = appId,
+                    name = call.argument<String>("name") ?: appId,
+                    path = null,
+                    versionCode = call.argument<Number>("versionCode")?.toInt() ?: 0,
+                    versionName = call.argument<String>("versionName") ?: "",
+                    updateManifestUrl = call.argument<String>("updateManifestUrl") ?: "",
+                )
+                try {
+                    Dimina.getInstance().syncMiniProgram(appContext, miniProgram) { outcome, versionCode, versionName ->
+                        main.post {
+                            result.success(
+                                mapOf(
+                                    "outcome" to outcome,
+                                    "versionCode" to versionCode,
+                                    "versionName" to versionName,
+                                ),
+                            )
+                        }
+                    }
+                } catch (error: Throwable) {
+                    result.error("SYNC_FAILED", error.message, null)
                 }
             }
             "close" -> {

@@ -17,6 +17,7 @@ import 'package:http/http.dart' as http;
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
+import '../../state/auto_sync_state.dart' show autoSyncProvider;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import 'hub_apps_group.dart' show hubInstalledProvider;
 import '../common/list_page_row.dart';
@@ -43,7 +44,8 @@ class _HubApp {
         iconKey = json['icon'] as String?,
         iconUrl = json['iconUrl'] as String?,
         versionCode = (json['versionCode'] as num?)?.toInt(),
-        versionName = json['versionName'] as String? ?? '';
+        versionName = json['versionName'] as String? ?? '',
+        autoSync = json['autoSync'] == true;
 
   final String appId;
   final String name;
@@ -56,6 +58,10 @@ class _HubApp {
   final String? iconUrl;
   final int? versionCode;
   final String versionName;
+
+  /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = open 时
+  /// 升级跳过确认弹窗直接激活。
+  final bool autoSync;
 }
 
 class ApphubMarketPage extends ConsumerStatefulWidget {
@@ -119,6 +125,12 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
         _failed = false;
       });
       await _queryInstalled();
+      // autoSync 静默同步:市场目录刚刷新,正是检查「没装→静默装、落后→静默升」
+      // 的时机(单飞+冷却在 runner 内;总开关设置 → 通用 → 静默同步)。
+      ref.read(autoSyncProvider.notifier).runIfDue(onApplied: () {
+        if (!mounted) return;
+        unawaited(_queryInstalled());
+      });
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -174,6 +186,8 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。必须走固定端口
       // 反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被重连换掉。
       updateManifestUrl: '$appHubProxyBase/apps/${app.appId}/manifest.json',
+      // autoSync 包:升级跳过容器确认弹窗(发布侧已表达确认语义)。
+      autoUpdate: app.autoSync,
     );
     // 装完即把状态置为已装;版本号不做乐观改写——升级要等用户在容器弹窗里确认
     // 生效后,由升级事件回传/定时核对拿到真实 versionCode。
@@ -214,6 +228,7 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
             iconUrl: app.iconUrl,
             versionCode: app.versionCode,
             versionName: app.versionName,
+            autoSync: app.autoSync,
           ),
         ),
       ),

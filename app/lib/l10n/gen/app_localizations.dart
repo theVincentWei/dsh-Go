@@ -13934,6 +13934,18 @@ abstract class L10n {
   /// **'没有找到「{query}」'**
   String hubNoMatch(String query);
 
+  /// No description provided for @autoSyncTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'静默同步'**
+  String get autoSyncTitle;
+
+  /// No description provided for @autoSyncSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'autoSync 的应用在后台自动安装与升级,无需逐次确认'**
+  String get autoSyncSummary;
+
   /// No description provided for @launchScreenTitle.
   ///
   /// In zh, this message translates to:

@@ -19,6 +19,7 @@ import '../../l10n/l10n.dart';
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/bots_state.dart' show dsBotInboxProvider;
 import '../../state/apphub_notices_state.dart' show appHubNoticesProvider;
+import '../../state/auto_sync_state.dart' show autoSyncProvider;
 import '../../state/hub_layout_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../applet/dimina/dimina_host.dart';
@@ -219,6 +220,8 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
           // 已被重连换掉(见 apphub_proxy.dart)。
           updateManifestUrl:
               '$appHubProxyBase/apps/${mini.app.appId}/manifest.json',
+          // autoSync 包:升级跳过容器确认弹窗(发布侧已表达确认语义)。
+          autoUpdate: mini.app.autoSync,
         );
         if (ok) {
           _touch(mini.key);
@@ -626,6 +629,19 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
               );
         });
       }
+      // autoSync 静默同步:链路/目录落定时触发(单飞+冷却在 runner 内)。
+      // 没装的 autoSync 应用静默装上、落后的静默升级;装/升成功后重查已装
+      // 清单,新瓷贴走上面的 absorbUnplaced 自动落位。总开关:设置 → 通用。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(autoSyncProvider.notifier).runIfDue(onApplied: () {
+          if (!mounted) return;
+          ref.invalidate(hubInstalledProvider);
+          Timer(const Duration(seconds: 6), () {
+            if (mounted) ref.invalidate(hubInstalledProvider);
+          });
+        });
+      });
     }
 
     final List<HubResolvedSection> resolved = resolveHubLayout(layout, _catalogKeys);

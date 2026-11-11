@@ -39,6 +39,7 @@ Future<bool> openHubApp(
   String? iconUrl,
   int? versionCode,
   bool dark = false,
+  bool autoSync = false,
 }) async {
   final Color iconColor = Theme.of(context).colorScheme.primary;
   final Uint8List? bundlePng =
@@ -51,6 +52,8 @@ Future<bool> openHubApp(
     iconColor: iconColor,
     iconPng: bundlePng,
     updateManifestUrl: '$appHubProxyBase/apps/$appId/manifest.json',
+    // autoSync 包:升级跳过容器确认弹窗(发布侧已表达确认语义)。
+    autoUpdate: autoSync,
   );
   if (ok) {
     ref.read(hubLayoutProvider.notifier).touch('mini:$appId');
@@ -74,6 +77,7 @@ class HubAppRef {
     this.iconUrl,
     this.versionCode,
     this.versionName = '',
+    this.autoSync = false,
   });
 
   final String appId;
@@ -85,6 +89,9 @@ class HubAppRef {
   final String? iconUrl;
   final int? versionCode;
   final String versionName;
+
+  /// autoSync 静默同步(bundle.json 顶层字段,缺省 false)。
+  final bool autoSync;
 }
 
 /// 一条权限声明(store.json 的 permissions 项)。

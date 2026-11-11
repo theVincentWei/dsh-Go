@@ -7597,6 +7597,12 @@ class L10nZh extends L10n {
   }
 
   @override
+  String get autoSyncTitle => '静默同步';
+
+  @override
+  String get autoSyncSummary => 'autoSync 的应用在后台自动安装与升级,无需逐次确认';
+
+  @override
   String get launchScreenTitle => '启动画面';
 
   @override

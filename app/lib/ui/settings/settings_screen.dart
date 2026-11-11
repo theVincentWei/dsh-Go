@@ -55,6 +55,7 @@ import 'background_guide_page.dart';
 import 'diagnostics_page.dart';
 import 'interface_page.dart';
 import 'language_tile.dart';
+import 'auto_sync_settings.dart';
 import 'notification_settings.dart';
 import 'performance_page.dart';
 import 'personalization_page.dart';
@@ -239,6 +240,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const LanguageSettingsTile(tint: SettingsHues.general),
             const NotificationSettingsTile(tint: SettingsHues.general),
+            const AutoSyncSettingsTile(tint: SettingsHues.general),
             const VoiceSettingsTile(tint: SettingsHues.general),
             const PerformanceSettingsTile(tint: SettingsHues.general),
             if (localEngine)

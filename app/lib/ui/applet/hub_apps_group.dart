@@ -32,6 +32,7 @@ class HubInstalledApp {
     this.iconUrl,
     this.installedVersionCode,
     this.marketVersionCode,
+    this.autoSync = false,
   });
 
   final String appId;
@@ -47,6 +48,10 @@ class HubInstalledApp {
 
   /// 市场目录的最新版本(/api/v1/apps 行内 versionCode)。
   final int? marketVersionCode;
+
+  /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = 打开时
+  /// 升级跳过容器确认弹窗;后台同步服务也会静默装/升。
+  final bool autoSync;
 
   /// 市场比本机新 = 桌面瓷贴可以挂「有更新」角标。
   bool get updateAvailable {
@@ -82,6 +87,7 @@ final hubInstalledProvider = FutureProvider.autoDispose<List<HubInstalledApp>>((
       iconUrl: app['iconUrl'] as String?,
       installedVersionCode: (state['versionCode'] as num?)?.toInt(),
       marketVersionCode: marketVersion,
+      autoSync: app['autoSync'] == true,
     ));
   }
   return installed;

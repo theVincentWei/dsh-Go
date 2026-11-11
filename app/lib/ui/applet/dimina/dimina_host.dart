@@ -181,6 +181,7 @@ final class DiminaHost {
     String? iconKey,
     Color iconColor = const Color(0xFF4F6BFF),
     Uint8List? iconPng,
+    bool autoUpdate = false,
   }) async {
     // 首次 open 前挂好原生→Dart 的事件通道(升级里程碑回传,见 updateEvents)。
     _ensureNativeEventHandler();
@@ -195,6 +196,9 @@ final class DiminaHost {
       'updateManifestUrl': ?updateManifestUrl,
       'dark': dark ?? themeDark,
       'iconPng': ?resolvedPng,
+      // autoSync 静默同步(autoSync 扩展):跳过容器升级确认弹窗,新包就绪
+      // 即激活(正在运行则冷重启)。非 autoSync 包保持 false,行为不变。
+      'autoUpdate': autoUpdate,
     }) ??
         false;
   }
@@ -219,4 +223,31 @@ final class DiminaHost {
       await _channel.invokeMapMethod<String, Object?>('installed', <String, Object?>{
         'appId': appId,
       });
+
+  /// autoSync 静默同步(autoSync 扩展):不拉任何界面,容器后台把
+  /// [updateManifestUrl] 描述的包装到本机——没装 → 首装进 active;已装旧版 →
+  /// 拉新包并**跳过升级确认弹窗**直接激活。返回
+  /// `{outcome: installed|updated|noupdate|failed, versionCode, versionName}`,
+  /// 通道未实现(老原生)时为 null——调用方按 failed 处理,下次触发重试。
+  /// 里程碑仍会经 onUpdateEvent 广播(installed/applied),市场页照常刷新。
+  static Future<Map<String, Object?>?> sync({
+    required String appId,
+    required String name,
+    int versionCode = 0,
+    String? updateManifestUrl,
+  }) async {
+    _ensureNativeEventHandler();
+    try {
+      return await _channel.invokeMapMethod<String, Object?>('sync', <String, Object?>{
+        'appId': appId,
+        'name': name,
+        'versionCode': versionCode,
+        'updateManifestUrl': ?updateManifestUrl,
+      });
+    } on PlatformException catch (error) {
+      // 老原生没有 'sync':notImplemented → PlatformException(unimplemented)。
+      debugPrint('[dimina] sync unsupported: ${error.code}');
+      return null;
+    }
+  }
 }

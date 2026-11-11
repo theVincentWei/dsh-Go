@@ -8026,6 +8026,12 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get autoSyncTitle => 'Silent sync';
+
+  @override
+  String get autoSyncSummary => 'autoSync apps install and update in the background without prompts';
+
+  @override
   String get launchScreenTitle => 'Launch screen';
 
   @override
