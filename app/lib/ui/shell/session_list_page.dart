@@ -45,7 +45,6 @@ import '../workspace/workspace_switcher.dart';
 import '../workspace/workspaces_page.dart';
 import '../pets/pet_perch.dart';
 import '../common/round_key.dart' show RoundKey;
-import '../notify/service_notices_key.dart' show ServiceNoticesKey;
 import '../pets/pet_stage.dart';
 import 'adaptive/adaptive_layout.dart' show WindowClass;
 import 'drawer/drawer_actions.dart';
@@ -329,7 +328,8 @@ class _TitleRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(child: Text(context.l10n.chatListTitle, style: Theme.of(context).textTheme.headlineLarge)),
-        const ServiceNoticesKey(),
+        // 「服务通知」钥匙已迁走(2026-11-11 拍板:通知入口只留「小程序」桌面
+        // 页头右上角),标题行只剩工作区/搜索/视图选项三颗。
         const SizedBox(width: 8),
         RoundKey(
           icon: AppIcons.folderOpen,

@@ -8,8 +8,8 @@ import '../theme/app_icons.dart';
 import 'notification_center.dart' show NotificationCenterPage;
 
 /// 「服务通知」：小程序通知中心的入口，未读时挂计数小角标（契约 §6.1）。
-/// 2026-11-11 拍板：星河容器 Header 不再放通知铃铛，入口收在宿主自己的
-/// 页面头里——会话列表标题行 + 「小程序」桌面页大标题行右上角，同一颗钥匙。
+/// 2026-11-11 拍板：星河容器 Header 不放通知铃铛、会话列表也不放——唯一
+/// 入口是「小程序」桌面页大标题行右上角这一颗钥匙。
 class ServiceNoticesKey extends ConsumerWidget {
   const ServiceNoticesKey({super.key});
 
