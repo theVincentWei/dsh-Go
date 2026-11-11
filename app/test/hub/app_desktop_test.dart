@@ -145,11 +145,12 @@ Future<ProviderContainer> _pump(
   return container;
 }
 
-/// 进整理模式,顺手断言顶栏出现「完成」。
+/// 进整理模式,顺手断言右上出现「完成」圆键。
 Future<void> _enterEdit(WidgetTester tester, String anyTileLabel) async {
-  await tester.longPress(find.text(anyTileLabel));
+  // touch 过的应用会有「最近使用镜像 + 组内真身」两颗,取第一颗即可。
+  await tester.longPress(find.text(anyTileLabel).first);
   await tester.pumpAndSettle();
-  expect(find.text('完成'), findsOneWidget);
+  expect(find.byIcon(Icons.check), findsOneWidget);
 }
 
 /// 滚到 [finder] 可见(惰性列表里没构建的部件,finder 是找不到的)。
@@ -242,24 +243,57 @@ void main() {
     expect(tile('终端').enabled, isTrue);
   });
 
-  testWidgets('长按任意图标进整理模式,「完成」退出', (tester) async {
+  testWidgets('长按进整理:零位移、完成圆键与大标题中线对齐、退出恢复', (tester) async {
     await _pump(tester, sections: _twoGroups());
 
+    // E2:按住哪个图标,那个图标中心一像素不动(提示行/强制最近使用头
+    // 已删,编辑态的更多菜单浮在同一条组头上不占布局)。
+    final Finder jia = find.widgetWithText(IconTile, '甲').first;
+    final Offset jiaCenter = tester.getCenter(jia);
     await _enterEdit(tester, '甲');
+    expect(tester.getCenter(jia), jiaCenter);
     expect(find.byIcon(Icons.more_horiz), findsWidgets); // 分组头菜单
-    await _reveal(tester, find.text('新建分组'));
-    expect(find.text('新建分组'), findsOneWidget);
+    expect(find.text('新建分组'), findsOneWidget); // 不再需要滚动就能看到
 
-    // 「完成」与大标题同一条线、靠右(标题行右端)。
-    final Offset done = tester.getCenter(find.text('完成'));
+    // E3/E5:「完成」圆键与大标题行同一条视觉中线、靠右。
+    final Offset done = tester.getCenter(find.byIcon(Icons.check));
     final Offset title = tester.getCenter(find.text('小程序'));
-    expect((done.dy - title.dy).abs(), lessThan(14));
+    expect((done.dy - title.dy).abs(), lessThan(2));
     expect(done.dx, greaterThan(title.dx));
 
-    await tester.tap(find.text('完成'));
+    await tester.tap(find.byIcon(Icons.check));
     await tester.pumpAndSettle();
-    expect(find.text('完成'), findsNothing);
+    expect(find.byIcon(Icons.check), findsNothing);
     expect(find.byIcon(Icons.more_horiz), findsNothing);
+  });
+
+  testWidgets('编辑态右上第二颗圆键:最近使用显示/隐藏,隐藏态置灰(E4)', (tester) async {
+    final ProviderContainer container = await _pump(tester, sections: _twoGroups());
+    // 有最近记录才有「最近使用」组。
+    container.read(hubLayoutProvider.notifier).touch('feature:jia');
+    await tester.pumpAndSettle();
+    expect(find.text('最近使用'), findsOneWidget);
+
+    await _enterEdit(tester, '甲');
+    expect(find.byIcon(Icons.history), findsOneWidget);
+
+    // 隐藏:组消失,钥匙置灰(iOS 式 45%)。
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+    expect(find.text('最近使用'), findsNothing);
+    final Opacity grey = tester.widget<Opacity>(
+      find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(Opacity)).first,
+    );
+    expect(grey.opacity, 0.45);
+
+    // 再点:恢复显示,不置灰。
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+    expect(find.text('最近使用'), findsOneWidget);
+    final Opacity lit = tester.widget<Opacity>(
+      find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(Opacity)).first,
+    );
+    expect(lit.opacity, 1.0);
   });
 
   testWidgets('整理中系统返回先退整理,不切 tab(shell 返回键分支)', (tester) async {

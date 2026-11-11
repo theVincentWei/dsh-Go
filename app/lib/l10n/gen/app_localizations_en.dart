@@ -7994,6 +7994,9 @@ class L10nEn extends L10n {
       'When on, Shift+Enter inserts a new line. The on-screen keyboard keeps newlines; Ctrl/⌘+Enter always sends.';
 
   @override
+  String get hubToggleRecents => 'Show or hide recently used';
+
+  @override
   String get hubRecentGroup => 'Recently used';
 
   @override

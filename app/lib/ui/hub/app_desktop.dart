@@ -29,6 +29,7 @@ import '../applet/hub_app_icon.dart' show HubAppIcon;
 import '../applet/hub_apps_group.dart'
     show HubInstalledApp, hubInstalledProvider;
 import '../applet/hub_icon_cache.dart' show hubIconCache;
+import '../common/round_key.dart' show RoundKey;
 import '../features/all_features_page.dart' show dshWebOpenerProvider;
 import '../features/feature_catalog.dart';
 import '../notify/notification_center.dart' show consumeMiniAppNotices;
@@ -235,33 +236,62 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
             },
           ),
         ),
-        // 「服务通知」钥匙(契约 §6.1;2026-11-11 拍板:星河容器 Header 不再放
-        // 通知铃铛,入口收在宿主页面头):大标题行右上角,固定不随滚动,
-        // 未读时挂计数角标;整理模式让位给同槽位的「完成」键。
+        // 标题行右侧的钥匙槽(E5):普通态一颗「服务通知」钥匙,编辑态
+        // 「完成」+「最近使用开关」两颗并排(间距 10)——同一槽位,两副
+        // 面孔。top 见 [_overlayKeyTop](与大标题行视觉中线对齐),固定不随
+        // 滚动。未读时服务通知钥匙挂计数角标(契约 §6.1)。
         if (!editing)
           Positioned(
-            top: MediaQuery.paddingOf(context).top + 10,
+            top: _overlayKeyTop(context),
             right: 24,
             child: const ServiceNoticesKey(),
           ),
-        // 编辑态「完成」长在大标题行右端(与 iOS 桌面编辑同款):根路由没有
-        // 浮动栏(page_frame 的 compact 态),叠加是唯一的出处,固定不随滚动。
         if (editing)
           Positioned(
-            top: MediaQuery.paddingOf(context).top + 10,
+            top: _overlayKeyTop(context),
             right: 24,
-            child: FilledButton.tonalIcon(
-              onPressed: () => ref.read(hubEditingProvider.notifier).set(false),
-              icon: const Icon(Icons.check, size: 17),
-              label: Text(l10n.commonDone),
-              style: FilledButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+            child: Row(
+              children: <Widget>[
+                RoundKey(
+                  icon: Icons.check,
+                  tooltip: l10n.commonDone,
+                  onTap: () => ref.read(hubEditingProvider.notifier).set(false),
+                ),
+                const SizedBox(width: 10),
+                // 最近使用显示/隐藏:隐藏态置灰(iOS 式 45%)。
+                Opacity(
+                  opacity: layout.smartSection().hidden ? 0.45 : 1.0,
+                  child: RoundKey(
+                    icon: Icons.history,
+                    tooltip: l10n.hubToggleRecents,
+                    onTap: () => ref
+                        .read(hubLayoutProvider.notifier)
+                        .setRecentsHidden(!layout.smartSection().hidden),
+                  ),
+                ),
+              ],
             ),
           ),
       ],
     );
+  }
+
+  /// 标题行钥匙的 top(E5)。对齐基准 = page_frame compact 头的大标题行:
+  /// 从 padding.top 起、上内距 6、行高按 headlineLarge 现量(TextPainter,
+  /// 与 page_frame 的实测同式),钥匙(RoundKey.size 34)与标题行「视觉
+  /// 中线」对齐 = padding.top + 6 + (lineHeight − keySize) / 2。其他页浮
+  /// 栏按钮走的 NavigationToolbar 56dp 槽在 compact 头不存在,故按标题行
+  /// 直接对齐。
+  double _overlayKeyTop(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: '国A', style: theme.textTheme.headlineLarge),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout();
+    final double line = painter.height;
+    painter.dispose();
+    return MediaQuery.paddingOf(context).top + 6 + (line - RoundKey.size) / 2;
   }
 
   /// 宿主 DshSurfaces → 引擎玻璃材质(值逐字段翻译,渲染公式在引擎侧)。

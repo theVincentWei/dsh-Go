@@ -13874,6 +13874,12 @@ abstract class L10n {
   /// **'开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。'**
   String get hubHardwareEnterSendsHint;
 
+  /// No description provided for @hubToggleRecents.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示/隐藏最近使用'**
+  String get hubToggleRecents;
+
   /// No description provided for @hubRecentGroup.
   ///
   /// In zh, this message translates to:

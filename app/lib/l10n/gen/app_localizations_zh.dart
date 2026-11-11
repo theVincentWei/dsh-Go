@@ -7563,6 +7563,9 @@ class L10nZh extends L10n {
   String get hubHardwareEnterSendsHint => '开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。';
 
   @override
+  String get hubToggleRecents => '显示/隐藏最近使用';
+
+  @override
   String get hubRecentGroup => '最近使用';
 
   @override
