@@ -5437,6 +5437,26 @@
   "notifySubscribeAccept": "允许",
   "notifySubscribeReject": "拒绝",
   "notifySubscribeNoTemplates": "没有可订阅的模板",
+  "notifyUpdateApplied": "「{app}」已升级至 v{version}",
+  "@notifyUpdateApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdateAppliedPlain": "「{app}」已升级，下次打开生效",
+  "@notifyUpdateAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdatePublicText": "小程序已更新",
   "performanceTitle": "性能",
   "performanceAuto": "自动",
   "performanceFull": "完整",

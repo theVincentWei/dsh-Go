@@ -2,9 +2,13 @@ package io.github.ccch1mneyyy.dsh_app.dimina
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import com.didi.dimina.Dimina
 import com.didi.dimina.MiniProgramUpdateListener
 import com.didi.dimina.bean.MiniProgram
@@ -13,6 +17,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.github.ccch1mneyyy.dsh_app.MainActivity
 import org.json.JSONObject
 import java.io.File
 
@@ -32,6 +37,15 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
     private var activity: Activity? = null
     private val main = Handler(Looper.getMainLooper())
     private var lastDark: Boolean? = null
+
+    /** 宿主 Activity 的生命周期:resume 时向 Dart 拉一次未读数兜底(契约 §6.3)。 */
+    private var hostLifecycle: Lifecycle? = null
+    private val unreadRefresh = object : DefaultLifecycleObserver {
+        override fun onResume(owner: LifecycleOwner) = fetchUnreadFromDart()
+    }
+
+    /** 容器还没 init 就收到的未读数:等首次 open 初始化后补推。 */
+    private var pendingNotifyUnread: Int? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
@@ -70,6 +84,12 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
         // 宿主扩展通道:小程序 requestSubscribeMessage → 原生订阅面板(契约 §5.2/§5.3)。
         // 注册发生在 Dimina.init 之后(框架的扩展模块表此时才可用)。
         registerNotifyExtModule()
+        // 容器 Header 的通知铃铛(契约 §6.3):入口壳由 Dimina 提供,开不开是宿主
+        // 的事;点击先回宿主,再回 Dart push 通知中心。
+        Dimina.getInstance().setNotifyEntry(true)
+        Dimina.getInstance().setOnNotifyEntryClick { onNotifyEntryClick() }
+        pendingNotifyUnread?.let { Dimina.getInstance().setNotifyUnread(it) }
+        pendingNotifyUnread = null
         // 框架升级链路:升级的检测/下载/弹窗确认/换包全在容器侧,小程序不参与;
         // 这里只把升级里程碑转发给 Flutter(市场页按真实状态刷新,不再轮询猜)。
         Dimina.getInstance().setOnMiniProgramUpdateListener(object : MiniProgramUpdateListener {
@@ -180,6 +200,12 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        // Flutter 的 ActivityPluginBinding.getLifecycle() 在编译期是 Object
+        // (androidx 只是传递依赖),运行时才是 Lifecycle。
+        (binding.lifecycle as? Lifecycle)?.also {
+            it.addObserver(unreadRefresh)
+            hostLifecycle = it
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
@@ -187,6 +213,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
 
     override fun onDetachedFromActivity() {
+        hostLifecycle?.removeObserver(unreadRefresh)
+        hostLifecycle = null
         activity = null
     }
 
@@ -317,7 +345,67 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     }
                 }
             }
+            // Dart → 原生:未读数推给容器 Header 铃铛角标(轮询/已读变化时,Dart 主动推)。
+            "pushNotifyUnread" -> {
+                val count = (call.argument<Number>("count") ?: 0).toInt().coerceAtLeast(0)
+                if (initialized) {
+                    Dimina.getInstance().setNotifyUnread(count)
+                } else {
+                    // 还没打开过小程序(Dimina 未 init):缓存,init 后补推。
+                    pendingNotifyUnread = count
+                }
+                result.success(null)
+            }
             else -> result.notImplemented()
+        }
+    }
+
+    /** 容器 Header 铃铛被点:先把 Flutter MainActivity 带回前台,再回 Dart 开通知中心。 */
+    private fun onNotifyEntryClick() {
+        val context: Context = activity ?: appContext
+        try {
+            context.startActivity(
+                Intent(context, MainActivity::class.java).apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                    )
+                },
+            )
+        } catch (_: Throwable) {
+            // 拉前台失败也不该吞掉入口:通道照样通知 Dart,UI 在引擎里已是活的。
+        }
+        main.post {
+            try {
+                channel.invokeMethod("openNotificationCenter", null)
+            } catch (_: Throwable) {
+                // Dart 没挂 handler 或引擎正在销毁:只丢这一次。
+            }
+        }
+    }
+
+    /** Activity resume 时向 Dart 拉未读数兜底刷新角标(容器自己不拉数)。 */
+    private fun fetchUnreadFromDart() {
+        main.post {
+            try {
+                channel.invokeMethod(
+                    "fetchUnread",
+                    null,
+                    object : MethodChannel.Result {
+                        override fun success(result: Any?) {
+                            val count = (result as? Number)?.toInt() ?: return
+                            if (initialized) Dimina.getInstance().setNotifyUnread(count.coerceAtLeast(0))
+                        }
+
+                        override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) = Unit
+
+                        override fun notImplemented() = Unit
+                    },
+                )
+            } catch (_: Throwable) {
+                // 引擎/容器还没准备好:下一次 resume 或 Dart 主动推再刷新。
+            }
         }
     }
 

@@ -44,10 +44,37 @@ final class DiminaHost {
 
   static final StreamController<DiminaUpdateEvent> _updateEvents =
       StreamController<DiminaUpdateEvent>.broadcast();
+  static final StreamController<void> _notificationCenterRequests = StreamController<void>.broadcast();
   static bool _nativeHandlerInstalled = false;
+
+  /// 上一次推给原生容器的未读数(Dart 侧缓存):容器 Activity resume 时
+  /// 通过 `fetchUnread` 拉兜底,不必再等下一次轮询。
+  static int notifyUnread = 0;
 
   /// 升级链路事件广播流:市场页/Hub 订阅后按真实状态刷新,不必轮询。
   static Stream<DiminaUpdateEvent> get updateEvents => _updateEvents.stream;
+
+  /// 容器 Header 铃铛被点:原生先把 MainActivity 带回前台,再经 `dsh/dimina`
+  /// 通道 invoke `openNotificationCenter`(契约 §6.3)。宿主件订阅它来 push
+  /// 通知中心页。
+  static Stream<void> get notificationCenterRequests => _notificationCenterRequests.stream;
+
+  /// 挂上原生→Dart 的事件处理器(第一次 open 时本来也会挂;通知入口需要在
+  /// 打开小程序之前就能响应 `fetchUnread`,所以宿主件也显式调一次)。
+  static void ensureNativeHandler() => _ensureNativeEventHandler();
+
+  /// 把未读数推给原生容器 Header 的铃铛角标(契约 §6.3)。没有原生侧
+  /// (widget test/desktop)时静默。
+  static Future<void> pushNotifyUnread(int count) async {
+    notifyUnread = count < 0 ? 0 : count;
+    try {
+      await _channel.invokeMethod<void>('pushNotifyUnread', <String, Object?>{'count': notifyUnread});
+    } on MissingPluginException {
+      // 测试/桌面没有容器。
+    } on PlatformException {
+      // 容器未初始化(还没打开过任何小程序):原生侧会缓存,等 init 后应用。
+    }
+  }
 
   static void _ensureNativeEventHandler() {
     if (_nativeHandlerInstalled) return;
@@ -56,7 +83,9 @@ final class DiminaHost {
     // setMethodCallHandler 注册点,新增分支不要覆盖)。分支:
     //  - onUpdateEvent:容器升级里程碑(既有);
     //  - notifyTemplates:宿主订阅面板要的模板名+app 名(原生不知道 appHubBase);
-    //  - notifyConsent:订阅面板结果 → 逐条上报 AppHub /api/v1/notices/consent。
+    //  - notifyConsent:订阅面板结果 → 逐条上报 AppHub /api/v1/notices/consent;
+    //  - openNotificationCenter:容器 Header 铃铛被点(契约 §6.3);
+    //  - fetchUnread:容器 resume 时拉未读数兜底刷新角标。
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'onUpdateEvent':
@@ -73,6 +102,11 @@ final class DiminaHost {
         case 'notifyTemplates':
           final Map? args = call.arguments is Map ? call.arguments as Map : null;
           return _notifyTemplates('${args?['appId'] ?? ''}');
+        case 'openNotificationCenter':
+          _notificationCenterRequests.add(null);
+          return null;
+        case 'fetchUnread':
+          return notifyUnread;
         case 'notifyConsent':
           final Map? args = call.arguments is Map ? call.arguments as Map : null;
           final Map<Object?, Object?> results = args?['results'] is Map ? args!['results'] as Map<Object?, Object?> : const <Object?, Object?>{};

@@ -8589,6 +8589,19 @@ class L10nZh extends L10n {
   String get notifySubscribeNoTemplates => '没有可订阅的模板';
 
   @override
+  String notifyUpdateApplied(String app, String version) {
+    return '「$app」已升级至 v$version';
+  }
+
+  @override
+  String notifyUpdateAppliedPlain(String app) {
+    return '「$app」已升级，下次打开生效';
+  }
+
+  @override
+  String get notifyUpdatePublicText => '小程序已更新';
+
+  @override
   String get performanceTitle => '性能';
 
   @override

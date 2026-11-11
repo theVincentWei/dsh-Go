@@ -1,4 +1,8 @@
-/// AppHub 小程序通知的通知中心状态：通知对象模型 + 未读/已读/划掉。
+/// AppHub 小程序通知的通知中心状态（契约 §6.1 修订：通知中心 = 未读收件箱）。
+///
+/// **[AppHubNotices.notices] 只保存未读通知**：点击读过 / 划掉 / 全部已读之后
+/// 条目立即从列表移除（和系统通知栏同一心智）；服务端只做软状态
+/// （`read_at`/`dismissed_at` 保留，审计与水位线需要），本地不做删除以外的处理。
 ///
 /// 数据源是 AppHub 的 `notify_messages` 表（契约 §3.1/§3.3）：
 ///   GET  /api/v1/notices?since=`<id>`  → {notices:[...], unread:n}
@@ -52,10 +56,11 @@ class MiniAppNotice {
   /// 服务端已读（read_at 非空）。
   final bool read;
 
-  /// 本机划掉（v1 没有 dismissed 上报接口，见 [AppHubNoticesController.dismiss]）。
+  /// 本机划掉。§6.1 修订后划掉 = 已读 + 移出收件箱，不再在列表里出现；
+  /// 字段保留只为解析服务端/历史对象的兼容。
   final bool dismissed;
 
-  /// 未读：既没读过、也没被划掉（划掉=已处理，不再累计角标）。
+  /// 未读：既没读过、也没被划掉（划掉=已处理）。收件箱只放这类。
   bool get unread => !read && !dismissed;
 
   MiniAppNotice copyWith({bool? read, bool? dismissed}) => MiniAppNotice(
@@ -121,7 +126,7 @@ class MiniAppNotice {
   String toString() => 'MiniAppNotice($id $appId "$title" unread=$unread)';
 }
 
-/// 通知中心的状态。
+/// 通知中心（未读收件箱）的状态。
 @immutable
 class AppHubNotices {
   const AppHubNotices({
@@ -132,7 +137,7 @@ class AppHubNotices {
     this.banner,
   });
 
-  /// 时间倒序（新的在前）。
+  /// **未读**通知，时间倒序（新的在前）；读过的已从列表移除。
   final List<MiniAppNotice> notices;
 
   /// 角标数。服务端给了 `unread` 字段时以服务端为准（历史可能比本地列表长）。
@@ -174,9 +179,14 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
     '$appHubBase/api/v1/notices${since == null ? '' : '?since=$since'}',
   );
 
-  /// 轮询拿到的新通知：并进列表（按 id 去重），用服务端 `unread` 校准角标。
+  /// 轮询拿到的新通知：只把未读的并进收件箱（按 id 去重），用服务端
+  /// `unread` 校准角标。已读的（比如在别的界面点开过）直接忽略。
   void ingest(List<MiniAppNotice> fresh, {int? unread}) {
-    if (fresh.isEmpty) {
+    final List<MiniAppNotice> incoming = <MiniAppNotice>[
+      for (final MiniAppNotice notice in fresh)
+        if (!notice.read && !_readLocally.contains(notice.id)) notice,
+    ];
+    if (incoming.isEmpty) {
       if (unread != null) state = state.copyWith(unread: unread, loaded: true, failed: false);
       return;
     }
@@ -184,9 +194,9 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
       for (final MiniAppNotice notice in state.notices) notice.id: notice,
     };
     var added = 0;
-    for (final MiniAppNotice notice in fresh) {
+    for (final MiniAppNotice notice in incoming) {
       if (byId.containsKey(notice.id)) continue;
-      byId[notice.id] = _readLocally.contains(notice.id) ? notice.copyWith(read: true) : notice;
+      byId[notice.id] = notice;
       added++;
     }
     if (added == 0 && unread == null) return;
@@ -198,7 +208,8 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
     );
   }
 
-  /// 拉全量历史（通知中心打开时/下拉刷新）。失败保留现有列表。
+  /// 拉一次「还没读的」历史（通知中心打开时/重试）。服务端会连着已读一起
+  /// 返回（软状态），这里只留未读——读过的不再出现在收件箱。失败保留现有列表。
   Future<void> refresh() async {
     try {
       final http.Response response = await http
@@ -209,26 +220,19 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
       final List<MiniAppNotice> parsed = <MiniAppNotice>[
         for (final Object? raw in body['notices'] as List<Object?>) ?MiniAppNotice.fromJson(raw),
       ];
-      // 已读/划掉是本机状态：服务端还没回写成功的，合并时保留本地已读。
-      final Map<int, MiniAppNotice> local = <int, MiniAppNotice>{
-        for (final MiniAppNotice notice in state.notices) notice.id: notice,
-      };
-      final List<MiniAppNotice> merged = <MiniAppNotice>[
+      // 收件箱只收未读：服务端已读的回写可能比本地 POST 慢一拍，刚在本机
+      // 读掉、回写还没确认的（_readLocally）也跳过。
+      final List<MiniAppNotice> inbox = <MiniAppNotice>[
         for (final MiniAppNotice notice in parsed)
-          if (local[notice.id] case final known?)
-            known.dismissed && !notice.read ? notice.copyWith(read: true) : notice.copyWith(dismissed: known.dismissed)
-          else if (_readLocally.contains(notice.id))
-            notice.copyWith(read: true)
-          else
-            notice,
+          if (!notice.read && !_readLocally.contains(notice.id)) notice,
       ];
       final Object? serverUnread = body['unread'];
       state = state.copyWith(
-        notices: _sorted(merged),
+        notices: _sorted(inbox),
         // 本地刚读掉的条数从服务端计数里扣掉，等服务端回写下一次刷新就一致了。
         unread: serverUnread is num
             ? (serverUnread.toInt() - _readLocally.length).clamp(0, 1 << 30).toInt()
-            : _countUnread(merged),
+            : inbox.length,
         loaded: true,
         failed: false,
       );
@@ -237,19 +241,19 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
     }
   }
 
-  /// 单条/多条已读：先本地落，再回写 AppHub（失败不回滚——点击的有效性优先，
-  /// 服务端不依赖这次回写，契约 §9.3）。
+  /// 单条/多条已读：**立即从收件箱移除**，再回写 AppHub（失败不回滚——点击的
+  /// 有效性优先，服务端不依赖这次回写，契约 §9.3；服务端保留 read_at 软状态）。
   Future<void> markRead(Iterable<int> ids) async {
     final List<int> wanted = <int>[
       for (final int id in ids)
-        if (state.notices.any((n) => n.id == id && n.unread)) id,
+        if (state.notices.any((n) => n.id == id)) id,
     ];
     if (wanted.isEmpty) return;
     _readLocally.addAll(wanted);
     state = state.copyWith(
       notices: <MiniAppNotice>[
         for (final MiniAppNotice notice in state.notices)
-          if (wanted.contains(notice.id)) notice.copyWith(read: true) else notice,
+          if (!wanted.contains(notice.id)) notice,
       ],
       unread: (state.unread - wanted.length).clamp(0, 1 << 30).toInt(),
     );
@@ -267,20 +271,12 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
     }
   }
 
-  /// 全部已读（服务端 `{all:true}`）。
+  /// 全部已读 = 清空收件箱（服务端 `{all:true}`，保留软状态）。
   Future<void> markAllRead() async {
-    final List<int> ids = <int>[
-      for (final MiniAppNotice notice in state.notices)
-        if (notice.unread) notice.id,
-    ];
+    final List<int> ids = <int>[for (final MiniAppNotice notice in state.notices) notice.id];
     if (ids.isEmpty && state.unread == 0) return;
     _readLocally.addAll(ids);
-    state = state.copyWith(
-      notices: <MiniAppNotice>[
-        for (final MiniAppNotice notice in state.notices) notice.copyWith(read: true),
-      ],
-      unread: 0,
-    );
+    state = state.copyWith(notices: const <MiniAppNotice>[], unread: 0);
     try {
       await http
           .post(
@@ -295,17 +291,11 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
     }
   }
 
-  /// 划掉：v1 服务端没有 dismissed 接口（契约 §3.3 只有已读），所以划掉 =
-  /// 本地不再算未读 + 同步回写已读；条目仍留在通知中心（契约 §4.3
-  /// 「不删，通知中心仍可见」）。原生通知由调用方一并撤掉。
+  /// 划掉 = 和读过一样离开收件箱（§6.1 修订：读过就删除）。v1 服务端没有
+  /// dismissed 接口（契约 §3.3 只有已读），所以划掉也走已读上报，服务端保留
+  /// read_at 软状态。原生系统通知由调用方一并撤掉。
   Future<void> dismiss(MiniAppNotice notice) async {
-    state = state.copyWith(
-      notices: <MiniAppNotice>[
-        for (final MiniAppNotice item in state.notices)
-          if (item.id == notice.id) item.copyWith(dismissed: true) else item,
-      ],
-      clearBanner: state.banner?.id == notice.id,
-    );
+    state = state.copyWith(clearBanner: state.banner?.id == notice.id);
     await markRead(<int>[notice.id]);
   }
 
@@ -329,9 +319,6 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
     return byId(id);
   }
 
-  static int _countUnread(List<MiniAppNotice> notices) =>
-      notices.where((n) => n.unread).length;
-
   static List<MiniAppNotice> _sorted(Iterable<MiniAppNotice> notices) {
     final List<MiniAppNotice> list = notices.toList()
       ..sort((a, b) {
@@ -347,6 +334,21 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
 final appHubNoticesProvider = NotifierProvider<AppHubNoticesController, AppHubNotices>(
   AppHubNoticesController.new,
 );
+
+/// 瞬态告知（升级完成之类）：只弹一下、不进未读收件箱（契约 §6.4）。
+/// 与 [AppHubNotices.notices] 完全分开，读完/划掉都不影响它的生命周期。
+final appHubTransientNoticeProvider = NotifierProvider<TransientNoticeController, MiniAppNotice?>(
+  TransientNoticeController.new,
+);
+
+class TransientNoticeController extends Notifier<MiniAppNotice?> {
+  @override
+  MiniAppNotice? build() => null;
+
+  void show(MiniAppNotice notice) => state = notice;
+
+  void clear() => state = null;
+}
 
 /// appId → 小程序名（通知中心分组头、跳转时的容器标题）。取 AppHub 市场目录，
 /// 失败时为空表，界面回落 appId。

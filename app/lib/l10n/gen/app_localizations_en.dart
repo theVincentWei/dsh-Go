@@ -9046,6 +9046,19 @@ class L10nEn extends L10n {
   String get notifySubscribeNoTemplates => 'No templates to subscribe to';
 
   @override
+  String notifyUpdateApplied(String app, String version) {
+    return '“$app” updated to v$version';
+  }
+
+  @override
+  String notifyUpdateAppliedPlain(String app) {
+    return '“$app” updated; it takes effect next launch';
+  }
+
+  @override
+  String get notifyUpdatePublicText => 'Mini program updated';
+
+  @override
   String get performanceTitle => 'Performance';
 
   @override

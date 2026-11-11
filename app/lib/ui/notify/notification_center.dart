@@ -1,5 +1,6 @@
-/// 通知中心：小程序通知按 app 分组、时间倒序；未读加粗 + 圆点，点击跳转，
-/// 划掉置 dismissed（条目仍在，契约 §4.3），「全部已读」。
+/// 通知中心 = **未读收件箱**（契约 §6.1 修订）：只列未读，按 app 分组、时间
+/// 倒序；点击读过 / 划掉 / 「全部已读」都会把条目移出列表（和系统通知栏同一
+/// 心智），服务端只保留 read_at 软状态。
 ///
 /// 入口：会话列表顶部「服务通知」+ 小程序桌面 AppHub 组角标（契约 §6.1）。
 /// 小程序通知**不进会话流**（契约 §6.2）——这里只收 `source=miniapp`。
@@ -244,23 +245,20 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
   Widget _row(BuildContext context, WidgetRef ref, MiniAppNotice notice) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final colors = DshColors.of(context);
+    // 收件箱里全是未读：统一圆点 + 加粗标题。
     final row = ListPageRow(
       key: ValueKey<String>('notice-${notice.id}'),
-      // 未读：圆点 + 加粗标题；已读/已划掉：常规字重、无点。
-      leading: notice.unread
-          ? Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
-            )
-          : Icon(AppIcons.notifications, size: 20, color: colors.textTertiary),
+      leading: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+      ),
       title: notice.title,
       titleStyle: theme.textTheme.bodyLarge?.copyWith(
         fontSize: 15,
         height: 1.4,
-        fontWeight: notice.unread ? FontWeight.w600 : FontWeight.w400,
-        color: notice.dismissed ? colors.textTertiary : scheme.onSurface,
+        fontWeight: FontWeight.w600,
+        color: scheme.onSurface,
       ),
       subtitle: notice.body.isEmpty ? null : notice.body,
       subtitleMaxLines: 2,
@@ -268,7 +266,6 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
       chevron: notice.page != null,
       onTap: () => unawaited(_openRow(context, ref, notice)),
     );
-    if (notice.dismissed) return Opacity(opacity: 0.7, child: row);
     return Dismissible(
       key: ValueKey<String>('dismiss-${notice.id}'),
       direction: DismissDirection.endToStart,
@@ -282,12 +279,11 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
           ),
         ),
       ),
-      // 划掉 = dismissed：不删条目（通知中心仍可见，契约 §4.3），并且要把
-      // 系统通知撤掉；所以这里只做标记，让行弹回。
+      // 划掉 = 已读 + 移出收件箱（§6.1 修订）；系统通知一并撤掉。
       confirmDismiss: (_) async {
         AppHubNoticeService.cancel(notice);
         await ref.read(appHubNoticesProvider.notifier).dismiss(notice);
-        return false;
+        return true;
       },
       child: row,
     );

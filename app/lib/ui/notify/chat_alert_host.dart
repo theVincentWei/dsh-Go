@@ -87,6 +87,9 @@ class _ChatAlertHostState extends ConsumerState<ChatAlertHost> {
   }
 
   Future<void> _onTap(NotifyTap tap) async {
+    // 升级完成告知（瞬态，kind=`update`）：原生点击意图已经把 app 带回前台，
+    // 这里不跳页、也不做「离开未保存表单」确认——它只是过场信息。
+    if (tap.kind == 'update') return;
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
     // 小程序通知（AppHub）：不进会话流（契约 §6.2），点开走小程序页/通知中心。
     // 原生点击意图把通知 id 放在 eventId（见 notify/apphub_notices.dart）。

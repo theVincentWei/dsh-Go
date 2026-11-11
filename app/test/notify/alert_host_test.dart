@@ -143,6 +143,16 @@ void main() {
     expect(container.read(activeHostProvider), HostRef.local);
   });
 
+  testWidgets('升级完成告知的点击只把 app 带回前台，不开会话', (tester) async {
+    final container = await pumpHome(tester);
+    await openPage(tester);
+    channel.tapController.add(const NotifyTap(host: HostRef.local, sessionId: 'wxapp', kind: 'update'));
+    await tester.pumpAndSettle();
+    // 不跳页、不弹「离开未保存表单」、不路由会话(契约 §6.4)。
+    expect(find.text('设置页'), findsOneWidget);
+    expect(container.read(currentSessionProvider), isNull);
+  });
+
   testWidgets('the banner shows over a pushed page and opens its conversation', (tester) async {
     final container = await pumpHome(tester);
     await openPage(tester);

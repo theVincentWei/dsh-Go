@@ -1,5 +1,6 @@
-// 通知中心（小程序通知）：分组/未读/已读/划掉/空态，以及通知对象的解析与
-// 轮询合并。AppHub 服务不在这组测试里：控制器替身把网络调用记下来。
+// 通知中心（小程序通知）= 未读收件箱（契约 §6.1 修订）：分组/读过即移除/
+// 划掉/全部已读/空态，以及通知对象的解析与轮询合并。AppHub 服务不在这组
+// 测试里：控制器替身把网络调用记下来。
 
 import 'package:dsh_app/state/apphub_notices_state.dart';
 import 'package:dsh_app/ui/bots/bots_page.dart' show UnreadBadge;
@@ -47,10 +48,11 @@ class FakeNotices extends AppHubNoticesController {
   @override
   Future<void> markRead(Iterable<int> ids) async {
     markedRead.addAll(ids);
+    // 收件箱语义：读过的从列表移除。
     state = state.copyWith(
       notices: <MiniAppNotice>[
         for (final MiniAppNotice item in state.notices)
-          if (ids.contains(item.id)) item.copyWith(read: true) else item,
+          if (!ids.contains(item.id)) item,
       ],
       unread: (state.unread - ids.length).clamp(0, 1 << 30),
     );
@@ -59,21 +61,13 @@ class FakeNotices extends AppHubNoticesController {
   @override
   Future<void> markAllRead() async {
     markAllCalls++;
-    state = state.copyWith(
-      notices: <MiniAppNotice>[for (final MiniAppNotice item in state.notices) item.copyWith(read: true)],
-      unread: 0,
-    );
+    state = state.copyWith(notices: const <MiniAppNotice>[], unread: 0);
   }
 
   @override
   Future<void> dismiss(MiniAppNotice notice) async {
     dismissed.add(notice.id);
-    state = state.copyWith(
-      notices: <MiniAppNotice>[
-        for (final MiniAppNotice item in state.notices)
-          if (item.id == notice.id) item.copyWith(dismissed: true) else item,
-      ],
-    );
+    await markRead(<int>[notice.id]);
   }
 }
 
@@ -169,6 +163,16 @@ void main() {
       expect(state.loaded, isTrue);
     });
 
+    test('收件箱只收未读：已读通知 ingest 时直接忽略', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final AppHubNoticesController controller = container.read(appHubNoticesProvider.notifier);
+      controller.ingest(<MiniAppNotice>[notice(1), notice(2).copyWith(read: true)], unread: 1);
+      final AppHubNotices state = container.read(appHubNoticesProvider);
+      expect(state.notices.map((n) => n.id), <int>[1], reason: '已读的不进未读收件箱');
+      expect(state.unread, 1);
+    });
+
     test('前台 Banner 展示与收起只认同一条', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -189,7 +193,7 @@ void main() {
       await pumpPage(tester, notices: const AppHubNotices(loaded: true), fake: fake);
       expect(find.text('服务通知'), findsWidgets);
       expect(find.text('小程序的通知会出现在这里'), findsOneWidget);
-      expect(fake.refreshCalls, greaterThanOrEqualTo(1), reason: '打开时拉全量历史');
+      expect(fake.refreshCalls, greaterThanOrEqualTo(1), reason: '打开时拉未读历史');
     });
 
     testWidgets('按 app 分组、未读加粗 + 计数、组可折叠', (tester) async {
@@ -224,7 +228,7 @@ void main() {
       expect(find.text('记账提醒'), findsOneWidget);
     });
 
-    testWidgets('全部已读清空未读', (tester) async {
+    testWidgets('全部已读：全部移出列表、回到空态', (tester) async {
       final fake = FakeNotices(
         AppHubNotices(loaded: true, unread: 2, notices: <MiniAppNotice>[notice(2), notice(1)]),
       );
@@ -234,9 +238,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(fake.markAllCalls, 1);
       expect(find.byType(UnreadBadge), findsNothing);
+      expect(find.text('通知 2'), findsNothing);
+      expect(find.text('小程序的通知会出现在这里'), findsOneWidget);
     });
 
-    testWidgets('划掉：置 dismissed、条目仍在通知中心', (tester) async {
+    testWidgets('划掉：已读上报 + 从列表移除', (tester) async {
       final fake = FakeNotices(
         AppHubNotices(loaded: true, unread: 1, notices: <MiniAppNotice>[notice(9, title: '划掉的')]),
       );
@@ -244,18 +250,25 @@ void main() {
       await tester.drag(find.text('划掉的'), const Offset(-320, 0));
       await tester.pumpAndSettle();
       expect(fake.dismissed, <int>[9]);
-      // 契约 §4.3：不删，通知中心仍可见。
-      expect(find.text('划掉的'), findsOneWidget);
+      expect(fake.markedRead, <int>[9], reason: '划掉也走已读上报（服务端保留软状态）');
+      expect(find.text('划掉的'), findsNothing, reason: '读过/划掉即从收件箱移除');
+      expect(find.text('小程序的通知会出现在这里'), findsOneWidget);
     });
 
-    testWidgets('单条点击（无 page）：回写已读', (tester) async {
+    testWidgets('单条点击（无 page）：回写已读并移除，其它条目保留', (tester) async {
       final fake = FakeNotices(
-        AppHubNotices(loaded: true, unread: 1, notices: <MiniAppNotice>[notice(4, title: '点我')]),
+        AppHubNotices(
+          loaded: true,
+          unread: 2,
+          notices: <MiniAppNotice>[notice(4, title: '点我'), notice(3, title: '留着', ts: DateTime(2026, 11, 9))],
+        ),
       );
       await pumpPage(tester, notices: fake.initial, fake: fake);
       await tester.tap(find.text('点我'));
       await tester.pumpAndSettle();
       expect(fake.markedRead, <int>[4]);
+      expect(find.text('点我'), findsNothing);
+      expect(find.text('留着'), findsOneWidget);
     });
   });
 }

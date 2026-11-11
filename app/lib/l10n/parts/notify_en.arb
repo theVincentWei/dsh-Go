@@ -23,7 +23,7 @@
   "notifyCenterDismiss": "Dismiss",
   "notifyCenterOpenMiniApp": "Open mini program",
   "notifySubscribePanelTitle": "Subscribe to notifications",
-  "notifySubscribePanelBody": "\u201c{app}\u201d would like to send you notifications after you act. One-time subscriptions end after one message.",
+  "notifySubscribePanelBody": "“{app}” would like to send you notifications after you act. One-time subscriptions end after one message.",
   "@notifySubscribePanelBody": {
     "placeholders": {
       "app": {
@@ -34,5 +34,25 @@
   "notifySubscribePanelMainSwitch": "Receive notifications",
   "notifySubscribeAccept": "Allow",
   "notifySubscribeReject": "Reject",
-  "notifySubscribeNoTemplates": "No templates to subscribe to"
+  "notifySubscribeNoTemplates": "No templates to subscribe to",
+  "notifyUpdateApplied": "“{app}” updated to v{version}",
+  "@notifyUpdateApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdateAppliedPlain": "“{app}” updated; it takes effect next launch",
+  "@notifyUpdateAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdatePublicText": "Mini program updated"
 }

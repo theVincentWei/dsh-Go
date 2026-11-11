@@ -15776,6 +15776,24 @@ abstract class L10n {
   /// **'没有可订阅的模板'**
   String get notifySubscribeNoTemplates;
 
+  /// No description provided for @notifyUpdateApplied.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已升级至 v{version}'**
+  String notifyUpdateApplied(String app, String version);
+
+  /// No description provided for @notifyUpdateAppliedPlain.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已升级，下次打开生效'**
+  String notifyUpdateAppliedPlain(String app);
+
+  /// No description provided for @notifyUpdatePublicText.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序已更新'**
+  String get notifyUpdatePublicText;
+
   /// No description provided for @performanceTitle.
   ///
   /// In zh, this message translates to:
