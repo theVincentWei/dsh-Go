@@ -335,6 +335,19 @@ final appHubNoticesProvider = NotifierProvider<AppHubNoticesController, AppHubNo
   AppHubNoticesController.new,
 );
 
+/// 按 appId 聚合的未读数(桌面应用图标角标的数据源,契约 §6.1):从当前
+/// 未读收件箱折叠。收件箱只存未读,read/dismissed 过滤是防御(解析兜底),
+/// 正常情况下与 `state.notices` 一一对应。
+final appHubUnreadByAppProvider = Provider<Map<String, int>>((ref) {
+  final AppHubNotices state = ref.watch(appHubNoticesProvider);
+  final Map<String, int> counts = <String, int>{};
+  for (final MiniAppNotice notice in state.notices) {
+    if (notice.read || notice.dismissed) continue;
+    counts[notice.appId] = (counts[notice.appId] ?? 0) + 1;
+  }
+  return counts;
+});
+
 /// 瞬态告知（升级完成之类）：只弹一下、不进未读收件箱（契约 §6.4）。
 /// 与 [AppHubNotices.notices] 完全分开，读完/划掉都不影响它的生命周期。
 final appHubTransientNoticeProvider = NotifierProvider<TransientNoticeController, MiniAppNotice?>(

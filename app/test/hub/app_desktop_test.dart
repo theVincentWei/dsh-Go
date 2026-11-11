@@ -16,7 +16,7 @@ import 'package:dsh_app/pets/pet_mood.dart' show PetMood, PetScope;
 import 'package:dsh_app/pets/pet_signals.dart'
     show PetMoodController, petMoodProvider;
 import 'package:dsh_app/state/apphub_notices_state.dart'
-    show AppHubNotices, AppHubNoticesController, appHubNoticesProvider;
+    show AppHubNotices, AppHubNoticesController, MiniAppNotice, appHubNoticesProvider;
 import 'package:dsh_app/state/bots_state.dart'
     show DsBotAvailability, DsBotController, DsBotInbox, DsBotInboxController, DsBotStatus, dsBotInboxProvider, dsBotProvider;
 import 'package:dsh_app/state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
@@ -40,7 +40,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
     show ProviderContainer, UncontrolledProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hub_desktop/hub_desktop.dart' show IconTile;
+import 'package:hub_desktop/hub_desktop.dart' show HubBadge, IconTile, hubBadgesProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../shell/golden_harness.dart';
@@ -61,6 +61,14 @@ class _StubPetMood extends PetMoodController {
 class _StubInbox extends DsBotInboxController {
   @override
   DsBotInbox build() => const DsBotInbox();
+}
+
+/// 固定状态的小程序通知收件箱(桌面计数角标的注册者迁移回归用)。
+class _StubNoticesController extends AppHubNoticesController {
+  _StubNoticesController(this._state);
+  final AppHubNotices _state;
+  @override
+  AppHubNotices build() => _state;
 }
 
 /// 带未读的 ds-bot 收件箱(注册者迁移回归:红圈随源变化挂上)。
@@ -293,6 +301,39 @@ void main() {
     ]);
 
     expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
+  });
+
+  testWidgets('注册者迁移:小程序通知未读挂计数角标,压过更新红点', (tester) async {
+    // wx1 有 2 条未读(计数角标,更新红点让位);wx2 无未读、有更新(红点保留);
+    // wx2 那条已读通知不进计数(未读收件箱语义)。
+    const AppHubNotices stubState = AppHubNotices(
+      notices: <MiniAppNotice>[
+        MiniAppNotice(id: 1, appId: 'wx1', title: 'a'),
+        MiniAppNotice(id: 2, appId: 'wx1', title: 'b'),
+        MiniAppNotice(id: 3, appId: 'wx2', title: 'c', read: true),
+      ],
+      unread: 2,
+    );
+    final ProviderContainer container = await _pump(
+      tester,
+      minis: <HubInstalledApp>[
+        const HubInstalledApp(appId: 'wx1', name: '记账本', installedVersionCode: 2, marketVersionCode: 3),
+        const HubInstalledApp(appId: 'wx2', name: '日历', installedVersionCode: 5, marketVersionCode: 6),
+      ],
+      overrides: <Override>[
+        appHubNoticesProvider.overrideWith(() => _StubNoticesController(stubState)),
+      ],
+    );
+
+    // 引擎角标注册表(喂送层的真实输出,避开像素歧义):wx1 未读计数压过
+    // 更新红点;wx2 无未读保留更新红点;wx2 那条已读通知不计数(未读收件箱)。
+    final HubBadge? wx1Badge = container.read(hubBadgesProvider)['mini:wx1'];
+    expect(wx1Badge?.count, 2);
+    expect(wx1Badge?.dot, isFalse);
+    final HubBadge? wx2Badge = container.read(hubBadgesProvider)['mini:wx2'];
+    expect(wx2Badge?.dot, isTrue);
+    expect(wx2Badge?.count ?? 0, 0);
+    expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget); // wx2 红点渲染
   });
 
   testWidgets('整理模式下小程序图标出「−」卸载角标(注册者注册了 mini: 钩子)', (tester) async {

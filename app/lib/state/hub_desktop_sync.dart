@@ -3,8 +3,9 @@
 // - 目录:minis + 市场入口 + 桌面工具 + feature 组(含插件面板)→ 全量
 //   幂等 upsertTiles(锚点 = 市场入口,新 key 垫锚点组尾,即 absorbUnplaced
 //   语义);目录缩编的 key removeTile(槽位保留,重装原位恢复);
-// - 角标:ds-bot 未读 → setBadge('feature:ds-bot'),小程序更新红点 →
-//   setBadge('mini:<id>', dot),AppHub 组头未读 → 对「装着小程序或市场
+// - 角标:ds-bot 未读 → setBadge('feature:ds-bot'),小程序通知未读计数 →
+//   setBadge('mini:<id>', count)(优先);无未读才让位给小程序更新红点 →
+//   setBadge('mini:<id>', dot);AppHub 组头未读 → 对「装着小程序或市场
 //   入口的非智能组」整批 setSectionBadge/clearSectionBadge(按内容匹配,
 //   组名命中分支已废——改名叫 AppHub 但没装小程序的组不该亮未读);
 // - 卸载钩子:mini: → [miniAppUninstallerProvider](经根 navigator 弹共用
@@ -51,7 +52,8 @@ import '../ui/hub/hub_apps_catalog.dart'
         buildHubCatalog,
         hubMarketFeatureId,
         hubTileOf;
-import 'apphub_notices_state.dart' show appHubNoticesProvider;
+import 'apphub_notices_state.dart'
+    show appHubNoticesProvider, appHubUnreadByAppProvider;
 import 'bots_state.dart' show dsBotInboxProvider;
 import 'hub_layout_state.dart' show HubLayout;
 import 'sessions_state.dart' show currentSessionProvider;
@@ -111,6 +113,7 @@ final hubDesktopSyncProvider = Provider<void>((ref) {
   ref.listen(currentSessionProvider, (_, _) => schedule());
   ref.listen(dsBotInboxProvider.select((inbox) => inbox.total), (_, _) => schedule());
   ref.listen(appHubNoticesProvider.select((s) => s.unread), (_, _) => schedule());
+  ref.listen(appHubUnreadByAppProvider, (_, _) => schedule());
   ref.listen(hubLayoutProvider, (_, _) => schedule());
   // 初始一轮(listen 只报变化,首次的现状靠这里);同一轮多源齐变只推一次。
   schedule();
@@ -125,6 +128,7 @@ void _push(Ref ref) {
   final String? sessionId = ref.read(currentSessionProvider);
   final int dsBotUnread = ref.read(dsBotInboxProvider).total;
   final int appHubUnread = ref.read(appHubNoticesProvider).unread;
+  final Map<String, int> unreadByApp = ref.read(appHubUnreadByAppProvider);
   final HubLayout layout = ref.read(hubLayoutProvider);
 
   // 卸载钩子:幂等注册(重推覆盖同前缀)。执行经共用弹窗 + 整包编排。
@@ -173,10 +177,16 @@ void _push(Ref ref) {
     hub.clearBadge(dsBotKey);
   }
 
-  // ── 小程序更新红点 ──
+  // ── 小程序角标:通知未读计数优先,其次更新红点 ──
+  // 未读收件箱(契约 §6.1)按 appId 折叠出计数;没有未读再让位给「有更新」
+  // 红点,两者都没有清掉。同一 key 整批重算,setBadge 是替换语义,所以
+  // 计数与红点在这里二选一(引擎渲染时 count 也天然优先于 dot)。
   for (final HubInstalledApp app in minis.value ?? const <HubInstalledApp>[]) {
     final String key = 'mini:${app.appId}';
-    if (app.updateAvailable) {
+    final int unread = unreadByApp[app.appId] ?? 0;
+    if (unread > 0) {
+      hub.setBadge(key, HubBadge(count: unread));
+    } else if (app.updateAvailable) {
       hub.setBadge(key, const HubBadge(dot: true));
     } else {
       hub.clearBadge(key);
