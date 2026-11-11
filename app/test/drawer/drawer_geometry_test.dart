@@ -1,7 +1,7 @@
-// Measured alignment of the 聊天 tab's list (the former drawer): the 10 / 20
-// grid, equal row heights, folder members on the folder name's line, 全选 and
-// the count on the selection header's line, the action bar's keys on the 10
-// lines. Numbers, not eyeballing.
+// Measured alignment of the 聊天 tab's list (the former drawer): cards and
+// filter capsules share the 16 line, 全选 and the count on the selection
+// header's line, the action bar's keys on the 10 lines. Numbers, not
+// eyeballing.
 //
 //   flutter test test/drawer/drawer_geometry_test.dart
 
@@ -116,13 +116,13 @@ void main() {
   });
 
   group('filters', () {
-    testWidgets('capsules start on the 10 line, equal height, 8 apart, one centre line', (tester) async {
+    testWidgets('capsules start on the cards\' 16 line, equal height, 8 apart, one centre line', (tester) async {
       await _pump(tester);
       final page = _page(tester);
       final chips = [
         for (final f in DrawerFilter.values) _rect(tester, find.widgetWithText(CapsuleChoiceChip, f.label)),
       ];
-      expect(chips.first.left - page.left, _near(10));
+      expect(chips.first.left - page.left, _near(SessionTile.marginH));
       for (var i = 1; i < chips.length; i++) {
         expect(chips[i].height, _near(chips.first.height));
         expect(chips[i].center.dy, _near(chips.first.center.dy));

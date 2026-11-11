@@ -119,7 +119,14 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
       final prefs = await SharedPreferences.getInstance();
       final tab = prefs.getInt(_tabKey) ?? 0;
       if (mounted && tab >= 0 && tab <= 2 && tab != _tab) {
-        setState(() => _tab = tab);
+        setState(() {
+          // 高亮胶囊的起点一并落位:不设的话 _tabFrom 还停在 0,_TabGlow 在
+          // flow=0 时把胶囊画在 from 一格 —— 后台杀掉再进的冷启动恢复就成了
+          // 「胶囊停第一个 tab、页面却在恢复的 tab」的脱钩,而且没人再
+          // forward 这段动画,胶囊永远不会追上来。
+          _tabFrom = tab;
+          _tab = tab;
+        });
         // 启动恢复直接落位,不播切换动画;控制器随首帧挂上,等一帧再跳。
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _tabPages.hasClients) _tabPages.jumpToPage(tab);
@@ -461,7 +468,9 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
   /// 底栏右件的一颗 tab:等分格里垂直居中的 22 图标。选中的高亮整条玻璃
   /// 只有一份,在 [_TabGlow] 里流到这一格;这里只管图标的着色(选中
   /// primary,未选中 onSurfaceVariant,随选中渐变)和点按。无文字,语义
-  /// 和 tooltip 都用 [tooltip];点按先收起键盘再切 tab。
+  /// 和 tooltip 都用 [tooltip];点按先收起键盘再切 tab。点按反馈就是高亮
+  /// 胶囊流过来,不叠 InkWell 的水波涟漪(液态玻璃语言下松手冒涟漪多余,
+  /// 2026-11-11 拍板去掉)。
   Widget _homeTab(int index, {required String tooltip, required IconData icon}) {
     final scheme = Theme.of(context).colorScheme;
     final selected = _tab == index;
@@ -478,19 +487,16 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
         excludeSemantics: true,
         child: Tooltip(
           message: tooltip,
-          child: Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              customBorder: const StadiumBorder(),
-              onTap: select,
-              child: Center(
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(end: selected ? 1.0 : 0.0),
-                  duration: AppMotion.of(context, AppMotion.quick),
-                  curve: AppMotion.std,
-                  builder: (context, t, _) =>
-                      Icon(icon, size: 22, color: Color.lerp(scheme.onSurfaceVariant, scheme.primary, t)),
-                ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: select,
+            child: Center(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: selected ? 1.0 : 0.0),
+                duration: AppMotion.of(context, AppMotion.quick),
+                curve: AppMotion.std,
+                builder: (context, t, _) =>
+                    Icon(icon, size: 22, color: Color.lerp(scheme.onSurfaceVariant, scheme.primary, t)),
               ),
             ),
           ),

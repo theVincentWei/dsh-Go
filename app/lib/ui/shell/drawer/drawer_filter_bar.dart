@@ -12,12 +12,14 @@ import '../../../state/read_list_cache.dart' show ReadListStatus;
 import '../../../state/session_attention_state.dart';
 import '../../common/capsule_chip.dart';
 import '../../common/read_list_status.dart';
+import '../../common/row_anatomy.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 
-/// One row of filter capsules, the first one's edge on the drawer's 10 line.
-/// Scrolls sideways when a large text size needs it. Hidden while the list is
-/// empty and nothing is filtered.
+/// One row of filter capsules, its edges on the cards' [RowAnatomy.insetH]
+/// line (16, the same grid the conversation cards below give themselves; the
+/// big title's text line is 24). Scrolls sideways when a large text size
+/// needs it. Hidden while the list is empty and nothing is filtered.
 class DrawerFilterBar extends ConsumerWidget {
   const DrawerFilterBar({super.key});
 
@@ -55,7 +57,7 @@ class DrawerFilterBar extends ConsumerWidget {
       data: theme.copyWith(canvasColor: Colors.transparent),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
+        padding: const EdgeInsets.fromLTRB(RowAnatomy.insetH, 2, RowAnatomy.insetH, 4),
         child: Row(
           children: [
             if (reconnect) ...[
