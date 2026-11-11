@@ -42,6 +42,7 @@ import '../shell/adaptive/detail_panel_keys.dart';
 import '../shell/adaptive/detail_sheet.dart';
 import '../shell/adaptive/open_detail.dart';
 import '../shell/page_frame.dart';
+import '../shell/reveal_conversation.dart';
 import '../terminal/terminal_page.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -1315,7 +1316,7 @@ class SubagentsTab extends ConsumerWidget {
 
   void _open(BuildContext context, WidgetRef ref, SubagentNode node) {
     selectSubagent(ref, node.address);
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    revealConversation(context);
   }
 
   @override

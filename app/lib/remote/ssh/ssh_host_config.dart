@@ -4,6 +4,10 @@ import 'dart:math' as math;
 /// [SecretStore] under [SshSecrets] keys, never in this config.
 enum SshAuthMethod { password, privateKey }
 
+/// What a host physically is, for its row's device glyph (「设备图标」).
+/// Cosmetic: picking one never changes the connection or its pinned key.
+enum SshHostDevice { macMini, desktop, desktopTower, computerTower, laptop, hardDrives }
+
 /// The remote `dsh web` launch command used when none is configured.
 const defaultDshLaunchCommand = 'dsh web';
 
@@ -18,6 +22,7 @@ class SshHostConfig {
     this.auth = SshAuthMethod.password,
     this.launchCommand = defaultDshLaunchCommand,
     this.workingDirectory,
+    this.icon,
     this.hostKeyType,
     this.hostKeyFingerprint,
   });
@@ -39,6 +44,10 @@ class SshHostConfig {
   /// Default cwd for new conversations on this host (and where `dsh web`
   /// starts). `~/…` is expanded on the remote. Null: DSH's own default.
   final String? workingDirectory;
+
+  /// The device glyph for host rows (「设备图标」). Null keeps the default
+  /// terminal glyph — what hosts saved before the picker show.
+  final SshHostDevice? icon;
 
   /// Pinned host key (trust on first use), e.g. `ssh-ed25519` and the
   /// OpenSSH `SHA256:…` fingerprint. Null until the person accepts it.
@@ -63,6 +72,7 @@ class SshHostConfig {
     SshAuthMethod? auth,
     String? launchCommand,
     String? Function()? workingDirectory,
+    SshHostDevice? Function()? icon,
     String? Function()? hostKeyType,
     String? Function()? hostKeyFingerprint,
   }) {
@@ -76,6 +86,7 @@ class SshHostConfig {
       auth: auth ?? this.auth,
       launchCommand: launchCommand ?? this.launchCommand,
       workingDirectory: workingDirectory != null ? workingDirectory() : this.workingDirectory,
+      icon: icon != null ? icon() : this.icon,
       hostKeyType: hostKeyType != null ? hostKeyType() : (moved ? null : this.hostKeyType),
       hostKeyFingerprint: hostKeyFingerprint != null ? hostKeyFingerprint() : (moved ? null : this.hostKeyFingerprint),
     );
@@ -90,6 +101,7 @@ class SshHostConfig {
     'auth': auth.name,
     'launchCommand': launchCommand,
     if (workingDirectory != null) 'workingDirectory': workingDirectory,
+    if (icon != null) 'icon': icon!.name,
     if (hostKeyType != null) 'hostKeyType': hostKeyType,
     if (hostKeyFingerprint != null) 'hostKeyFingerprint': hostKeyFingerprint,
   };
@@ -104,6 +116,7 @@ class SshHostConfig {
     final port = raw['port'];
     final command = raw['launchCommand'];
     final cwd = raw['workingDirectory'];
+    final device = SshHostDevice.values.asNameMap()[raw['icon']];
     return SshHostConfig(
       id: id,
       name: name is String && name.trim().isNotEmpty ? name : host,
@@ -113,6 +126,7 @@ class SshHostConfig {
       auth: SshAuthMethod.values.firstWhere((m) => m.name == raw['auth'], orElse: () => SshAuthMethod.password),
       launchCommand: command is String && command.trim().isNotEmpty ? command : defaultDshLaunchCommand,
       workingDirectory: cwd is String && cwd.trim().isNotEmpty ? cwd : null,
+      icon: device,
       hostKeyType: raw['hostKeyType'] as String?,
       hostKeyFingerprint: raw['hostKeyFingerprint'] as String?,
     );
@@ -135,12 +149,13 @@ class SshHostConfig {
       other.auth == auth &&
       other.launchCommand == launchCommand &&
       other.workingDirectory == workingDirectory &&
+      other.icon == icon &&
       other.hostKeyType == hostKeyType &&
       other.hostKeyFingerprint == hostKeyFingerprint;
 
   @override
   int get hashCode =>
-      Object.hash(id, name, host, port, user, auth, launchCommand, workingDirectory, hostKeyType, hostKeyFingerprint);
+      Object.hash(id, name, host, port, user, auth, launchCommand, workingDirectory, icon, hostKeyType, hostKeyFingerprint);
 }
 
 /// The secret material for one SSH host, loaded from the [SecretStore].

@@ -5,6 +5,7 @@
 // fall through everywhere but the body, panels that send it away, reactions,
 // sleep, the menu and the bubble.
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:dsh_app/pets/pet_mood.dart';
@@ -500,4 +501,92 @@ void main() {
       expect(container.read(currentSessionProvider), isNull);
     });
   });
+
+  group('on screen (the home\'s kept-alive tabs)', () {
+    // The home keeps every tab alive inside its PageView, so the 会话 tab's
+    // stage stays mounted while 小程序/设置 show: it must report itself hidden
+    // (alerts would otherwise go to a bubble nobody sees), and must not veto
+    // the conversation page's stage under a pushed route.
+    Future<void> pumpTabbedPet(WidgetTester tester) async {
+      usePhoneView(tester);
+      await warmSheets(tester, deepy, [deepy.animFor(PetStateName.idle)]);
+      await tester.pumpWidget(
+        testApp(
+          _KeepAliveTab(
+            child: PageView(
+              children: [
+                _KeepAliveTab(child: ChatBottomHarness()),
+                const _KeepAliveTab(child: SizedBox.expand()),
+              ],
+            ),
+          ),
+          overrides: [...petOverrides(pack: deepy, clock: clock)],
+        ),
+      );
+      container = ProviderScope.containerOf(tester.element(find.byType(ChatBottomHarness)));
+      for (var i = 0; i < 4; i++) {
+        await tester.pump();
+      }
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    Future<void> settlePage(WidgetTester tester, Offset fling) async {
+      await tester.fling(find.byType(PageView), fling, 2000);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('a kept-alive offscreen tab page reports itself hidden, and back when shown', (tester) async {
+      await pumpTabbedPet(tester);
+      expect(container.read(petLayerShownProvider), isTrue);
+      await settlePage(tester, const Offset(-500, 0));
+      expect(container.read(petLayerShownProvider), isFalse);
+      await settlePage(tester, const Offset(500, 0));
+      expect(container.read(petLayerShownProvider), isTrue);
+    });
+
+    testWidgets('an offscreen page under an opaque route does not veto the stage on top', (tester) async {
+      await pumpTabbedPet(tester);
+      await settlePage(tester, const Offset(-500, 0));
+      expect(container.read(petLayerShownProvider), isFalse);
+      // Push the conversation page: from here its stage owns the flag.
+      final pageView = tester.element(find.byType(PageView));
+      unawaited(
+        Navigator.of(pageView).push(MaterialPageRoute<void>(builder: (_) => const SizedBox.expand())),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      container.read(petLayerShownProvider.notifier).set(true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(container.read(petLayerShownProvider), isTrue, reason: 'the hidden stage must not veto it');
+      Navigator.of(pageView).pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(container.read(petLayerShownProvider), isFalse);
+    });
+  });
+}
+
+/// A PageView page the framework keeps alive, as the home shell's tabs are.
+class _KeepAliveTab extends StatefulWidget {
+  const _KeepAliveTab({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
 }

@@ -1,6 +1,6 @@
 // What the drawer's folder and multi-select controls do:
 // the flows behind the sheets, bulk 归档 / 置顶 / 移到文件夹, and the undo
-// toasts. Archiving follows the single-row archive in sessions_drawer.dart
+// toasts. Archiving follows the single-row archive in session_list_page.dart
 // (hide at once; stop running work and archive when the undo window ends).
 // Permanent session deletion lives in session_deletion.dart and has no undo;
 // deleting a folder here keeps its conversations and can be undone.
@@ -35,8 +35,15 @@ void _toast(ScaffoldMessengerState? messenger, String text, {String? undoLabel, 
   );
 }
 
-/// 「对话列表」: the sheet, then what was picked in it.
-Future<void> openDrawerViewOptions(BuildContext context, WidgetRef ref, {VoidCallback? onClose}) async {
+/// 「对话列表」: the sheet, then what was picked in it. [onOpenChat] runs
+/// when a conversation was picked (恢复的归档对话也要亮出来:列表 tab 不会
+/// 跟着选中走——改版前路由根就是聊天页).
+Future<void> openDrawerViewOptions(
+  BuildContext context,
+  WidgetRef ref, {
+  VoidCallback? onClose,
+  VoidCallback? onOpenChat,
+}) async {
   final action = await showDrawerViewSheet(context);
   if (!context.mounted || action == null) return;
   switch (action) {
@@ -45,6 +52,7 @@ Future<void> openDrawerViewOptions(BuildContext context, WidgetRef ref, {VoidCal
       if (sessionId == null || !context.mounted) return;
       ref.read(currentSessionProvider.notifier).select(sessionId);
       onClose?.call();
+      onOpenChat?.call();
     case DrawerViewAction.newFolder:
       await createFolderFlow(context, ref);
     case DrawerViewAction.manageFolders:

@@ -156,9 +156,10 @@ void main() {
   goldenBoth('host_sheet_missing', () => const _SheetLauncher(), overrides: _hostList, before: _openSheet);
   _english('host_sheet_missing', () => const _SheetLauncher(), _hostList, before: _openSheet);
 
+  // TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录（原名 drawer_missing）。
   goldenBoth(
-    'drawer_missing',
-    () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+    'chat_list_missing',
+    () => HomeShell(chatBuilder: const SizedBox.expand()),
     overrides: () => [..._missing(), sessionsProvider.overrideWith(() => FakeSessions(const []))],
   );
 }

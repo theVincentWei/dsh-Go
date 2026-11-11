@@ -1,7 +1,7 @@
-// Workspace flows against the in-memory host: the drawer's switcher filters
-// the list and pins conversations, 「添加工作区」 walks the folder picker
-// (browse, new folder, add), the management page renames, pins, groups and
-// removes, and remote hosts only get what their carrier serves.
+// Workspace flows against the in-memory host: the 聊天 tab's workspace sheet
+// filters the list and pins conversations, 「添加工作区」 walks the folder
+// picker (browse, new folder, add), the management page renames, pins, groups
+// and removes, and remote hosts only get what their carrier serves.
 
 import 'dart:ui' show Tristate;
 
@@ -11,9 +11,8 @@ import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/common/breadcrumb_row.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_app/ui/workspace/directory_picker.dart';
-import 'package:dsh_app/ui/workspace/workspace_switcher.dart';
 import 'package:dsh_app/ui/workspace/workspaces_page.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
@@ -59,27 +58,28 @@ class _RemoteHost extends ActiveHostController {
 /// The real phone-side view (shared preferences), starting empty.
 List<Override> _live(FakeWorkspaceHost host) => workspaceOverrides(host, livePrefs: true);
 
-Finder _tileTitles() => find.descendant(of: find.byType(SessionTile), matching: find.byType(Text));
+/// Only the cards' title Texts (SessionTile.titleKey), not the cwd
+/// subtitle or the time a card also carries.
+Finder _tileTitles() =>
+    find.descendant(of: find.byType(SessionTile), matching: find.byKey(SessionTile.titleKey));
 
 List<String> _titles(WidgetTester tester) => [for (final t in tester.widgetList<Text>(_tileTitles())) t.data!];
 
+/// Opens the workspace sheet from the 聊天 tab title row's 「工作区」 round key
+/// (the old drawer's switcher row is gone; the sheet itself is unchanged).
 Future<void> _openSwitcher(WidgetTester tester) async {
-  await tester.tap(find.descendant(of: find.byType(WorkspaceSwitcher), matching: find.byType(InkWell)));
+  await tester.tap(find.byTooltip('工作区'));
   await _settle(tester);
 }
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  group('drawer', () {
+  group('聊天 tab', () {
     testWidgets('the switcher filters the list; 全部对话 shows everything again', (tester) async {
       final host = sampleWorkspaceHost();
-      final container = await _pump(
-        tester,
-        HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
-        _live(host),
-      );
-      expect(find.text('全部对话'), findsOneWidget);
+      final container = await _pump(tester, HomeShell(chatBuilder: const SizedBox.expand()), _live(host));
+      // 工作区行并入了标题行圆键，「全部对话」字样只在打开的工作区 sheet 里。
       expect(_titles(tester), hasLength(6));
 
       await _openSwitcher(tester);
@@ -110,7 +110,7 @@ void main() {
 
     testWidgets('long-press pins a conversation into 置顶 and unpins it', (tester) async {
       final host = sampleWorkspaceHost();
-      await _pump(tester, HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true), _live(host));
+      await _pump(tester, HomeShell(chatBuilder: const SizedBox.expand()), _live(host));
       expect(find.text('置顶'), findsNothing);
 
       await tester.longPress(find.text('DeepSeek API 计费怎么算'));
@@ -130,14 +130,6 @@ void main() {
       expect(host.argsOf('workspace/unpinSession'), hasLength(1));
       expect(find.text('置顶'), findsNothing);
     });
-
-    testWidgets('no switcher while the host is offline', (tester) async {
-      await _pump(tester, HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true), [
-        sessionsProvider.overrideWith(() => FakeSessions(sampleSessions())),
-      ]);
-      expect(find.text('全部对话'), findsNothing);
-      expect(tester.getSize(find.byType(WorkspaceSwitcher)).height, 0);
-    });
   });
 
   group('添加工作区', () {
@@ -145,7 +137,7 @@ void main() {
       final host = sampleWorkspaceHost();
       final container = await _pump(
         tester,
-        HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+        HomeShell(chatBuilder: const SizedBox.expand()),
         _live(host),
       );
       await _openSwitcher(tester);
@@ -195,7 +187,7 @@ void main() {
       final prefs = container.read(workspacePrefsProvider);
       expect(container.read(workspacesProvider).byId(prefs.selected)?.path, '/root/code/new-app');
       expect(prefs.recent, ['/root/code']);
-      // The drawer now shows the new, empty workspace.
+      // The 聊天 tab now shows the new, empty workspace.
       expect(find.text('这里还没有对话'), findsOneWidget);
     });
 
@@ -346,7 +338,7 @@ void main() {
     ]) async {
       final container = await _pump(
         tester,
-        HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+        HomeShell(chatBuilder: const SizedBox.expand()),
         [
           ...workspaceOverrides(host, livePrefs: true, connection: connection),
           if (!connection.isLocal) activeHostProvider.overrideWith(() => _RemoteHost(connection.hostId!)),
@@ -432,8 +424,8 @@ void main() {
 
   group('small screen, large text: nothing overflows', () {
     final screens = <String, (Widget Function(), String?)>{
-      'drawer + switcher sheet': (
-        () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      '聊天 tab + 工作区 sheet': (
+        () => HomeShell(chatBuilder: const SizedBox.expand()),
         'switcher',
       ),
       'browser': (() => const DirectoryBrowserPage(start: '/root/code', confirmLabel: '添加'), null),

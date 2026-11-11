@@ -22,12 +22,13 @@ import 'package:dsh_app/ui/remote/remote_screen.dart';
 import 'package:dsh_app/ui/settings/settings_screen.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/root_gate.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart' show SessionDay, sessionDayOf;
 import 'package:dsh_app/ui/update/update_sheet.dart';
 import 'package:dsh_app/update/release.dart';
 import 'package:dsh_app/update/version.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'golden_harness.dart';
 
@@ -375,13 +376,16 @@ void main() {
       'settings': () => const SettingsScreen(),
       'engine': () => const EngineScreen(),
       'remote': () => const RemoteScreen(),
-      'drawer': () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      // 旧抽屉入口；列表如今是聊天 tab 的整页，聊天页用替身。
+      'chats tab': () => HomeShell(chatBuilder: const SizedBox.expand()),
     };
     for (final MapEntry(key: name, value: build) in screens.entries) {
       testWidgets(name, (tester) async {
         tester.view.devicePixelRatio = 2;
         tester.view.physicalSize = const Size(320 * 2, 568 * 2);
         addTearDown(tester.view.reset);
+        // HomeShell 会读 SharedPreferences 恢复上次的 tab。
+        SharedPreferences.setMockInitialValues({});
         await tester.pumpWidget(
           goldenApp(
             home: Builder(

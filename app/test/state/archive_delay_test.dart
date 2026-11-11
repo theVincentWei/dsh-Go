@@ -6,7 +6,7 @@ import 'package:dsh_app/state/drawer_view_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,7 +66,7 @@ void main() {
     await tester.pumpWidget(
       goldenApp(
         brightness: Brightness.light,
-        home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+        home: HomeShell(chatBuilder: const SizedBox.expand()),
         overrides: [
           ...workspaceOverrides(
             host,
@@ -107,7 +107,7 @@ void main() {
   }
 
   for (final bulk in [false, true]) {
-    testWidgets('real drawer delays archive and undo sends zero requests: bulk=$bulk', (tester) async {
+    testWidgets('real list tab delays archive and undo sends zero requests: bulk=$bulk', (tester) async {
       final (host, container) = await start(tester);
       if (bulk) {
         container.read(drawerSelectionProvider.notifier).start('s1');

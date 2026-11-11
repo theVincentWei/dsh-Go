@@ -64,6 +64,8 @@ class NotifyPost {
     this.eventId,
     this.canApprove = false,
     this.fullText,
+    this.source,
+    this.notifyId,
   });
 
   /// One per conversation: `<host>|<sessionId>` (see [notifyGroup]).
@@ -84,6 +86,16 @@ class NotifyPost {
   final bool canApprove;
   final String? fullText;
 
+  /// Which notification stream this belongs to: `miniapp` for AppHub mini
+  /// program notices (聊天通知 leaves it null). Dart-side only, the native
+  /// side ignores unknown keys; a tap comes back as a [NotifyTap] whose kind
+  /// is `miniapp` and whose eventId carries [notifyId].
+  final String? source;
+
+  /// AppHub `notify_messages.id` of a mini program notice; lets a tap mark
+  /// exactly that notice read. Null for chat notifications.
+  final int? notifyId;
+
   Map<String, Object?> toMap() => {
     'group': group,
     'key': key,
@@ -97,6 +109,8 @@ class NotifyPost {
     'eventId': ?eventId,
     if (canApprove) 'canApprove': true,
     'fullText': ?fullText,
+    'source': ?source,
+    'notifyId': ?notifyId,
   };
 }
 

@@ -230,5 +230,10 @@
  "sidebarSimpleRight": 57572,
  "play": 57573,
  "pause": 57574,
- "stop": 57575
+ "stop": 57575,
+ "macMini": 57576,
+ "desktop": 57577,
+ "desktopTower": 57578,
+ "computerTower": 57579,
+ "hardDrives": 57580
 }

@@ -30,3 +30,9 @@ plugins {
 }
 
 include(":app")
+
+// Dimina 源码化说明:不使用复合构建(AGP 9.4/9.1 同构建互斥)。改为「它编它的、
+// 我们编我们的」:在 ~/Code/dimina/android 用它自己的 gradle wrapper 执行
+//   ./gradlew :dimina:publishToMavenLocal :engine_qjs:publishToMavenLocal
+// 产物落 ~/.m2(com.github.didi.dimina:dimina:1.8.1),app 经上面 build.gradle.kts
+// 的 mavenLocal() 优先命中——补丁迭代循环 = 改源码 → publishToMavenLocal → 重编 app。

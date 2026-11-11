@@ -151,18 +151,16 @@ class DoneButton extends StatelessWidget {
 /// Replaces the identity bar: four equal keys, icon over label. Off until
 /// something is chosen.
 class SelectionActionBar extends ConsumerWidget {
-  const SelectionActionBar({
-    super.key,
-    required this.onMove,
-    required this.onPin,
-    required this.onArchive,
-    required this.onDelete,
-  });
+  const SelectionActionBar({super.key, required this.onMove, required this.onPin, required this.onArchive, required this.onDelete, this.height});
 
   final VoidCallback onMove;
   final VoidCallback onPin;
   final VoidCallback onArchive;
   final VoidCallback onDelete;
+
+  /// 定高模式:住在 shell 的 Tab 槽位里时传 56(与 Tab 玻璃件同高,交叉淡切
+  /// 才不跳)。为空保持浮层自量高。
+  final double? height;
 
   /// Least key height; the drawer lays the bar over the identity bar, so the
   /// keys fill that height.
@@ -185,46 +183,53 @@ class SelectionActionBar extends ConsumerWidget {
       sessions: scope?.sessions ?? const [],
       ids: selected,
     );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _ActionKey(
-              icon: AppIcons.moveToFolder,
-              label: l10n.shellMoveToFolder,
-              onTap: none || busy ? null : onMove,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ActionKey(
-              icon: allPinned ? AppIcons.pinActive : AppIcons.pin,
-              label: allPinned ? l10n.shellUnpin : l10n.commonPin,
-              onTap: none || !canPin || busy ? null : onPin,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _ActionKey(icon: AppIcons.archive, label: l10n.shellArchive, onTap: none || busy ? null : onArchive),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Tooltip(
-              message: deleteReason ?? l10n.shellDeleteNoUndo,
+    final bar = IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
               child: _ActionKey(
-                icon: AppIcons.delete,
-                label: busy ? l10n.shellDeletingChats : l10n.commonDelete,
-                onTap: none || deleteReason != null || scope?.readOnly != false ? null : onDelete,
-                destructive: true,
-                busy: busy,
+                icon: AppIcons.moveToFolder,
+                label: l10n.shellMoveToFolder,
+                onTap: none || busy ? null : onMove,
               ),
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionKey(
+                icon: allPinned ? AppIcons.pinActive : AppIcons.pin,
+                label: allPinned ? l10n.shellUnpin : l10n.commonPin,
+                onTap: none || !canPin || busy ? null : onPin,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ActionKey(
+                icon: AppIcons.archive,
+                label: l10n.shellArchive,
+                onTap: none || busy ? null : onArchive,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Tooltip(
+                message: deleteReason ?? l10n.shellDeleteNoUndo,
+                child: _ActionKey(
+                  icon: AppIcons.delete,
+                  label: busy ? l10n.shellDeletingChats : l10n.commonDelete,
+                  onTap: none || deleteReason != null || scope?.readOnly != false ? null : onDelete,
+                  destructive: true,
+                  busy: busy,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    if (height case final h?) {
+      return SizedBox(height: h, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: bar));
+    }
+    return Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 10), child: bar);
   }
 }
 

@@ -27,6 +27,19 @@ const _width = 390.0;
 const _height = 844.0;
 const _bottomInset = 24.0;
 
+/// The forum pages are pushed pages: a blank page underneath keeps
+/// `Navigator.canPop` true, so [AppPage] renders its back key.
+Widget _pushed(Widget page) => Navigator(
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
+  pages: [
+    MaterialPage<void>(child: const SizedBox.shrink()),
+    MaterialPage<void>(child: page),
+  ],
+);
+
 void main() {
   Future<void> pump(WidgetTester tester, Widget home, {bool signedIn = true}) async {
     usePhoneSurface(tester);
@@ -84,7 +97,7 @@ void main() {
   });
 
   testWidgets('home bar: bell and account are twin 44 circles, mirrored with the back key', (tester) async {
-    await pump(tester, const ForumHomePage());
+    await pump(tester, _pushed(const ForumHomePage()));
     final back = tester.getRect(find.byType(GlassIconButton).first);
     final bell = tester.getRect(find.byTooltip('通知，3 条未读'));
     final account = tester.getRect(find.byTooltip('论坛账号'));
@@ -102,7 +115,7 @@ void main() {
   });
 
   testWidgets('signed out: the account key alone takes the same seat', (tester) async {
-    await pump(tester, const ForumHomePage(), signedIn: false);
+    await pump(tester, _pushed(const ForumHomePage()), signedIn: false);
     final back = tester.getRect(find.byType(GlassIconButton).first);
     final account = tester.getRect(find.byTooltip('登录论坛'));
     expect(account.size, const Size(44, 44));

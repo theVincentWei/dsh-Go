@@ -17,6 +17,7 @@ import '../common/smooth_size.dart';
 import '../common/status_dot.dart';
 import '../shell/adaptive/adaptive_scaffold.dart' show AdaptiveChrome;
 import '../shell/adaptive/detail_panel_keys.dart';
+import '../shell/page_frame.dart' show GlassIconButton;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'header_schedule.dart';
@@ -36,7 +37,9 @@ class HeaderStatus {
 
 /// 聊天顶栏:**没有整条色带**(Claude 式),只有几枚浮动玻璃件;
 /// 内容滚到下面时才浮现一层页面色渐隐,与二级页面同一套做法。
-/// 打开着对话时最右是「新对话」圆键,与 ≡ 镜像。对话有进行中的自动化任务时,
+/// 打开着对话时最右是「设置」圆键。≡ 菜单键只在提供了 onOpenDrawer 的旧
+/// 首页布局里显示;会话列表推入的聊天页左上是返回键(与二级页面浮条上同一枚
+/// 玻璃圆钮),回列表。对话有进行中的自动化任务时,
 /// 标题胶囊的尾端是一颗与它同心的时钟键([HeaderScheduleCap])。
 ///
 /// ```
@@ -55,7 +58,7 @@ class ChatHeader extends ConsumerStatefulWidget {
     this.trailing,
     this.onOpenDrawer,
     this.onTitleTap,
-    this.onNewChat,
+    this.onOpenSettings,
     this.scrolledUnder,
   });
 
@@ -71,7 +74,9 @@ class ChatHeader extends ConsumerStatefulWidget {
   final Widget? trailing;
   final VoidCallback? onOpenDrawer;
   final VoidCallback? onTitleTap;
-  final VoidCallback? onNewChat;
+
+  /// 打开着对话时的「设置」圆键;null(新对话、子对话)时整枚键不出现。
+  final VoidCallback? onOpenSettings;
 
   /// Whether content has scrolled under the bar, 0..1. Drives the top fade:
   /// at rest the page is one clean surface, the fade only appears once there is
@@ -163,11 +168,14 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                 titleFloor: titleFloor,
                 clockExtra: clockExtra,
                 children: [
-                  // A subagent conversation shows 「‹ 上级对话」 here.
+                  // A subagent conversation shows the plain back key (to its parent) here.
                   HeaderLeadSlot(
-                    menu: !(chrome?.showsMenuKey ?? true)
-                        ? const SizedBox.shrink()
-                        : SizedBox.square(
+                    // 旧首页布局里是 ≡ 菜单键。会话列表推入的聊天页没有抽屉
+                    // 可拉,左上是返回键 —— 与二级页面浮条上是同一枚
+                    // GlassIconButton(44 玻璃圆钮,22 回箭头),回列表。
+                    // 宽窗里聊天嵌在骨架里(列表在侧栏/轨上),什么都不放。
+                    menu: widget.onOpenDrawer != null && (chrome?.showsMenuKey ?? true)
+                        ? SizedBox.square(
                             key: const ValueKey('chat-menu'),
                             dimension: 44,
                             child: GlassSurface(
@@ -180,7 +188,15 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                                 child: Center(child: Icon(AppIcons.menu, size: 22, color: colors.onSurface)),
                               ),
                             ),
-                          ),
+                          )
+                        : chrome == null
+                        ? GlassIconButton(
+                            key: const ValueKey('chat-back'),
+                            icon: AppIcons.back,
+                            tooltip: l10n.commonBack,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                   Semantics(
                     button: widget.onTitleTap != null,
@@ -265,28 +281,29 @@ class _ChatHeaderState extends ConsumerState<ChatHeader> {
                       null => null,
                     },
                   ),
-                  // Mirrors the menu key; gone on the new-chat screen. On a
-                  // wide window the key that unfolds 对话详情 follows it.
+                  // Mirrors the menu key; gone on the new-chat screen (and a
+                  // subagent conversation's). On a wide window the key that
+                  // unfolds 对话详情 follows it.
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SmoothSize(
                         duration: AppMotion.of(context, AppMotion.quick),
-                        child: widget.onNewChat == null
+                        child: widget.onOpenSettings == null
                             ? const SizedBox.shrink()
                             : Padding(
                                 padding: const EdgeInsets.only(left: HeaderTrailingSlot.gap),
                                 child: SizedBox.square(
-                                  key: const ValueKey('chat-new-chat'),
+                                  key: const ValueKey('chat-settings'),
                                   dimension: 44,
                                   child: GlassSurface(
                                     tier: GlassTier.chrome,
                                     circle: true,
                                     grouped: true,
-                                    onTap: widget.onNewChat,
+                                    onTap: widget.onOpenSettings,
                                     child: Tooltip(
-                                      message: l10n.commonNewChat,
-                                      child: Center(child: Icon(AppIcons.newChat, size: 22, color: colors.onSurface)),
+                                      message: l10n.commonSettings,
+                                      child: Center(child: Icon(AppIcons.info, size: 22, color: colors.onSurface)),
                                     ),
                                   ),
                                 ),
@@ -339,7 +356,7 @@ class _RenderChipSlot extends RenderProxyBox {}
 
 /// The bar's pieces on one line: the left key (≡ or the breadcrumb), the
 /// title pill, the trailing pieces (agents capsule, model chip) and the
-/// 新对话 key. The title pill and the model chip share what the keys leave:
+/// 设置 key. The title pill and the model chip share what the keys leave:
 ///
 /// 1. both whole when they fit;
 /// 2. else the chip drops its depth (「· 高」) first;
@@ -352,7 +369,7 @@ class _RenderChipSlot extends RenderProxyBox {}
 /// The pill's content ([_PillContent]) reads step 5 off the width it gets.
 ///
 /// The title pill sits 8 after the left key; the trailing pieces end at the
-/// 新对话 key (they carry their own 8s); everything centred on one line.
+/// 设置 key (they carry their own 8s); everything centred on one line.
 class _HeaderRow extends MultiChildRenderObjectWidget {
   const _HeaderRow({required this.titleFloor, required this.clockExtra, required super.children})
     : assert(children.length == 4);
@@ -678,10 +695,7 @@ class _RenderStatusLine extends RenderBox
     final (status, detail) = _measure(constraints, ChildLayoutHelper.layoutChild);
     size = _sizeOf(constraints, status, detail);
     (firstChild!.parentData! as _StatusLineParentData).offset = Offset(0, (size.height - status.height) / 2);
-    (lastChild!.parentData! as _StatusLineParentData).offset = Offset(
-      status.width,
-      (size.height - detail.height) / 2,
-    );
+    (lastChild!.parentData! as _StatusLineParentData).offset = Offset(status.width, (size.height - detail.height) / 2);
   }
 
   @override

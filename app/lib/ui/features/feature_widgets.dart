@@ -6,6 +6,7 @@ import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../../state/sessions_state.dart';
 import '../common/feature_tile.dart';
+import '../shell/reveal_conversation.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'feature_format.dart';
@@ -108,10 +109,11 @@ class FeatureNote extends StatelessWidget {
   );
 }
 
-/// Opens [sessionId] in the chat: selects it and returns to the home page.
+/// Opens [sessionId] in the chat: selects it, then lands on the conversation
+/// page (reveal_conversation); null opens a new chat's composer.
 void openSessionInChat(BuildContext context, WidgetRef ref, String? sessionId) {
   ref.read(currentSessionProvider.notifier).select(sessionId);
-  Navigator.of(context).popUntil((route) => route.isFirst);
+  revealConversation(context);
 }
 
 /// Full-width, start-aligned content inside a [SheetGroup] (whose column

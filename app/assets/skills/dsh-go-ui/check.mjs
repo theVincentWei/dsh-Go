@@ -14,7 +14,7 @@
 // Exit codes: 0 everything applies (notes allowed), 1 some items do not
 // apply, 2 the whole file does not apply, 3 no file / cannot read it.
 
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, realpathSync } from 'node:fs';
 import { dirname, join, basename, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -1018,7 +1018,21 @@ function main(argv) {
   return result.issues.some((i) => i.kind !== 'adjusted') ? 1 : 0;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Run as the main module — compared through real paths, so invoking the
+// script through a symlinked directory (macOS /tmp → /private/tmp,
+// /var → /private/var) still counts.
+const runAsMain = (() => {
+  if (!process.argv[1]) return false;
+  try {
+    return (
+      realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+})();
+
+if (runAsMain) {
   // `| head` closing the pipe early is not an error.
   process.stdout.on('error', (e) => {
     if (e.code !== 'EPIPE') throw e;

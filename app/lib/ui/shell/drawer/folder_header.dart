@@ -12,8 +12,8 @@ import 'folder_mark.dart';
 import 'session_tile.dart';
 
 /// A folder's row: the mark on the 20 line, the name, the member count and a
-/// chevron that turns as the folder opens. Same 44 height and 10 edges as a
-/// conversation row. Tap: open or close. Long press: the folder's actions.
+/// chevron that turns as the folder opens. A plain 44-high row between the
+/// conversation cards. Tap: open or close. Long press: the folder's actions.
 class DrawerFolderHeader extends StatelessWidget {
   const DrawerFolderHeader({
     super.key,
@@ -27,6 +27,9 @@ class DrawerFolderHeader extends StatelessWidget {
   final int count;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+
+  /// The row's height (the conversation cards are taller).
+  static const height = 44.0;
 
   /// Mark slot (members' titles start [SessionTile.folderIndent] in).
   static const mark = 20.0;
@@ -54,7 +57,7 @@ class DrawerFolderHeader extends StatelessWidget {
           onLongPress: onLongPress,
           customBorder: Squircle.border(AppShape.md),
           child: SizedBox(
-            height: SessionTile.height,
+            height: height,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
@@ -141,8 +144,9 @@ class _EmptyFolderLine extends StatelessWidget {
     return SizedBox(
       height: 36,
       child: Padding(
-        // The list sits on the 10 line; rows add 10 more, members the indent.
-        padding: const EdgeInsets.only(left: 10 + SessionTile.folderIndent),
+        // Cards sit on the 10 line and inset their content 12 more; the
+        // empty folder's note keeps the members' title line (50).
+        padding: const EdgeInsets.only(left: 20 + SessionTile.folderIndent),
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(

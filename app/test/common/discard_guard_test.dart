@@ -7,7 +7,6 @@ import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/schedule_editor_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
-import 'package:dsh_app/ui/common/status_dot.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:dsh_app/ui/bots/new_bot_page.dart';
@@ -109,45 +108,6 @@ void main() {
 
   testWidgets('新建 Bot 刚打开直接返回', (tester) async {
     await leave(tester, await open(tester, const NewBotPage(), bots.dsBotOverrides(bots.FakeDsBotTransport())));
-  });
-
-  testWidgets('关闭抽屉暂停运行圆点，打开后继续呼吸', (tester) async {
-    usePhoneView(tester);
-    await tester.pumpWidget(
-      shell.goldenApp(
-        brightness: Brightness.light,
-        home: Builder(
-          builder: (context) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(disableAnimations: false),
-            child: HomeShell(
-              chatBuilder: (open) => Center(
-                child: TextButton(onPressed: open, child: const Text('打开抽屉')),
-              ),
-            ),
-          ),
-        ),
-        overrides: [
-          sessionsProvider.overrideWith(() => shell.FakeSessions(shell.sampleSessions())),
-          settingsProvider.overrideWith(() => shell.FakeSettings(const AppSettings(loaded: true))),
-          localRuntimeProvider.overrideWith(
-            () => shell.FakeRuntime(const LocalRuntimeState(loaded: true, status: shell.runningStatus)),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.binding.hasScheduledFrame, isFalse);
-    expect(find.byType(StatusDot), findsNothing);
-    await tester.tap(find.text('打开抽屉'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 450));
-    final busy = find.byWidgetPredicate((widget) => widget is StatusDot && widget.tone == StatusTone.busy);
-    expect(busy, findsWidgets);
-    final fade = find.descendant(of: busy.first, matching: find.byType(FadeTransition));
-    final before = tester.widget<FadeTransition>(fade).opacity.value;
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(tester.widget<FadeTransition>(fade).opacity.value, isNot(before));
-    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('真实 HomeShell 只有一层背景', (tester) async {

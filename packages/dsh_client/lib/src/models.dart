@@ -560,6 +560,26 @@ class SessionProjections {
 
   bool has(String key) => values.containsKey(key);
   String? get title => asString(values['title']);
+
+  /// Latest message line for a list row's second line, once the engine
+  /// provides the `preview` key; null until then.
+  String? get preview => asString(values['preview']);
+
+  /// The same line folded from the `turnOutline` view: the newest turn that
+  /// has any text, its response line first, else its opening prompt. Null
+  /// while the outline is absent (older hosts) or no turn has text yet.
+  String? get turnOutlinePreview {
+    final turns = asListOrEmpty(values['turnOutline']);
+    for (final entry in turns.reversed) {
+      final turn = asMap(entry);
+      if (turn == null) continue;
+      final response = asString(turn['response'])?.trim();
+      if (response != null && response.isNotEmpty) return response;
+      final prompt = asString(turn['prompt'])?.trim();
+      if (prompt != null && prompt.isNotEmpty) return prompt;
+    }
+    return null;
+  }
   String? get agentPreset => asString(values['agentPreset']);
 
   /// Current permission preset (`read-only`, `workspace-write`,
@@ -657,6 +677,14 @@ class SessionSummary {
   final Map<String, Object?> raw;
 
   String? get title => projections.title;
+
+  /// [SessionProjections.preview], trimmed; null while empty, so lists can
+  /// fall back to the [cwd].
+  String? get previewText {
+    final p = projections.preview?.trim();
+    return p == null || p.isEmpty ? null : p;
+  }
+
   bool get isSubagent => origin == 'subagent';
 
   SessionSummary copyWith({

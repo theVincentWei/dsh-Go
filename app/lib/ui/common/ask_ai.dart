@@ -15,6 +15,7 @@ import '../../state/compose_inbox.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../shell/page_frame.dart' show GlassIconButton;
+import '../shell/reveal_conversation.dart';
 import '../theme/app_icons.dart';
 import 'discard_guard.dart';
 
@@ -46,7 +47,7 @@ Future<void> askAiQuestion(BuildContext context, String question, {String guideP
   if (!context.mounted) return;
   // The chat first, then the fill: the composer takes focus on the route
   // that is on top by then.
-  Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+  revealConversation(context);
   container.read(composeInboxProvider.notifier).push(request);
 }
 

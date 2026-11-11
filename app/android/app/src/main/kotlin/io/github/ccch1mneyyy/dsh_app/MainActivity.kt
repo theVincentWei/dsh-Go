@@ -24,6 +24,7 @@ import io.github.ccch1mneyyy.dsh_app.runtime.RuntimePlugin
 import io.github.ccch1mneyyy.dsh_app.share.SharePlugin
 import io.github.ccch1mneyyy.dsh_app.shortcuts.ShortcutsPlugin
 import io.github.ccch1mneyyy.dsh_app.update.UpdatePlugin
+import io.github.ccch1mneyyy.dsh_app.dimina.DiminaPlugin
 import io.github.ccch1mneyyy.dsh_app.voice.VoicePlugin
 import java.lang.ref.WeakReference
 import java.util.TimeZone
@@ -46,6 +47,7 @@ class MainActivity : FlutterActivity() {
             engine.plugins.add(FilesPlugin())
             engine.plugins.add(LinksPlugin())
             engine.plugins.add(UpdatePlugin())
+            engine.plugins.add(DiminaPlugin())
             engine.plugins.add(VoicePlugin())
             engine.plugins.add(SharePlugin())
             engine.plugins.add(ShortcutsPlugin())

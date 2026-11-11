@@ -18,11 +18,11 @@
 | 上下文占用 | ui-conversation · 上下文圆环 | ☑️ | 输入条里的上下文小环（点开看用量）；对话详情 › 上下文 |
 | 斜杠命令面板 | ui-commands · 输入 `/` | ☑️ | 输入 `/` |
 | `/压缩` `/权限` `/计划` `/目标` `/反馈` | dsh-command-* · 斜杠命令 | ☑️ | 输入 `/`（执行走 `commands/execute`） |
-| 下载会话日志（`/export`、会话顶栏「下载 Session 日志」） | session-log-export | ☑️ | 输入框 `/export`；全部功能 › 导出对话日志 |
+| 下载会话日志（`/export`、会话顶栏「下载 Session 日志」） | session-log-export | ☑️ | 输入框 `/export`；当前对话 › 导出对话日志 |
 | `/模型`：模型与推理等级 | ui-model-selection · 输入框模型位、`/model` | ☑️ | 聊天顶栏模型胶囊；`/模型` |
 | `/文件`：添加附件 | ui-conversation · `+` | ☑️ | 输入框附件按钮 |
-| 技能组（`/技能名`） | ui-skill · `/` 菜单「技能」组 | ☑️ | 输入 `/`（本次新增技能组）；全部功能 › 技能。技能弹层：在对话里用 / 新对话里用（往输入框插入 `/name `，与官方 `dsh-client-ui-skill` 的 onPick 一致） |
-| 引用文件 / 对话 / 子代理（`@`） | ui-reference、ui-subagent · 输入 `@` | ☑️ | 输入框输入 `@`（文件、对话、子代理，`fileReferences/list`、`sessionReferenceResolver/candidates`）；全部功能 › 引用文件和对话（回到输入框） |
+| 技能组（`/技能名`） | ui-skill · `/` 菜单「技能」组 | ☑️ | 输入 `/`（本次新增技能组）；当前对话 › 技能。技能弹层：在对话里用 / 新对话里用（往输入框插入 `/name `，与官方 `dsh-client-ui-skill` 的 onPick 一致） |
+| 引用文件 / 对话 / 子代理（`@`） | ui-reference、ui-subagent · 输入 `@` | ☑️ | 输入框输入 `@`（文件、对话、子代理，`fileReferences/list`、`sessionReferenceResolver/candidates`） |
 | 附件栏、图片画廊与灯箱 | ui-attachment | ☑️ | 输入框附件、消息图片 |
 | 凭据遮挡（已发送文本里的 Key） | ui-secret-mask | ☑️ | 聊天气泡（点眼睛显示原文） |
 | 权限审批卡 | ui-approval · 接管输入框 | ☑️ | 聊天里的审批卡 |
@@ -38,15 +38,15 @@
 
 | 官方功能 | 官方包 · 官方入口 | 状态 | App 入口 |
 |---|---|---|---|
-| 轨迹（事件表、时间概览） | ui-trajectory · 视图 tab「轨迹」 | ☑️ | 点顶栏标题 › 对话详情 › 轨迹；全部功能 › 对话详情 |
-| 改动 / 交付物卡片 | ui-deliverables | ☑️ | 聊天里的改动卡与产物文件卡（预览、打开、分享、存到「下载」；分享打开分享面板：图片或文件本身）；对话详情 › 改动；全部功能 › 产出的文件 |
-| 后台任务（进行中 / 已结束、实时输出、停止） | ui-jobs · 会话顶栏「N 个后台任务」 | ☑️ | 全部功能 › 后台任务（本次新增，`job/list`、`job/follow`、`job/kill`） |
-| 子代理目录与谱系 | ui-subagent · 会话顶栏「N 个子智能体」 | ☑️ | 聊天顶栏「N 个子智能体」胶囊；对话详情 › 子代理（谱系树，点开接着聊；一次性子代理只读）；聊天里点「子代理 · …」工具行打开那个子代理；全部功能 › 子代理 |
+| 轨迹（事件表、时间概览） | ui-trajectory · 视图 tab「轨迹」 | ☑️ | 点顶栏标题 › 对话详情 › 轨迹；当前对话 › 对话详情 |
+| 改动 / 交付物卡片 | ui-deliverables | ☑️ | 聊天里的改动卡与产物文件卡（预览、打开、分享、存到「下载」；分享打开分享面板：图片或文件本身）；对话详情 › 改动；当前对话 › 产出的文件 |
+| 后台任务（进行中 / 已结束、实时输出、停止） | ui-jobs · 会话顶栏「N 个后台任务」 | ☑️ | 当前对话 › 后台任务（`job/list`、`job/follow`、`job/kill`） |
+| 子代理目录与谱系 | ui-subagent · 会话顶栏「N 个子智能体」 | ☑️ | 聊天顶栏「N 个子智能体」胶囊；对话详情 › 子代理（谱系树，点开接着聊；一次性子代理只读）；聊天里点「子代理 · …」工具行打开那个子代理；当前对话 › 子代理 |
 | 计划模式（徽章、计划卡片、右栏计划预览） | ui-plan | ☑️ | `/计划`；对话详情 › 进度 |
 | 长期目标（目标条：编辑、暂停、恢复、清除） | ui-goal · 输入框上方目标条 | ☑️ | 聊天页输入框上方目标条，点开可编辑、暂停 / 恢复、清除（`goals/*`）；对话详情 › 进度 |
 | 当前对话的权限预设 | ui-permission-presets · `/permission` 弹窗 | ☑️ | 设置 › 权限 › 当前对话；全部功能 › 设置 › 权限；`/权限` |
-| 工作区文件树与文档预览 | ui-sidebar-files、ui-sidebar-documentpreview · 右侧栏 | ☑️ | 全部功能 › 文件；对话详情 › 文件（浏览、搜索、文本 / 图片 / PDF / 表格预览，Office 由主机转 PDF 预览；长按打开、分享、保存） |
-| 终端 | ui-sidebar-terminal · 右侧栏「新建终端」 | ☑️ | 对话详情右上角的终端键；全部功能 › 终端（多标签、快捷键行；离开页面终端继续跑） |
+| 工作区文件树与文档预览 | ui-sidebar-files、ui-sidebar-documentpreview · 右侧栏 | ☑️ | 当前对话 › 文件；对话详情 › 文件（浏览、搜索、文本 / 图片 / PDF / 表格预览，Office 由主机转 PDF 预览；长按打开、分享、保存） |
+| 终端 | ui-sidebar-terminal · 右侧栏「新建终端」 | ☑️ | 对话详情右上角的终端键；当前对话 › 终端（多标签、快捷键行；离开页面终端继续跑） |
 | 右侧栏（push 形态、顶栏角上的展开键） | dsh-client-ui-sidebar-right · 会话顶栏角 | ☑️ | `SessionDetailPage` 的面板模式 + `DetailPanelKey`：宽屏对话详情常驻右栏；窄屏改用底部面板 |
 | 浏览器侧栏 | ui-sidebar-browser | ➖ | 官方 Web 版默认就不启用（只有桌面版有），App 内网页版也没有 |
 | 在本地应用打开 | ui-open-in-app · 会话顶栏「在本地打开」 | ➖ | 需要运行 Host 的机器有桌面；手机本机没有。远程主机可在其网页版里用 |
@@ -144,7 +144,7 @@
 
 ## 缺口与后续
 
-- **下载会话日志（`/export`）**：☑️ 已原生实现（`lib/ui/features/session_export_page.dart`）。和官方一样 GET `api/session.export?sessionId=…&includeDescendants=true` 拿 ZIP（`dsh-session-<id>.zip`），然后走系统分享或存到「下载/DSH」。入口：输入框 `/export`、全部功能 › 导出对话日志。经 DSH Remote 中转的主机没有 HTTP 通道，导不了，页面会说明。
+- **下载会话日志（`/export`）**：☑️ 已原生实现（`lib/ui/features/session_export_page.dart`）。和官方一样 GET `api/session.export?sessionId=…&includeDescendants=true` 拿 ZIP（`dsh-session-<id>.zip`），然后走系统分享或存到「下载/DSH」。入口：输入框 `/export`、当前对话 › 导出对话日志。经 DSH Remote 中转的主机没有 HTTP 通道，导不了，页面会说明。
 - **凭据遮挡**：☑️ 已原生实现（`lib/ui/chat/secret_mask.dart`），匹配规则照官方 `lib/client.js` 移植。
 - **原生化候选**：Cordis 的批准运行和插件界面（目前在网页版）。
 - **待真机验证**：深链在手机 WebView 里是否都落对；SSH 主机的网页版；原生终端的软键盘与快捷键行；语音输入（系统识别与引擎插件两条路）；订阅登录失效后「重新登录」的整条路径；DS Bot 通知点开的跳转。

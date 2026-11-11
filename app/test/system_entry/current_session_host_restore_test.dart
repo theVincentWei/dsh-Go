@@ -28,6 +28,9 @@ Future<void> _settle(ProviderContainer container) async {
 ProviderContainer _open({List<ChatTarget?>? viewed}) {
   final container = ProviderContainer();
   addTearDown(container.dispose);
+  // These tests are about which conversation startup selects: pretend the
+  // conversation page is open, so viewedChat mirrors the selection.
+  container.read(chatPageOnScreenProvider.notifier).set(true);
   final sub = container.listen(viewedChatProvider, (_, next) => viewed?.add(next), fireImmediately: true);
   addTearDown(sub.close);
   container.read(activeHostProvider);

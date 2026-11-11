@@ -25,6 +25,7 @@ import '../features/all_features_page.dart';
 import '../forum/forum_link_host.dart';
 import '../notify/background_net_host.dart';
 import '../notify/background_pause_host.dart';
+import '../notify/apphub_notice_host.dart';
 import '../notify/chat_alert_host.dart';
 import '../notify/voice_model_host.dart';
 import '../plugins/plugins_screen.dart';
@@ -338,6 +339,8 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                     children: [
                       // Notifications: routes taps, raises the in-app banner (draws nothing here).
                       ChatAlertHost(onReveal: _revealChat),
+                      // AppHub 小程序通知：绑轮询、前台玻璃 Banner（画在根 Overlay，本身不画东西）。
+                      const AppHubNoticeHost(),
                       // Background running cut off by the phone, or on HarmonyOS suspended with the app:
                       // one line under the header (draws nothing here).
                       if (ref.watch(androidSystemFeaturesProvider))

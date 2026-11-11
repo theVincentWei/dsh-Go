@@ -6,6 +6,7 @@ import '../../state/phone_state.dart';
 import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
 import '../common/list_page_row.dart';
+import '../common/local_engine_gate.dart';
 import '../common/risk_notice.dart';
 import '../common/segmented_pill.dart';
 import '../features/feature_kit.dart';
@@ -58,6 +59,11 @@ class PhoneAppRulesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.phoneAppRulesTitle, child: _page(context, ref));
+  }
+
+  Widget _page(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final state = ref.watch(phoneProvider);
     final policies = state.policies;

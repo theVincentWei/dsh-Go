@@ -1,0 +1,127 @@
+direction: down
+
+header: "DSH Go 架构总览\nDeepSeek Harness 的 Android 客户端 · Flutter 原生界面 + 纯 Dart 客户端 + PRoot 里的补丁版 DSH 引擎" {
+  near: top-center
+  style: {
+    font-size: 26
+    underline: true
+  }
+}
+
+# ═══ 手机端 ═══
+phone: 📱 Android 手机（免 Root · 免 Termux） {
+  direction: right
+
+  flutter: Flutter App（dsh_app） {
+    ui: "原生界面\n聊天 · 会话抽屉 · 设置 · 引擎日志 · 远程 · 首次引导\nRiverpod 状态 · l10n 中英双语"
+    pets: "宠物搭子\nDeepy & 鲸娘"
+    seats: "插件原生座位\n胶囊 · 长按菜单 · 状态条 · 面板 · 卡片"
+    webview: "WebView 兜底\n直开官方 DSH Web"
+    skills: "内置技能\ndsh-go-ui · plugin · support · guide"
+  }
+
+  kotlin: Kotlin 原生层（Flutter 插件形式） {
+    inst: RuntimeInstaller
+    proc: DshProcess
+    svc: DshService（前台服务）
+  }
+
+  proot: PRoot Linux 运行时（App 内置） {
+    base: Ubuntu 24.04 + Node.js
+    engine: "DSH 引擎（补丁版 @deepseek-ai/dsh）\n`dsh web` @ 127.0.0.1:3080"
+    bridge: "dsh-go-bridge\nApp↔引擎 HTTP 桥\n/dsh-go/v1/*（含会话删除路由）"
+    patches: "引擎补丁\nruntime/patches + pins.json"
+  }
+}
+
+# ═══ 客户端层 ═══
+dart: 纯 Dart 客户端层（本地与远程共用） {
+  direction: right
+
+  dsh_client: dsh_client {
+    api: "DshClient · ChatTranscript\nconnect · watch · prompt · 审批 · 模型"
+    rpcmux: "DshRpc · DshMux\n握手 · 重连退避 · 流复用 · 审批队列"
+    http: "DshHttpCarrier\ntoken 换 cookie · POST /api/*\n· /api/remote.mux WebSocket"
+    carrier: DshCarrier（可插拔传输）
+  }
+
+  dsh_remote: dsh_remote（远程传输） {
+    noise: "Noise_IK_25519_ChaChaPoly\n端到端加密"
+    transport: "传输选择\nWebRTC DataChannel（LAN/P2P/TURN）\n· Server Relay 中继"
+  }
+}
+
+# ═══ 远程与云端 ═══
+remote: 💻 远程电脑 {
+  host: "DSH Harness Host\n（ds-harness-remote Host 插件）"
+}
+
+cloud: ☁️ 云端 {
+  direction: right
+  api: DeepSeek API
+  relay: Server Relay（中继节点）
+}
+
+# ═══ 生态周边 ═══
+eco: 🌐 生态周边 {
+  direction: right
+  build: "APK 构建工具链\ntooling/ · CI"
+  sdk: "插件 SDK\nsdk/plugin-kit"
+  market: 插件市场（market/）
+  site: "官网 · 下载 · 分享页\nsite/ · services/share-worker"
+  forum: 论坛（infra/forum）
+}
+
+# ── 主数据流：本机模式 ──
+phone.flutter.ui -> dart.dsh_client.api: 统一 DshClient API
+dart.dsh_client.http -> phone.proot.bridge: "HTTP / WebSocket\n127.0.0.1:3080"
+phone.proot.bridge -> phone.proot.engine: 反代至引擎 API
+phone.proot.engine -> cloud.api: HTTPS 模型调用
+
+# ── 平台通道（Dart ↔ Kotlin）──
+phone.flutter.ui <-> phone.kotlin: "MethodChannel dsh/runtime\ngetStatus · install · start · stop · logs · reset\nEventChannel dsh/runtime/events"
+phone.kotlin.inst -> phone.proot.base: 解压运行时并启动 proot
+phone.kotlin.proc -> phone.proot.engine: 前台服务托管进程
+
+# ── 兜底与插件 ──
+phone.flutter.webview -> phone.proot.engine: "?token 直连" {
+  style.stroke-dash: 3
+}
+phone.flutter.seats -> phone.proot.bridge: 插件协议 {
+  style.stroke-dash: 3
+}
+phone.proot.patches -> phone.proot.engine: 启动时应用补丁 {
+  style.stroke-dash: 3
+}
+
+# ── 远程模式 ──
+dart.dsh_remote.transport -> cloud.relay: 加密隧道 {
+  style.stroke-dash: 3
+}
+cloud.relay -> remote.host: 中继转发 {
+  style.stroke-dash: 3
+}
+dart.dsh_remote.transport -> remote.host: WebRTC 直连 {
+  style.stroke-dash: 3
+}
+
+# ── 构建与分发 ──
+eco.build -> phone: 构建分发 APK {
+  style.stroke-dash: 3
+}
+eco.sdk -> eco.market: 插件发布 {
+  style.stroke-dash: 3
+}
+eco.market -> phone.flutter.seats: 插件安装 {
+  style.stroke-dash: 3
+}
+eco.site -> remote: 下载与分享 {
+  style.stroke-dash: 3
+}
+
+# ── 说明 ──
+legend: 图例 {
+  solid: "实线 = 运行时数据流"
+  dashed: "虚线 = 兜底 · 补丁 · 远程 · 构建分发"
+  near: bottom-center
+}

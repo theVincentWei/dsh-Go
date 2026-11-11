@@ -186,7 +186,7 @@ void main() {
       expect(result?.opened, isTrue);
       expect(finishArgs(), {'taskId': 1, 'sessionId': 's2', 'host': HostRef.local.encode(), 'reopen': true});
       // The chat shows its newest line.
-      expect(container.read(chatRevealProvider)?.sessionId, 's2');
+      expect(container.read(chatScrollRevealProvider)?.sessionId, 's2');
     });
 
     test('failed and stopped turns end it the same way', () async {
@@ -229,7 +229,7 @@ void main() {
       await phone.onTurnEnd(_end('s1'));
       expect(finishArgs()['reopen'], isFalse);
       // Not asked back: the chat isn't moved.
-      expect(container.read(chatRevealProvider), isNull);
+      expect(container.read(chatScrollRevealProvider), isNull);
     });
 
     test('a call still running never changes ownership to another conversation', () async {

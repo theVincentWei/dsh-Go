@@ -204,6 +204,26 @@ DS Bot 的 NOTICE 原文附在文末。
 | 用途 | 论坛表情的名称与别名表，只用数据，不含图片 |
 | 文件 | `app/lib/forum/emoji_data.g.dart`，由 `infra/forum/tools/gen_emoji_table.py` 从 `dist/emojis.json`、`dist/aliases.json` 生成 |
 
+### DiceBear Critters（CC0 1.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | DiceBear「Critters」（style `@dicebear/styles` 10.6.0），https://www.dicebear.com/styles/critters/ |
+| 版权人 | DiceBear（Florian Körner），CC0 1.0 公共领域贡献（无需署名）；生成库 `@dicebear/core` 10.7.0（MIT） |
+| 许可 | CC0 1.0，https://creativecommons.org/publicdomain/zero/1.0/ |
+| 用途 | 会话列表的行首默认头像：构建期由 `app/tool/session_avatars/make_session_avatars.mjs` 按 100 个固定种子生成的 108px PNG 图库 |
+| 文件 | `app/assets/session_avatars/avatar_00..99.png`，运行时按会话 id 的 FNV-1a 取槽（`SessionAvatarGallery`） |
+
+### DiceBear Pixel Art（CC0 1.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | DiceBear「Pixel Art」（style `@dicebear/styles` 10.6.0），https://www.dicebear.com/styles/pixel-art/ |
+| 版权人 | DiceBear（Florian Körner），CC0 1.0 公共领域贡献（无需署名） |
+| 许可 | CC0 1.0，https://creativecommons.org/publicdomain/zero/1.0/ |
+| 用途 | 团队/子代理的默认头像：构建期由 `app/tool/session_avatars/make_session_avatars.mjs --style pixel-art` 按 100 个固定种子生成的 108px 透明 PNG 图库 |
+| 文件 | `app/assets/agent_avatars/avatar_00..99.png`，运行时按成员名的 FNV-1a 取槽（`AvatarGallery`） |
+
 ### JetBrains Mono（SIL OFL 1.1）
 
 | 项 | 内容 |

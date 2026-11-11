@@ -1,0 +1,120 @@
+001	b76e1a80	首页改版:底部三 tab(会话/小程序/设置)替代聊天+抽屉	平台对接	小程序 Tab 桌面化起点:三 tab 替代聊天+抽屉。
+002	56543c46	首页三 tab 交互修复与打磨:tab 滑动动画、分组列表、宠物气泡回归	平台对接	Tab 桌面化交互打磨。
+003	eb6528b8	feat(applet): Applet 容器阶段1——只读桥/沙盒/容器屏/胶囊/启动器	平台对接	Applet 容器阶段1(后被 abd7dd34 拔除,历史事实)。
+004	3f8b39e6	feat(applet): 记账入口挂进小程序 tab 的功能目录；撤引擎页按钮	平台对接	记账入口挂进小程序 tab。
+005	a179d3ed	feat(applet): 小程序 tab 直接呈现 Applet 宫格（图标瓷贴+全部功能入口），撤目录嵌套	平台对接	小程序 tab Applet 宫格。
+006	3810def5	feat(applet): 小程序 tab 合并宫格——Applet 与全部功能同格同风格，图标支持内置字形	平台对接	宫格合并同格同风格。
+007	31b3abe5	Merge feat/applet-container: Applet 容器阶段1（桥/沙盒/容器屏/胶囊/小程序tab宫格/记账v1.1）	平台对接	merge:applet-container 阶段1。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+008	25f35edd	fix(applet): 恢复小程序 tab 原有 Header 与分区,Applet 组插入页首(同款瓷贴风格)	平台对接	小程序 tab Header/分区修复。
+009	32e38776	Merge feat/applet-container 修复: 恢复原分区与 Header,Applet 组插页首	平台对接	merge:applet-container 修复。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+010	4de2644d	fix(applet): 组标签用 FeatureGroupLabel 对齐并更名「星河」;收起把手离屏留隙	平台对接	组标签更名「星河」+收起把手。
+011	263babb3	fix(applet): 胶囊按状态定位——展开留 12px、收起把手留 4px,不再共用边距	平台对接	胶囊按状态定位。
+012	df8367da	Merge feat/applet-container 修复: 胶囊按状态定位(展开12px/把手4px)	平台对接	merge:胶囊定位。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+013	6b02ce42	perf(applet): 胶囊状态改 ValueNotifier 只重建胶囊子树,WebView 加 RepaintBoundary——触摸不再整屏重建	平台对接	胶囊 ValueNotifier 只重建子树+RepaintBoundary。
+014	27cb755a	Merge feat/applet-container: perf 修复——胶囊 ValueNotifier 只重建子树 + WebView RepaintBoundary	平台对接	merge:胶囊 perf。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+015	69342d91	通知跳转修复:reveal 等待在途聊天退场,不再误判「已打开」	个人 UI	通知跳转 reveal 等待在途聊天退场——聊天侧交互。
+016	09efc761	聊天文件下载不再挤占 UI 线程:解码与 SSH 加密后台化	个人 UI	聊天文件下载解码/加密后台化——聊天功能。
+017	21e7d7e5	Merge branch 'feat/download-decode-worker'	个人 UI	merge:download-decode-worker。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+018	0c63ac0d	「星河」磁贴与功能目录共用同一图标瓷贴和分组标题组件	平台对接	星河磁贴与功能目录共用图标瓷贴。
+019	8426081c	Merge branch 'feat/applet-shared-tile'	平台对接	merge:applet-shared-tile。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+020	d42ab8a8	SSH 隧道 worker 意外死亡可感知、可自愈	平台对接	SSH 隧道 worker 可感知自愈——AppHub 真机可达链路支撑。
+021	2e2a45cd	Merge branch 'feat/download-decode-worker'	个人 UI	merge:download-decode-worker。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+022	d3462b83	当前对话的工具搬进聊天页右上角 ⓘ;小程序页撤掉当前对话组	个人 UI	当前对话工具搬 ⓘ——聊天工具整理。
+023	84192578	Merge branch 'feat/current-chat-tools'	个人 UI	merge:current-chat-tools。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+024	3c867f65	l10n 聚合随 parts 重生成	基础设施	l10n 聚合随 parts 重生成。
+025	f1c43a73	Merge branch 'feat/current-chat-tools'	个人 UI	merge:current-chat-tools。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+026	bdae9c3b	正在看语义修复:正在读的会话不再被通知打扰,白点回归,列表宠物气泡可跳转	个人 UI	正在看语义/白点/宠物气泡——聊天列表交互。
+027	2bc8f071	Merge branch 'fix/viewed-chat-pet-reveal'	个人 UI	merge:viewed-chat-pet-reveal。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+028	b5713039	iOS 原生桥与远端模式(阶段0+1): 通知/相册/文件选择 Swift 桥; iOS 首次引导只留远程主机, 隐藏本机入口	平台对接	iOS 原生桥(通知/相册/文件)+远端模式引导——宿主 iOS 化。
+029	8f86935a	Merge branch 'feat/ios-native-bridges'	平台对接	merge:ios-native-bridges。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+030	89348aec	docs: 架构总览/手机UI地图/UI座位图/会话tab mockup(d2 源与导出图)	基础设施	docs:架构总览/UI 地图/mockup(d2)。
+031	9df13988	真机 SSH 连不上:isolate 适配层两处修复	平台对接	真机 SSH isolate 修复——市场可达链路。
+032	26576039	iOS: App 图标换成 DSH 鲸鱼(渐变底+前景合成, 单尺寸 catalog); dsh/app 时区与 bringToFront 桥	个人 UI	iOS 品牌图标鲸鱼(视觉);时区/bringToFront 桥附带。
+033	219c459b	Merge branch 'feat/ios-icon-app-channel'	个人 UI	merge:ios-icon-app-channel。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+034	936abb8a	iOS: 品牌启动画面(systemBackground+鲸鱼磁贴); dshgo:// 深链与 .dshgo 文件类型注册(SceneDelegate 转发, dsh/links 桥)	个人 UI	iOS 品牌启动画面+深链注册——品牌视觉为主,深链桥附带。
+035	6d357134	Merge branch 'feat/ios-launch-deeplink'	个人 UI	merge:ios-launch-deeplink。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+036	e8f55a18	Merge branch 'feat/download-decode-worker'	个人 UI	merge:download-decode-worker。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+037	f9354b58	聊天文件下载方案 C:可取消、断点续传、跨页面任务条	个人 UI	聊天文件下载方案 C(可取消/断点/任务条)。
+038	313069e7	iOS: Share Extension(分享收流): 独立 target 写 App Group 收件箱, dshgo://intake 拉起, dsh/share 桥转发; Dart 吞链处理器	个人 UI	iOS Share Extension 分享收流进聊天——聊天功能 iOS 化。
+039	dafe31a3	Merge branch 'feat/ios-share-extension'	个人 UI	merge:ios-share-extension。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+040	4fc40596	iOS: 灵动岛 Live Activity(DshWidget target): ActivityKit 接线 dsh/notify live 推送, 宠物状态上岛/锁屏, 完成后自动清场; 扩展版本号改用自身构建设置	个人 UI	iOS 灵动岛宠物状态上岛。
+041	a390af9b	Merge branch 'feat/ios-live-activity'	个人 UI	merge:ios-live-activity。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+042	682739b3	通知横幅玻璃:填充改磨砂纸(fallbackFill),高斯模糊保留	个人 UI	通知横幅玻璃磨砂填充——横幅视觉。
+043	dcd4f892	Merge branch 'fix/alert-banner-matte-fill'	个人 UI	merge:alert-banner-matte-fill。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+044	beecc252	会话列表:头像换 DiceBear Fun Emoji 图库(哈希取槽);副标题=会话最新一条消息(turnOutline 捎带读)	个人 UI	会话头像 DiceBear Fun Emoji+副标题最新消息。
+045	213ea764	顶层返回恢复原版:第一次按返回即退出,删双击窗口与提示	个人 UI	顶层返回恢复原版。
+046	2625f284	Merge branch 'fix/top-back-exit'	个人 UI	merge:top-back-exit。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+047	3eb0760e	会话副标题补热行覆盖:主机持有的会话也补读最新一条消息	个人 UI	会话副标题热行覆盖。
+048	92b1ffcf	会话头像图库换 DiceBear Critters(CC0,零署名负担),样式更精致辨识度更高	个人 UI	会话头像 DiceBear Critters。
+049	b12406cb	小程序容器键盘卡顿修复:容器不再随 IME 逐帧缩放 WebView,键盘高度限速采样推 --dsh-kb(合约新增键盘节)	平台对接	小程序容器键盘卡顿修复(--dsh-kb)——容器体验。
+050	fca89629	Merge branch 'feat/applet-keyboard-insets'	平台对接	merge:applet-keyboard-insets。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+051	2776519c	会话头像预热:从聊天页返回列表不再出现「先空一拍」的加载缺口	个人 UI	会话头像预热。
+052	34a760f4	下载进度上宠物:carrying 状态 + 点宠物开下载通知中心,移除聊天页横条	个人 UI	下载进度上宠物 carrying。
+053	20e05a8b	Merge branch 'feat/download-decode-worker'	个人 UI	merge:download-decode-worker。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+054	e6a5872b	回退小程序键盘修复:真机实测反而更卡,恢复原 resize 行为(feat/applet-keyboard-insets 分支保留待查)	平台对接	回退小程序键盘修复——容器行为回归。
+055	aa9b4384	下载进度上宠物:carrying 状态 + 点宠物开下载通知中心,移除聊天页横条	个人 UI	下载进度上宠物 carrying(重做)。
+056	1f0d5379	Merge branch 'feat/download-decode-worker'	个人 UI	merge:download-decode-worker(聊天文件下载拆线程合入)。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+057	31fcba05	会话副标题加载占位:补读在途显示三点脉动,行高锁定两行不跳变	个人 UI	会话副标题占位脉动。
+058	4807951d	小程序容器键盘卡顿:移植网页模式已验证的 WebKeyboard 方案——WebView 不缩放,每次滑动只推一次高度,host.js 点名样式表垫起 data-dsh-keyboard 元素	平台对接	小程序容器键盘 WebKeyboard 方案——容器体验。
+059	d1c695cc	Merge branch 'fix/applet-keyboard-webkeyboard'	平台对接	merge:applet-keyboard-webkeyboard。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+060	3c46c907	子代理对话返回:左上改纯返回圆钮,系统返回手势回上级对话	个人 UI	子代理对话返回圆钮。
+061	d9152698	选远程隐藏本机引擎 UI;顶栏渐隐统一到聊天同款	个人 UI	远程引擎 UI 门控+顶栏渐隐——聊天视觉统一。
+062	b540fd2c	Merge branch 'feat/local-engine-gates-header-fade'	个人 UI	merge:local-engine-gates-header-fade。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+063	8030cf3e	会话 tab:垫 AppBackdrop 页面底 + 全出血布局,状态栏区不再透黑	个人 UI	会话 tab AppBackdrop 底/全出血。
+064	bcab5df7	会话行首头像 32→36dp:槽位从 RowAnatomy.glyphSlot 本地解耦,图库重出 108px	个人 UI	会话头像 36dp+图库 108px。
+065	35575944	下载弹窗:去掉与弹层框架重复的把手;分片进度改走控制器节流通知修横条不动,行内加速度显示	个人 UI	下载弹窗把手/分片进度节流。
+066	322a0e77	聊天文件卡:进度显示跟全局任务表走(sessionId+path 认领),跳转/页面重建后照样显示,附速度	个人 UI	聊天文件卡进度跟全局任务表。
+067	87242b95	SSH 主机设备图标:基本信息区 7 选 1(Phosphor 5 个+自绘 macMini 进 CUSTOM 表),SSH 行/切换器/rail/web 手柄/设置概览/底栏主机钮按配置显示,未配置保持类型默认图标、旧数据零迁移;l10n remoteHostIcon* 8 键;表单加高后粘贴测试改 Scrollable.ensureVisible 居中滚动避开底部栏	个人 UI	SSH 主机设备图标 7 选 1(表单视觉)。
+068	38c640ba	副标题两处补强:老主机无 turnOutline 时从事件尾页兜底取文案;列表 header 高度逐帧测量	个人 UI	副标题补强(事件尾页兜底/列表 header 测量)。
+069	0a807a86	设备图标选择器:定宽块改固定 4 列网格,等分撑满字段宽、行行列对齐(规范:对称与等距,量出来别目测),补几何测试钉住列对齐;ssh_form_new 金图随布局重录	个人 UI	设备图标选择器 4 列网格+金图重录。
+070	597d3ad8	feat(apphub): Dimina 小程序容器 + 应用市场 + AI 网关客户端(M1-M3)	平台对接	核心:Dimina 容器+应用市场+AI 网关客户端(M1-M3)。
+071	fc524860	Merge branch 'feat/apphub-dimina':Dimina 小程序容器 + AppHub 市场 + AI 网关(M1-M3)	平台对接	merge:apphub-dimina M1-M3。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+072	e4de5bd3	AppHub 真机可达(M4):SSH 隧道多带一条 7610 转发——SshTunnelEngine 第二个 LocalForwarder(setExtraEndpoint,自有 loopback 口+远端端点,reset 只断连监听口跨重连稳定)+isolate extraEndpoint op;建链后探测可达才绑定,断链/_teardownTransport/主机无 AppHub 回退 loopback 默认;kAppHubBase 写死 const 退役为 apphub_base.dart 运行时解析,市场页/通知轮询/启动器三处同读;fake_ssh 加 extraPort,新增 ssh_apphub_forward_test 5 例+isolate 冒烟 1 例全绿,金图/startup 预存失败 stash 对照排除与本次无关	平台对接	核心:AppHub 真机可达(M4) SSH 隧道第二转发。
+073	c6775047	Merge branch 'feat/apphub-dimina':AppHub 真机隧道转发(M4)——SSH 隧道多带 7610 第二转发,appHubBase 运行时解析,真机市场不再未连接	平台对接	merge:apphub-dimina M4。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+074	38d1c415	小程序返回修复:Dimina 开 setEnableMultiTask(true)——子页返回照旧逐层 finish 弹栈,根页返回从「exitMiniProgram 直接销毁」改为「隐藏保栈、宿主页面带回前台」;此前插件未开多任务,非多任务分支必走销毁	平台对接	小程序返回修复 setEnableMultiTask——容器集成。
+075	2a977d50	修 tab 切换卡死:系统移除动画(AppMotion reduced)时长归零时,animateToPage 会撞 Flutter DrivenScrollActivity 构造期同步回调的 LateInitializationError,PageView 永远停在第 0 页(仿真器复现+logcat 实锤);零时长改走 jumpToPage 直接落位,home_shell 与 diff_page 两处同款	平台对接	修 tab 切换卡死(reduced motion)——桌面化 tab 修复。
+076	58dfe600	SnackBar 改同向色:深色主题深胶囊,不再用 M3 反色的近白条	个人 UI	SnackBar 改同向色。
+077	39e0fdf3	Merge branch 'feat/current-chat-tools'	个人 UI	merge:current-chat-tools。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+078	d8334133	市场与宫格三件套:①市场行改列表规范(ListPageCard+ListPageRow,行尾三态胶囊=Install/Open/Update,与插件市场 PluginInstallButton 同款视觉);装完即刷新本地状态,回市场按钮不再滞留 Install;②宫格 Mini apps 新增已装小程序瓷贴组(hub_apps_group:市场目录+DiminaHost.installed 逐个核对,IconTile 与星河组同款,应用市场瓷贴收尾),撤掉静态 AppHub 组;③apphubctl publish 加 --icon(x-icon 头,服务端本就支持)→ 市场行/瓷贴经 hubAppGlyph 映射 AppIcons;④vConsole 门控 BuildConfig.DEBUG,release 不再出现调试悬浮窗	平台对接	市场行列表规范+已装瓷贴组+--icon 发布+vConsole 门控。
+079	883e762a	vConsole 门控改读 FLAG_DEBUGGABLE:工程未开 buildFeatures.buildConfig,BuildConfig 引用直接编译失败;FLAG_DEBUGGABLE 反映实际安装包属性,flutter run 有、release 无,语义也更准	平台对接	vConsole 门控 FLAG_DEBUGGABLE——小程序调试体验。
+080	a5262eae	会话列表多选:操作栏住进 Tab 槽位(方案 A)——Tab 玻璃件同高交叉淡切,主机圆钮让位;浮层与 FAB 位置避让退役;多选期间锁导航,返回键「多选优先」语义与 chrome 对齐	个人 UI	会话列表多选操作栏。
+081	49e1e9bc	Merge branch 'feat/apphub-dimina':市场行列表规范+宫格已装瓷贴组+图标发布+vConsole 门控	平台对接	merge:市场行列表+瓷贴组。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+082	abe1ec95	宠物:出现/消失改变魔术演出(PetMagic)——聊天页 shown 翻转时以脚点为轴缩放弹出/缩回,星尘向内收拢/向外散开,替代平淡的淡入淡出;减弱动效不施法直接就位。星尘 CustomPaint 自绘,不占 pack 帧预算,悬浮窗不改。多选站杆随键撤走的规格记入 pets.md §12 行 21/22(修复本体已随 a5262eae 进主线);新增 pet_magic_test 3 条、session_list_perch_test 1 条	个人 UI	宠物 PetMagic 进出场演出。
+083	3a9c695b	离线快照带上最后一眼副标题:上次结果列表不再整列只剩标题(SSH 建的会话 cwd 空,preview/cwd 入缓存即被丢,行连第二行都渲染不出);preview 截 200 字入预算,超限截断而非拒绝,别让长文案拖垮整条快照	个人 UI	离线快照最后一眼副标题。
+084	19e16f38	SSH 链路退避不封顶:主机卡死超过 8 次预算(约 2-4 分钟)后不再进 failed 永久躺平,30s 封顶间隔一直重试(非重试错误仍停下等人);离线/失败快照的筛选条最前加重试胶囊——重试入口此前只在空列表状态里,有缓存的死列表只能杀 App;回前台 kick 本就有(AppLifecycleListener),配齐后恢复闭环	基础设施	SSH 链路退避不封顶+重试胶囊——工程可靠性(重试闭环)。
+085	da52a064	主题感知第一档+小程序规范成文:①Dimina 惰性初始化(首次 open 由 Dart 传宿主亮度 dark),胶囊配色按亮度定(深=深底白图标/浅=白底深图标);局限:运行中切主题不跟随(config 不可变),全跟随待 SDK 源码化;②docs/apps/miniprogram-spec.md v0.2:包格式/发布协议/生命周期/后端放置与管理(现状无托管+规划托管)/MariaDB 分应用隔离(app_<appId> schema+专用账号仅授本库)/网关接口生命周期/安全边界	平台对接	主题感知胶囊第一档+miniprogram-spec v0.2 成文。
+086	79db1611	Merge branch 'feat/apphub-dimina':小程序规范文档+主题感知胶囊(惰性 init)+市场/宫格/vConsole 门控等	平台对接	merge:规范成文+主题胶囊。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+087	5e92c36c	修复合并带入的悬空引用:da52a064 的 market 页快照混入了并行会话未提交的 hub_layout_state 引用(该文件尚在其 worktree 未提交),移除 import 与 touch 调用恢复可编译;其功能随对方重构提交后回归	基础设施	修复合并带入悬空引用(恢复可编译)。
+088	878e6c8b	右滑快捷入口面板整体移除:①quick_panel/drawer_drag/quick_panel_state/quick_panel_items_sheet/conversation_panel 及 4 个对应测试与全部金图删除,home_shell 的 PageView 回默认 physics、Tab 横滑翻页手势恢复,StarPromptHost 去掉 quickPanel 参数;②设置›界面删「左滑快捷入口」区,spots 删 quickPanel spot;③allFeatures 图标角色 dotsNine→squaresFour(九点换四宫格);④l10n 删 shellQuickPanel*/searchKwQuickPanel,guide(中英 01-chat)删对应章节,page-design.md 加移除注记。hubQuickPanel 的 key 清理与 gen 重生成随桌面化提交一并走	个人 UI	右滑快捷入口面板移除。
+089	786c97d7	真机反馈还原:SnackBar 恢复 M3 反色(同向浅灰对比不足看着像透明);多选操作栏 dock 用 chrome fallbackFill 近实色填充,不再透出壁纸	个人 UI	SnackBar 恢复 M3 反色/多选 dock fallbackFill(真机反馈)。
+090	48818e1b	宠物:魔术进出场收敛——星尘改为一触即散的软烟雾(从身体边缘向外轻扬、快速变淡,不再向内聚拢,后者读作碎裂拼合);入场起始缩放 0.04→0.5、去入场旋转;出场收缩 0.85→0.6、旋转 0.6→0.15 rad;星尘 12→8 颗、半径收敛到身位内	个人 UI	宠物魔术收敛软烟雾。
+091	2480559a	Merge branch 'feat/apphub-dimina':右滑快捷入口面板整体移除(Tab 横滑翻页手势恢复)+allFeatures 九点换四宫格	个人 UI	merge:快捷面板移除。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+092	1ab44758	小程序 Tab 桌面化:①三源合一应用清单(hub_apps_catalog:星河 HTML 应用/AppHub 已装小程序/自带功能+插件面板+应用市场入口,key=applet:/mini:/feature:);②桌面页 hub/app_desktop:顶部搜索平铺过滤、「最近使用」智能组固定最前(打开即记、可隐藏)、用户分组;长按图标摇摆进整理模式——组内/跨组拖拽(本地预演、落手整表落库)、分组头 ⋯ 重命名/上移/下移/删除、小程序「−」角标卸载、+ 新建分组、空组虚线落点;根路由无浮动栏,「完成」长在内容顶部工具行;③布局本机持久化 state/hub_layout_state(hub.layout.v1):首装迁移原静态目录原样成组、未安置应用按目录顺序进默认组、删组退回默认不丢应用、重装原位恢复;④applet_home_page 抽公共图标助手 appletIconWidget,hub_apps_group 只留清单与字形,all_features_page 壳化,市场页打开记最近使用(da52a064 卷入的雏形在主线 5e92c36c 被摘,随本次合入回归);⑤l10n hub parts 新增桌面化文案并重生成 gen;⑥测试:hub 布局 14 例+桌面 8 例全绿,reach_catalog 的 TextField 查找限定搜索页,重录 all_features/seat_all_features/all_features_full 六张金图(其余金图挂项经 HEAD stash 对照为预存失配,未动)	平台对接	核心:小程序 Tab 桌面化(三源合一清单/整理模式/hub.layout 持久化/25 测试)。
+093	b16c314c	Merge branch 'feat/apphub-dimina'	平台对接	merge:apphub-dimina 桌面化。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+094	4db28463	Merge branch 'feat/apphub-dimina':Dimina 源码化接线(mavenLocal)+主题覆写同步	平台对接	merge:Dimina 源码化接线+主题覆写。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+095	22214837	Dimina 源码化接线收口:mavenLocal 优先(allprojects 首位,dimina checkout publishToMavenLocal 的补丁版 1.8.1 按序命中)+插件 lastDark 跟踪与 ensureInitialized 后同步 updateCapsuleTheme(修菜单面板主题不一致)	平台对接	Dimina 源码化 mavenLocal 收口+胶囊主题同步。
+096	51a34991	Dimina 容器主题集中同步:app 根组件每次构建把宿主当前亮度(跟随系统/用户选择)写入 DiminaHost.themeDark,所有 open 调用点缺省用它——Recently used 等新调用点无需各自传 dark;dimina_host open 的 dark 改可空缺省回落	平台对接	Dimina 容器主题集中同步(宿主亮度写 DiminaHost.themeDark)。
+097	dcca78b8	底栏三连胶囊玻璃件走近实色兜底填充(fallbackFill,smoke@0.97):真机反馈 72% 玻璃透壁纸太透;与多选操作栏 dock 同语言。adaptive_home 的 6 个失败经 stash 对照为工作区并行 WIP/平台差预存,金图不重录	个人 UI	底栏胶囊玻璃走近实色(真机反馈)。
+098	0d1d2cd9	会话列表底部吃 shell 注入的底栏高度(MediaQuery.padding.bottom+16):最后一行不再被 Tab 玻璃条遮挡,与设置页同语言	个人 UI	会话列表底部 shell 底栏高度。
+099	e98bf59c	桌面化三连修+角标:①「完成」挪到标题行右端(根路由无浮动栏,叠加实现,固定不随滚动);②整理中系统返回先退整理——hubEditingProvider 唯一事实源,shell 返回键分支与多选「返回优先」同款先例;③桌面瓷贴「有更新」主色小点(hubInstalled 带本地/市场版本号;有未读计数时计数优先);④修「卸载后再装图标不回桌面」:市场页装/卸/更新与桌面打开三个变更点失效 hubInstalledProvider,并 6s 延迟复核落沙盒时序;⑤hub 测试 25 例全绿(新增标题行对齐/更新小点/shell 返回三例;shell 测试 stub 掉 bots 3s 轮询链与宠物 59s 心情计时器)	平台对接	桌面化三连修+「有更新」角标+hubInstalled 失效复核。
+100	abd7dd34	拔除契约 v1 Applet 容器整套(记账那套 WebView):AppletScreen/胶囊/DshAppFs 桥/沙盒/host.js/桌面星河组接线/l10n parts/容器测试/契约文档全下,引擎侧 ~/dsh/apps 已清;小程序统一走 Dimina 原生容器(胶囊为原生自带,与本套无关)	平台对接	拔除契约 v1 Applet 容器整套——平台收敛到 Dimina 原生容器。
+101	15a5d24f	小程序升级链路收归框架:固定端口反代+Parcelable extras 去雷+崩溃兜底+rollback 修复	平台对接	核心:小程序升级链路收归框架(固定端口反代/extras 去雷/崩溃兜底/rollback)。
+102	8ed92ac4	Merge branch 'feat/apphub-dimina'	平台对接	merge:apphub-dimina 升级框架。merge 提交(format-patch 跳过,内容由分支侧提交携带)。
+103	78927aec	当前对话页的权限/确认方式改走真路由(openSubPage):页面自己的头,返回手势回上一级 根因:当前对话页是全 App 唯一把弹层专用 SheetNavigator 包进整页的地方——二级内容 页内换页自带弹层标题行,跟 AppPage 的头摞成两个头;路由又没拦截,返回手势直接把 「当前对话」整页弹掉。 ① plus_panel.dart 新增 openSubPage:弹层宿主(＋面板/权限胶囊)照旧页内换页、带    弹层标题行;整页宿主推 MaterialPageRoute,内容包 AppPage.list——头用页面自己的    (大标题 + 玻璃返回键,滚动照常交接栏标题)。 ② SessionPermissionPage/_ConfirmModePage 只在 SheetNavigator 里画 SheetTitleBar;    确认方式选完自动 pop 仅限弹层,整页宿主留在本页,与权限页行为对齐。 ③ current_chat_page.dart 摘掉 SheetNavigator 包裹,卡片行走 openSubPage。 测试:features_pages_test 补两条(权限/确认方式:真路由+无弹层头+返回回上一级), 全过;plus_panel_test 13 个失败为预存(干净 HEAD stash 对照同集),与本次无关。	个人 UI	当前对话页权限/确认方式改真路由——权限页。
+104	38d34c34	应用市场 tab 与列表贴死:SegmentedPill 底部留 16 间隙	平台对接	应用市场 tab 与列表间距(市场端 UI)。
+105	61c1c167	真机 AppHub 转发钉死本地 7610:小程序网关基址与 App 同源	平台对接	真机转发钉死本地 7610——网关基址同源。
+106	563e8bd5	打开对话统一走 revealConversation:首页三 tab 后 popUntil(isFirst) 落在会话列表	个人 UI	打开对话统一 revealConversation。
+107	9e64cd99	chat 测试面解堵:「正在看」置位避开 build 相位	基础设施	chat 测试面解堵。
+108	c9ea942c	手机聊天页顶栏恢复模型选择胶囊,摘掉输入框脚下的重复入口	个人 UI	聊天页顶栏恢复模型胶囊。
+109	4976cdea	顶栏模型胶囊只挂新对话;已有对话的模型回到输入框脚下(拍板修订)	个人 UI	顶栏模型胶囊只挂新对话。
+110	099dfa10	feat:小程序图标随 open 传容器——iconKey→主题色栅格 PNG,菜单弹层头部与桌面格子同款同色	平台对接	小程序图标随 open 传容器(iconKey→栅格 PNG)——图标库通道。
+111	a4de55f8	文件/终端作为 Flutter 原生「应用」上小程序桌面(当前对话页原样保留)	平台对接	文件/终端作为原生应用上小程序桌面。
+112	f7dfe265	SnackBar 深色改同向实色胶囊:M3 反色的近白条夜里太扎眼	个人 UI	SnackBar 深色同向实色胶囊。
+113	b2bc61d7	宠物在屏判定改几何判屏:首页三 tab 保活出屏页误报 shown,通知被判给屏外气泡,banner/系统通知全不出	个人 UI	宠物在屏判定改几何判屏。
+114	bcb929a9	AppHub 小程序图标库定档方案A实底彩块:hub_app_icon 八键 CustomPainter,桌面/市场/原生栅格三处接入,测试锁键契约	平台对接	AppHub 图标库方案A实底彩块(八键 Painter 三处接入)——图标库定档。
+115	d75e8a54	AppHub 图标改从小程序 Bundle 取:publish 抽 main/icon.png 回 iconUrl,裸发继承上一版图标;客户端三处优先 bundle 图标并直通原生	平台对接	图标改从 Bundle 取(publish 抽 main/icon.png+继承)——Bundle 契约。
+116	54e43d11	apphub: app_versions.icon 列加宽 VARCHAR(128)(Bundle 制图标迁移补漏)	平台对接	app_versions.icon 列加宽——Bundle 制图标迁移。
+117	d10a2e87	app: 桌面遗留合入——宿主文件页、absorbUnplaced 新装落 AppHub 组与桌面目录调整(含文案 parts)	平台对接	桌面遗留合入(宿主文件页/absorbUnplaced)。
+118	4aa13afd	tooling: build-apk.sh 兼容 bash 3.2 空数组展开(set -u)	基础设施	build-apk.sh bash 3.2 兼容。
+119	bfa60578	apphub: Bundle 商店元数据(main/store.json)发布抽取+市场整页详情页 - 服务端: publish 解析 store.json(白名单/截图校验≤6张PNG≤2MB/缺省继承上一版), listing_json 入库,   /shots/ 静态路由, 详情 API 补 subtitle/描述/截图/权限/collects/backend/sizeBytes/updatedAt,   新增 GET /api/v1/apps/<id>/versions, rollback 随带 listing; app_versions.listing_json 幂等迁移 - 客户端: App Store 式整页详情页(截图轮播/简介/新功能/信息表/权限与隐私/版本历史),   市场列表点行进入, 卸载入详情页; 全字段可选缺省隐藏区块	平台对接	Bundle 商店元数据 store.json+市场整页详情页——Bundle 契约。
+120	57f5cc7d	小程序通知系统:微信兼容订阅协议(apphub)+通知中心与订阅面板(app)	平台对接	核心:小程序通知系统(微信兼容订阅协议+通知中心+订阅面板)。

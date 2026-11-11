@@ -61,12 +61,11 @@ Future<(_PinHost, ProviderContainer)> _start(WidgetTester tester, bool unpin, {V
     goldenApp(
       brightness: Brightness.light,
       home: visible == null
-          ? HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true)
+          ? HomeShell(chatBuilder: const SizedBox.expand())
           : ValueListenableBuilder<bool>(
               valueListenable: visible,
-              builder: (_, show, _) => show
-                  ? HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true)
-                  : const SizedBox.shrink(),
+              builder: (_, show, _) =>
+                  show ? HomeShell(chatBuilder: const SizedBox.expand()) : const SizedBox.shrink(),
             ),
       overrides: [
         ...workspaceOverrides(host, current: null, prefs: const WorkspacePrefs(loaded: true)).skip(1),

@@ -114,6 +114,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
+    // The account page works against remote hosts too — no local-engine gate.
+    return _page(context);
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     final state = ref.watch(accountProvider);
     return AppPage.list(

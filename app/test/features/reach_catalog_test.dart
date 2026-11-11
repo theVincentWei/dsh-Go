@@ -15,7 +15,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../search/support.dart';
 import '../shell/golden_harness.dart';
 
-FeatureItem item(String id) => featureSections.expand((section) => section.items).singleWhere((item) => item.id == id);
+FeatureItem item(String id) => [
+  ...featureSections.expand((section) => section.items),
+  ...currentChatTools,
+].singleWhere((item) => item.id == id);
 
 class _Inbox extends DsBotInboxController {
   @override
@@ -120,7 +123,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SessionSearchPage), findsOneWidget);
     expect(container.read(currentSessionProvider), 's1');
-    await tester.enterText(find.byType(TextField), '登录');
+    await tester.enterText(
+      find.descendant(of: find.byType(SessionSearchPage), matching: find.byType(TextField)),
+      '登录',
+    );
     await tester.pump(SessionSearchController.debounce);
     await tester.pumpAndSettle();
     final result = find.ancestor(of: find.text('登录页加上记住密码'), matching: find.byType(SearchResultTile));

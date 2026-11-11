@@ -18,7 +18,9 @@ import 'package:dsh_app/state/chat_state.dart';
 import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
+import 'package:dsh_app/ui/chat/chat_screen.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart' show SessionTile;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,6 +51,15 @@ class _App {
   }
 
   void report(String flow) => debugPrint('TRAFFIC $flow\n${meter.table(top: 14)}');
+
+  /// Opens the conversation (the pushed chat page over the tabs): a tap on
+  /// its row in the 聊天 tab. The three-tab home no longer restores the
+  /// conversation on screen by itself.
+  Future<void> openChat() async {
+    await tester.tap(find.widgetWithText(SessionTile, 'Session 0'));
+    await wait(const Duration(seconds: 1), step: const Duration(milliseconds: 100));
+    expect(find.byType(ChatScreen), findsOneWidget);
+  }
 
   void lifecycle(List<AppLifecycleState> states) {
     for (final s in states) {
@@ -96,11 +107,15 @@ Future<_App> _open(WidgetTester tester) async {
 }
 
 ChatState _chat(WidgetTester tester, String id) =>
-    ProviderScope.containerOf(tester.element(find.byType(HomeShell))).read(chatProvider(id));
+    // The chat is a pushed page: the shell sits offstage beneath it.
+    ProviderScope.containerOf(
+      tester.element(find.byType(HomeShell, skipOffstage: false)),
+    ).read(chatProvider(id));
 
 void main() {
   testWidgets('open: the host, the session list and a long conversation', (tester) async {
     final app = await _open(tester);
+    await app.openChat();
     app.report('open host + session list + long chat');
     expect(app.meter.count('item session/follow:snapshot'), 1);
     expect(app.meter.count(r'open $events'), 1);
@@ -120,6 +135,7 @@ void main() {
 
   testWidgets('a streamed reply with tool calls reads the session list once, at its end', (tester) async {
     final app = await _open(tester);
+    await app.openChat();
     app.meter.reset();
     await app.host.runTurn('S0', () => app.wait(const Duration(seconds: 1)));
     await app.wait(const Duration(seconds: 3));
@@ -180,6 +196,7 @@ void main() {
 
   testWidgets('out of sight, a running conversation streams no tokens; back, it follows again once', (tester) async {
     final app = await _open(tester);
+    await app.openChat();
     app.meter.reset();
     app.lifecycle([AppLifecycleState.inactive, AppLifecycleState.hidden, AppLifecycleState.paused]);
     await app.wait(const Duration(minutes: 1), step: const Duration(seconds: 5));
@@ -217,6 +234,7 @@ void main() {
 
   testWidgets('a dropped connection reconnects and re-subscribes each stream once', (tester) async {
     final app = await _open(tester);
+    await app.openChat();
     app.meter.reset();
     app.host.drop();
     await app.wait(const Duration(seconds: 15));

@@ -30,6 +30,7 @@ import '../chat/dock/todo_bar.dart';
 import '../common/pressable.dart';
 import '../common/side_insets.dart';
 import '../shell/page_frame.dart' show GlassIconButton;
+import '../shell/reveal_conversation.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'continue_chat.dart';
@@ -182,7 +183,7 @@ class _ReplayPageState extends ConsumerState<ReplayPage> with SingleTickerProvid
   void _continue() {
     final request = continueChatRequest(widget.share);
     ref.read(composeInboxProvider.notifier).push(request);
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    revealConversation(context);
   }
 
   @override

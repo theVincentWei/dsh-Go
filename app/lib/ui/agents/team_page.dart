@@ -29,6 +29,7 @@ import '../features/feature_kit.dart' show QuietSpinner;
 import '../features/feature_widgets.dart' show FeatureOffline;
 import '../plugins/plugin_actions.dart' show togglePluginBundle;
 import '../shell/page_frame.dart';
+import '../shell/reveal_conversation.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'agent_widgets.dart';
@@ -69,7 +70,7 @@ class _TeamPageState extends ConsumerState<TeamPage> {
         SubagentAddress(parentSessionId: leadId, childSessionId: member.id, mode: SubagentMode.continuable),
       );
     }
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    revealConversation(context);
   }
 
   @override

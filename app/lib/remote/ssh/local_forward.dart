@@ -22,8 +22,13 @@ class LocalForwarder {
   final Set<Socket> _pending = {};
   bool _closed = false;
 
-  static Future<LocalForwarder> bind(TunnelOpener open) async {
-    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+  /// Binds the loopback listener. [port] pins the local port — mini-program
+  /// facing forwards hardcode it (the AppHub gateway on 7610), the same way
+  /// `adb reverse tcp:7610` pins it on emulators; null picks an ephemeral
+  /// port (the app-internal engine forward, whose base URL is carried at
+  /// runtime instead).
+  static Future<LocalForwarder> bind(TunnelOpener open, {int? port}) async {
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, port ?? 0);
     final forwarder = LocalForwarder._(server, open);
     server.listen(forwarder._accept, onError: (_) {});
     return forwarder;

@@ -100,7 +100,7 @@ void main() {
   });
 
   group('feature catalog', () {
-    final items = [for (final s in featureSections) ...s.items];
+    final items = [for (final s in featureSections) ...s.items, ...currentChatTools];
 
     test('ids are unique and every item has a way in', () {
       expect(items.map((i) => i.id).toSet(), hasLength(items.length));
@@ -131,9 +131,7 @@ void main() {
         containsAll([
           'schedules',
           'jobs',
-          'plan-goal',
           'skills',
-          'subagents',
           'agent-team',
           'permission',
           'agent-presets',
@@ -148,7 +146,6 @@ void main() {
           'general',
           'plugin-inventory',
           'cordis',
-          'reference',
           'cot-translation',
           'voice-input',
           'account',

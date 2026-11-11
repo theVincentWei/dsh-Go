@@ -43,7 +43,11 @@ enum SpotCondition {
   openChat,
 
   /// Only with animations on.
-  animationsOn;
+  animationsOn,
+
+  /// Only while this phone offers the on-device engine at all (not declined
+  /// for a remote host). Search leaves these out entirely then.
+  localEngineOn;
 
   String label(L10n l10n) => switch (this) {
     localHost => l10n.searchNeedsLocal,
@@ -52,6 +56,7 @@ enum SpotCondition {
     engineField => l10n.searchNeedsEngineField,
     openChat => l10n.searchNeedsChat,
     animationsOn => l10n.searchNeedsAnimations,
+    localEngineOn => l10n.searchNeedsLocalEngineOn,
   };
 }
 
@@ -389,6 +394,7 @@ final _pages = <SettingsPageMeta>[
     title: (l) => l.phoneAppRulesTitle,
     parent: SettingsPageId.phone,
     keywords: (l) => l.searchKwAppRules,
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.phoneDnd,
@@ -404,6 +410,7 @@ final _pages = <SettingsPageMeta>[
     keywords: (l) => l.searchKwPhoneUnlock,
     // The overlay's 「已解除限制」 tag opens it through this link.
     links: const ['phone-unlocks'],
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.webSearch,
@@ -484,6 +491,7 @@ final _pages = <SettingsPageMeta>[
     ohosKeywords: (l) => l.harmonyKwBackground,
     freq: Freq.medium,
     links: const ['background'],
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.systemAccess,
@@ -493,6 +501,7 @@ final _pages = <SettingsPageMeta>[
     ohosKeywords: (l) => l.harmonyKwSystemAccess,
     freq: Freq.medium,
     links: const ['system-permissions'],
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.privacy,
@@ -516,6 +525,7 @@ final _pages = <SettingsPageMeta>[
     keywords: (l) => l.searchKwEngine,
     freq: Freq.medium,
     links: const ['engine'],
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.remote,
@@ -574,6 +584,7 @@ final _pages = <SettingsPageMeta>[
     group: _help,
     keywords: (l) => l.searchKwDiagnostics,
     links: const ['diagnostics'],
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.about,
@@ -589,6 +600,7 @@ final _pages = <SettingsPageMeta>[
     keywords: (l) => l.searchKwAccount,
     freq: Freq.medium,
     links: const ['account'],
+    condition: SpotCondition.localEngineOn,
   ),
 ];
 
@@ -832,12 +844,6 @@ abstract final class Spots {
     page: SettingsPageId.interface,
     title: (l) => l.hubHardwareEnterSends,
     keywords: (l) => l.hubHardwareEnterSendsHint,
-  );
-  static final quickPanel = SettingSpot(
-    'quick-panel',
-    page: SettingsPageId.interface,
-    title: (l) => l.hubQuickPanel,
-    keywords: (l) => l.searchKwQuickPanel,
   );
   static final tableTint = SettingSpot(
     'table-tint',
@@ -1143,7 +1149,6 @@ final _rows = <SettingSpot>[
   Spots.petDisplayWhen,
   Spots.uiMode,
   Spots.hardwareEnterSends,
-  Spots.quickPanel,
   Spots.tableTint,
   Spots.webApp,
   Spots.openWeb,

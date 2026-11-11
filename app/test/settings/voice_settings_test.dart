@@ -52,13 +52,27 @@ void main() {
         );
         await tester.pumpAndSettle();
         final rows = [for (final mode in VoiceMode.values) find.byKey(ValueKey('voice-mode-${mode.name}'))];
-        for (final row in rows) {
+
+        // The page title now floats over the list (chat-style): a row parked
+        // under it is covered, not tappable. At 320dp × 2.0 the huge title
+        // eats most of the viewport, so drag the list until the row clears it
+        // — what a person does by scrolling a touch further.
+        Future<void> clearHeader(WidgetTester tester, Finder row) async {
           await tester.ensureVisible(row);
           await tester.pumpAndSettle();
+          for (var i = 0; i < 6 && tester.getTopLeft(row).dy < 96; i++) {
+            await tester.drag(find.byType(VoiceSettingsPage), const Offset(0, 48));
+            await tester.pumpAndSettle();
+          }
+        }
+
+        for (final row in rows) {
+          await clearHeader(tester, row);
           expect(tester.getSize(row).height, greaterThanOrEqualTo(48));
           expect(tester.getRect(row).left, greaterThanOrEqualTo(0));
           expect(tester.getRect(row).right, lessThanOrEqualTo(320));
         }
+        await clearHeader(tester, rows.last);
         await tester.tap(rows.last);
         await tester.pumpAndSettle();
         final container = ProviderScope.containerOf(tester.element(find.byType(VoiceSettingsPage)));

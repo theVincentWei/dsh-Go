@@ -1,5 +1,8 @@
 allprojects {
     repositories {
+        // Dimina 源码化:优先本机 mavenLocal(dimina checkout publishToMavenLocal
+        // 的 1.8.1 补丁版),否则回落 JitPack 官方制品。坐标相同按序取胜。
+        mavenLocal()
         if (System.getenv("DSH_MAVEN_MIRRORS") != "0") {
             maven { url = uri("https://maven.aliyun.com/repository/google") }
             maven { url = uri("https://maven.aliyun.com/repository/central") }

@@ -218,10 +218,13 @@ class DrawerSeenController extends Notifier<DrawerSeen> {
       _seedBaseline();
       _markViewed();
     });
-    ref.listen(viewedChatProvider, (_, _) => _markViewed());
-    // Leaving a conversation: what it showed then is what was seen.
-    ref.listen(currentSessionProvider, (previous, _) {
-      if (previous != null) markSeen(previous);
+    ref.listen(viewedChatProvider, (previous, _) {
+      // Leaving a conversation (the page went under another, the app to the
+      // background, another conversation opened): what it showed then is what
+      // was seen. A selection change with no page (a tapped notification)
+      // leaves what was never opened unread.
+      if (previous != null && previous.host == ref.read(activeHostProvider)) markSeen(previous.sessionId);
+      _markViewed();
     });
     return const DrawerSeen();
   }
@@ -297,15 +300,20 @@ class DrawerSeenController extends Notifier<DrawerSeen> {
 final drawerSeenProvider = NotifierProvider<DrawerSeenController, DrawerSeen>(DrawerSeenController.new);
 
 /// Conversations that moved on since they were last seen: idle (a running
-/// one shows its own dot) and not the one open now.
+/// one shows its own dot) and not the one on screen now. A conversation that
+/// is merely still selected (its page closed, a tapped notification's target)
+/// is unread like any other until its page is really opened.
 final unreadSessionIdsProvider = Provider<Set<String>>((ref) {
   final seen = ref.watch(drawerSeenProvider);
   if (!seen.loaded || seen.baseline == null) return const {};
   final sessions = ref.watch(sessionsProvider).value ?? const [];
-  final current = ref.watch(currentSessionProvider);
+  final viewed = ref.watch(viewedChatProvider);
+  final host = ref.watch(activeHostProvider);
   return {
     for (final s in sessions)
-      if (!s.running && s.sessionId != current && s.updatedAt.millisecondsSinceEpoch > seen.seenOf(s.sessionId))
+      if (!s.running &&
+          !(viewed != null && viewed.host == host && viewed.sessionId == s.sessionId) &&
+          s.updatedAt.millisecondsSinceEpoch > seen.seenOf(s.sessionId))
         s.sessionId,
   };
 });

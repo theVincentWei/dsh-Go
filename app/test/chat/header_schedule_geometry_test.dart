@@ -64,7 +64,7 @@ Future<void> _pump(
                 trailing: ModelChip(selection: testCatalog.defaultSelection, onSelected: (_) {}, grouped: true),
                 onOpenDrawer: () {},
                 onTitleTap: () {},
-                onNewChat: () {},
+                onOpenSettings: () {},
               ),
             ),
           ),
@@ -114,7 +114,7 @@ void main() {
         final bar = _rect(tester, 'chat-header-bar');
         final pill = _rect(tester, 'chat-title-pill');
         final menu = _rect(tester, 'chat-menu');
-        final fresh = _rect(tester, 'chat-new-chat');
+        final fresh = _rect(tester, 'chat-settings');
         final title = tester.getRect(find.text('修复登录重复提交'));
         final status = tester.getRect(find.text('连接已断开'));
 
@@ -199,7 +199,7 @@ void main() {
     final plainChip = tester.getRect(find.byType(ModelChip));
     final plainPill = _rect(tester, 'chat-title-pill');
     final menu = _rect(tester, 'chat-menu');
-    final fresh = _rect(tester, 'chat-new-chat');
+    final fresh = _rect(tester, 'chat-settings');
     expect(find.byKey(const ValueKey('chat-schedule')), findsNothing);
 
     scheduled.on = true;
@@ -211,7 +211,7 @@ void main() {
     expect(pill.width, greaterThan(plainPill.width));
     // The clock comes without moving the mirror or the pill's line.
     expect(_rect(tester, 'chat-menu'), menu);
-    expect(_rect(tester, 'chat-new-chat'), fresh);
+    expect(_rect(tester, 'chat-settings'), fresh);
     expect(pill.left, plainPill.left);
     expect(pill.top, plainPill.top);
     expect(pill.height, plainPill.height);

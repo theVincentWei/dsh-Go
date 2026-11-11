@@ -23,8 +23,7 @@ import 'package:dsh_app/ui/providers/provider_detail_page.dart';
 import 'package:dsh_app/ui/providers/providers_page.dart';
 import 'package:dsh_app/ui/shell/drawer/drawer_filter_bar.dart';
 import 'package:dsh_app/ui/shell/drawer/drawer_list.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
-import 'package:dsh_app/ui/workspace/workspace_switcher.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +51,20 @@ List<Override> _chrome() => [
   unreadSessionIdsProvider.overrideWithValue(const {}),
   marketIndexFetcherProvider.overrideWithValue((uri) async => parseMarketIndex(sampleIndex, uri)),
 ];
+
+/// Secondary pages are pushed pages: a blank page underneath keeps
+/// `Navigator.canPop` true, so [AppPage] keeps its floating bar — with the
+/// actions on it (the plugins refresh key) and the 56dp inset.
+Widget _pushed(Widget page) => Navigator(
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
+  pages: [
+    MaterialPage<void>(child: const SizedBox.shrink()),
+    MaterialPage<void>(child: page),
+  ],
+);
 
 ScrollableState _scroll(WidgetTester tester) => tester
     .stateList<ScrollableState>(find.byType(Scrollable))
@@ -155,7 +168,7 @@ void main() {
     addTearDown(other.client.close);
     final response = [for (var i = 0; i < 45; i++) bundleJson('plugin-$i', description: 'Description')];
     host.carrier.handlers['pluginManager/listBundles'] = (_) => response;
-    await tester.pumpWidget(testApp(const PluginsScreen(), overrides: [...listOverrides(host), ..._chrome()]));
+    await tester.pumpWidget(testApp(_pushed(const PluginsScreen()), overrides: [...listOverrides(host), ..._chrome()]));
     await tester.pumpAndSettle();
     final c = ProviderScope.containerOf(tester.element(find.byType(PluginsScreen)));
     final scroll = _scroll(tester);
@@ -253,7 +266,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('whole drawer keeps workspace label, row and scroll through disconnected 3-second refresh', (
+  testWidgets('whole list tab keeps title row, filter bar and scroll through disconnected 3-second refresh', (
     tester,
   ) async {
     usePhoneView(tester);
@@ -278,7 +291,8 @@ void main() {
         Scaffold(
           body: SizedBox(
             width: 390,
-            child: SessionsDrawer(onClose: () => opened++, onOpen: (_) {}),
+            // 抽屉删除后，同一份会话列表内容由聊天 tab 的 SessionListPage 承载。
+            child: SessionListPage(onOpenChat: () => opened++, onDestination: (_) {}),
           ),
         ),
         overrides: [
@@ -288,16 +302,19 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final c = ProviderScope.containerOf(tester.element(find.byType(SessionsDrawer)));
+    final c = ProviderScope.containerOf(tester.element(find.byType(SessionListPage)));
     final scroll = _scroll(tester);
-    final workspaceTop = tester.getTopLeft(find.byType(WorkspaceSwitcher)).dy;
+    // 工作区行（原 WorkspaceSwitcher）已并入标题行的「工作区」圆键；
+    // 这里锚定仍在页内的标题（chatListTitle，zh=「会话」）、筛选条与列表位置。
+    final titleTop = tester.getTopLeft(find.text('会话')).dy;
+    final filterTop = tester.getTopLeft(find.byType(DrawerFilterBar)).dy;
     final listTop = tester.getTopLeft(find.byType(DrawerConversationList)).dy;
     c.read(switchConnectionProvider.notifier).set(null);
     registry.set(const WorkspacesState());
     await tester.pump(const Duration(milliseconds: 16));
     await tester.pumpAndSettle();
-    expect(find.text('研究工作区'), findsOneWidget);
-    expect(tester.getTopLeft(find.byType(WorkspaceSwitcher)).dy, closeTo(workspaceTop, 0.01));
+    expect(tester.getTopLeft(find.text('会话')).dy, closeTo(titleTop, 0.01));
+    expect(tester.getTopLeft(find.byType(DrawerFilterBar)).dy, closeTo(filterTop, 0.01));
     expect(tester.getTopLeft(find.byType(DrawerConversationList)).dy, closeTo(listTop, 0.01));
     expect(tester.widget<SessionTile>(find.byType(SessionTile).first).onLongPress, isNull);
     c.read(switchConnectionProvider.notifier).set(other.connection);

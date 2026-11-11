@@ -95,6 +95,9 @@ void main() {
     config().writeAsStringSync('{"version": 1}');
     start();
     await until(() => lastText() != null);
+    // Let the file's own creation event land (FSEvents delivers it late)
+    // before counting, so only writes to OTHER files can add a read below.
+    await Future<void>.delayed(const Duration(seconds: 1));
     final before = reads.length;
     File('${config().parent.path}/notes.txt').writeAsStringSync('x');
     await source.writeStatus(parseUiConfig('{"version": 1}'));
@@ -165,6 +168,10 @@ void main() {
     start();
     await until(() => lastText() != null);
     Directory('${root.path}/root').deleteSync(recursive: true);
+    // A runtime reset fires a kick (what the app does): the watch stream
+    // alone is not told on every platform (macOS keeps its FSEvents stream
+    // open on the deleted path, silently).
+    kicks.add(null);
     await until(() => reads.last is UiConfigAbsent);
     config().parent.createSync(recursive: true);
     config().writeAsStringSync('{"version": 1, "density": "compact"}');

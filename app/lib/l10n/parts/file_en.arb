@@ -1,5 +1,15 @@
 {
   "fileImageName": "image",
   "fileSharedText": "Shared text.txt",
-  "fileChatFallback": "chat"
+  "fileChatFallback": "chat",
+  "hostFilesLocations": "Locations",
+  "hostFilesShowHidden": "Show hidden",
+  "hostFilesHideHidden": "Hide hidden",
+  "hostFilesNew": "New",
+  "hostFilesTypeFolder": "Folder",
+  "hostFilesTypeFile": "File",
+  "hostFilesNameFolderHint": "Folder name",
+  "hostFilesNameFileHint": "File name (with extension)",
+  "hostFilesFileNeedsEngine": "Creating files needs a newer engine",
+  "hostFilesSummary": "Browse the host's folders"
 }

@@ -10,6 +10,7 @@ import '../../state/hosts_state.dart';
 import '../../state/notify_state.dart';
 import 'bot_chat_page.dart';
 import 'room_chat_page.dart';
+import '../shell/reveal_conversation.dart' show chatRouteName;
 
 /// Draws nothing. Placed in the shell, it keeps the DS Bot connection and its
 /// inbox alive so notices become notifications, and reconnects the feed when
@@ -54,7 +55,7 @@ bool openDsBotTap(BuildContext context, NotifyTap tap) {
   final container = ProviderScope.containerOf(context, listen: false);
   container.read(activeHostProvider.notifier).select(tap.host);
   final navigator = Navigator.of(context, rootNavigator: true);
-  navigator.popUntil((route) => route.isFirst);
+  navigator.popUntil((route) => route.isFirst || route.settings.name == chatRouteName);
   navigator.push(kind == dsBotTapRoom ? RoomChatPage.route(tap.sessionId) : BotChatPage.route(tap.sessionId));
   return true;
 }

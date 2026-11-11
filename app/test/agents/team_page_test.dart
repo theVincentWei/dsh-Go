@@ -12,6 +12,7 @@ import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/ui/agents/team_page.dart';
 import 'package:dsh_app/ui/chat/widgets/live_clock.dart';
 import 'package:dsh_app/ui/common/segmented_pill.dart';
+import 'package:dsh_app/ui/shell/reveal_conversation.dart' show chatRouteName;
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,6 +101,55 @@ void main() {
     await tester.tap(find.text('tester'));
     await settle(tester);
     expect(find.byType(TeamPage), findsNothing);
+    expect(container.read(currentSessionProvider), testsId);
+    expect(fakeConnection.client.subagentRoute(testsId)?.parentSessionId, parentId);
+  });
+
+  testWidgets('a teammate opens through the chat page underneath, not the shell', (tester) async {
+    await tester.runAsync(loadGoldenFonts);
+    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = const Size(780, 1688);
+    addTearDown(tester.view.reset);
+    // 根路由 → 对话页(命名路由)→ 本页,和从聊天页头进来的一样:关掉本页
+    // 要落在对话页上,而不是 tab 壳(首页改版前 isFirst 就是对话页)。
+    await tester.pumpWidget(
+      goldenApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    settings: const RouteSettings(name: chatRouteName),
+                    builder: (_) => Scaffold(
+                      body: Center(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).push(TeamPage.route()),
+                          child: const Text('open'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                child: const Text('chat'),
+              ),
+            ),
+          ),
+        ),
+        brightness: Brightness.light,
+        overrides: _overrides(team: sampleTeam()),
+      ),
+    );
+    await tester.tap(find.text('chat'));
+    await settle(tester);
+    await tester.tap(find.text('open'));
+    await settle(tester);
+    await tester.tap(find.text('tester'));
+    await settle(tester);
+    expect(find.byType(TeamPage), findsNothing);
+    // 对话页替身回到最前(它的按钮是「open」;根路由的「chat」在下面,离屏)。
+    expect(find.text('open'), findsOneWidget);
+    final container = ProviderScope.containerOf(tester.element(find.text('open')));
     expect(container.read(currentSessionProvider), testsId);
     expect(fakeConnection.client.subagentRoute(testsId)?.parentSessionId, parentId);
   });

@@ -46,6 +46,8 @@ class _WorkspacePrefs extends WorkspacePrefsController {
 
 /// A `session/list` row. [title] null with [cold]: what a long-lived process
 /// lists for a conversation another process wrote (no projections at all).
+/// [hinted]: what the projection cache serves for a row it has cells for —
+/// a title without a second line.
 Map<String, Object?> _row(String id, {String? title, bool cold = false, int updatedAt = 1793000000000}) => {
   'sessionId': id,
   'updatedAt': updatedAt,
@@ -60,13 +62,33 @@ Map<String, Object?> _row(String id, {String? title, bool cold = false, int upda
     },
 };
 
+Map<String, Object?> _hintedRow(String id, {required String title, int updatedAt = 1793000000000}) => {
+  'sessionId': id,
+  'updatedAt': updatedAt,
+  'running': false,
+  'blank': false,
+  'agentAvailable': true,
+  'projections': {
+    'kind': 'cached',
+    'asOfSeq': 7,
+    'values': {'title': title},
+  },
+};
+
 /// `session/projections` for a conversation the process isn't holding.
-Map<String, Object?> _folded({String? title, bool blank = false}) => {
+/// [prompt]/[response] add a two-turn `turnOutline`, the second turn's
+/// halves settable so the fold's fallbacks are exercised.
+Map<String, Object?> _folded({String? title, bool blank = false, String? prompt, String? response}) => {
   'kind': 'sequenced',
   'asOfSeq': 12,
   'values': {
     'title': title,
     'sessionListMetadata': {'blank': blank},
+    if (prompt != null || response != null)
+      'turnOutline': [
+        {'turn': 0, 'seq': 1, 'prompt': 'First ask', 'response': 'First answer'},
+        {'turn': 1, 'seq': 5, 'prompt': prompt ?? '', 'response': response ?? ''},
+      ],
   },
 };
 
@@ -92,6 +114,11 @@ class _SshHost {
       }
       return folded[id];
     };
+    carrier.handlers['session/page'] = (args) {
+      final address = ((args['request'] as Map)['address']) as Map;
+      final id = address['sessionId'] as String;
+      return pages[id];
+    };
     client = DshClient.withCarrier(carrier);
   }
 
@@ -100,6 +127,7 @@ class _SshHost {
   late final DshClient client;
   List<Map<String, Object?>> rows = [];
   final folded = <String, Object?>{};
+  final pages = <String, Object?>{};
   final reads = <String>[];
 
   /// What the next reads fail with, in turn (a Host or proxy erring just then).
@@ -146,6 +174,10 @@ Map<String, String?> _titles(ProviderContainer c) => {
   for (final s in c.read(sessionsProvider).value!) s.sessionId: s.title,
 };
 
+Map<String, String?> _previews(ProviderContainer c) => {
+  for (final s in c.read(sessionsProvider).value!) s.sessionId: s.previewText,
+};
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   late _SshHost host;
@@ -165,18 +197,107 @@ void main() {
     return c = _container(host);
   }
 
+  test('pendingSubtitleIds tracks rows until their read lands', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.holdReads = true;
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    // 读还在途:占位。
+    expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, {'desktop'});
+    host.heldReads.single.$2.complete(_folded(title: 'Plan the garden party', response: 'Garden party moved to Sunday'));
+    await _settle();
+    // 读落地:占位消失,副标题就位。
+    expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, isEmpty);
+    expect(_previews(c), {'desktop': 'Garden party moved to Sunday'});
+  });
+
+  test('a Host that can\'t read titles this way shows no pending placeholders', () async {
+    host.carrier.handlers.remove('session/projections');
+    host.rows = [_row('s0', cold: true), _row('own', title: 'Release notes')];
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(c.read(sessionsProvider.notifier).pendingSubtitleIds, isEmpty);
+  });
+
+  test('a host without turnOutline falls back to the event tail for the second line', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party');
+    host.pages['desktop'] = {
+      'records': [
+        {
+          'event': {
+            'type': 'user/message',
+            'seq': 9,
+            'time': 1,
+            'data': {
+              'source': {'kind': 'user'},
+              'content': [
+                {'type': 'text', 'text': 'When is the garden party?'},
+              ],
+            },
+          },
+        },
+        {
+          'event': {
+            'type': 'assistant/message',
+            'seq': 12,
+            'time': 2,
+            'data': {
+              'turn': 0,
+              'step': 2,
+              'message': {
+                'content': [
+                  {'type': 'text', 'text': 'Garden party moved to Sunday'},
+                ],
+              },
+            },
+          },
+        },
+      ],
+      'hasMore': false,
+    };
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'desktop': 'Plan the garden party'});
+    // 老主机没有 turnOutline:副标题从事件尾页取到回复。
+    expect(_previews(c), {'desktop': 'Garden party moved to Sunday'});
+    expect(host.opened, isEmpty);
+  });
+
   test('a conversation another DSH process wrote gets its title read, without being opened', () async {
     host.rows = [_row('own', title: 'Release notes'), _row('desktop', cold: true)];
+    host.folded['own'] = _folded(title: 'Release notes', response: 'Release notes are out');
     host.folded['desktop'] = _folded(title: 'Plan the garden party');
     start();
     await c.read(sessionsProvider.future);
     await _settle();
     expect(_titles(c), {'own': 'Release notes', 'desktop': 'Plan the garden party'});
-    // The conversation the Host serves first-hand isn't read again.
-    expect(host.reads, ['desktop']);
+    // Both rows are read once — the Host-held one too, for its second line.
+    expect(host.reads.toSet(), {'own', 'desktop'});
     expect(host.opened, isEmpty);
     // The lineage (agents_state) reads the same rows.
     expect(c.read(sessionsProvider.notifier).allSessions.map((s) => s.title), contains('Plan the garden party'));
+  });
+
+  test('a Host-held row is read once too, for its second line', () async {
+    // Hints carry the title first-hand but never a preview: the row is read
+    // once per version to fold one, and the hints' title stays authoritative
+    // even when the read saw something else.
+    host.rows = [_row('warm', title: 'Release notes')];
+    host.folded['warm'] = _folded(title: 'Renamed elsewhere', response: 'Shipped the fix');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'warm': 'Release notes'});
+    expect(_previews(c), {'warm': 'Shipped the fix'});
+    expect(host.reads, ['warm']);
+    // Unchanged rows are not read again.
+    await c.read(sessionsProvider.notifier).refresh();
+    await _settle();
+    expect(host.reads, ['warm']);
   });
 
   test('each row is read once, again only when it changed', () async {
@@ -494,6 +615,51 @@ void main() {
       await debounce();
       expect(host.lists, hasLength(1));
     });
+  });
+
+  test('the second line folds from the same read\'s outline, newest turn first', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party', response: 'Garden party moved to Sunday');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'desktop': 'Plan the garden party'});
+    expect(_previews(c), {'desktop': 'Garden party moved to Sunday'});
+    // One read covers both, and the conversation was not opened.
+    expect(host.reads, ['desktop']);
+    expect(host.opened, isEmpty);
+  });
+
+  test('a turn still without its answer shows the prompt as the second line', () async {
+    host.rows = [_row('desktop', cold: true)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party', prompt: 'When is the garden party?');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_previews(c), {'desktop': 'When is the garden party?'});
+    // An outline with no text at all leaves the row without a second line.
+    host.rows = [_row('desktop', cold: true, updatedAt: 1793000050000)];
+    host.folded['desktop'] = _folded(title: 'Plan the garden party');
+    await c.read(sessionsProvider.notifier).refresh();
+    await _settle();
+    expect(_previews(c), {'desktop': null});
+  });
+
+  test('a row served a title is still read once, for its second line', () async {
+    // The projection cache answers `session/list` with a title but never a
+    // preview; the row is read once per version to fold one, then left alone.
+    host.rows = [_hintedRow('cached', title: 'Served title')];
+    host.folded['cached'] = _folded(title: 'Served title', response: 'Latest news');
+    start();
+    await c.read(sessionsProvider.future);
+    await _settle();
+    expect(_titles(c), {'cached': 'Served title'});
+    expect(_previews(c), {'cached': 'Latest news'});
+    expect(host.reads, ['cached']);
+    // Unchanged rows are not read again.
+    await c.read(sessionsProvider.notifier).refresh();
+    await _settle();
+    expect(host.reads, ['cached']);
   });
 
   test('switching hosts drops the titles read on the previous one', () async {

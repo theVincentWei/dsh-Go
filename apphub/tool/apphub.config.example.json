@@ -1,0 +1,9 @@
+{
+  "port": 7610,
+  "db": { "host": "127.0.0.1", "port": 3306, "user": "apphub", "password": "apphub-local", "database": "apphub" },
+  "publisherKey": "CHANGE-ME-apphub-publisher",
+  "deviceToken": "",
+  "dataDir": "~/dsh/apphub",
+  "engineAppsDir": "~/dsh/apps",
+  "appDbPassword": "app-apphub-local"
+}

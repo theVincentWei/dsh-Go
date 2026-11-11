@@ -7,6 +7,8 @@ import 'dart:typed_data';
 
 import '../protocol/messages.dart';
 import '../util/bytes.dart';
+import 'message_decode_worker.dart';
+import 'perf_probe.dart';
 import 'secure_channel.dart';
 
 /// Maximum in-flight RPCs per connection (protocol limit).
@@ -63,6 +65,18 @@ class RemoteRpcClient {
   final Completer<SecureChannelClosed> _done = Completer();
   int _eventDispatchDepth = 0;
   final Stopwatch _sinceInbound = Stopwatch()..start();
+
+  /// Large messages decode on this worker isolate (see
+  /// [MessageDecodeWorker]); small ones inline. Created lazily, released
+  /// when the client is done.
+  MessageDecodeWorker? _decoder;
+
+  /// Arrival-order chain of inbound messages. A large message decoding on
+  /// the worker isolate must not let a later small one overtake it — rpc
+  /// responses correlate by id, but events are order-sensitive — so every
+  /// message settles before the next is handled. While the chain awaits the
+  /// worker, this isolate is free to draw frames.
+  Future<void> _inbound = Future.value();
 
   /// Events in arrival order (synchronous broadcast: subscribe before the
   /// RPC that triggers them).
@@ -129,9 +143,16 @@ class RemoteRpcClient {
 
   void _onMessage(Uint8List bytes) {
     _sinceInbound.reset();
+    final step = _inbound.then((_) => _handleInbound(bytes));
+    _inbound = step.catchError((Object _) {});
+    unawaited(step);
+  }
+
+  Future<void> _handleInbound(Uint8List bytes) async {
+    if (_done.isCompleted) return; // closed while this message was queued
     final RemoteMessage message;
     try {
-      message = RemoteMessage.decode(bytes);
+      message = await _decodeMeasured(bytes);
     } on Object catch (error) {
       // Fail closed on malformed plaintext.
       final reason = SecureChannelClosed('SECURE_CHANNEL_FAILED', 'Invalid Remote message: $error');
@@ -139,6 +160,30 @@ class RemoteRpcClient {
       _onClosed(reason);
       return;
     }
+    try {
+      _dispatch(message);
+    } on Object catch (error) {
+      // SecureChannel tears the channel down when its receiver throws; keep
+      // that contract now that handling is asynchronous.
+      final reason = SecureChannelClosed('SECURE_CHANNEL_FAILED', 'Secure channel input rejected: $error');
+      unawaited(_channel.close(reason: reason));
+      _onClosed(reason);
+    }
+  }
+
+  /// Decodes one inbound message; with the perf probe enabled, reports the
+  /// wall time the chain spent waiting (worker round trip for large ones).
+  Future<RemoteMessage> _decodeMeasured(Uint8List bytes) {
+    if (!perfProbe) return (_decoder ??= MessageDecodeWorker()).decode(bytes);
+    final wait = Stopwatch()..start();
+    return (_decoder ??= MessageDecodeWorker()).decode(bytes).then((message) {
+      wait.stop();
+      RelayPerfProbe.noteDecode(wait.elapsedMicroseconds);
+      return message;
+    });
+  }
+
+  void _dispatch(RemoteMessage message) {
     switch (message.type) {
       case 'rpc.response':
         final payload = asMap(message.payload);
@@ -187,6 +232,10 @@ class RemoteRpcClient {
   void _onClosed(SecureChannelClosed reason) {
     if (_done.isCompleted) return;
     _done.complete(reason);
+    // No further message is dispatched; release the decode isolate. A
+    // message already queued in the chain sees `_done` and drops out.
+    _decoder?.close();
+    _decoder = null;
     final code = reason.code == 'CLIENT_CLOSED' ? 'CLIENT_CLOSED' : 'TRANSPORT_CLOSED';
     for (final id in [..._pending.keys]) {
       final pending = _pending[id]!;

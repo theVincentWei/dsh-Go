@@ -49,7 +49,7 @@ Future<void> _mount(WidgetTester tester, ValueNotifier<_Controls> controls, {dou
                       status: HeaderStatus(StatusTone.ok, view.status),
                       trailing: ModelChip(selection: testCatalog.defaultSelection, onSelected: (_) {}, grouped: true),
                       onOpenDrawer: () {},
-                      onNewChat: () {},
+                      onOpenSettings: () {},
                     ),
                   ),
                 ),
@@ -65,7 +65,7 @@ Future<void> _mount(WidgetTester tester, ValueNotifier<_Controls> controls, {dou
 }
 
 List<Rect> _geometry(WidgetTester tester) => [
-  for (final key in ['chat-header-bar', 'chat-title-pill', 'chat-menu', 'chat-new-chat'])
+  for (final key in ['chat-header-bar', 'chat-title-pill', 'chat-menu', 'chat-settings'])
     tester.getRect(find.byKey(ValueKey(key))),
   tester.getRect(find.byType(ModelChip)),
 ];

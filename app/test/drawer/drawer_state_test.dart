@@ -8,6 +8,7 @@ import 'dart:convert';
 
 import 'package:dsh_app/state/drawer_view_state.dart';
 import 'package:dsh_app/state/hosts_state.dart';
+import 'package:dsh_app/state/notify_state.dart' show chatPageOnScreenProvider;
 import 'package:dsh_app/state/session_attention_state.dart';
 import 'package:dsh_app/state/session_created_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
@@ -379,12 +380,14 @@ void main() {
       expect(c.read(unreadSessionIdsProvider), {'b'});
 
       // Open b: not unread; leave it for a: still seen.
+      c.read(chatPageOnScreenProvider.notifier).set(true);
       c.read(currentSessionProvider.notifier).select('b');
       await _settle();
       expect(c.read(unreadSessionIdsProvider), isEmpty);
       c.read(currentSessionProvider.notifier).select('a');
       await _settle();
       expect(c.read(unreadSessionIdsProvider), isEmpty);
+      c.read(chatPageOnScreenProvider.notifier).set(false);
 
       // A running turn is not unread; once it ends it is.
       sessions.set([_s('a', t0), _s('b', t0.add(const Duration(minutes: 12)), running: true)]);

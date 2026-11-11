@@ -22,13 +22,10 @@ import 'star_prompt_dialog.dart';
 
 /// Lives with the home shell; draws nothing.
 class StarPromptHost extends ConsumerStatefulWidget {
-  const StarPromptHost({super.key, this.drawer, this.quickPanel});
+  const StarPromptHost({super.key, this.drawer});
 
   /// The shell's drawer (0: closed). Open, nothing comes up.
   final ValueListenable<double>? drawer;
-
-  /// The shell's 快捷入口 panel, the same.
-  final ValueListenable<double>? quickPanel;
 
   @override
   ConsumerState<StarPromptHost> createState() => _StarPromptHostState();
@@ -83,7 +80,6 @@ class _StarPromptHostState extends ConsumerState<StarPromptHost> {
     // inset: a Scaffold above may have taken it out of the MediaQuery), the
     // launch screen still playing. The next look is at most a minute away.
     if ((widget.drawer?.value ?? 0) != 0 ||
-        (widget.quickPanel?.value ?? 0) != 0 ||
         View.of(context).viewInsets.bottom > 0 ||
         LaunchController.active.value != null) {
       return;

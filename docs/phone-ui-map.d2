@@ -1,0 +1,207 @@
+direction: right
+
+phone: 📱 聊天页（真实布局 · 从上到下） {
+  direction: down
+  style: {
+    fill: "#0B1220"
+    stroke: "#0B1220"
+    border-radius: 14
+  }
+
+  screen: 屏幕 {
+    direction: down
+    style: {
+      fill: "#FFFFFF"
+      stroke: "#E3E7EE"
+      border-radius: 10
+    }
+
+    statusbar: "9:41 ᯤ 🔋" {
+      style: {
+        fill: "#FAFBFC"
+        font-size: 12
+      }
+    }
+
+    header: "🟦 顶栏（可定义）\nheader.actions：内置按钮排序/隐藏\n[+新对话] [定时] [模型▾] [详情ⓘ]\n＋ 自定义按钮 ≤3（发文字/跑命令/开页面/开链接）" {
+      style: {
+        fill: "#E8F0FE"
+        stroke: "#4B67B4"
+      }
+    }
+
+    msgs: 消息流 {
+      direction: down
+      b1: "🧑 用户消息（气泡样式 App 自有）" {
+        style: {
+          fill: "#F1F3F6"
+          stroke: "#C4CBD6"
+        }
+      }
+      b2: "🤖 助手回复（气泡样式 App 自有）" {
+        style: {
+          fill: "#F1F3F6"
+          stroke: "#C4CBD6"
+        }
+      }
+      toolcard: "🟩 工具结果卡片 ← 插件可定义\npresentationMeta 返回 dsh-go/view\n（表格 / 图表 / 步骤条 / 键值对…）" {
+        style: {
+          fill: "#E7F6EE"
+          stroke: "#0A7D5B"
+        }
+      }
+      turnnote: "🟩 回合脚注 ← 插件可定义\nturn.note：每轮回复下方一行小字（可藏）" {
+        style: {
+          fill: "#E7F6EE"
+          stroke: "#0A7D5B"
+        }
+      }
+      hidehint: "🟦 这一带还能用 hide 藏掉：\ntoken 数 · 思考过程 · 鲸尾动画 · 待办条 · 目标条 · 活动条" {
+        style: {
+          fill: "#FFF8E9"
+          stroke: "#D9A514"
+          font-size: 11
+        }
+      }
+    }
+
+    strip: "🟩 状态条 ← 插件可定义\ncomposer.strip：输入框上方常驻一行（每插件 1 条，如「今日 12.4k」）" {
+      style: {
+        fill: "#E7F6EE"
+        stroke: "#0A7D5B"
+      }
+    }
+
+    caps: 胶囊行 {
+      direction: right
+      quick: "🟦 快捷胶囊 ≤8\ncomposer.quickActions\n（总结 / 压缩…发送预设指令）" {
+        style: {
+          fill: "#E8F0FE"
+          stroke: "#4B67B4"
+        }
+      }
+      plugincaps: "🟩 插件胶囊\ncomposer.actions（每插件 ≤2）\n（引用剪贴板 / 翻译…）" {
+        style: {
+          fill: "#E7F6EE"
+          stroke: "#0A7D5B"
+        }
+      }
+      entry: "🟦「插件」入口胶囊\npluginCapsule（可藏）\n↓ 点开 = 插件弹层" {
+        style: {
+          fill: "#E8F0FE"
+          stroke: "#4B67B4"
+        }
+      }
+    }
+
+    inputrow: 输入行 {
+      direction: right
+      input: "输入框 + 发送\nApp 自有 · 不可插" {
+        style: {
+          fill: "#F1F3F6"
+          stroke: "#C4CBD6"
+        }
+      }
+      plus: "🟩「+」加号面板\ncomposer.tools（每插件 ≤2）" {
+        style: {
+          fill: "#E7F6EE"
+          stroke: "#0A7D5B"
+        }
+      }
+    }
+  }
+}
+
+pages: 关联页面（不在聊天页上，但都可达） {
+  direction: down
+
+  newchat: "🟦 新对话页\nemptyState.suggestions 建议卡 ≤6\n（「看看今天的待办」这类快捷入口）" {
+    style: {
+      fill: "#E8F0FE"
+      stroke: "#4B67B4"
+    }
+  }
+
+  drawer: 会话抽屉（对话列表） {
+    direction: down
+    dgroup: "🟦 分组显隐 / 排序 / 筛选\ndrawer.groups · sort · filter" {
+      style: {
+        fill: "#E8F0FE"
+        stroke: "#4B67B4"
+      }
+    }
+    dpanel: "🟩 sidebar 插件面板" {
+      style: {
+        fill: "#E7F6EE"
+        stroke: "#0A7D5B"
+      }
+    }
+  }
+
+  detail: 对话详情页（点顶栏「详情 ⓘ」进入） {
+    direction: down
+    tab: "🟩「插件」页签 session.tab\n每插件一张卡 · scope=sessionId\n视图组件：chart/table/list/metric/steps…" {
+      style: {
+        fill: "#E7F6EE"
+        stroke: "#0A7D5B"
+      }
+    }
+    info: "🟩 右侧栏「信息」里的会话操作\nsession.actions（每插件 ≤2）" {
+      style: {
+        fill: "#E7F6EE"
+        stroke: "#0A7D5B"
+      }
+    }
+  }
+
+  chatpanel: "🟩 插件弹层 chat.panel\n点聊天页「插件」入口胶囊打开" {
+    style: {
+      fill: "#E7F6EE"
+      stroke: "#0A7D5B"
+    }
+  }
+
+  features: "🟩 全部功能页 features\n所有插件面板的聚合页" {
+    style: {
+      fill: "#E7F6EE"
+      stroke: "#0A7D5B"
+    }
+  }
+
+  global: "🟦 全局配置（整个 App）\n主题 theme（深浅 · 雾蓝/黛青/暮紫/松石/琥珀/石墨 · 自定义色）\n密度 density · 宠物 pet（四角位置 · 安静模式）\n平板快捷键 shortcuts ≤20\n隐藏清单 hide · plugins.seats（native/island/web/hidden）" {
+    style: {
+      fill: "#E8F0FE"
+      stroke: "#4B67B4"
+    }
+  }
+}
+
+# ── 页面间跳转 ──
+phone.screen.header -> pages.detail: "点「详情 ⓘ」" {
+  style.stroke-dash: 3
+}
+phone.screen.caps.entry -> pages.chatpanel: "点开" {
+  style.stroke-dash: 3
+}
+phone -> pages.drawer: "侧滑呼出" {
+  style.stroke-dash: 3
+}
+phone -> pages.newchat: "点「+新对话」" {
+  style.stroke-dash: 3
+}
+
+legend: 图例 {
+  uijson: "🟦 = ui.json 可配置（dsh-go-ui 技能）" {
+    style.fill: "#E8F0FE"
+    style.stroke: "#4B67B4"
+  }
+  plugin: "🟩 = 插件座位（dsh-go-plugin 技能）" {
+    style.fill: "#E7F6EE"
+    style.stroke: "#0A7D5B"
+  }
+  fixed: "灰 = App 自有界面，改不了（unseatable）" {
+    style.fill: "#F1F3F6"
+    style.stroke: "#C4CBD6"
+  }
+  near: bottom-center
+}

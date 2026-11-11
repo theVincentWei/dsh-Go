@@ -181,6 +181,7 @@ void main() {
       make();
       await settle();
       container.read(currentSessionProvider.notifier).select('s1');
+      container.read(chatPageOnScreenProvider.notifier).set(true);
       await settle();
       local.emit(approval('e1', 's1'));
       await settle();
@@ -192,7 +193,9 @@ void main() {
       make();
       await settle();
       container.read(currentSessionProvider.notifier).select('s1');
-      container.read(chatOnScreenProvider.notifier).set(false);
+      container.read(chatPageOnScreenProvider.notifier).set(true);
+      // A sheet or page pushed over the conversation: not looking any more.
+      container.read(chatPageOnScreenProvider.notifier).set(false);
       await settle();
       local.emit(approval('e1', 's1'));
       await settle();
@@ -206,6 +209,8 @@ void main() {
       await settle();
       expect(container.read(chatAlertsProvider), isNotNull);
       container.read(chatAlertsProvider.notifier).open(HostRef.local, 's1');
+      // The reveal pushes the conversation page; its route reports in.
+      container.read(chatPageOnScreenProvider.notifier).set(true);
       await settle();
       expect(container.read(currentSessionProvider), 's1');
       expect(channel.cancelledGroups, contains('local:local|s1'));
@@ -297,18 +302,20 @@ void main() {
   });
 
   group('viewedChatProvider', () {
-    test('needs the app and the chat on screen and an open conversation', () async {
+    test('needs the app foreground, the conversation page on screen, and an open conversation', () async {
       SharedPreferences.setMockInitialValues({});
       final c = ProviderContainer();
       addTearDown(c.dispose);
       expect(c.read(viewedChatProvider), isNull, reason: 'new chat');
       c.read(currentSessionProvider.notifier).select('s1');
+      expect(c.read(viewedChatProvider), isNull, reason: 'the conversation page is not open');
+      c.read(chatPageOnScreenProvider.notifier).set(true);
       expect(c.read(viewedChatProvider), (host: HostRef.local, sessionId: 's1'));
       c.read(appForegroundProvider.notifier).set(false);
       expect(c.read(viewedChatProvider), isNull);
       c.read(appForegroundProvider.notifier).set(true);
-      c.read(chatOnScreenProvider.notifier).set(false);
-      expect(c.read(viewedChatProvider), isNull);
+      c.read(chatPageOnScreenProvider.notifier).set(false);
+      expect(c.read(viewedChatProvider), isNull, reason: 'back on the list');
     });
   });
 }

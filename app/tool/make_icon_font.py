@@ -308,6 +308,13 @@ CUSTOM = {
         stroked('M40,64H216'),
         stroked('M40,128H176A32,32,0,0,1,176,192H136M160,168L136,192L160,216'),
         stroked('M40,192H96')),
+    # Mac mini: the flat aluminium box front-on, status light at its lower
+    # right. Corner roundness matches desktop-tower so the device set reads
+    # as one family.
+    'macMini': lambda: union(
+        stroked('M45,86H211A21,21,0,0,1,232,107V149A21,21,0,0,1,211,170H45'
+                'A21,21,0,0,1,24,149V107A21,21,0,0,1,45,86Z'),
+        disk((184, 148), 10)),
 }
 
 

@@ -1,5 +1,15 @@
 {
   "fileImageName": "图片",
   "fileSharedText": "分享的文字.txt",
-  "fileChatFallback": "对话"
+  "fileChatFallback": "对话",
+  "hostFilesLocations": "位置",
+  "hostFilesShowHidden": "显示隐藏",
+  "hostFilesHideHidden": "关闭隐藏",
+  "hostFilesNew": "新建",
+  "hostFilesTypeFolder": "文件夹",
+  "hostFilesTypeFile": "文件",
+  "hostFilesNameFolderHint": "文件夹名称",
+  "hostFilesNameFileHint": "文件名（含扩展名）",
+  "hostFilesFileNeedsEngine": "新建文件需引擎升级后可用",
+  "hostFilesSummary": "浏览主机的目录"
 }

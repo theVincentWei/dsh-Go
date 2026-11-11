@@ -16,7 +16,7 @@ import '../../../state/workspaces_state.dart';
 import '../../common/empty_view.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/motion.dart';
-import '../sessions_drawer.dart' show sessionTitle;
+import '../session_list_page.dart' show sessionTimeText, sessionTitle;
 import 'drawer_actions.dart';
 import 'folder_header.dart';
 import 'session_tile.dart';
@@ -30,6 +30,7 @@ class DrawerConversationList extends ConsumerWidget {
     this.leading,
     this.now,
     this.readOnly = false,
+    this.topInset = 0,
   });
 
   /// Opens a conversation (and closes the drawer).
@@ -37,6 +38,11 @@ class DrawerConversationList extends ConsumerWidget {
 
   /// Closes the drawer after choosing a folder for a new conversation.
   final VoidCallback? onNewChat;
+
+  /// Extra top padding: the 聊天 tab floats its title row and filters over
+  /// the list (chat-style), so the first card clears exactly them; 0
+  /// elsewhere.
+  final double topInset;
 
   /// A conversation's actions.
   final void Function(SessionSummary session) onLongPress;
@@ -48,22 +54,23 @@ class DrawerConversationList extends ConsumerWidget {
   final DateTime? now;
   final bool readOnly;
 
-  /// The list's padding: rows' edges on the drawer's 10 line.
-  static const padding = EdgeInsets.fromLTRB(10, 4, 10, 16);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final now = this.now ?? DateTime.now();
     final blocks = watchDrawerBlocks(ref, now: now);
     if (blocks == null) return const SizedBox.shrink();
     final selection = ref.watch(drawerSelectionProvider);
     final selecting = !readOnly && selection != null;
     final filter = ref.watch(drawerFilterProvider);
-    final current = ref.watch(currentSessionProvider);
     final pending = ref.watch(pendingInteractionsProvider);
     final unread = ref.watch(unreadSessionIdsProvider);
     final pinned = ref.watch(workspacesProvider.select((s) => s.pinnedSessionIds)).toSet();
     final sort = ref.watch(drawerViewProvider.select((v) => v.sort));
+    // 副标题待定集合:补读在途的行显示三点占位。readOnly 的机器人抽屉
+    // 不触碰 sessionsProvider;重建由 watchDrawerBlocks 对 sessionsProvider
+    // 的 watch 带动,所以这里 read 一次即可拿到最新集合。
+    final pendingSubtitles = readOnly ? const <String>{} : ref.read(sessionsProvider.notifier).pendingSubtitleIds;
     if (!readOnly && sort == DrawerSort.created) {
       final ids = [
         for (final block in blocks)
@@ -75,13 +82,25 @@ class DrawerConversationList extends ConsumerWidget {
     }
     final selectionNotifier = ref.read(drawerSelectionProvider.notifier);
 
-    Widget tile(SessionSummary s, {bool inFolder = false}) {
+    // Keep only builders for off-screen rows: preparing a title and a tile for
+    // every conversation makes even a selection change scale with the history.
+    final rows = <({Key key, WidgetBuilder builder})>[];
+    void add(Key key, WidgetBuilder builder) => rows.add((key: key, builder: builder));
+
+    Widget tile(SessionSummary s, {bool inFolder = false, SessionGroupPos pos = SessionGroupPos.single}) {
       final id = s.sessionId;
+      final cwd = s.cwd?.trim();
       return SessionTile(
         key: ValueKey('session-$id'),
+        sessionId: id,
         title: sessionTitle(s),
+        // 第二行:最近一条消息(引擎补 preview 后),还没有就回退 cwd;都空不渲染。
+        // 待定(补读在途)时显示三点占位,行高锁定两行。
+        subtitle: s.previewText ?? (cwd == null || cwd.isEmpty ? null : s.cwd),
+        subtitlePending: !readOnly && pendingSubtitles.contains(id),
+        timeText: sessionTimeText(s.updatedAt, now),
         running: s.running,
-        current: id == current,
+        groupPosition: pos,
         pending: readOnly ? null : pending[id],
         unread: !readOnly && unread.contains(id),
         pinned: inFolder && pinned.contains(id),
@@ -97,20 +116,25 @@ class DrawerConversationList extends ConsumerWidget {
       );
     }
 
-    // Keep only builders for off-screen rows: preparing a title and a tile for
-    // every conversation makes even a selection change scale with the history.
-    final rows = <({Key key, WidgetBuilder builder})>[];
-    void add(Key key, WidgetBuilder builder) => rows.add((key: key, builder: builder));
+    /// 同组行拼一张卡:按位次给圆角(唯一/首/中/尾)。
     void addSessions(List<SessionSummary> items) {
-      for (final s in items) {
-        add(ValueKey('session-${s.sessionId}'), (_) => tile(s));
+      for (var i = 0; i < items.length; i++) {
+        final s = items[i];
+        final pos = items.length == 1
+            ? SessionGroupPos.single
+            : i == 0
+            ? SessionGroupPos.first
+            : i == items.length - 1
+            ? SessionGroupPos.last
+            : SessionGroupPos.middle;
+        add(ValueKey('session-${s.sessionId}'), (_) => tile(s, pos: pos));
       }
     }
 
     final showLeading = leading != null && filter == DrawerFilter.all && !selecting;
     if (showLeading) {
       const key = ValueKey('leading');
-      add(key, (_) => KeyedSubtree(key: key, child: leading!));
+      add(key, (_) => KeyedSubtree(key: key, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: leading!)));
     }
     var foldersLabelled = false;
     for (final block in blocks) {
@@ -133,14 +157,19 @@ class DrawerConversationList extends ConsumerWidget {
           final headerKey = ValueKey('folder-${folder.id}');
           add(
             headerKey,
-            (_) => DrawerFolderHeader(
-              key: headerKey,
-              folder: folder,
-              count: items.length,
-              onTap: () => ref.read(drawerViewProvider.notifier).toggleCollapsed(folder.id),
-              onLongPress: () {
-                if (!readOnly) folderActionsFlow(context, ref, folder, onNewChat: onNewChat);
-              },
+            // The header stays a plain row: it keeps the same 16 edges the
+            // group cards give themselves.
+            (_) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DrawerFolderHeader(
+                key: headerKey,
+                folder: folder,
+                count: items.length,
+                onTap: () => ref.read(drawerViewProvider.notifier).toggleCollapsed(folder.id),
+                onLongPress: () {
+                  if (!readOnly) folderActionsFlow(context, ref, folder, onNewChat: onNewChat);
+                },
+              ),
             ),
           );
           final bodyKey = ValueKey('folder-body-${folder.id}');
@@ -149,7 +178,20 @@ class DrawerConversationList extends ConsumerWidget {
             (_) => DrawerFolderBody(
               key: bodyKey,
               open: !folder.collapsed,
-              childrenBuilder: () => [for (final s in items) tile(s, inFolder: true)],
+              childrenBuilder: () => [
+                for (var i = 0; i < items.length; i++)
+                  tile(
+                    items[i],
+                    inFolder: true,
+                    pos: items.length == 1
+                        ? SessionGroupPos.single
+                        : i == 0
+                        ? SessionGroupPos.first
+                        : i == items.length - 1
+                        ? SessionGroupPos.last
+                        : SessionGroupPos.middle,
+                  ),
+              ],
             ),
           );
         case DayBlock(:final day, :final items):
@@ -164,7 +206,12 @@ class DrawerConversationList extends ConsumerWidget {
     return ListView.builder(
       key: ValueKey(filter),
       physics: AppMotion.scrollPhysics(context),
-      padding: padding,
+      // The cards carry their own 10 margins, so the list only insets
+      // vertically; rows that stay plain (the DS Bot row, the folders'
+      // headers) wrap themselves in the 10.
+      // 底部吃 shell 注入的底栏高度(MediaQuery.padding.bottom,含 76 的
+      // 底栏玻璃件),最后一行完整滚出玻璃条,与设置页同语言。
+      padding: EdgeInsets.fromLTRB(0, 4 + topInset, 0, MediaQuery.paddingOf(context).bottom + 16),
       itemCount: rows.length,
       itemBuilder: (context, index) => rows[index].builder(context),
       findChildIndexCallback: (key) => indices[key],

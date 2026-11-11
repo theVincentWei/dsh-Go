@@ -21,10 +21,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'binary_response.dart';
 import 'connection.dart';
+import 'decode_worker.dart';
 import 'errors.dart';
 import 'json.dart';
+import 'perf_probe.dart';
 import 'mux.dart';
 import 'rpc.dart';
 import 'rpc_envelope.dart';
@@ -110,6 +111,12 @@ class DshHttpCarrier extends DshCarrier {
 
   final DshConnection connection;
 
+  /// Large response bodies decode on this worker isolate (see
+  /// [DecodeWorker]); small ones inline. Created lazily, released on close.
+  DecodeWorker? _decoder;
+
+  DecodeWorker get _bodyDecoder => _decoder ??= DecodeWorker();
+
   @override
   String get kind => 'http';
 
@@ -161,9 +168,16 @@ class DshHttpCarrier extends DshCarrier {
       if (boundary == null || boundary.isEmpty) {
         throw DshProtocolException('$endpoint: multipart result without a boundary');
       }
-      decoded = decodeBinaryResponse(response.body, boundary);
+      if (perfProbe) {
+        final stopwatch = Stopwatch()..start();
+        decoded = asMap(await _bodyDecoder.binaryResponse(response.body, boundary));
+        stopwatch.stop();
+        ClientPerfProbe.noteBinary(stopwatch.elapsedMicroseconds, response.body.length);
+      } else {
+        decoded = asMap(await _bodyDecoder.binaryResponse(response.body, boundary));
+      }
     } else {
-      decoded = asMap(tryDecodeJson(response.text));
+      decoded = asMap(await _bodyDecoder.json(response.body));
     }
     tracer?.call(
       DshTraceEntry(
@@ -184,7 +198,10 @@ class DshHttpCarrier extends DshCarrier {
   }
 
   @override
-  Future<void> close() async => connection.close();
+  Future<void> close() async {
+    _decoder?.close();
+    connection.close();
+  }
 }
 
 /// `/api/remote.mux`: one JSON text frame per WebSocket message. The Host

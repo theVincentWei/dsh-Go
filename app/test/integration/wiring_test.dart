@@ -1,4 +1,4 @@
-// How the feature pages hook into the shell. The drawer folds DS Bot's
+// How the feature pages hook into the shell. The 聊天 tab folds DS Bot's
 // conversations into one row and offers one 「分享」; the session detail bar
 // has the terminal key (mirroring back);
 // a subagent tool row opens that child; a one-shot child gets the read-only
@@ -30,13 +30,14 @@ import 'package:dsh_app/ui/common/segmented_pill.dart';
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/session/session_detail_page.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../agents/support.dart';
 import '../chat/support/harness.dart' show ChatHarness, loadTestFonts, pumpFrames, testApp, usePhoneView;
@@ -61,7 +62,7 @@ class _Inbox extends DsBotInboxController {
   DsBotInbox build() => initial;
 }
 
-/// The drawer over a stand-in chat, with s3 and s5 belonging to DS Bot.
+/// The 聊天 tab over a stand-in chat page, with s3 and s5 belonging to DS Bot.
 List<Override> _drawerOverrides({int unread = 3, Set<String>? owned, bool installed = true}) => [
   localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
   sessionsProvider.overrideWith(() => FakeSessions(sampleSessions())),
@@ -78,7 +79,11 @@ class _Chat extends StatelessWidget {
   Widget build(BuildContext context) => const ColoredBox(color: Colors.transparent);
 }
 
-Widget _drawer() => HomeShell(chatBuilder: (_) => const _Chat(), initiallyOpen: true);
+// HomeShell 会读 SharedPreferences 恢复上次的 tab。
+Widget _drawer() {
+  SharedPreferences.setMockInitialValues({});
+  return HomeShell(chatBuilder: const _Chat());
+}
 
 // ── Session detail fakes ──────────────────────────────────────────────────────
 
@@ -180,27 +185,27 @@ void main() {
     });
   });
 
-  group('drawer', () {
+  group('聊天 tab', () {
     testWidgets('DS Bot conversations fold into one row with the unread count', (tester) async {
       usePhoneView(tester);
       await tester.pumpWidget(testApp(_drawer(), overrides: _drawerOverrides()));
       await pumpFrames(tester, 6);
-      final drawer = find.byType(SessionsDrawer);
-      expect(find.descendant(of: drawer, matching: find.text('DS Bot')), findsOneWidget);
+      final page = find.byType(SessionListPage);
+      expect(find.descendant(of: page, matching: find.text('DS Bot')), findsOneWidget);
       // s3, s5 are the Bots'; the rest stay listed.
       expect(find.text('解释 proot 的 link2symlink'), findsNothing);
       expect(find.text('写一个解析 tar.xz 的 Kotlin 工具'), findsNothing);
       expect(find.text('给设置页加深色模式'), findsOneWidget);
       expect(find.descendant(of: find.byType(DsBotDrawerRow), matching: find.text('3')), findsOneWidget);
 
-      // On the drawer's grid: glyph on the 20 text line, a 44 row.
-      final drawerLeft = tester.getRect(drawer).left;
+      // On the tab page's grid: glyph on the 20 text line, a 44 row.
+      final pageLeft = tester.getRect(page).left;
       final row = tester.getRect(find.byType(DsBotDrawerRow));
       expect(row.height, 44);
       final glyph = tester.getRect(
         find.descendant(of: find.byType(DsBotDrawerRow), matching: find.byIcon(AppIcons.bot)),
       );
-      expect(glyph.left - drawerLeft, 20);
+      expect(glyph.left - pageLeft, 20);
       expect(glyph.center.dy, moreOrLessEquals(row.center.dy));
 
       await tester.tap(find.byType(DsBotDrawerRow));
@@ -374,7 +379,8 @@ void main() {
   });
 
   group('goldens', () {
-    goldenBoth('drawer_ds_bot', _drawer, overrides: _drawerOverrides);
+    // TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录。
+    goldenBoth('chat_list_ds_bot', _drawer, overrides: _drawerOverrides);
 
     for (final brightness in Brightness.values) {
       final mode = brightness.name;

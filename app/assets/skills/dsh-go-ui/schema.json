@@ -151,8 +151,8 @@
     "seatMode": { "enum": ["native", "island", "web", "hidden"] },
     "page": {
       "enum": [
-        "session-detail", "artifacts", "files", "terminal", "export", "jobs", "plan-goal", "skills",
-        "subagents", "reference", "schedules", "permission", "agent-presets", "models", "subagent-settings",
+        "session-detail", "artifacts", "files", "terminal", "export", "jobs", "skills",
+        "schedules", "permission", "agent-presets", "models", "subagent-settings",
         "agent-loop", "shell-settings", "web-search", "plugins", "plugin-inventory", "cordis", "agent-team",
         "cot-translation", "voice-input", "forum", "community", "ds-bot", "share-profile", "search",
         "notifications", "workspaces", "general", "account", "remote", "phone", "engine", "diagnostics", "web",

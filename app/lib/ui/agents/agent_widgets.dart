@@ -8,6 +8,7 @@ import '../../l10n/l10n.dart';
 import '../../state/agents_state.dart';
 import '../chat/run_info.dart' show formatSpan;
 import '../chat/widgets/live_clock.dart';
+import '../common/avatar_gallery.dart';
 import '../common/fade_in.dart';
 import '../common/list_page_row.dart';
 import '../common/overview_card.dart' show OverviewChevron;
@@ -21,7 +22,10 @@ StatusTone agentTone(AgentRunState state) => switch (state) {
   AgentRunState.idle => StatusTone.idle,
 };
 
-/// 智能体的头像:中性色圆 + 名字的首字(圆是"人"的语言,和工具的方块区分开)。
+/// 智能体的头像:pixel-art 像素小人图库(构建期由 tool/session_avatars 烘焙,
+/// 见 common/avatar_gallery.dart),FNV-1a(名字)选槽 —— 同一名字永远同一张
+/// 脸,垫在由名字哈希出的 identity 色盘上(圆是"人"的语言,和工具的方块区分
+/// 开);资产缺失时回退名字的首字。
 class AgentAvatar extends StatelessWidget {
   const AgentAvatar(this.name, {super.key, this.size = 28, this.ring});
 
@@ -39,27 +43,35 @@ class AgentAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-    final fill = dark
-        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.12), theme.colorScheme.surface)
-        : Color.alphaBlend(theme.colorScheme.onSurface.withValues(alpha: 0.07), theme.colorScheme.surface);
+    final colors = DshColors.of(context);
+    final tint = DshColors.identityIndex(name, colors.identity.length);
     return ExcludeSemantics(
       child: Container(
         width: size,
         height: size,
-        alignment: Alignment.center,
         decoration: ShapeDecoration(
-          color: fill,
+          color: colors.identity[tint],
           shape: CircleBorder(side: ring == null ? BorderSide.none : BorderSide(color: ring!, width: 2)),
         ),
-        child: Text(
-          letterOf(name),
-          textScaler: TextScaler.noScaling,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontSize: size * 0.42,
-            height: 1,
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurfaceVariant,
+        padding: EdgeInsets.all(size * 0.06),
+        child: ClipOval(
+          child: Image.asset(
+            agentAvatarGallery.assetFor(agentAvatarGallery.slotFor(name)),
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.none, // 像素画要保留硬边
+            gaplessPlayback: true,
+            errorBuilder: (context, _, _) => Center(
+              child: Text(
+                letterOf(name),
+                textScaler: TextScaler.noScaling,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontSize: size * 0.42,
+                  height: 1,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onIdentity[tint],
+                ),
+              ),
+            ),
           ),
         ),
       ),

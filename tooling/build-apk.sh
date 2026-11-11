@@ -62,7 +62,7 @@ case "$flavor" in
   all) flavors=(arm64 x64) ;;
   *) die "flavor is arm64, x64 or all: $flavor" ;;
 esac
-for arg in "${extra[@]}"; do
+for arg in ${extra[@]+"${extra[@]}"}; do
   case "$arg" in
     --build-number* | --build-name* | --flavor* | --target-platform*)
       die "$arg is set by this script; use its own options" ;;

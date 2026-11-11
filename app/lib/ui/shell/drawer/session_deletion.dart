@@ -10,7 +10,7 @@ import '../../../state/drawer_view_state.dart';
 import '../../../state/session_deletion_state.dart';
 import '../../common/app_dialog.dart';
 import '../../theme/app_icons.dart';
-import '../sessions_drawer.dart' show sessionTitle;
+import '../session_list_page.dart' show sessionTitle;
 
 /// A disabled destructive control always explains why it cannot be used.
 ///

@@ -289,7 +289,16 @@ final class CachedSessions extends ReadListData {
           running: false,
           blank: false,
           agentAvailable: false,
-          projections: SessionProjections(-1, Map.unmodifiable({'title': budget.optional(row.title)})),
+          projections: SessionProjections(
+            -1,
+            Map.unmodifiable({
+              'title': budget.optional(row.title),
+              // 离线快照也带上最后一眼的副标题(最新一条消息),SSH 会话 cwd
+              // 为空时离线列表不至于整列只剩标题。仍是 display-only;先截断
+              // 再入预算(budget 超限是拒绝不是截断,别让长文案拖垮整条快照)。
+              if (row.previewText case final p?) 'preview': budget.text(p.length > 200 ? p.substring(0, 200) : p, 200),
+            }),
+          ),
         ),
     ]);
   }
@@ -300,10 +309,12 @@ final class CachedSessions extends ReadListData {
     'scoped': scoped,
     'workspaceLabel': workspaceLabel,
     'sessions': [
-      for (final s in sessions) {'id': s.sessionId, 'title': s.title, 'updated': s.updatedAt.millisecondsSinceEpoch},
+      for (final s in sessions)
+        {'id': s.sessionId, 'title': s.title, 'preview': s.previewText, 'updated': s.updatedAt.millisecondsSinceEpoch},
     ],
     'bots': [
-      for (final s in bots) {'id': s.sessionId, 'title': s.title, 'updated': s.updatedAt.millisecondsSinceEpoch},
+      for (final s in bots)
+        {'id': s.sessionId, 'title': s.title, 'preview': s.previewText, 'updated': s.updatedAt.millisecondsSinceEpoch},
     ],
   };
 }

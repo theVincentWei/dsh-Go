@@ -242,6 +242,34 @@ void main() {
     expect(jsonEncode(data.toJson()), isNot(contains('SECRET')));
   });
 
+  test('sessions keep the last-known preview for the offline subtitle', () {
+    final source = SessionSummary(
+      sessionId: 's',
+      updatedAt: now,
+      running: true,
+      blank: false,
+      agentAvailable: true,
+      cwd: 'SECRET-CWD',
+      projections: const SessionProjections(981234, {'title': 'Title', 'preview': '最近一条消息'}),
+    );
+    final data = CachedSessions(sessions: [source], bots: const [], workspaceVersion: 'v', scoped: true);
+    final row = data.sessions.single;
+    expect(row.previewText, '最近一条消息');
+    expect(row.projections.values.keys, ['title', 'preview']);
+    expect(jsonEncode(data.toJson()), contains('最近一条消息'));
+    // 超长 preview 截进预算,不会把整条快照撑出缓存。
+    final long = SessionSummary(
+      sessionId: 'l',
+      updatedAt: now,
+      running: false,
+      blank: false,
+      agentAvailable: false,
+      projections: SessionProjections(1, {'title': 'T', 'preview': 'x' * 5000}),
+    );
+    final big = CachedSessions(sessions: [long], bots: const [], workspaceVersion: 'v', scoped: true);
+    expect(big.sessions.single.previewText?.length, 200);
+  });
+
   test('cached projections are immutable detached copies', () {
     final models = <ModelInfo>[const ModelInfo(provider: 'p', id: 'm', name: 'Original')];
     final raw = ModelCatalog(

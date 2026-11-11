@@ -21,6 +21,7 @@ import '../bots/bots_page.dart';
 import '../community/community_page.dart';
 import '../cordis/cordis_page.dart';
 import '../files/files_page.dart';
+import '../files/host_files_page.dart';
 import '../forum/forum_home_page.dart';
 import '../phone/phone_control_screen.dart';
 import '../plugins/plugin_detail_sheet.dart';
@@ -148,6 +149,18 @@ class FeatureSection {
 
 String _session(String? id) => id ?? '';
 
+/// 「终端」：会话内工具，同时是「小程序」桌面上的原生应用（hubDesktopTools）。
+/// 全局单例：目录、聊天 ⓘ › 当前对话与桌面三处共用同一条目。
+final terminalFeature = FeatureItem.localized(
+  id: 'terminal',
+  title: (l10n) => l10n.catalogTerminal,
+  summary: (l10n) => l10n.catalogTerminalSummary,
+  icon: AppIcons.terminal,
+  tile: FeatureKind.terminal,
+  needsSession: true,
+  native: (id) => TerminalPage(sessionId: _session(id)),
+);
+
 /// 社区, with the forum card at its top opening the forum's home.
 Widget communityPage() =>
     Builder(builder: (context) => CommunityPage(onOpenForum: () => Navigator.of(context).push(ForumHomePage.route())));
@@ -213,15 +226,7 @@ final featureSections = <FeatureSection>[
       needsSession: true,
       native: (id) => WorkspaceFilesPage(sessionId: _session(id)),
     ),
-    FeatureItem.localized(
-      id: 'terminal',
-      title: (l10n) => l10n.catalogTerminal,
-      summary: (l10n) => l10n.catalogTerminalSummary,
-      icon: AppIcons.terminal,
-      tile: FeatureKind.terminal,
-      needsSession: true,
-      native: (id) => TerminalPage(sessionId: _session(id)),
-    ),
+    terminalFeature,
     FeatureItem.localized(
       id: 'export',
       title: (l10n) => l10n.catalogExport,
@@ -428,6 +433,33 @@ final _sectionsWithoutAndroid = <FeatureSection>[
             id: section.id,
           )
         : section,
+];
+
+/// 「文件」桌面形态：免会话的主机目录浏览页（engine directoryPicker/*），
+/// 不随会话置灰；本机引擎浏览手机存储，远程引擎浏览主机（2026-11-10 拍板：
+/// 桌面=主机目录浏览，会话内=工作区文件页，两边各干各的）。
+final hostFilesFeature = FeatureItem.localized(
+  id: 'host-files',
+  title: (l10n) => l10n.catalogFiles,
+  summary: (l10n) => l10n.hostFilesSummary,
+  icon: AppIcons.files,
+  tile: FeatureKind.files,
+  native: (_) => const HostFilesPage(),
+);
+
+/// 「小程序」桌面上的自带工具：文件（免会话主机目录版）与终端（仍随会话）。
+/// 桌面上按「本对话」分组落座（hub_apps_catalog 的种子）。
+final hubDesktopTools = <FeatureItem>[hostFilesFeature, terminalFeature];
+
+/// 当前对话的工具：不在全部功能（2026-11-07 拍板），住进聊天页右上角
+/// ⓘ › 当前对话，native_taps 的路由表也认这份数据。条目取自
+/// [featureSections]，保持单一来源，id 变化只需改一处。
+final currentChatTools = <FeatureItem>[
+  for (final section in featureSections)
+    for (final item in section.items)
+      if (const {'session-detail', 'artifacts', 'files', 'terminal', 'export', 'jobs', 'skills'}
+          .contains(item.id))
+        item,
 ];
 
 /// The section the host's plugin panels join.

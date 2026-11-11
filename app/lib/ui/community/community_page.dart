@@ -22,6 +22,7 @@ import '../common/tile_grid.dart';
 import '../settings/settings_widgets.dart' show SettingsSection;
 import '../share/share_content.dart' show dshGoProjectUrl;
 import '../shell/brand_mark.dart';
+import '../shell/reveal_conversation.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -153,7 +154,7 @@ class _Prompts extends ConsumerWidget {
     void start(CommunityPrompt prompt) {
       HapticFeedback.selectionClick();
       ref.read(repairDraftProvider.notifier).request(prompt.prompt);
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      revealConversation(context);
     }
 
     return Padding(

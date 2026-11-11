@@ -13,6 +13,7 @@ import '../common/brief_notice.dart';
 import '../shell/page_frame.dart';
 import '../theme/theme.dart';
 import 'settings_widgets.dart';
+import '../common/local_engine_gate.dart';
 import '../common/row_marks.dart';
 import '../common/smooth_size.dart';
 
@@ -113,6 +114,11 @@ class _KeepRunningGuideState extends ConsumerState<_KeepRunningGuide> {
 
   @override
   Widget build(BuildContext context) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.pluginsBackgroundTitle, child: _page(context));
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     // Null without the native side (or on error): no row.
     final exempt = ref.watch(batteryExemptProvider).value;

@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/l10n.dart';
 import '../../../state/artifact_files.dart';
 import '../../../state/artifacts.dart';
+import '../../../state/download_tasks.dart';
 import '../../common/app_sheet.dart';
 import '../../common/sheet_title_bar.dart';
 import '../../session/workspace_files.dart' show formatBytes;
@@ -226,7 +227,17 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
     }
   }
 
-  String get _subtitle {
+  String _subtitle(DownloadTask? download) {
+    if (download != null) {
+      final progress = download.progress;
+      final base = progress == null
+          ? appL10n.chatDownloading
+          : appL10n.chatDownloadingPercent((progress * 100).round());
+      final speed = download.speedBps;
+      // 与宠物下载中心同源的速度;还没采到第二个样本时不显示。
+      if (speed != null && speed > 0) return '$base · ${formatBytes(speed.round())}/s';
+      return base;
+    }
     final artifact = _artifact;
     return switch (_busy) {
       _Busy.fetching =>
@@ -247,7 +258,10 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
     final colors = theme.colorScheme;
     final dsh = DshColors.of(context);
     final artifact = _artifact;
-    final busy = _busy != null;
+    // 进行中的全局任务(任何页面发起的)接管进度显示:跳转/页面重建后,
+    // 进度跟着任务表走,而不是跟着发起动作的那个 tile 闭包。
+    final download = downloadTaskFor(ref.watch(downloadTasksProvider), sessionId: widget.sessionId, path: artifact.path);
+    final busy = _busy != null || download != null;
     final office = ref.watch(artifactFilesProvider.select((files) => files.canConvertOffice));
     final noteColor = _failed
         ? dsh.danger
@@ -290,8 +304,8 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
                       layoutBuilder: (current, previous) =>
                           Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
                       child: Text(
-                        _subtitle,
-                        key: ValueKey((_busy, _note, _failed)),
+                        _subtitle(download),
+                        key: ValueKey((_busy, _note, _failed, download != null)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppType.tabular(theme.textTheme.bodySmall!.copyWith(color: noteColor, height: 1.3)),
@@ -306,7 +320,7 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
                     ? Center(
                         child: SizedBox.square(
                           dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, value: _progress),
+                          child: CircularProgressIndicator(strokeWidth: 2, value: download?.progress ?? _progress),
                         ),
                       )
                     : IconButton(
