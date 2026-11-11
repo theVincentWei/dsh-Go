@@ -881,6 +881,22 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
 
 final sessionsProvider = AsyncNotifierProvider<SessionsController, List<SessionSummary>>(SessionsController.new);
 
+/// The newest conversation's id, for files the app opens without one (the
+/// desktop 文件 app's previews and long-press menus): null before the list has
+/// arrived, so those actions degrade to copying the path.
+final recentSessionIdProvider = Provider<String?>((ref) {
+  String? best;
+  DateTime? newest;
+  for (final session in ref.watch(sessionsProvider).value ?? const <SessionSummary>[]) {
+    if (session.sessionId.isEmpty) continue;
+    if (newest == null || session.updatedAt.isAfter(newest)) {
+      newest = session.updatedAt;
+      best = session.sessionId;
+    }
+  }
+  return best;
+});
+
 /// 事件尾页里最后一条有文本的助手/人写消息,折成一行(≤120 字)。老主机的
 /// projections 没有 turnOutline 时,副标题从这里取(与通知取文案同一套路)。
 String? _tailPreview(List<SessionLogEvent> events) {

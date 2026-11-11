@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../../state/browser_source.dart';
 import '../../state/connection_state.dart';
 import '../../state/workspace_state.dart';
 import '../shell/page_frame.dart';
@@ -46,7 +47,7 @@ class WorkspaceFilesPage extends ConsumerWidget {
     final home = ref.watch(activeConnectionProvider.select((c) => c.value?.client.mux.generation?.home));
     final theme = Theme.of(context);
     return WorkspaceBrowser(
-      sessionId: sessionId,
+      source: SessionWorkspaceBrowserSource(sessionId),
       initialPath: initialPath,
       handleBack: true,
       now: now,

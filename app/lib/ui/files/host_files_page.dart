@@ -1,23 +1,27 @@
-// 文件(桌面版): 免会话的主机目录浏览页 — engine `directoryPicker/*` 接口。
+// 文件(桌面版): 免会话的主机目录浏览页 — 整个沿用会话内的 WorkspaceBrowser,
+// 只把数据源换成「主机任意目录」(`hostFiles/list`; 引擎没有该端点时退回
+// `directoryPicker/list` 的只列目录行为)。
 //
-// 「小程序」桌面上的「文件」原生应用(2026-11-10 拍板): 不依赖当前对话,
-// 浏览当前连接引擎那台机器的目录(本机引擎=手机存储, 远程=主机)。会话内
-// 「当前对话 › 文件」仍是工作区文件页(files_page.dart), 两边各干各的。
+// 「小程序」桌面上的「文件」原生应用(2026-11-10 拍板, 2026-11-12 v3 拍板稿):
+// 不依赖当前对话, 浏览当前连接引擎那台机器的文件(本机引擎=手机存储, 远程=
+// 主机)。会话内「当前对话 › 文件」仍是工作区文件页(files_page.dart), 两边
+// 各干各的, 但列表、搜索胶囊、面包屑、长按菜单、预览、下拉刷新全部共用。
 //
-// 页面结构: 大标题「文件」→ 纯文字多级路径行(点任意一级回跳, 尾部小铅笔
-// 弹「位置」层)→ 目录列表卡 → 数量脚注。顶栏两颗液态玻璃钮: 新建(类型
-// Modal 一次问完)与显示隐藏(点开头默认隐藏)。引擎只列子目录、只建目录;
-// 列文件/删除/新建文件等引擎端点补齐后再放开。
+// 页面结构: 大标题「文件」→ 搜索胶囊(占位「搜索文件」)→ 路径行(`~ › Documents`
+// 面包屑, 尾部小铅笔弹「位置」层)→ 列表卡 → 数量脚注。顶栏两颗液态玻璃钮:
+// 新建(目录)与显示隐藏(点开头默认隐藏)。点文件=预览, 长按=文件菜单(用最近
+// 一个会话当作用域; 一个会话都没有时只给「复制路径」)。
 
 import 'dart:async';
 
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/connection_state.dart';
+import '../../state/host_files_state.dart';
+import '../../state/sessions_state.dart';
 import '../../state/settings_state.dart';
 import '../../state/workspaces_state.dart';
 import '../common/app_dialog.dart';
@@ -30,13 +34,11 @@ import '../features/feature_kit.dart' show QuietSpinner;
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import '../workspace/directory_picker.dart'
-    show Crumb, DirectoryShortcut, askFolderPath, directoryShortcuts, displayCrumbs;
+import '../workspace/directory_picker.dart' show DirectoryShortcut, askFolderPath, directoryShortcuts;
 import '../workspace/workspace_format.dart' show displayPath, folderName, folderNameProblem;
-import 'file_glyph.dart';
-import 'workspace_browser.dart' show WorkspaceCardSliver, workspaceErrorText;
+import 'workspace_browser.dart' show WorkspaceBrowser, WorkspaceFillRest, workspaceErrorText;
 
-/// 文件(桌面版): the Host's folders, no session required.
+/// 文件(桌面版): the Host's folders and files, no session required.
 class HostFilesPage extends ConsumerStatefulWidget {
   const HostFilesPage({super.key});
 
@@ -47,81 +49,33 @@ class HostFilesPage extends ConsumerStatefulWidget {
 }
 
 class _HostFilesPageState extends ConsumerState<HostFilesPage> {
-  DirectoryLevel? _level;
-  Object? _error;
-  bool _busy = false;
+  /// The folder on screen (absolute); null = the Host's home.
+  String? _path;
+
+  /// The home folder the crumbs start at, as of the last build.
+  String? _home;
+
   bool _showHidden = false;
 
   DshClient? get _client => ref.read(activeConnectionProvider).value?.client;
 
-  bool get _canBrowse => _client?.canBrowseDirectories ?? false;
-
-  bool get _canCreate => _client?.canCreateDirectories ?? false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_open(null));
-  }
-
   void _toast(String text) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(text)));
-
-  /// Lists [path] (null = the Host's home); keeps the current level on
-  /// screen until the new one arrives.
-  Future<void> _open(String? path) async {
-    final client = _client;
-    if (_busy || client == null || !_canBrowse) return;
-    setState(() {
-      _busy = true;
-      if (_level == null) _error = null;
-    });
-    try {
-      final level = await client.browseDirectory(path);
-      if (!mounted) return;
-      setState(() {
-        _level = level;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      if (_level == null) {
-        setState(() => _error = e);
-      } else {
-        _toast(workspaceErrorText(e));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _refresh() async {
-    if (_level == null) return _open(null);
-    final path = _level!.path;
-    final client = _client;
-    if (client == null || !_canBrowse) return;
-    try {
-      final level = await client.browseDirectory(path);
-      if (!mounted) return;
-      setState(() => _level = level);
-    } catch (_) {
-      // Pull to refresh keeps the old level on screen; the next pull retries.
-    }
-  }
 
   /// 「位置」层(路径行尾部铅笔): 常用位置/最近/输入路径, 选一处跳过去。
   Future<void> _showLocations() async {
     final conn = ref.read(activeConnectionProvider).value;
     if (conn == null || !mounted) return;
     final local = conn.isLocal;
+    final home = conn.client.mux.generation?.home;
     final shortcuts = directoryShortcuts(
       local: local,
       phoneStorage: ref.read(settingsProvider.select((s) => s.phoneStorage)),
       workingDir: conn.workingDirectory,
     );
-    final known = {for (final DirectoryShortcut s in shortcuts) ?s.path};
+    final known = {for (final DirectoryShortcut shortcut in shortcuts) ?shortcut.path};
     final places = <String>[
-      for (final String p in ref.read(workspacePrefsProvider).recent)
-        if (!known.contains(p)) p,
+      for (final String place in ref.read(workspacePrefsProvider).recent)
+        if (!known.contains(place)) place,
     ];
     final l10n = context.l10n;
     final String? picked = await showAppSheet<String>(
@@ -136,12 +90,12 @@ class _HostFilesPageState extends ConsumerState<HostFilesPage> {
             SheetGroup(
               title: l10n.remoteDirectoryLocations,
               children: [
-                for (final DirectoryShortcut s in shortcuts)
+                for (final DirectoryShortcut shortcut in shortcuts)
                   ListPageRow(
-                    icon: s.icon,
-                    title: s.title,
-                    subtitle: s.subtitle,
-                    onTap: () => Navigator.pop(sheet, s.path),
+                    icon: shortcut.icon,
+                    title: shortcut.title,
+                    subtitle: shortcut.subtitle,
+                    onTap: () => Navigator.pop(sheet, shortcut.path),
                   ),
               ],
             ),
@@ -149,12 +103,12 @@ class _HostFilesPageState extends ConsumerState<HostFilesPage> {
               SheetGroup(
                 title: l10n.remoteDirectoryRecent,
                 children: [
-                  for (final String p in places.take(5))
+                  for (final String place in places.take(5))
                     ListPageRow(
                       icon: AppIcons.history,
-                      title: folderName(p),
-                      subtitle: displayPath(p, local: local),
-                      onTap: () => Navigator.pop(sheet, p),
+                      title: folderName(place),
+                      subtitle: displayPath(place, local: local, home: home),
+                      onTap: () => Navigator.pop(sheet, place),
                     ),
                 ],
               ),
@@ -167,7 +121,7 @@ class _HostFilesPageState extends ConsumerState<HostFilesPage> {
                   onTap: () async {
                     Navigator.pop(sheet);
                     final path = await askFolderPath(context);
-                    if (path != null && mounted) return unawaited(_open(path));
+                    if (path != null && mounted) setState(() => _path = path);
                   },
                 ),
               ],
@@ -177,96 +131,127 @@ class _HostFilesPageState extends ConsumerState<HostFilesPage> {
         ),
       ),
     );
-    if (picked != null && mounted) return unawaited(_open(picked));
+    if (picked != null && mounted) setState(() => _path = picked);
   }
 
   /// 新建: 一个 Modal 一次问完类型与名字。文件夹走引擎 createDirectory;
   /// 「文件」需要引擎写文件端点(二期), 选了只给提示, 创建键不可用。
-  Future<void> _showCreate() async {
-    final level = _level;
+  Future<void> _showCreate(String parent) async {
     final client = _client;
-    if (level == null || client == null || !mounted) return;
+    if (client == null || !mounted) return;
     final local = ref.read(activeConnectionProvider).value?.isLocal ?? true;
+    final home = client.mux.generation?.home;
     final name = await showAppDialog<String>(
       context: context,
-      builder: (_) => _HostCreateDialog(parent: displayPath(level.path, local: local)),
+      builder: (_) => _HostCreateDialog(
+        parent: displayPath(parent, local: local, home: home),
+      ),
     );
     if (name == null || !mounted) return;
     try {
-      final created = await client.createDirectory(level.path, name);
+      final created = await client.createDirectory(parent, name);
       if (!mounted) return;
-      await _open(created);
-    } catch (e) {
-      if (mounted) _toast(workspaceErrorText(e));
+      setState(() => _path = created);
+    } catch (error) {
+      if (mounted) _toast(workspaceErrorText(error));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final conn = ref.watch(activeConnectionProvider).value;
-    final local = conn?.isLocal ?? true;
-    final level = _level;
-    return PopScope(
-      // 返回先上一级, 到主目录才离开页面(与工作区文件页同款约定)。
-      canPop: level == null || level.parent == null,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && level?.parent != null) return unawaited(_open(level!.parent!.path));
-      },
-      child: RefreshIndicator(
-        onRefresh: _refresh,
+    final client = ref.watch(activeConnectionProvider).value?.client;
+    final recent = ref.watch(recentSessionIdProvider);
+    final homeNow = client == null ? null : ref.watch(hostHomeProvider(client));
+    final home = homeNow?.value ?? '';
+    if (home != _home) {
+      // Another Host (or its first answer): start at that home again.
+      _home = home;
+      _path = null;
+    }
+    final path = home.isEmpty ? '' : (_path ?? home);
+    final actions = <Widget>[
+      GlassIconButton(
+        icon: AppIcons.newFolder,
+        tooltip: l10n.hostFilesNew,
+        onPressed: client == null || !client.canCreateDirectories || path.isEmpty
+            ? null
+            : () => unawaited(_showCreate(path)),
+      ),
+      GlassIconButton(
+        icon: _showHidden ? AppIcons.hideSecret : AppIcons.showSecret,
+        tooltip: _showHidden ? l10n.hostFilesHideHidden : l10n.hostFilesShowHidden,
+        onPressed: path.isEmpty ? null : () => setState(() => _showHidden = !_showHidden),
+      ),
+    ];
+    if (client == null) {
+      return AppPage(
+        title: l10n.botsFiles,
+        actions: actions,
+        slivers: [
+          SliverToBoxAdapter(
+            child: EmptyView(
+              icon: AppIcons.disconnected,
+              title: l10n.commonEngineUnreachable,
+              padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
+            ),
+          ),
+        ],
+      );
+    }
+    if (home.isEmpty) {
+      // Still asking where home is, or the Host would not say.
+      final error = homeNow?.error;
+      return RefreshIndicator(
+        onRefresh: () async => ref.invalidate(hostHomeProvider(client)),
         edgeOffset: MediaQuery.paddingOf(context).top + AppPage.barHeight,
         child: AppPage(
-          key: ValueKey(level?.path),
           title: l10n.botsFiles,
-          actions: [
-            GlassIconButton(
-              icon: AppIcons.newFolder,
-              tooltip: l10n.hostFilesNew,
-              onPressed: _level == null || !_canCreate ? null : _showCreate,
-            ),
-            GlassIconButton(
-              icon: _showHidden ? AppIcons.hideSecret : AppIcons.showSecret,
-              tooltip: _showHidden ? l10n.hostFilesHideHidden : l10n.hostFilesShowHidden,
-              onPressed: _level == null ? null : () => setState(() => _showHidden = !_showHidden),
-            ),
-          ],
+          actions: actions,
           slivers: [
-            if (conn == null)
-              SliverToBoxAdapter(
-                child: EmptyView(
-                  icon: AppIcons.disconnected,
-                  title: l10n.commonEngineUnreachable,
-                  padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
-                ),
-              )
-            else if (!_canBrowse)
+            if (homeNow != null && homeNow.isLoading)
+              const SliverToBoxAdapter(child: QuietSpinner())
+            else
               SliverToBoxAdapter(
                 child: EmptyView(
                   icon: AppIcons.noFolder,
-                  title: l10n.botsBrowseUnsupported,
+                  title: error == null ? l10n.botsBrowseUnsupported : l10n.botsFolderOpenFailed,
+                  message: error == null ? null : workspaceErrorText(error),
                   padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
                 ),
-              )
-            else ...[
-              SliverToBoxAdapter(
-                child: _HostPathRow(
-                  level: level,
-                  busy: _busy,
-                  local: local,
-                  onSelect: (path) => unawaited(_open(path)),
-                  onEdit: _showLocations,
-                ),
               ),
-              _LevelSliver(
-                level: level,
-                error: _error,
-                showHidden: _showHidden,
-                onOpen: (path) => unawaited(_open(path)),
-                onRetry: () => unawaited(_open(level?.path)),
-                onUp: () => unawaited(_open(level?.parent?.path)),
-              ),
-            ],
+          ],
+        ),
+      );
+    }
+    return WorkspaceBrowser(
+      source: HostWorkspaceBrowserSource(home: home, showHidden: _showHidden, sessionId: recent),
+      initialPath: home,
+      path: path,
+      onPathChanged: (next) => setState(() => _path = next),
+      pathAction: Semantics(
+        button: true,
+        label: l10n.remoteDirectoryEnterPath,
+        child: IconButton(
+          icon: const Icon(AppIcons.edit, size: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          color: DshColors.of(context).textTertiary,
+          tooltip: l10n.remoteDirectoryEnterPath,
+          onPressed: _showLocations,
+        ),
+      ),
+      handleBack: true,
+      builder: (context, slivers, refresh) => RefreshIndicator(
+        onRefresh: refresh,
+        edgeOffset: MediaQuery.paddingOf(context).top + AppPage.barHeight,
+        child: AppPage(
+          title: l10n.botsFiles,
+          actions: actions,
+          slivers: [
+            ...slivers,
+            // Short folders still pull to refresh.
+            const WorkspaceFillRest(),
           ],
         ),
       ),
@@ -371,260 +356,10 @@ class _HostCreateDialogState extends State<_HostCreateDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.commonCancel)),
-        FilledButton(
-          onPressed: _file ? null : _submit,
-          child: Text(l10n.commonCreate),
-        ),
+        FilledButton(onPressed: _file ? null : _submit, child: Text(l10n.commonCreate)),
       ],
     );
   }
 }
 
 enum _CreateKind { folder, file }
-
-/// 纯文字多级路径行: 首级强调色, 当前级加粗, 点任意一级回跳; 尾部小铅笔
-/// 弹「位置」层。超长横向滑, 自动停在当前级(行尾)。
-class _HostPathRow extends StatelessWidget {
-  const _HostPathRow({
-    required this.level,
-    required this.busy,
-    required this.local,
-    required this.onSelect,
-    required this.onEdit,
-  });
-
-  final DirectoryLevel? level;
-  final bool busy;
-  final bool local;
-  final ValueChanged<String> onSelect;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final dsh = DshColors.of(context);
-    final level = this.level;
-    final crumbs = level == null ? const <Crumb>[] : displayCrumbs(level, local: local);
-    final style = theme.textTheme.bodyMedium?.copyWith(fontSize: 14, height: 1.5);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
-      child: SizedBox(
-        height: 32,
-        child: _PathScroller(
-          crumbs: crumbs,
-          style: style,
-          ancestorColor: dsh.textTertiary,
-          currentColor: theme.colorScheme.onSurface,
-          rootColor: theme.colorScheme.primary,
-          separator: Icon(AppIcons.disclosure, size: 14, color: dsh.textDisabled),
-          onTap: (path, current) {
-            if (!current) {
-              HapticFeedback.selectionClick();
-              onSelect(path);
-            }
-          },
-          trailing: busy
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-                )
-              : Semantics(
-                  button: true,
-                  label: l10n.remoteDirectoryEnterPath,
-                  child: IconButton(
-                    icon: Icon(AppIcons.edit, size: 18),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    color: dsh.textTertiary,
-                    tooltip: l10n.remoteDirectoryEnterPath,
-                    onPressed: onEdit,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 行内横向滚动 + 进页/换层后滚到行尾(当前级), 与 BreadcrumbRow 同约定。
-class _PathScroller extends StatefulWidget {
-  const _PathScroller({
-    required this.crumbs,
-    required this.style,
-    required this.ancestorColor,
-    required this.currentColor,
-    required this.rootColor,
-    required this.separator,
-    required this.onTap,
-    required this.trailing,
-  });
-
-  final List<Crumb> crumbs;
-  final TextStyle? style;
-  final Color ancestorColor;
-  final Color currentColor;
-  final Color rootColor;
-  final Widget separator;
-  final void Function(String path, bool current) onTap;
-  final Widget trailing;
-
-  @override
-  State<_PathScroller> createState() => _PathScrollerState();
-}
-
-class _PathScrollerState extends State<_PathScroller> {
-  final _scroll = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scheduleToEnd();
-  }
-
-  @override
-  void didUpdateWidget(_PathScroller oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.crumbs.lastOrNull?.path != widget.crumbs.lastOrNull?.path) _scheduleToEnd();
-  }
-
-  void _scheduleToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-    });
-  }
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final crumbs = widget.crumbs;
-    return Row(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            controller: _scroll,
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final (i, crumb) in crumbs.indexed) ...[
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => widget.onTap(crumb.path, i == crumbs.length - 1),
-                    child: Text(
-                      crumb.label,
-                      maxLines: 1,
-                      style: widget.style?.copyWith(
-                        fontWeight: i == crumbs.length - 1 ? FontWeight.w600 : FontWeight.w500,
-                        color: i == crumbs.length - 1
-                            ? widget.currentColor
-                            : i == 0
-                            ? widget.rootColor
-                            : widget.ancestorColor,
-                      ),
-                    ),
-                  ),
-                  if (i < crumbs.length - 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: widget.separator,
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        widget.trailing,
-      ],
-    );
-  }
-}
-
-/// 目录列表: loading/错误/空/条目四态。条目只来自引擎的子目录列表;
-/// 隐藏条目按开关过滤, 显示时弱化。
-class _LevelSliver extends ConsumerWidget {
-  const _LevelSliver({
-    required this.level,
-    required this.error,
-    required this.showHidden,
-    required this.onOpen,
-    required this.onRetry,
-    required this.onUp,
-  });
-
-  final DirectoryLevel? level;
-  final Object? error;
-  final bool showHidden;
-  final ValueChanged<String> onOpen;
-  final VoidCallback onRetry;
-  final VoidCallback onUp;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final dsh = DshColors.of(context);
-    final DirectoryLevel? currentLevel = level;
-    if (currentLevel == null) {
-      if (error != null) {
-        return SliverToBoxAdapter(
-          child: EmptyView(
-            icon: AppIcons.noFolder,
-            title: l10n.botsFolderOpenFailed,
-            message: workspaceErrorText(error!),
-            actionLabel: l10n.commonRetry,
-            onAction: onRetry,
-            padding: const EdgeInsets.fromLTRB(32, 36, 32, 24),
-          ),
-        );
-      }
-      return const SliverToBoxAdapter(child: QuietSpinner());
-    }
-    final DirectoryLevel current = currentLevel;
-    final entries = [
-      for (final DirectoryEntry e in current.entries)
-        if (showHidden || !e.hidden) e,
-    ];
-    if (entries.isEmpty) {
-      return SliverToBoxAdapter(
-        child: EmptyView(
-          title: l10n.botsEmptyFolder,
-          padding: const EdgeInsets.fromLTRB(32, 36, 32, 24),
-        ),
-      );
-    }
-    return SliverMainAxisGroup(
-      slivers: [
-        WorkspaceCardSliver(
-          count: entries.length,
-          itemBuilder: (context, i) {
-            final DirectoryEntry entry = entries[i];
-            return ListPageRow(
-              leading: FileGlyph(name: entry.name, directory: true),
-              title: entry.name,
-              titleStyle: entry.hidden
-                  ? Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.4, color: dsh.textTertiary)
-                  : null,
-              chevron: true,
-              onTap: () => onOpen(entry.path),
-            );
-          },
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
-            child: Text(
-              current.truncated
-                  ? '${l10n.botsFolderCount(entries.length)} · ${l10n.botsTruncatedItems(entries.length)}'
-                  : l10n.botsFolderCount(entries.length),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: dsh.textTertiary),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
