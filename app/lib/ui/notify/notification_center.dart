@@ -15,6 +15,7 @@ import '../../l10n/l10n.dart';
 import '../../notify/apphub_notices.dart' show AppHubNoticeService;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/apphub_notices_state.dart';
+import '../../state/notify_state.dart' show notifyChannelProvider;
 import '../applet/dimina/dimina_host.dart';
 import '../bots/bots_page.dart' show UnreadBadge;
 import '../common/app_sheet.dart' show groupTitleStyle;
@@ -24,6 +25,13 @@ import '../shell/page_frame.dart' show AppPage, GlassIconButton;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 
+/// 任意入口打开小程序（桌面图标/通知点击/市场详情）即消费该 app 的全部未读：
+/// 整批已读 + 撤掉通知栏里该 app 的系统通知（主流惯例：角标随打开消，§6.1）。
+void consumeMiniAppNotices(WidgetRef ref, String appId) {
+  ref.read(appHubNoticesProvider.notifier).consumeApp(appId);
+  unawaited(ref.read(notifyChannelProvider).cancelGroup('apphub|$appId'));
+}
+
 /// 点一条小程序通知：先回写已读，有 [MiniAppNotice.page] 就打开小程序页，
 /// 打开失败（或没有 page）落到通知中心（契约 §5.3 点击跳转兜底）。
 Future<void> openMiniAppNotice(BuildContext context, WidgetRef ref, MiniAppNotice notice) async {
@@ -32,7 +40,11 @@ Future<void> openMiniAppNotice(BuildContext context, WidgetRef ref, MiniAppNotic
   // 点击后回写已读是客户端职责（契约 §9.3）：不等它，也不让失败挡住跳转。
   unawaited(notices.markRead(<int>[notice.id]));
   if (notice.page case final String page when page.isNotEmpty) {
-    if (await _openMiniAppPage(ref, notice)) return;
+    if (await _openMiniAppPage(ref, notice)) {
+      // 打开成功 = 整个 app 的未读都消费掉（刚才那条已单独报过，幂等）。
+      consumeMiniAppNotices(ref, notice.appId);
+      return;
+    }
     if (context.mounted) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(content: Text(context.l10n.notifyCenterOpenFailed)),

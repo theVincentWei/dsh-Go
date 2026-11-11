@@ -13,6 +13,7 @@
 /// 契约 §9.6）。
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show immutable;
@@ -243,6 +244,20 @@ class AppHubNoticesController extends Notifier<AppHubNotices> {
 
   /// 单条/多条已读：**立即从收件箱移除**，再回写 AppHub（失败不回滚——点击的
   /// 有效性优先，服务端不依赖这次回写，契约 §9.3；服务端保留 read_at 软状态）。
+  /// 打开小程序 = 该 app 的全部未读消费掉(主流手机惯例:角标随打开消,§6.1)。
+  /// 整批走 [markRead](服务端 read_at 软状态 + 移出收件箱);返回被消费的
+  /// 条目,调用方顺手撤掉通知栏里该 app 的系统通知(cancelGroup)。
+  List<MiniAppNotice> consumeApp(String appId) {
+    final List<MiniAppNotice> pending = <MiniAppNotice>[
+      for (final MiniAppNotice notice in state.notices)
+        if (notice.appId == appId) notice,
+    ];
+    if (pending.isNotEmpty) {
+      unawaited(markRead(<int>[for (final MiniAppNotice n in pending) n.id]));
+    }
+    return pending;
+  }
+
   Future<void> markRead(Iterable<int> ids) async {
     final List<int> wanted = <int>[
       for (final int id in ids)

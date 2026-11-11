@@ -31,6 +31,7 @@ import '../applet/hub_apps_group.dart'
 import '../applet/hub_icon_cache.dart' show hubIconCache;
 import '../features/all_features_page.dart' show dshWebOpenerProvider;
 import '../features/feature_catalog.dart';
+import '../notify/notification_center.dart' show consumeMiniAppNotices;
 import '../notify/service_notices_key.dart' show ServiceNoticesKey;
 import '../shell/page_frame.dart' show AppPage, PageBodyInsets;
 import '../theme/theme.dart' show DshColors, DshSurfaces, GlassStyle;
@@ -106,6 +107,9 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
         );
         if (ok) {
           ref.read(hubLayoutProvider.notifier).touch(mini.key);
+          // 打开即消费该 app 的全部未读(主流惯例:角标随打开消,§6.1):
+          // 整批已读 + 撤通知栏,图标角标/组头/钥匙随未读归零同步熄灭。
+          consumeMiniAppNotices(ref, mini.app.appId);
           // iOS 式新装指示:打开一次即熄灭「新装未打开」名字点(prefs 持久
           // 化,跨重启保持;熄灭后注册者重发瓷贴)。
           ref.read(hubNewMinisProvider.notifier).markOpened(mini.key);

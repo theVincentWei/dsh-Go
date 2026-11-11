@@ -185,6 +185,30 @@ void main() {
       controller.dismissBanner(notice(1));
       expect(container.read(appHubNoticesProvider).banner, isNull);
     });
+
+    test('consumeApp:打开小程序即消费该 app 全部未读,别的 app 不动', () {
+      // 主流手机惯例(§6.1):角标随打开消——桌面/市场/通知点击任一入口
+      // 打开 app,consumeApp 把该 app 的未读整批已读,别的 app 原样。
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final AppHubNoticesController controller = container.read(appHubNoticesProvider.notifier);
+      controller.ingest(<MiniAppNotice>[
+        notice(1, appId: 'wx1'),
+        notice(2, appId: 'wx1'),
+        notice(3, appId: 'wx2'),
+      ], unread: 3);
+
+      final List<MiniAppNotice> consumed = controller.consumeApp('wx1');
+
+      // 收件箱按新→旧排:消费集合不看顺序,看 id 集合。
+      expect(consumed.map((n) => n.id).toSet(), <int>{1, 2});
+      final AppHubNotices state = container.read(appHubNoticesProvider);
+      expect(state.notices.map((n) => n.id), <int>[3], reason: 'wx1 的未读已随打开消费掉');
+      expect(state.unread, 1);
+      // 没有 未读的 app:消费是空操作。
+      expect(controller.consumeApp('wx2').map((n) => n.id), <int>[3]);
+      expect(container.read(appHubNoticesProvider).notices, isEmpty);
+    });
   });
 
   group('通知中心页', () {

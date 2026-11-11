@@ -19,6 +19,7 @@ import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
+import '../notify/notification_center.dart' show consumeMiniAppNotices;
 import 'apphub_uninstall_dialog.dart' show showAndRunAppUninstall;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
@@ -58,6 +59,8 @@ Future<bool> openHubApp(
   );
   if (ok) {
     ref.read(hubLayoutProvider.notifier).touch('mini:$appId');
+    // 打开即消费该 app 的全部未读(主流惯例:角标随打开消,§6.1)。
+    consumeMiniAppNotices(ref, appId);
     // 桌面的已装清单是另一个 provider(带缓存):装/升后让它重查,否则
     // 重装的图标不回桌面。落沙盒需要一点时间,稍后再复核一次。
     ref.invalidate(hubInstalledProvider);
