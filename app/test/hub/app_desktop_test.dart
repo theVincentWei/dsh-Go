@@ -1,20 +1,25 @@
 // 「小程序」桌面页的宿主侧 widget 测试:目录翻译(buildHubCatalog /
-// needsSession 置灰)、absorb 编排(新装小程序垫进 AppHub 组)、壳相关的
-// 用例(长按进整理 + 「完成」与大标题对齐、整理中系统返回先退整理)、
-// 小程序更新红点与「−」卸载角标的端到端。纯引擎行为(分组渲染/搜索/拖拽
-// /新建删除分组/角标渲染/置灰)在 packages/hub_desktop/test/desktop_test。
-// 字体由 flutter_test_config 统一加载;动画关闭(goldenApp)时摇摆不转,
-// 可 pumpAndSettle。
+// needsSession 置灰)、absorb 编排(新装小程序垫进 AppHub 组,经注册者的
+// upsertTiles 锚点落位)、壳相关的用例(长按进整理 + 「完成」与大标题对齐、
+// 整理中系统返回先退整理)、注册者迁移回归(更新红点、「−」卸载角标、
+// ds-bot 未读红圈、AppHub 组头未读按内容匹配)。纯引擎行为(分组渲染/
+// 搜索/拖拽/新建删除分组/角标渲染/置灰/卸载双条件)在
+// packages/hub_desktop/test。字体由 flutter_test_config 统一加载;动画
+// 关闭(goldenApp)时摇摆不转,可 pumpAndSettle。
 
 import 'dart:convert';
 
+import 'package:dsh_app/l10n/l10n.dart' show L10n;
 import 'package:dsh_app/runtime/runtime_state.dart'
     show LocalRuntimeState, localRuntimeLogsProvider, localRuntimeProvider;
 import 'package:dsh_app/pets/pet_mood.dart' show PetMood, PetScope;
 import 'package:dsh_app/pets/pet_signals.dart'
     show PetMoodController, petMoodProvider;
+import 'package:dsh_app/state/apphub_notices_state.dart'
+    show AppHubNotices, AppHubNoticesController, appHubNoticesProvider;
 import 'package:dsh_app/state/bots_state.dart'
     show DsBotAvailability, DsBotController, DsBotInbox, DsBotInboxController, DsBotStatus, dsBotInboxProvider, dsBotProvider;
+import 'package:dsh_app/state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
 import 'package:dsh_app/state/hub_layout_state.dart';
 import 'package:dsh_app/state/sessions_state.dart' show currentSessionProvider, sessionsProvider;
 import 'package:dsh_app/state/settings_state.dart'
@@ -25,14 +30,21 @@ import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/feature_catalog.dart';
 import 'package:dsh_app/ui/hub/hub_apps_catalog.dart' show HubCatalog, buildHubCatalog;
 import 'package:dsh_app/ui/shell/home_shell.dart' show HomeShell;
+import 'package:dsh_app/ui/shell/root_navigator_key.dart' show rootNavigatorKey;
 import 'package:dsh_app/ui/theme/app_icons.dart';
+import 'package:dsh_app/ui/theme/theme.dart' show buildLightTheme;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalMaterialLocalizations;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    show ProviderContainer, UncontrolledProviderScope;
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hub_desktop/hub_desktop.dart' show IconTile;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../shell/golden_harness.dart';
+import '../support/test_fonts.dart' show withTestFonts;
 
 class _StubDsBot extends DsBotController {
   @override
@@ -49,6 +61,18 @@ class _StubPetMood extends PetMoodController {
 class _StubInbox extends DsBotInboxController {
   @override
   DsBotInbox build() => const DsBotInbox();
+}
+
+/// 带未读的 ds-bot 收件箱(注册者迁移回归:红圈随源变化挂上)。
+class _UnreadInbox extends DsBotInboxController {
+  @override
+  DsBotInbox build() => const DsBotInbox(unread: <String, int>{'bot-1': 3});
+}
+
+/// 带未读的 AppHub 通知(注册者迁移回归:组头胶丸按内容匹配)。
+class _UnreadNotices extends AppHubNoticesController {
+  @override
+  AppHubNotices build() => const AppHubNotices(unread: 3);
 }
 
 FeatureItem _item(String id, String name) => FeatureItem.localized(
@@ -72,12 +96,20 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   List<FeatureSection>? sections,
   List<HubInstalledApp> minis = const <HubInstalledApp>[],
+  List<Override> overrides = const <Override>[],
 }) async {
   final ProviderContainer container = ProviderContainer(overrides: [
     hubInstalledProvider.overrideWith((ref) async => minis),
+    // 假目录同时给 provider 一份:注册者(sync)读的是 provider,页面收到
+    // 的 [sections] 只是渲染侧参数——两边必须同源,目录才一致。
+    if (sections != null) featureSectionsProvider.overrideWithValue(sections),
+    ...overrides,
   ]);
   addTearDown(container.dispose);
   usePhoneSurface(tester);
+  // 激活 keep-alive 注册者(生产在 DshApp 根装配 watch 一次):目录、角标
+  // 与卸载钩子都经它整批同步进引擎注册表。
+  container.read(hubDesktopSyncProvider);
   await tester.pumpWidget(goldenApp(
     brightness: Brightness.light,
     home: UncontrolledProviderScope(
@@ -233,6 +265,8 @@ void main() {
     ]);
     addTearDown(container.dispose);
     usePhoneSurface(tester);
+    // 激活 keep-alive 注册者(目录喂进引擎注册表,与生产同一条路)。
+    container.read(hubDesktopSyncProvider);
     await tester.pumpWidget(goldenApp(
       brightness: Brightness.light,
       home: UncontrolledProviderScope(
@@ -261,7 +295,7 @@ void main() {
     expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
   });
 
-  testWidgets('整理模式下小程序图标出「−」卸载角标', (tester) async {
+  testWidgets('整理模式下小程序图标出「−」卸载角标(注册者注册了 mini: 钩子)', (tester) async {
     await _pump(tester, minis: <HubInstalledApp>[
       const HubInstalledApp(appId: 'wx1', name: '记账本'),
     ]);
@@ -269,5 +303,107 @@ void main() {
     expect(find.byIcon(Icons.remove), findsNothing);
     await _enterEdit(tester, '应用市场');
     expect(find.byIcon(Icons.remove), findsOneWidget);
+  });
+
+  testWidgets('注册者迁移:ds-bot 未读按 key 挂红圈', (tester) async {
+    // 目录里给一颗 ds-bot feature(feature:ds-bot 是注册者写死的 key)。
+    final List<FeatureSection> sections = <FeatureSection>[
+      FeatureSection('组A', <FeatureItem>[_item('ds-bot', '助手'), _item('jia', '甲')]),
+      FeatureSection('组B', <FeatureItem>[_item('ding', '丁')]),
+    ];
+    await _pump(
+      tester,
+      sections: sections,
+      overrides: <Override>[dsBotInboxProvider.overrideWith(_UnreadInbox.new)],
+    );
+
+    expect(find.text('助手'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget); // 红圈计数来自 dsBotInboxProvider.total
+  });
+
+  testWidgets('注册者迁移:AppHub 组头未读按内容匹配,改名后仍亮', (tester) async {
+    // 预置布局:AppHub 组已改名为「常用」,组里只有市场入口(没有 mini,
+    // 也没有「AppHub」字样)——证明口径是内容(mini:/市场入口)而非组名。
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      kHubLayoutPrefKey: jsonEncode(<String, Object?>{
+        'v': 1,
+        'sections': <Object?>[
+          <String, Object?>{'id': hubRecentSectionId, 'name': '', 'smart': true},
+          <String, Object?>{'id': 'seed:AppHub', 'name': '常用'},
+          <String, Object?>{'id': hubDefaultSectionId, 'name': '应用', 'locked': true},
+        ],
+        'items': <String, Object?>{
+          'feature:apphub-market': <String, Object?>{'s': 'seed:AppHub', 'o': 0},
+        },
+        'recent': <Object?>[],
+      }),
+    });
+    await _pump(
+      tester,
+      sections: _twoGroups(),
+      overrides: <Override>[appHubNoticesProvider.overrideWith(_UnreadNotices.new)],
+    );
+
+    expect(find.text('常用'), findsOneWidget); // 组名已不含 AppHub
+    expect(find.text('3'), findsOneWidget); // 组头胶丸仍亮(组里装着市场入口)
+  });
+
+  testWidgets('桌面「−」点击经根 navigator 弹共用卸载弹窗;取消不动', (tester) async {
+    // 引擎「−」直接调钩子(无自带确认框);钩子经根 navigator 打开桌面与
+    // 市场详情页共用的弹窗(整包文案 + purge 勾选)。这里走完整链路到弹窗,
+    // 取消后桌面不动;确认后的整包编排由 task-11 的编排层测试覆盖。
+    final ProviderContainer container = ProviderContainer(overrides: <Override>[
+      hubInstalledProvider.overrideWith((ref) async => <HubInstalledApp>[
+            const HubInstalledApp(appId: 'wx1', name: '记账本'),
+          ]),
+      featureSectionsProvider.overrideWithValue(_twoGroups()),
+    ]);
+    addTearDown(container.dispose);
+    usePhoneSurface(tester);
+    container.read(hubDesktopSyncProvider);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        navigatorKey: rootNavigatorKey,
+        locale: const Locale('zh', 'CN'),
+        supportedLocales: const <Locale>[Locale('zh', 'CN')],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          L10n.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        // 壳(AppPage/AppBackdrop)读宿主主题 extension(DshSurfaces 等),
+        // 必须用真主题构建器,裸 ThemeData 会在壳上炸。
+        theme: withTestFonts(buildLightTheme()),
+        // 冻结整理模式的摇摆钟摆(与 goldenApp 同款),pumpAndSettle 才能
+        // 收敛。
+        builder: (BuildContext context, Widget? child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: AllFeaturesPage(sections: _twoGroups()),
+      ),
+    ));
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (container.read(hubLayoutProvider).seeded) break;
+    }
+    await tester.pumpAndSettle();
+
+    // 进整理模式,小程序格挂「−」。
+    await tester.longPress(find.text('应用市场'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.remove));
+    await tester.pumpAndSettle();
+
+    // 共用弹窗经根 navigator 出现:整包文案 + purge 勾选(与详情页同一颗)。
+    expect(find.text('卸载 记账本'), findsOneWidget);
+    expect(find.byType(CheckboxListTile), findsOneWidget);
+
+    // 取消:弹窗关闭,桌面不动。
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('卸载 记账本'), findsNothing);
+    expect(find.text('记账本'), findsOneWidget);
   });
 }

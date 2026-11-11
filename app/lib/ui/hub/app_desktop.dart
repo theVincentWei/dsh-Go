@@ -1,11 +1,12 @@
 // 「小程序」Tab 的宿主适配层:画布本体在引擎包 hub_desktop(HubDesktopView),
 // 这里只做 dsh-go 语义的进出 ——
-// - 目录:星河 / AppHub 已装清单 / 自带功能 / 插件面板 → HubTile 流
-//   (hub_apps_catalog 的翻译器),角标(ds-bot 未读、小程序更新红点)按 key 挂;
-// - 回调:打开走 DiminaHost.open / feature 的页面与网页口,卸载走
-//   DiminaHost.uninstall(布局槽位保留,重装原位恢复);
-// - 编排:首装迁移、新装自动垫进 AppHub 组(absorbUnplaced)、autoSync
-//   静默同步 —— 这些依赖宿主 provider,引擎不认识这些概念;
+// - 打开:delegate.onOpen 按 key 查目录快照,走 DiminaHost.open(含
+//   bundle 图标、更新 manifest 与 6s 复核)/ feature 的页面与网页口,
+//   最近使用的记录也在这条路上;
+// - 编排:首装迁移(ensureSeeded)与 autoSync 静默同步仍在这里(依赖
+//   BuildContext 文案与页面时序);目录、角标、卸载钩子的注册者已迁去
+//   state/hub_desktop_sync.dart(keep-alive,应用根装配养活),新装自动
+//   垫组也由它经 upsertTiles 的锚点落位接管;
 // - 壳:页面大标题与「完成」按钮仍归 AppPage(滚动轴经 bodyScroll 与引擎
 //   共享);头部占位(PageBodyInsets)翻译成引擎的 HubPageInsets。
 library;
@@ -20,9 +21,7 @@ import 'package:hub_desktop/hub_desktop.dart';
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../performance/performance_state.dart' show performanceDefaultsProvider;
-import '../../state/apphub_notices_state.dart' show appHubNoticesProvider;
 import '../../state/auto_sync_state.dart' show autoSyncProvider;
-import '../../state/bots_state.dart' show dsBotInboxProvider;
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../applet/dimina/dimina_host.dart';
 import '../applet/hub_app_icon.dart' show HubAppIcon;
@@ -60,7 +59,7 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
     super.dispose();
   }
 
-  // ---------- 打开与卸载(delegate 的实现) ----------
+  // ---------- 打开(delegate 的实现;卸载在 state/hub_desktop_sync) ----------
 
   void _openFeature(FeatureItem item) {
     final String? sessionId = ref.read(currentSessionProvider);
@@ -116,21 +115,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
     }
   }
 
-  Future<bool> _uninstall(String key) async {
-    final HubAppRef? app = _byRef[key];
-    if (app is! MiniAppRef) return false;
-    await DiminaHost.uninstall(app.app.appId, clearUserData: true);
-    // 布局槽位保留(重装原位恢复),清单立刻少它。
-    ref.invalidate(hubInstalledProvider);
-    return true;
-  }
-
-  /// 会话相关性是 feature 的宿主语义:needsSession 的项没选对话就置灰。
-  bool _enabledOf(HubAppRef app, String? sessionId) => switch (app) {
-        MiniAppRef() => true,
-        FeatureAppRef(:final item) => !item.needsSession || sessionId != null,
-      };
-
   // ---------- 渲染 ----------
 
   @override
@@ -146,10 +130,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
       settled: !minis.isLoading,
     );
     _byRef = <String, HubAppRef>{for (final HubAppRef app in catalog.apps) app.key: app};
-    final String? sessionId = ref.watch(currentSessionProvider);
-    final int dsBotUnread = ref.watch(dsBotInboxProvider.select((inbox) => inbox.total));
-    final int appHubUnread = ref.watch(appHubNoticesProvider.select((s) => s.unread));
-    final Color iconColor = Theme.of(context).colorScheme.primary;
 
     // 首装迁移:等布局读好、动态源落定,再把原静态目录原样转成用户分组。
     if (layout.loaded && !layout.seeded && catalog.settled && catalog.apps.isNotEmpty) {
@@ -161,27 +141,11 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
       });
     }
 
-    // 新装小程序自动进 AppHub 组:布局种好、市场源落定后,把 items 里还没
-    // 有位置的小程序垫进市场入口所在分组(absorbUnplaced)。迁移种子本来就
-    // 会带上当时已装的小程序,这里只接「装在迁移之后」的;市场没连上时
-    // (settled 为 true 但清单为空)目录里没有 mini,自然也不接。
+    // autoSync 静默同步:链路/目录落定时触发(单飞+冷却在 runner 内)。
+    // 没装的 autoSync 应用静默装上、落后的静默升级;装/升成功后重查已装
+    // 清单,新瓷贴由注册者的 upsertTiles 锚点落位自动垫进 AppHub 组。
+    // 总开关:设置 → 通用。
     if (layout.loaded && layout.seeded && catalog.settled) {
-      final List<String> unplacedMinis = <String>[
-        for (final HubAppRef app in catalog.apps)
-          if (app is MiniAppRef && !layout.items.containsKey(app.key)) app.key,
-      ];
-      if (unplacedMinis.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          ref.read(hubLayoutProvider.notifier).absorbUnplaced(
-                unplacedMinis,
-                anchorKey: 'feature:$hubMarketFeatureId',
-              );
-        });
-      }
-      // autoSync 静默同步:链路/目录落定时触发(单飞+冷却在 runner 内)。
-      // 没装的 autoSync 应用静默装上、落后的静默升级;装/升成功后重查已装
-      // 清单,新瓷贴走上面的 absorbUnplaced 自动落位。总开关:设置 → 通用。
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ref.read(autoSyncProvider.notifier).runIfDue(onApplied: () {
@@ -193,19 +157,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
         });
       });
     }
-
-    // 目录 → 引擎瓷贴;角标按 key 声明(ds-bot 未读、小程序更新红点)。
-    final List<HubTile> tiles = <HubTile>[
-      for (final HubAppRef app in catalog.apps)
-        hubTileOf(app, enabled: _enabledOf(app, sessionId), iconColor: iconColor),
-    ];
-    final Map<String, HubBadge> badges = <String, HubBadge>{
-      for (final HubAppRef app in catalog.apps)
-        if (app is FeatureAppRef && app.item.id == 'ds-bot' && dsBotUnread > 0)
-          app.key: HubBadge(count: dsBotUnread)
-        else if (app is MiniAppRef && app.updateAvailable)
-          app.key: const HubBadge(dot: true),
-    };
 
     // 文案:宿主从现有 l10n 取词注入(语言切换时这里随 build 重建)。
     final HubDesktopStrings strings = HubDesktopStrings(
@@ -221,8 +172,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
       deleteGroupBody: l10n.hubDeleteGroupBody,
       dropHere: l10n.hubDropHere,
       noMatch: l10n.hubNoMatch,
-      uninstall: l10n.apphubUninstall,
-      uninstallBody: l10n.apphubUninstallBody,
       cancel: l10n.commonCancel,
       save: l10n.commonSave,
       clearLabel: l10n.commonClear,
@@ -265,18 +214,8 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
                   child: Theme(
                     data: baseTheme.copyWith(extensions: bridgedExtensions),
                     child: HubDesktopView(
-                      tiles: tiles,
                       delegate: _HubDelegate(this),
                       strings: strings,
-                      badges: badges,
-                      headerBadge: (HubSectionRef section, List<String> keys) {
-                        // AppHub 组(装着小程序/市场入口的那组)挂未读
-                        // 小程序通知的角标(契约 §6.1)。
-                        final bool appHubGroup = section.name == l10n.catalogAppHubSection ||
-                            keys.any((String key) =>
-                                key.startsWith('mini:') || key == 'feature:apphub-market');
-                        return appHubGroup && appHubUnread > 0 ? HubBadge(count: appHubUnread) : null;
-                      },
                       controller: _scroll,
                       glyphBuilder: (String glyphKey) =>
                           HubAppIcon(iconKey: glyphKey, size: IconTile.dimension, tiled: false),
@@ -335,7 +274,7 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
       );
 }
 
-/// 引擎回调 → 宿主语义:打开/卸载都按 key 查目录快照再分发。
+/// 引擎回调 → 宿主语义:打开按 key 查目录快照再分发。
 class _HubDelegate implements HubDesktopDelegate {
   _HubDelegate(this._page);
 
@@ -343,7 +282,4 @@ class _HubDelegate implements HubDesktopDelegate {
 
   @override
   void onOpen(HubTile tile) => unawaited(_page._open(tile.key));
-
-  @override
-  Future<bool> onUninstall(HubTile tile) => _page._uninstall(tile.key);
 }

@@ -9,6 +9,7 @@ import 'performance/performance_state.dart';
 import 'performance/refresh_rate.dart';
 import 'state/app_info.dart';
 import 'state/appearance_state.dart';
+import 'state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
 import 'state/locale_state.dart';
 import 'state/star_prompt.dart' show starPromptGateProvider, starPromptProvider;
 import 'state/tile_style_state.dart';
@@ -17,6 +18,7 @@ import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
 import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
 import 'ui/common/side_insets.dart';
 import 'ui/launch/launch_overlay.dart';
+import 'ui/shell/root_navigator_key.dart' show rootNavigatorKey;
 import 'ui/shell/root_gate.dart';
 import 'ui/theme/theme.dart';
 import 'ui_config/ui_config_state.dart';
@@ -144,6 +146,10 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // 桌面目录与角标的宿主注册者(keep-alive):根装配 watch 一次养活,
+    // 应用生命周期在线——桌面页不在场的路径(push/通知)角标也照常同步;
+    // 引擎保持被动,启动与养活都是宿主的事(见 state/hub_desktop_sync)。
+    ref.watch(hubDesktopSyncProvider);
     // 刷新率设置改动时告诉原生;setMode 对同一个值不做任何事。
     unawaited(
       RefreshRateService.instance.setMode(ref.watch(performancePrefsProvider.select((p) => p.refreshRate))),
@@ -173,6 +179,9 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: AppInfo.name,
       debugShowCheckedModeBanner: false,
+      // 根导航器键:桌面卸载钩子这类无 BuildContext 的宿主回调经它弹全局
+      // 对话框(共用卸载弹窗,见 root_navigator_key.dart)。
+      navigatorKey: rootNavigatorKey,
       theme: _light,
       darkTheme: _dark,
       themeMode: themeMode,

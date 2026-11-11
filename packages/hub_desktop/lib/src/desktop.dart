@@ -1,9 +1,11 @@
 // 「小程序」桌面的引擎画布:顶部搜索、固定最前的「最近使用」智能组、若干
 // 用户分组,长按任意图标摇摆进整理模式:组内 / 跨组拖拽换位、新建 / 重命名
-// / 删除分组、可卸载图标的「−」角标卸载(带自带确认框)。布局本机持久化
-// (hubLayoutProvider),打开 / 卸载上报宿主 delegate,文案走宿主注入的
-// strings;滚动视口与 ScrollController 自持在包内(宿主可注入 controller)
-// —— 这是后续拖拽边缘自动滚动的前提。
+// / 删除分组、可卸载图标的「−」角标(点击直接上报宿主钩子;卸载弹窗等 UX
+// 归宿主,桌面与市场详情页共用同一弹窗)。布局本机持久化(hubLayoutProvider),
+// 目录与角标从宿主经 HubDesktopController 喂进的注册表读
+// (hubTiles/hubBadges/hubSectionBadges),打开上报宿主 delegate,文案走宿主
+// 注入的 strings;滚动视口与 ScrollController 自持在包内(宿主可注入
+// controller)—— 这是后续拖拽边缘自动滚动的前提。
 //
 // 拖拽模型:按住 150ms 起拖,整张分组表在页面本地预演(_preview),落在
 // 哪个槽位就把被拖 key 插到目标 key 前(同组)或目标组该位置(跨组),分组
@@ -16,6 +18,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'controller.dart';
 import 'delegate.dart';
 import 'layout.dart';
 import 'model.dart';
@@ -61,30 +64,21 @@ class _PreviewGroup {
   final List<String> keys;
 }
 
-/// 桌面画布。[tiles] 是宿主翻译好的目录(有序:默认组未安置的按此序排);
-/// [controller] 可注入(宿主想共享滚动轴时),默认自建。
+/// 桌面画布。目录与角标读宿主经 [HubDesktopController] 喂进的注册表
+/// ([hubTilesProvider] / [hubBadgesProvider] / [hubSectionBadgesProvider],
+/// 有序:默认组未安置的按注册表序排);[controller] 可注入(宿主想共享
+/// 滚动轴时),默认自建。
 class HubDesktopView extends ConsumerStatefulWidget {
   const HubDesktopView({
     super.key,
-    required this.tiles,
     required this.delegate,
     required this.strings,
-    this.badges = const <String, HubBadge>{},
-    this.headerBadge,
     this.controller,
     this.glyphBuilder,
   });
 
-  /// 目录:桌面上有哪些图标、叫什么、长什么样、能不能点/卸。
-  final List<HubTile> tiles;
   final HubDesktopDelegate delegate;
   final HubDesktopStrings strings;
-
-  /// 图标角标,按 key 挂(纯声明式;计数/文本/小点,引擎负责渲染)。
-  final Map<String, HubBadge> badges;
-
-  /// 组头角标:引擎每次构建按组问宿主(如 AppHub 组未读)。
-  final HubHeaderBadge? headerBadge;
 
   /// 注入的滚动控制器;null = 自建(包内自持视口)。
   final ScrollController? controller;
@@ -243,21 +237,21 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     widget.delegate.onOpen(tile);
   }
 
-  Future<void> _confirmUninstall(HubTile tile) async {
-    final HubDesktopStrings strings = widget.strings;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialog) => AlertDialog(
-        title: Text('${strings.uninstall} ${tile.name}'),
-        content: Text(strings.uninstallBody),
-        actions: <Widget>[
-          TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(strings.cancel)),
-          FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(strings.uninstall)),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await widget.delegate.onUninstall(tile);
+  /// 卸载入口的双条件:tile 自己声明可卸 + key 命中宿主注册的钩子;
+  /// 不挂钩子的命名空间(如自带功能)永远不出「−」。
+  bool _canUninstall(HubTile tile) {
+    final Map<String, HubUninstallHook> hooks = ref.watch(hubUninstallHooksProvider);
+    return tile.uninstallable && hubUninstallHookFor(hooks, tile.key) != null;
+  }
+
+  /// 「−」点击:直接上报宿主钩子。卸载 UX(确认弹窗 + purge 勾选)归宿主
+  /// ——桌面与市场详情页共用同一弹窗,引擎再弹自带确认框就是双重确认。
+  /// 返回值不进引擎面(清单刷新是宿主编排,槽位由布局层保留)。
+  Future<void> _uninstall(HubTile tile) async {
+    final HubUninstallHook? hook =
+        hubUninstallHookFor(ref.read(hubUninstallHooksProvider), tile.key);
+    if (hook == null) return;
+    await hook(tile);
   }
 
   // ---------- 分组管理 ----------
@@ -418,10 +412,10 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       return GestureDetector(onLongPress: _enterEdit, child: core);
     }
 
-    // 整理模式:图标摇摆;可卸载的挂「−」卸载角标。最近使用组里的是镜像
-    // (真身在自己分组),不参与拖拽,卸载也回真身那里做。
+    // 整理模式:图标摇摆;可卸载且挂了钩子的挂「−」卸载角标。最近使用
+    // 组里的是镜像(真身在自己分组),不参与拖拽,卸载也回真身那里做。
     Widget visual = _wiggleWrap(tile.key, core);
-    if (!mirror && tile.uninstallable) {
+    if (!mirror && _canUninstall(tile)) {
       final ColorScheme scheme = Theme.of(context).colorScheme;
       visual = Stack(
         clipBehavior: Clip.none,
@@ -431,7 +425,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
             left: -2,
             top: -2,
             child: GestureDetector(
-              onTap: () => unawaited(_confirmUninstall(tile)),
+              onTap: () => unawaited(_uninstall(tile)),
               child: Container(
                 width: 18,
                 height: 18,
@@ -480,7 +474,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   /// 小点 = 主色 10 带表面色描边(「有更新」)。count/text/dot 同挂时
   /// count 优先,其次 text。
   Widget? _badgeFor(HubTile tile) {
-    final HubBadge? badge = widget.badges[tile.key];
+    final HubBadge? badge = ref.watch(hubBadgesProvider)[tile.key];
     if (badge == null) return null;
     final ThemeData theme = Theme.of(context);
     final int? count = badge.count;
@@ -528,16 +522,13 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         ],
       );
 
-  /// 分组头:常驻是老样式(宿主要挂组头角标时在名旁加胶丸);整理模式挂
-  /// ⋯ 菜单,且整条是「追加到组尾」落点。
-  Widget _header(HubSectionData section, List<String> keys) {
+  /// 分组头:常驻是老样式(宿主给该组 setSectionBadge 过就在名旁加胶丸);
+  /// 整理模式挂 ⋯ 菜单,且整条是「追加到组尾」落点。
+  Widget _header(HubSectionData section) {
     final HubDesktopStrings strings = widget.strings;
     final String name = section.name.isEmpty ? strings.defaultGroup : section.name;
     if (!_editing) {
-      final HubBadge? badge = widget.headerBadge?.call(
-        HubSectionRef(section.id, section.name),
-        keys,
-      );
+      final HubBadge? badge = ref.watch(hubSectionBadgesProvider)[section.id];
       final bool pillVisible = (badge?.count ?? 0) > 0 || (badge?.text?.isNotEmpty ?? false);
       if (badge == null || !pillVisible) return FeatureGroupLabel(name);
       return Padding(
@@ -588,8 +579,8 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       }
     });
     final HubLayout layout = ref.watch(hubLayoutProvider);
-    _byKey = <String, HubTile>{for (final HubTile tile in widget.tiles) tile.key: tile};
-    _catalogKeys = <String>[for (final HubTile tile in widget.tiles) tile.key];
+    _byKey = ref.watch(hubTilesProvider);
+    _catalogKeys = _byKey.keys.toList(growable: false);
 
     final List<HubResolvedSection> resolved = resolveHubLayout(layout, _catalogKeys);
     final bool previewing = _preview != null;
@@ -631,7 +622,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     if (_query.isNotEmpty) {
       // 搜索:平铺结果,不带分组头;名字 / key / 别名命中都算。
       final List<String> matches = <String>[
-        for (final HubTile tile in widget.tiles)
+        for (final HubTile tile in _byKey.values)
           if (tile.name.toLowerCase().contains(_query) ||
               tile.key.contains(_query) ||
               tile.searchAliases.any((String alias) => alias.toLowerCase().contains(_query)))
@@ -671,7 +662,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
             ? (_preview!.firstWhere((_PreviewGroup g) => g.id == section.id).keys)
             : r.keys;
         if (keys.isEmpty && !_editing) continue;
-        children.add(_header(section, keys));
+        children.add(_header(section));
         if (keys.isEmpty) {
           children.add(_dropZone(section.id));
         } else {

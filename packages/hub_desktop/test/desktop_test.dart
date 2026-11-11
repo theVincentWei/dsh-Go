@@ -1,9 +1,11 @@
-// 「小程序」桌面引擎画布的 widget 测试:喂假 HubTile,断言分组渲染、
-// 搜索平铺、长按整理模式、组内 / 跨组拖拽落库、新建 / 删除分组、卸载
-// 角标与确认框、声明式角标、置灰与最近使用。依赖宿主的用例(shell 返回
-// 键分支、DiminaHost 假件、目录翻译、absorb 编排、完成按钮与大标题的对齐)
-// 留在 app/test/hub。字体由 flutter_test_config 统一加载;动画关闭时摇摆
-// 不转,可 pumpAndSettle。
+// 「小程序」桌面引擎画布的 widget 测试:目录经 HubDesktopController.upsertTiles
+// 喂进注册表,断言分组渲染、搜索平铺、长按整理模式、组内 / 跨组拖拽落库、
+// 新建 / 删除分组、卸载双条件(钩子未注册不出「−」;点击直接上报钩子,弹窗
+// 归宿主)、声明式角标、组头角标、置灰与最近使用。控制器纯逻辑(upsert 幂等 /
+// 锚点落位 / removeTile 保槽)在 controller_test;依赖宿主的用例(shell 返回键
+// 分支、目录翻译、absorb 编排、完成按钮与大标题的对齐、注册者迁移回归、卸载
+// 弹窗接线)留在 app/test/hub。字体由 flutter_test_config 统一加载;动画关闭时
+// 摇摆不转,可 pumpAndSettle。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,8 +26,6 @@ const HubDesktopStrings strings = HubDesktopStrings(
   deleteGroupBody: _deleteGroupBody,
   dropHere: '拖到这里',
   noMatch: _noMatch,
-  uninstall: '卸载',
-  uninstallBody: '删除手机上的小程序包与本地数据;引擎侧业务库保留。',
   cancel: '取消',
   save: '保存',
   clearLabel: '清除',
@@ -35,19 +35,12 @@ const HubDesktopStrings strings = HubDesktopStrings(
 String _deleteGroupBody(String group) => '「$group」组里的应用回到「应用」组,应用本身不受影响。';
 String _noMatch(String query) => '没有匹配「$query」的应用';
 
-/// 记录打开/卸载上报的假 delegate。
+/// 记录打开上报的假 delegate(卸载走钩子表,不走 delegate)。
 class _RecordingDelegate implements HubDesktopDelegate {
   final List<String> opened = <String>[];
-  final List<String> uninstalled = <String>[];
 
   @override
   void onOpen(HubTile tile) => opened.add(tile.key);
-
-  @override
-  Future<bool> onUninstall(HubTile tile) async {
-    uninstalled.add(tile.key);
-    return true;
-  }
 }
 
 HubTile _tile(
@@ -97,19 +90,10 @@ void usePhoneSurface(WidgetTester tester) {
 }
 
 class _Harness extends StatelessWidget {
-  const _Harness({
-    required this.container,
-    required this.tiles,
-    required this.delegate,
-    this.badges = const <String, HubBadge>{},
-    this.headerBadge,
-  });
+  const _Harness({required this.container, required this.delegate});
 
   final ProviderContainer container;
-  final List<HubTile> tiles;
   final HubDesktopDelegate delegate;
-  final Map<String, HubBadge> badges;
-  final HubHeaderBadge? headerBadge;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -126,13 +110,7 @@ class _Harness extends StatelessWidget {
         home: UncontrolledProviderScope(
           container: container,
           child: Scaffold(
-            body: HubDesktopView(
-              tiles: tiles,
-              delegate: delegate,
-              strings: strings,
-              badges: badges,
-              headerBadge: headerBadge,
-            ),
+            body: HubDesktopView(delegate: delegate, strings: strings),
           ),
         ),
       );
@@ -142,7 +120,8 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   List<HubTile> Function()? tiles,
   Map<String, HubBadge> badges = const <String, HubBadge>{},
-  HubHeaderBadge? headerBadge,
+  Map<String, HubBadge> sectionBadges = const <String, HubBadge>{},
+  HubUninstallHook? uninstallHook,
   _RecordingDelegate? delegate,
 }) async {
   final ProviderContainer container = ProviderContainer();
@@ -153,13 +132,13 @@ Future<ProviderContainer> _pump(
   await container
       .read(hubLayoutProvider.notifier)
       .ensureSeeded(_twoGroups, defaultGroupName: '应用');
-  await tester.pumpWidget(_Harness(
-    container: container,
-    tiles: tiles?.call() ?? _catalogTiles(),
-    delegate: d,
-    badges: badges,
-    headerBadge: headerBadge,
-  ));
+  // 目录与角标经控制器喂进注册表(与生产宿主同一条路)。
+  final HubDesktopController hub = container.read(hubDesktopControllerProvider);
+  hub.upsertTiles(tiles?.call() ?? _catalogTiles());
+  badges.forEach(hub.setBadge);
+  sectionBadges.forEach(hub.setSectionBadge);
+  if (uninstallHook != null) hub.registerUninstallHook('mini:', uninstallHook);
+  await tester.pumpWidget(_Harness(container: container, delegate: d));
   await tester.pumpAndSettle();
   return container;
 }
@@ -318,39 +297,48 @@ void main() {
     expect(find.text('甲'), findsOneWidget);
   });
 
-  testWidgets('整理模式下可卸载图标出「−」,确认后走 delegate,取消不动', (tester) async {
-    final _RecordingDelegate delegate = _RecordingDelegate();
-    await _pump(tester, tiles: () => <HubTile>[..._catalogTiles(), _miniTile('wx1', '记账本')], delegate: delegate);
+  testWidgets('双条件:uninstallable 但命名空间没挂钩子,不出「−」', (tester) async {
+    await _pump(tester, tiles: () => <HubTile>[..._catalogTiles(), _miniTile('wx1', '记账本')]);
 
+    await _enterEdit(tester, '甲');
     expect(find.byIcon(Icons.remove), findsNothing);
+  });
+
+  testWidgets('整理模式下挂了钩子的图标出「−」,点击直接上报钩子(UX 归宿主)', (tester) async {
+    final List<String> uninstalled = <String>[];
+    await _pump(
+      tester,
+      tiles: () => <HubTile>[..._catalogTiles(), _miniTile('wx1', '记账本')],
+      uninstallHook: (HubTile tile) async {
+        uninstalled.add(tile.key);
+        return true;
+      },
+    );
+
+    expect(find.byIcon(Icons.remove), findsNothing); // 常驻模式没有卸载入口
     await _enterEdit(tester, '甲');
     expect(find.byIcon(Icons.remove), findsOneWidget);
 
-    // 取消:确认框关掉,不上报。
+    // 没有引擎确认框:tap「−」直接调钩子(弹窗与 purge 勾选在宿主共用
+    // 弹窗里,引擎面不出现对话框)。
     await tester.tap(find.byIcon(Icons.remove));
     await tester.pumpAndSettle();
-    expect(find.text('卸载 记账本'), findsOneWidget);
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-    expect(delegate.uninstalled, isEmpty);
-
-    // 确认:上报宿主钩子(这里只是记录;清单刷新是宿主语义)。
-    await tester.tap(find.byIcon(Icons.remove));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('卸载'));
-    await tester.pumpAndSettle();
-    expect(delegate.uninstalled, <String>['mini:wx1']);
+    expect(uninstalled, <String>['mini:wx1']);
+    expect(find.text('卸载 记账本'), findsNothing);
   });
 
-  testWidgets('声明式角标:计数挂红圈、有更新挂主色小点', (tester) async {
+  testWidgets('声明式角标:计数挂红圈、有更新挂主色小点,同挂计数优先', (tester) async {
     await _pump(tester, badges: <String, HubBadge>{
       'feature:jia': const HubBadge(count: 3),
       'feature:yi': const HubBadge(dot: true),
+      'feature:bing': const HubBadge(count: 2, dot: true),
     });
 
     expect(find.text('3'), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
     expect(find.text('99+'), findsNothing);
+    // 计数优先:丙格 count+dot 同挂,只显示红圈——全场仍只有乙一颗小点。
+    expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
   });
 
   testWidgets('计数封顶 99+', (tester) async {
@@ -378,10 +366,8 @@ void main() {
     expect(delegate.opened, <String>['feature:jia']);
   });
 
-  testWidgets('组头角标:宿主认领的组挂胶丸,别的组不挂', (tester) async {
-    await _pump(tester, headerBadge: (HubSectionRef section, List<String> keys) {
-      return section.name == '组A' ? const HubBadge(count: 2) : null;
-    });
+  testWidgets('组头角标:setSectionBadge 的组挂胶丸,别的组不挂', (tester) async {
+    await _pump(tester, sectionBadges: <String, HubBadge>{'seed:组A': const HubBadge(count: 2)});
 
     // 「2」只出现在组A 头旁(图标格没有计数)。
     expect(find.text('2'), findsOneWidget);

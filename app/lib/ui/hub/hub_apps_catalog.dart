@@ -145,24 +145,27 @@ final hubCatalogProvider = Provider.autoDispose<HubCatalog>((ref) {
 
 /// 目录项 → 引擎瓷贴(HubTile)。图标三档对齐原桌面渲染顺序:bundle 图标
 /// 直通(widget 档)> 图标库键 + 实底彩块(glyph 档,字形由宿主
-/// glyphBuilder 构建)> 万能单色字形(widget 档)。[iconColor] = 主色
-/// (万能字形与无 tile 的 feature 图标用)。小程序可卸载(挂了宿主卸载
-/// 钩子);自带功能不可卸。
-HubTile hubTileOf(HubAppRef app, {required bool enabled, required Color iconColor}) {
+/// glyphBuilder 构建)> 万能单色字形(widget 档)。小程序可卸载(宿主给
+/// mini: 命名空间注册了卸载钩子);自带功能不可卸。
+///
+/// 不收 iconColor:装配端(state/hub_desktop_sync 的 keep-alive 注册者)
+/// 不是 widget 环境,拿不到 Theme——主色字形由 [_PrimaryIcon] 在引擎子树
+/// 渲染时自取。
+HubTile hubTileOf(HubAppRef app, {required bool enabled}) {
   final HubIcon icon = switch (app) {
     MiniAppRef(:final app) when app.iconUrl != null => HubIcon.widget(HubBundleIcon(
         appId: app.appId,
         versionCode: app.installedVersionCode ?? app.marketVersionCode,
         url: app.iconUrl,
         size: IconTile.dimension,
-        fallback: _libraryIcon(app.iconKey, iconColor),
+        fallback: _libraryIcon(app.iconKey),
       )),
     MiniAppRef(:final app) when hubAppHasIcon(app.iconKey) =>
       HubIcon.glyph(app.iconKey!, color: hubAppIconSpec(app.iconKey)!.color),
-    MiniAppRef(:final app) => HubIcon.widget(_libraryIcon(app.iconKey, iconColor)),
+    MiniAppRef(:final app) => HubIcon.widget(_libraryIcon(app.iconKey)),
     FeatureAppRef(:final item) => switch (item.tile) {
         final kind? => HubIcon.widget(FeatureTile(kind, size: 30)),
-        null => HubIcon.widget(Icon(item.icon, size: 20, color: iconColor)),
+        null => HubIcon.widget(_PrimaryIcon(item.icon)),
       },
   };
   return HubTile(
@@ -176,6 +179,17 @@ HubTile hubTileOf(HubAppRef app, {required bool enabled, required Color iconColo
 
 /// 图标库兜底:库内键白色字形(实底彩块由引擎按 glyph 档的 color 染),
 /// 库外落万能单色字形(老行为)。
-Widget _libraryIcon(String? iconKey, Color iconColor) => hubAppHasIcon(iconKey)
+Widget _libraryIcon(String? iconKey) => hubAppHasIcon(iconKey)
     ? HubAppIcon(iconKey: iconKey, size: IconTile.dimension, tiled: false)
-    : Icon(hubAppGlyph(iconKey), size: 20, color: iconColor);
+    : _PrimaryIcon(hubAppGlyph(iconKey));
+
+/// 主色单色字形:渲染时自取主题主色(装配时没有 BuildContext)。
+class _PrimaryIcon extends StatelessWidget {
+  const _PrimaryIcon(this.icon);
+
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) =>
+      Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary);
+}

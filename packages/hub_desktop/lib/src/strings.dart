@@ -2,8 +2,8 @@
 // 语言切换时随宿主重建即可。
 
 /// 桌面画布用到的全部文案。字段与宿主 l10n 词条一一对应(dsh-go:
-/// hub_* / apphubSearchHint / apphubUninstall / commonCancel / commonSave /
-/// commonClear)。
+/// hub_* / apphubSearchHint / commonCancel / commonSave / commonClear);
+/// 卸载弹窗的文案不在引擎面(弹窗归宿主,两入口共用)。
 class HubDesktopStrings {
   const HubDesktopStrings({
     required this.searchHint,
@@ -18,8 +18,6 @@ class HubDesktopStrings {
     required this.deleteGroupBody,
     required this.dropHere,
     required this.noMatch,
-    required this.uninstall,
-    required this.uninstallBody,
     required this.cancel,
     required this.save,
     required this.clearLabel,
@@ -54,9 +52,6 @@ class HubDesktopStrings {
   /// 搜索无结果(带 query 占位)。
   final String Function(String query) noMatch;
 
-  /// 卸载动作词:确认框标题前缀与确认按钮共用。
-  final String uninstall;
-  final String uninstallBody;
   final String cancel;
   final String save;
 

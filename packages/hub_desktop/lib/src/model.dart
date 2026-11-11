@@ -1,6 +1,6 @@
 // 桌面引擎的数据模型:一颗图标(HubTile)、图标三档(HubIcon)、角标
-// (HubBadge)。全部声明式 —— 引擎负责渲染,宿主负责语义(打开/卸载走
-// HubDesktopDelegate,目录变化走将来的 upsert/removeTile)。
+// (HubBadge)。全部声明式 —— 引擎负责渲染,宿主负责语义(打开走
+// HubDesktopDelegate.onOpen,目录与角标走 HubDesktopController)。
 
 import 'dart:typed_data';
 
@@ -29,7 +29,8 @@ class HubTile {
   /// false 整块置灰、不可开(如需会话的 feature)。
   final bool enabled;
 
-  /// true 才显示卸载入口;真正生效还要宿主挂了卸载钩子(P2 接口)。
+  /// true 才显示卸载入口;真正生效还要宿主经
+  /// [HubDesktopController.registerUninstallHook] 挂了对应命名空间的钩子。
   final bool uninstallable;
 
   /// 首次出现时的落组建议(可选);真实落位永远以用户布局为准。
