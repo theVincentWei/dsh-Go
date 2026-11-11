@@ -177,7 +177,43 @@ class _AppPageState extends State<AppPage> {
   bool get _hasHeader => widget.hero != null || widget.showLargeTitle;
 
   /// Last measured header height (after layout; never read during build).
+  /// 首帧先用同款字形的预算值顶上(postFrame 实测后校准)——桌面引擎包把
+  /// 内容首屏高度对齐这个值,预算不准冷进就跳一下。
   double _headerHeight = 56;
+  bool _headerHeightEstimated = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_headerHeightEstimated) return;
+    _headerHeightEstimated = true;
+    _headerHeight = _estimateHeaderHeight();
+  }
+
+  /// 用 headlineLarge(+可选副标题)的同款字形量出行高,预算 header 高度
+  /// (6 上、20 下,副标题 4 隔 + 一行);与 postFrame 的实测同源同式,
+  /// 首帧即准,实测多半分毫不差、不再 setState。hero 页高度不可预算,
+  /// 保持 56 由实测接管。
+  double _estimateHeaderHeight() {
+    final ThemeData theme = Theme.of(context);
+    double estimate = 6 + 20 + _lineHeightOf(theme.textTheme.headlineLarge);
+    if (widget.subtitle != null) {
+      estimate += 4 + _lineHeightOf(theme.textTheme.bodyMedium);
+    }
+    return estimate.clamp(40.0, 400.0);
+  }
+
+  /// 一行 [style] 的行高(与 SheetTitleBar 的量法同式)。
+  double _lineHeightOf(TextStyle? style) {
+    final painter = TextPainter(
+      text: TextSpan(text: '国A', style: style),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout();
+    final double height = painter.height;
+    painter.dispose();
+    return height;
+  }
 
   void _measureHeader() {
     final box = _headerKey.currentContext?.findRenderObject();
