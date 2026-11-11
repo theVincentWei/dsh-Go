@@ -171,7 +171,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
     // 文案:宿主从现有 l10n 取词注入(语言切换时这里随 build 重建)。
     final HubDesktopStrings strings = HubDesktopStrings(
       searchHint: l10n.apphubSearchHint,
-      editingHint: l10n.hubEditing,
       recentGroup: l10n.hubRecentGroup,
       defaultGroup: l10n.hubDefaultGroup,
       newGroup: l10n.hubNewGroup,

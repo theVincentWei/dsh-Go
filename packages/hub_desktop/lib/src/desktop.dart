@@ -808,17 +808,19 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     return null;
   }
 
-  /// 分组头:常驻是老样式(宿主给该组 setSectionBadge 过就在名旁加胶丸);
-  /// 整理模式挂 ⋯ 菜单,且整条仍是「追加到组尾」落点(落点判定在矩形表,
-  /// [dragGroup] 非空时挂上量矩形的键)。
+  /// 分组头:两态**同布局**(E2:进整理不得位移任何图标——旧整理态换成
+  /// 带 48dp IconButton 的行,头一变高,组里图标整体下跳),编辑态只在
+  /// 同一条头上用 Stack「浮」一颗不占布局的 ⋯(行高与普通态逐像素一致),
+  /// 整条仍是「追加到组尾」落点(落点判定在矩形表,[dragGroup] 非空时挂
+  /// 上量矩形的键)。
   Widget _header(HubSectionData section, {int? dragGroup}) {
     final HubDesktopStrings strings = widget.strings;
     final String name = section.name.isEmpty ? strings.defaultGroup : section.name;
-    if (!_editing) {
-      final HubBadge? badge = ref.watch(hubSectionBadgesProvider)[section.id];
-      final bool pillVisible = (badge?.count ?? 0) > 0 || (badge?.text?.isNotEmpty ?? false);
-      if (badge == null || !pillVisible) return FeatureGroupLabel(name);
-      return Padding(
+    final HubBadge? badge = ref.watch(hubSectionBadgesProvider)[section.id];
+    final bool pillVisible = (badge?.count ?? 0) > 0 || (badge?.text?.isNotEmpty ?? false);
+    final Widget row;
+    if (badge != null && pillVisible) {
+      row = Padding(
         padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
         child: Row(
           children: <Widget>[
@@ -828,24 +830,37 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
           ],
         ),
       );
+    } else {
+      row = FeatureGroupLabel(name);
     }
-    final Widget row = Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(name, style: hubGroupTitleStyle(context)),
+    if (!_editing) return row;
+    final Widget editable = Stack(
+      children: <Widget>[
+        row,
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => unawaited(_groupSheet(section)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                child: Icon(
+                  Icons.more_horiz,
+                  size: 20,
+                  color: HubColors.of(context).textTertiary,
+                ),
+              ),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.more_horiz, size: 20),
-            onPressed: () => unawaited(_groupSheet(section)),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
     final GlobalKey? key = dragGroup == null ? null : _keyFor('head:${section.id}');
-    if (key == null) return row;
-    return KeyedSubtree(key: key, child: row);
+    if (key == null) return editable;
+    return KeyedSubtree(key: key, child: editable);
   }
 
   @override
@@ -885,21 +900,8 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
           },
         ),
       ),
-      // 编辑态提示行:「完成」由宿主壳叠在大标题行右端,这里只留一句怎么用
-      // 的说明。
-      if (_editing)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              strings.editingHint,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: HubColors.of(context).textTertiary,
-                  ),
-            ),
-          ),
-        ),
+      // 编辑提示行已删(E2):摇摆 + 右上圆键已足够表达,提示行一出现,
+      // 下面的图标在进整理瞬间整体下移,违背「按住哪个图标,哪个不动」。
     ];
 
     if (_query.isNotEmpty) {
@@ -928,13 +930,12 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       for (final HubResolvedSection r in resolved) {
         final HubSectionData section = r.section;
         if (section.smart) {
+          // 最近使用组两态同款(E2:进整理不得位移任何图标——旧整理态
+          // 强制出组头挂开关,组头一出,下面的图标整体往下跳):仅在有
+          // 最近记录且未隐藏时显示,样式与普通组一致;隐藏开关移到编辑
+          // 态右上角的钥匙(E4)。
           final List<String> recents = layout.recentsFor(_catalogKeys.toSet());
-          if (_editing) {
-            children.add(_recentsHeader(section));
-            if (!section.hidden && recents.isNotEmpty) {
-              children.add(_grid(recents, mirror: true));
-            }
-          } else if (!section.hidden && recents.isNotEmpty) {
+          if (!section.hidden && recents.isNotEmpty) {
             children.add(FeatureGroupLabel(strings.recentGroup));
             children.add(_grid(recents, mirror: true));
           }
@@ -979,7 +980,13 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       builder: (BuildContext context, _, _) => CustomScrollView(
         key: _scrollKey,
         controller: _scroll,
-        physics: HubMotion.scrollPhysics(context),
+        // 整理模式锁掉用户滚动(E1):拖拽中的落点矩形表跟着滚就乱了,且
+        // 摇摆图标随手势漂移;物理只关手势驱动,position.animateTo 这类
+        // 程序驱动照常——拖拽贴上/下缘的边缘自动滚动(矩形表滚动补偿)
+        // 不受影响。退出整理恢复。
+        physics: _editing
+            ? const NeverScrollableScrollPhysics()
+            : HubMotion.scrollPhysics(context),
         slivers: <Widget>[
           // 内容锚:矩形表的内容坐标原点(它在内容顶上,随内容一起滚)。
           SliverToBoxAdapter(child: SizedBox(key: _anchorKey, height: top + header)),
@@ -988,25 +995,6 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
             sliver: SliverList.list(children: children),
           ),
           SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
-        ],
-      ),
-    );
-  }
-
-  /// 最近使用组头:常驻就是普通组名(组空则整组不显示);整理模式永远显示,
-  /// 右侧挂隐藏开关,方便再打开。
-  Widget _recentsHeader(HubSectionData section) {
-    final HubDesktopStrings strings = widget.strings;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
-      child: Row(
-        children: <Widget>[
-          Expanded(child: Text(strings.recentGroup, style: hubGroupTitleStyle(context))),
-          Switch(
-            value: !section.hidden,
-            onChanged: (bool visible) =>
-                ref.read(hubLayoutProvider.notifier).setRecentsHidden(!visible),
-          ),
         ],
       ),
     );

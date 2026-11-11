@@ -7,7 +7,6 @@
 class HubDesktopStrings {
   const HubDesktopStrings({
     required this.searchHint,
-    required this.editingHint,
     required this.recentGroup,
     required this.defaultGroup,
     required this.newGroup,
@@ -26,9 +25,6 @@ class HubDesktopStrings {
 
   /// 搜索胶囊的占位词。
   final String searchHint;
-
-  /// 整理模式顶部的一句说明。
-  final String editingHint;
 
   /// 「最近使用」智能组的组名。
   final String recentGroup;
