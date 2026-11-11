@@ -2,7 +2,7 @@
 
 > 2026-11-11 起为本仓自带档案:原存万器仓 `patches/dsh-go-series/`,四仓减负迁入为 `local-series/`;内容与用法不变。
 
-dsh-Go 宿主 App(`ccch1mneyyy/dsh-Go`,fork 自上游 PR #602 时代)相对 `origin/main` 的
+dsh-Go 宿主 App(上游 = `ccch1mneyyy/dsh-Go` 项目本体 AGPL;我们的 fork = `theVincentWei/dsh-Go`)相对上游基线的
 **全部 120 个本地提交**在此做分类登记,供开源边界评估。**本目录不放补丁文件**——原因见
 「为什么不物化 patch 体」。
 
@@ -56,11 +56,11 @@ git format-patch a75c6cff442210b3223d8c0dfc847f5dd1bfccab..main \
 git format-patch -1 <sha> --binary -o /tmp/dsh-go-series
 ```
 
-## 备份(真正的保险,建议用户执行,不代执行)
+## 备份(2026-11-11 已完成)
 
-本仓 `origin` 就是用户自己的 fork(`github.com/ccch1mneyyy/dsh-Go`)——
-**`git push origin main` 一步即得完整备份**(含全部 merge 结构),比任何补丁序列都可靠。
-仓库 .git 约 1.3GB,首次 push 前可用 `git count-objects -vH` 评估。
+`ccch1mneyyy/dsh-Go` 是项目本体(AGPL)而非我们的 fork;我们的 fork = **`theVincentWei/dsh-Go`**(public)。
+已推:main 强推为本地线 + `v1.0.11-local` tag(手机在用 1.0.11+1)+ `upstream` 分支(上游 tip)+ v1.0.x tags;
+push 前全量密钥扫描通过(63 命中均为代码标识符/假值)。本地 remote 已重排:origin=fork,upstream=本体。
 
 ## 与 dimina series 的关系
 
