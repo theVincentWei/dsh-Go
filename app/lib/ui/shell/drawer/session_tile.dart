@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../state/session_attention_state.dart';
+import '../../common/avatar_gallery.dart';
 import '../../common/row_anatomy.dart';
 import '../../common/status_dot.dart';
 import '../../theme/app_icons.dart';
@@ -378,35 +379,24 @@ class _SubtitleDotsState extends State<_SubtitleDots> with SingleTickerProviderS
   }
 }
 
-/// 构建期头像图库(assets/session_avatars/,由 tool/session_avatars 生成)。
-/// 槽位数与生成器的 `count` 一一对应;slotFor 与生成器的种子序无关 —— 它只
-/// 是把会话 id 均匀撒进 [0, count),同一会话永远同一槽。
+/// 会话图库门面:选槽/预热机制在 common/avatar_gallery.dart 的
+/// [AvatarGallery],这里只绑定 critters 资产目录,并保留原有静态 API
+/// (drawer 内外的调用方与 test/drawer/session_avatar_test.dart 都在用)。
 class SessionAvatarGallery {
   SessionAvatarGallery._();
 
-  static const count = 100;
+  static final AvatarGallery _gallery = AvatarGallery(
+    count: 100,
+    assetFor: (slot) => 'assets/session_avatars/avatar_${slot.toString().padLeft(2, '0')}.png',
+  );
 
-  /// 每张 96×96 PNG 解码后约 36KB,全库 ~3.6MB;图库只增不减,预热一次即可
-  /// 让列表首帧就命中 Flutter 全局图片缓存,不再出现「圆盘先空一拍」。
-  static Future<void>? _precache;
+  static int get count => _gallery.count;
 
-  static int slotFor(String sessionId) => DshColors.identityIndex(sessionId, count);
+  static int slotFor(String sessionId) => _gallery.slotFor(sessionId);
 
-  static String assetFor(int slot) => 'assets/session_avatars/avatar_${slot.toString().padLeft(2, '0')}.png';
+  static String assetFor(int slot) => _gallery.assetFor(slot);
 
-  /// 一次性把整个图库预解码进全局图片缓存。幂等:多次调用共享同一趟。
-  /// 失败(资产缺失等)只影响该槽的 errorBuilder 回退,不抛出。
-  static Future<void> precacheAll(BuildContext context) {
-    return _precache ??= () async {
-      for (var slot = 0; slot < count; slot++) {
-        try {
-          await precacheImage(AssetImage(assetFor(slot)), context);
-        } on Object {
-          // 缺图或没网都不致命:行上还有 errorBuilder 的首字符兜底。
-        }
-      }
-    }();
-  }
+  static Future<void> precacheAll(BuildContext context) => _gallery.precacheAll(context);
 }
 
 class _UnreadDot extends StatelessWidget {
