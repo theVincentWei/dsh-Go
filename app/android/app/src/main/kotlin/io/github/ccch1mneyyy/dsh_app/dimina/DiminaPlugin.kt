@@ -39,8 +39,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
     }
 
     /**
-     * 惰性初始化:首次 open 时才 init,以便按宿主当前亮度定胶囊配色
-     * (config 初始化后不可变,运行中切主题不跟随——见 miniprogram-spec.md §8)。
+     * 惰性初始化:首次 open 时才 init。胶囊配色传浅/深两套(见 miniprogram-spec.md §8),
+     * 容器运行时按当前主题选一套,不再依赖「init 那一刻的亮度」。
      */
     private fun ensureInitialized(dark: Boolean) {
         if (initialized) return
@@ -58,9 +58,15 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                 // 页面带回前台」,子页返回照旧一层一层弹(DiminaActivity 每页一个
                 // Activity,back=finish)。
                 .setEnableMultiTask(true)
-                // 胶囊配色跟宿主亮度:深色=深底白图标,浅色=白底深图标。
-                .setCapsuleBackgroundColor(if (dark) 0xFF2A2D34.toInt() else android.graphics.Color.WHITE)
-                .setCapsuleIconColor(if (dark) android.graphics.Color.WHITE else 0xFF1F1F1F.toInt())
+                // 胶囊配色跟宿主色板:浅色=白底深图标,深色=深底白图标。传浅/深两套,
+                // 容器按当前主题运行时选一套 —— 旧单色 API 的 config 初始化后不可变,
+                // 运行中切主题胶囊会凝固在 init 那一刻,两个方向都「时对时不对」。
+                .setCapsuleThemeColors(
+                    lightBackgroundColor = android.graphics.Color.WHITE,
+                    lightIconColor = 0xFF1F1F1F.toInt(),
+                    darkBackgroundColor = 0xFF2A2D34.toInt(),
+                    darkIconColor = android.graphics.Color.WHITE,
+                )
                 .setVirtualFilePrefix("host-file://")
                 .build(),
         )

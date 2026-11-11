@@ -84,14 +84,17 @@ ledger-1.0.1.zip
 - **注销**:`apphubctl route remove --app <id> --prefix /v1`;tools 重发覆盖;
 - 工具越权面(aiScopes)未做,后端自行鉴权(网关附加 `x-dsh-app: <appId>` 头)。
 
-## 8. 主题感知(已实现第一档)
+## 8. 主题感知
 
-- 容器(DiminaActivity 胶囊):**首次 open 时按宿主当前亮度初始化配色**——深色 =
-  深底白图标,浅色 = 白底深图标;Dart 侧 `DiminaHost.open(..., dark:)` 传入。
-- **已知局限**:运行中切换主题,已 init 的容器不跟随(引擎进程内 config 不可变);
-  完全跟随需 SDK 源码化(阶段③)一并做。
-- 页面内主题:wx 主题 API(wx.onThemeChange 等)在 Dimina 的支持度待验证;
-  应用自适配深色是页面自己的事(规范:颜色变量化,勿写死浅色)。
+- 容器(DiminaActivity 胶囊):宿主经 `Builder.setCapsuleThemeColors(浅底, 浅图标, 深底,
+  深图标)` 一次传浅/深两套色,容器**运行中按当前系统深浅色实时选一套**——切主题胶囊当场
+  跟随,不再冻结在 init 那一刻(`onConfigurationChanged`/`onResume` 触发容器重组)。
+  色板:浅色 = 白底深图标 `#1F1F1F`,深色 = 深底 `#2A2D34` 白图标。
+- Dart 侧 `DiminaHost.open(..., dark:)` 仍按宿主亮度传入,用于启动时刻的初值与
+  `updateCapsuleTheme`(菜单等面板配色)。
+- **已知局限**:宿主 App 内「强制浅色/深色」与系统深浅色不一致时,容器以系统主题解析
+  (小程序页面同样按系统主题解析,两边一致);页面内 wx 主题 API 支持度仍待验证。
+- 应用自适配深色是页面自己的事(规范:颜色变量化,勿写死浅色)。
 
 ## 9. 安全边界
 
