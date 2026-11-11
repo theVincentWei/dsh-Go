@@ -1,6 +1,7 @@
 # dsh-Go 本地适配目录(120 提交的分类清单,非补丁体)
 
 > 2026-11-11 起为本仓自带档案:原存万器仓 `patches/dsh-go-series/`,四仓减负迁入为 `local-series/`;内容与用法不变。
+> 同日开源范围拍板**全公开**,本目录降级为历史备注,不再随提交登记;备份走 fork `theVincentWei/dsh-Go`。
 
 dsh-Go 宿主 App(上游 = `ccch1mneyyy/dsh-Go` 项目本体 AGPL;我们的 fork = `theVincentWei/dsh-Go`)相对上游基线的
 **全部 120 个本地提交**在此做分类登记,供开源边界评估。**本目录不放补丁文件**——原因见
