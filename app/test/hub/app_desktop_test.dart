@@ -345,7 +345,15 @@ void main() {
     );
 
     expect(find.text('常用'), findsOneWidget); // 组名已不含 AppHub
-    expect(find.text('3'), findsOneWidget); // 组头胶丸仍亮(组里装着市场入口)
+    // 组头胶丸仍亮(组里装着市场入口)。注意:未读「3」在桌面上现在有
+    // 两处合法显示——页头「服务通知」钥匙的 UnreadDot(task-12 收入口进
+    // 宿主页头时新增)和这里的组头胶丸(HubUnreadBadge,引擎内部件,未
+    // 进公开桶),全局 find.text('3') 不再唯一,按类型收窄到组头这一颗。
+    final Finder groupBadge = find.byWidgetPredicate(
+      (Widget w) => w.runtimeType.toString() == 'HubUnreadBadge',
+    );
+    expect(groupBadge, findsOneWidget);
+    expect(find.descendant(of: groupBadge, matching: find.text('3')), findsOneWidget);
   });
 
   testWidgets('桌面「−」点击经根 navigator 弹共用卸载弹窗;取消不动', (tester) async {
