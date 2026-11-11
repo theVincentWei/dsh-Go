@@ -26,7 +26,7 @@ import 'package:dsh_app/state/sessions_state.dart' show currentSessionProvider, 
 import 'package:dsh_app/state/settings_state.dart'
     show AppSettings, settingsProvider;
 import 'package:dsh_app/ui/applet/hub_apps_group.dart'
-    show HubInstalledApp, hubInstalledProvider;
+    show HubInstalledApp, HubInstalledController, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/feature_catalog.dart';
 import 'package:dsh_app/ui/hub/hub_apps_catalog.dart' show HubCatalog, buildHubCatalog;
@@ -62,6 +62,16 @@ class _StubPetMood extends PetMoodController {
 class _StubInbox extends DsBotInboxController {
   @override
   DsBotInbox build() => const DsBotInbox();
+}
+
+/// 固定已装清单(AsyncNotifier 覆写;build 直接回真值,不走快照/抓取)。
+class _FixedInstalled extends HubInstalledController {
+  _FixedInstalled(this.apps);
+
+  final List<HubInstalledApp> apps;
+
+  @override
+  Future<List<HubInstalledApp>> build() async => apps;
 }
 
 /// 固定状态的小程序通知收件箱(桌面计数角标的注册者迁移回归用)。
@@ -108,7 +118,7 @@ Future<ProviderContainer> _pump(
   List<Override> overrides = const <Override>[],
 }) async {
   final ProviderContainer container = ProviderContainer(overrides: [
-    hubInstalledProvider.overrideWith((ref) async => minis),
+    hubInstalledProvider.overrideWith(() => _FixedInstalled(minis)),
     // 假目录同时给 provider 一份:注册者(sync)读的是 provider,页面收到
     // 的 [sections] 只是渲染侧参数——两边必须同源,目录才一致。
     if (sections != null) featureSectionsProvider.overrideWithValue(sections),
@@ -257,7 +267,7 @@ void main() {
     // 没有文字,靠点按切换反而找不到目标)。
     SharedPreferences.setMockInitialValues(<String, Object>{'home.tab': 1});
     final ProviderContainer container = ProviderContainer(overrides: [
-      hubInstalledProvider.overrideWith((ref) async => const <HubInstalledApp>[]),
+      hubInstalledProvider.overrideWith(() => _FixedInstalled(const <HubInstalledApp>[])),
       dsBotProvider.overrideWith(_StubDsBot.new),
       dsBotInboxProvider.overrideWith(_StubInbox.new),
       // 宠物心情系统会武装一个 ~59s 的计时器(shell 挂了宠物桥),stub 掉。
@@ -321,10 +331,10 @@ void main() {
     // 重启保持:prefs 里 hub.new-minis 已无 wx1、seen 有它——新容器(重启)
     // 后不亮;另一颗装了但从未打开的 wx2 保持亮。
     final ProviderContainer reborn = ProviderContainer(overrides: <Override>[
-      hubInstalledProvider.overrideWith((ref) async => <HubInstalledApp>[
+      hubInstalledProvider.overrideWith(() => _FixedInstalled(<HubInstalledApp>[
             const HubInstalledApp(appId: 'wx1', name: '记账本'),
             const HubInstalledApp(appId: 'wx2', name: '新装的', installedVersionCode: 1, marketVersionCode: 2),
-          ]),
+          ])),
       featureSectionsProvider.overrideWithValue(_twoGroups()),
     ]);
     addTearDown(reborn.dispose);
@@ -463,9 +473,9 @@ void main() {
     // 市场详情页共用的弹窗(整包文案 + purge 勾选)。这里走完整链路到弹窗,
     // 取消后桌面不动;确认后的整包编排由 task-11 的编排层测试覆盖。
     final ProviderContainer container = ProviderContainer(overrides: <Override>[
-      hubInstalledProvider.overrideWith((ref) async => <HubInstalledApp>[
+      hubInstalledProvider.overrideWith(() => _FixedInstalled(<HubInstalledApp>[
             const HubInstalledApp(appId: 'wx1', name: '记账本'),
-          ]),
+          ])),
       featureSectionsProvider.overrideWithValue(_twoGroups()),
     ]);
     addTearDown(container.dispose);
