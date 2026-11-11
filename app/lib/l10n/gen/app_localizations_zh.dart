@@ -7612,6 +7612,11 @@ class L10nZh extends L10n {
   String get autoSyncSummary => 'autoSync 的应用在后台自动安装与升级,无需逐次确认';
 
   @override
+  String hubAppUnavailableOnMachine(String name) {
+    return '「$name」在这台机器上不可用(后端未部署)';
+  }
+
+  @override
   String get launchScreenTitle => '启动画面';
 
   @override

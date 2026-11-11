@@ -2312,6 +2312,7 @@
   "hubNoMatch": "Nothing matches \"{query}\"",
   "autoSyncTitle": "Silent sync",
   "autoSyncSummary": "autoSync apps install and update in the background without prompts",
+  "hubAppUnavailableOnMachine": "\"{name}\" is unavailable on this machine (backend not deployed)",
   "launchScreenTitle": "Launch screen",
   "launchDefault": "Default",
   "launchCustom": "Custom",

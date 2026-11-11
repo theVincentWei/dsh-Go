@@ -205,5 +205,13 @@
         "type": "String"
       }
     }
+  },
+  "hubAppUnavailableOnMachine": "\"{name}\" is unavailable on this machine (backend not deployed)",
+  "@hubAppUnavailableOnMachine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -14,4 +14,8 @@ abstract class HubDesktopDelegate {
 
   /// 打开一颗图标。最近使用的记录也归宿主(打开是否成功只有宿主知道)。
   void onOpen(HubTile tile);
+
+  /// 点击了一颗置灰不可开的图标([HubTile.enabled] 为 false)。引擎不解释
+  /// 置灰原因(需要会话/本机不可用…),语义归宿主——比如弹个提示。
+  void onUnavailableTap(HubTile tile);
 }

@@ -57,8 +57,10 @@ import '../ui/hub/hub_apps_catalog.dart'
         hubTileOf;
 import 'apphub_notices_state.dart'
     show appHubNoticesProvider, appHubUnreadByAppProvider;
+import 'auto_sync_state.dart' show autoSyncProvider;
 import 'bots_state.dart' show dsBotInboxProvider;
 import 'hub_layout_state.dart' show HubLayout;
+import 'hosts_state.dart' show activeHostProvider;
 import 'sessions_state.dart' show currentSessionProvider;
 import 'terminal_state.dart' show terminalBackendProvider;
 
@@ -177,6 +179,9 @@ final hubDesktopSyncProvider = Provider<void>((ref) {
     });
   }
 
+  // 多机(2026-11-11):切主机 = 换了一台货架,市场目录与后端运行态全部
+  // 重查——置灰(backendRunning)与清单(快照档案兜底)都随之重算。
+  ref.listen(activeHostProvider, (_, _) => ref.invalidate(hubInstalledProvider));
   ref.listen(hubInstalledProvider, (_, _) => schedule());
   ref.listen(featureSectionsProvider, (_, _) => schedule());
   ref.listen(currentSessionProvider, (_, _) => schedule());
@@ -221,7 +226,9 @@ void _push(Ref ref) {
     for (final HubAppRef app in catalog.apps)
       if (app is MiniAppRef)
         hubTileOf(app,
-            enabled: true,
+            // 多机可用性:纯离线常亮;依赖后端而这台机器没跑它的后端 → 置灰
+            // (点击经 delegate.onUnavailableTap 弹提示,长按删除不受影响)。
+            enabled: app.availableOnMachine,
             labelDot: app.updateAvailable || newMinis.contains('mini:${app.app.appId}')),
   ], anchorKey: marketKey);
   hub.upsertTiles(<HubTile>[
@@ -291,4 +298,12 @@ void _push(Ref ref) {
     if (!desired.containsKey(id)) hub.clearSectionBadge(id);
   }
   desired.forEach(hub.setSectionBadge);
+
+  // 升级全自动(2026-11-11 拍板):注册者常驻存活,这里就是「应用启动即
+  // 触发」的点——不再依赖用户进市场页/桌面 tab。已装 app 检测到新版本
+  // 直接静默升级;单飞与 60s 最小间隔在 runner 里,频繁重推无害。升级
+  // 成功后重查清单(名字点/角标随之准确;升级告知 Banner 由通知分发器管)。
+  ref.read(autoSyncProvider.notifier).runIfDue(onApplied: () {
+    ref.invalidate(hubInstalledProvider);
+  });
 }

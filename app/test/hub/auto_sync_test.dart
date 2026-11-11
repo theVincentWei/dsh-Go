@@ -45,7 +45,23 @@ void main() {
     expect(actions, isEmpty);
   });
 
-  test('非 autoSync / 缺 autoSync 字段的目录行不参与', () {
+  test('升级全自动:非 autoSync 已装且落后 → 照样 update;未装不自动装', () {
+    final List<AutoSyncAction> actions = planAutoSync(
+      catalog: <Map<String, Object?>>[
+        catalogApp(appId: 'plain', versionCode: 5, autoSync: false),
+        catalogApp(appId: 'legacy', versionCode: 7),
+      ],
+      installed: installedOf(versions: <String, int?>{'plain': 3, 'legacy': 7}),
+      enabled: true,
+    );
+    // plain 已装落后 → 静默升级(不再看 autoSync);legacy 已装不落后 → 跳过。
+    expect(actions, hasLength(1));
+    expect(actions.single.appId, 'plain');
+    expect(actions.single.kind, AutoSyncActionKind.update);
+    expect(actions.single.targetVersionCode, 5);
+  });
+
+  test('未装 + autoSync:false/缺字段 → 不自动装(只在市场出现)', () {
     final List<AutoSyncAction> actions = planAutoSync(
       catalog: <Map<String, Object?>>[
         catalogApp(appId: 'plain', versionCode: 5, autoSync: false),

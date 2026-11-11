@@ -52,7 +52,8 @@ class TileGrid extends StatelessWidget {
 /// 图标内容([icon])由调用方决定,统一显示时裁切成瓷贴形状(方图 PNG 不
 /// 压圆角);[badge] 叠在图标右上角(如未读数);[labelDot] 在名字行尾挂
 /// 4px 主色圆点(iOS 式新装/更新指示),false 不占位。[enabled] 为 false
-/// 时整块淡到 45%,不响应点击(要先选中会话的项用)。
+/// 时整块淡到 45%,点击转交 [onDisabledTap](宿主据此弹「本机不可用」类
+/// 提示;null = 不响应)。要先选中会话的项用。
 class IconTile extends StatelessWidget {
   const IconTile({
     super.key,
@@ -62,6 +63,7 @@ class IconTile extends StatelessWidget {
     this.chipColor,
     this.labelDot = false,
     required this.onTap,
+    this.onDisabledTap,
     this.enabled = true,
   });
 
@@ -76,6 +78,9 @@ class IconTile extends StatelessWidget {
   /// 名字行尾小点(iOS 式);false 不占位。
   final bool labelDot;
   final VoidCallback onTap;
+
+  /// [enabled] 为 false 时的点击去向(提示语义归宿主);null = 不响应。
+  final VoidCallback? onDisabledTap;
   final bool enabled;
 
   /// 图标方块的边长与圆角;名称的字形与上下间距也定在这里,调用方不再自设。
@@ -122,7 +127,7 @@ class IconTile extends StatelessWidget {
           child: Material(
             type: MaterialType.transparency,
             child: InkWell(
-              onTap: enabled ? onTap : null,
+              onTap: enabled ? onTap : onDisabledTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                 child: Column(

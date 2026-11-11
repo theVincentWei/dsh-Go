@@ -36,6 +36,8 @@ class HubInstalledApp {
     this.installedVersionCode,
     this.marketVersionCode,
     this.autoSync = false,
+    this.backendRequired = false,
+    this.backendRunning,
   });
 
   final String appId;
@@ -49,12 +51,27 @@ class HubInstalledApp {
   /// 本机已装版本(DiminaHost.installed);查不到为 null。
   final int? installedVersionCode;
 
-  /// 市场目录的最新版本(/api/v1/apps 行内 versionCode)。
+  /// 市场目录的最新版本(/api/v1/apps 行内 versionCode);目录里查不到
+  /// (换机器后档案兜底的条目)为 null → 不挂更新点、不参与升级判定。
   final int? marketVersionCode;
 
-  /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = 打开时
-  /// 升级跳过容器确认弹窗;后台同步服务也会静默装/升。
+  /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = 未装时
+  /// 自动装上桌面。升级已改全自动(2026-11-11),不再看这个标志。
   final bool autoSync;
+
+  /// 该版本声明了后端(bundle.json 的 backend 段):桌面可用性要按机器判。
+  /// 进快照持久化——换机器后靠它知道「这个 app 是要后端的」。
+  final bool backendRequired;
+
+  /// 后端此刻是否跑在「当前连接的机器」上(/api/v1/apps 行内
+  /// backendRunning);null = 查不到(老 server、目录失败、档案兜底条目)。
+  /// **不进快照**——运行态是逐机器的,持久化会假亮。
+  final bool? backendRunning;
+
+  /// 桌面可用性(多机语义):纯离线常驻可用;依赖后端的看当前机器运行态,
+  /// 查不到按不可用(置灰)——宁可灰不可假亮。
+  bool get availableOnCurrentMachine =>
+      !backendRequired || (backendRunning ?? false);
 
   /// 市场比本机新 = 桌面瓷贴可以挂「有更新」角标。
   bool get updateAvailable {
@@ -71,6 +88,9 @@ class HubInstalledApp {
     if (installedVersionCode != null) 'installedVersionCode': installedVersionCode,
     if (marketVersionCode != null) 'marketVersionCode': marketVersionCode,
     if (autoSync) 'autoSync': true,
+    // 运行态(backendRunning)刻意不落盘:它是「当前机器」的事实,持久化
+    // 会让换机器后的第一帧假亮;真值每轮目录刷新都会回来。
+    if (backendRequired) 'backendRequired': true,
   };
 
   /// 快照反序列化,字段逐个容错(坏条目退缺省,不让一颗坏数据废整份快照)。
@@ -82,6 +102,7 @@ class HubInstalledApp {
     installedVersionCode: (json['installedVersionCode'] as num?)?.toInt(),
     marketVersionCode: (json['marketVersionCode'] as num?)?.toInt(),
     autoSync: json['autoSync'] == true,
+    backendRequired: json['backendRequired'] == true,
   );
 }
 
@@ -124,18 +145,52 @@ class HubInstalledSnapshot {
   }
 }
 
-/// 真抓取:市场目录 × DiminaHost.installed 逐个核对(旧 FutureProvider
-/// 的 body,行为不变;host 断开时逐个 continue,一条没有就空清单)。
+/// 多机合并(纯函数):目录核对结果 ∪ 快照档案里「本机仍安装」的条目。
+/// 换机器后目录里查不到的 app 靠档案常驻——离线的照常可用,带后端的因
+/// 查不到运行态而置灰(宁可灰不可假亮);本机已不装的档案条目在此剔除
+/// (卸载清理就在这一步)。目录里查不到的条目 marketVersionCode 恒 null
+/// → 不挂更新点、不参与升级判定。
+List<HubInstalledApp> mergeInstalledMinis({
+  required List<HubInstalledApp> fromDirectory,
+  required Set<String> directoryIds,
+  required Map<String, Map<String, Object?>?> states,
+  required List<HubInstalledApp> archived,
+}) {
+  final List<HubInstalledApp> merged = <HubInstalledApp>[...fromDirectory];
+  for (final HubInstalledApp known in archived) {
+    if (directoryIds.contains(known.appId)) continue;
+    final Map<String, Object?>? state = states[known.appId];
+    if (state?['installed'] != true) continue;
+    merged.add(HubInstalledApp(
+      appId: known.appId,
+      name: known.name,
+      iconKey: known.iconKey,
+      iconUrl: known.iconUrl,
+      installedVersionCode: (state!['versionCode'] as num?)?.toInt(),
+      backendRequired: known.backendRequired,
+      // 运行态未知:依赖后端的由 availableOnCurrentMachine 判为不可用。
+    ));
+  }
+  return merged;
+}
+
+/// 真抓取:市场目录 × DiminaHost.installed 逐个核对 × 快照档案兜底。
+/// 目录 = 「当前连接机器」的货架;目录里查不到、但快照说装着且本机核对
+/// 仍装的 app 也进清单(多机常驻)。host 断开时目录行一条没有,清单由
+/// 档案接住(空不空由调用方的空守卫再兜一层)。
 Future<List<HubInstalledApp>> _fetchInstalled() async {
   final http.Response response =
       await http.get(Uri.parse('$appHubBase/api/v1/apps')).timeout(const Duration(seconds: 8));
   final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
   if (body is! Map || body['apps'] is! List) return const <HubInstalledApp>[];
+  final List<dynamic> rows = body['apps'] as List<dynamic>;
   final List<HubInstalledApp> installed = <HubInstalledApp>[];
-  for (final dynamic app in body['apps'] as List<dynamic>) {
+  final Set<String> directoryIds = <String>{};
+  for (final dynamic app in rows) {
     if (app is! Map) continue;
     final String appId = app['appId'] as String? ?? '';
     if (appId.isEmpty) continue;
+    directoryIds.add(appId);
     final int? marketVersion =
         (app['versionCode'] as num?)?.toInt() ?? int.tryParse('${app['versionCode']}');
     final Object? state;
@@ -153,9 +208,30 @@ Future<List<HubInstalledApp>> _fetchInstalled() async {
       installedVersionCode: (state['versionCode'] as num?)?.toInt(),
       marketVersionCode: marketVersion,
       autoSync: app['autoSync'] == true,
+      backendRequired: app['backend'] == true,
+      backendRunning:
+          app['backendRunning'] is bool ? app['backendRunning'] as bool : null,
     ));
   }
-  return installed;
+
+  // 档案兜底:目录里查不到的 appId,快照说装着、本机也核对到,就保留。
+  // 核对表提前建好(目录行 + 档案条目共用,每颗只问一次 DiminaHost)。
+  final List<HubInstalledApp> archived = await HubInstalledSnapshot.load() ?? const <HubInstalledApp>[];
+  final Map<String, Map<String, Object?>?> states = <String, Map<String, Object?>?>{};
+  for (final HubInstalledApp known in archived) {
+    if (directoryIds.contains(known.appId) || states.containsKey(known.appId)) continue;
+    try {
+      states[known.appId] = await DiminaHost.installed(known.appId);
+    } catch (_) {
+      states[known.appId] = null;
+    }
+  }
+  return mergeInstalledMinis(
+    fromDirectory: installed,
+    directoryIds: directoryIds,
+    states: states,
+    archived: archived,
+  );
 }
 
 /// 已装清单。冷启语义(现象 A「整页弹入」的修复):

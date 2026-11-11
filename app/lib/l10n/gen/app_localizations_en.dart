@@ -8043,6 +8043,11 @@ class L10nEn extends L10n {
   String get autoSyncSummary => 'autoSync apps install and update in the background without prompts';
 
   @override
+  String hubAppUnavailableOnMachine(String name) {
+    return '\"$name\" is unavailable on this machine (backend not deployed)';
+  }
+
+  @override
   String get launchScreenTitle => 'Launch screen';
 
   @override

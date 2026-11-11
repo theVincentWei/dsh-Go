@@ -4878,6 +4878,14 @@
   },
   "autoSyncTitle": "静默同步",
   "autoSyncSummary": "autoSync 的应用在后台自动安装与升级,无需逐次确认",
+  "hubAppUnavailableOnMachine": "「{name}」在这台机器上不可用(后端未部署)",
+  "@hubAppUnavailableOnMachine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "launchScreenTitle": "启动画面",
   "launchDefault": "默认",
   "launchCustom": "自定义",

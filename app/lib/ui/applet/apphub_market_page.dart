@@ -186,11 +186,11 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。必须走固定端口
       // 反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被重连换掉。
       updateManifestUrl: '$appHubProxyBase/apps/${app.appId}/manifest.json',
-      // autoSync 包:升级跳过容器确认弹窗(发布侧已表达确认语义)。
-      autoUpdate: app.autoSync,
+      // 升级全自动(2026-11-11):一律跳过容器「发现新版本」确认弹窗。
+      autoUpdate: true,
     );
-    // 装完即把状态置为已装;版本号不做乐观改写——升级要等用户在容器弹窗里确认
-    // 生效后,由升级事件回传/定时核对拿到真实 versionCode。
+    // 装完即把状态置为已装;版本号不做乐观改写——升级生效的 versionCode
+    // 由升级事件回传/定时核对拿到真实值(全自动下通常秒级,无确认环节)。
     if (ok && mounted) {
       ref.read(hubLayoutProvider.notifier).touch('mini:${app.appId}');
       setState(() {

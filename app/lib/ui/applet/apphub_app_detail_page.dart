@@ -54,8 +54,8 @@ Future<bool> openHubApp(
     iconColor: iconColor,
     iconPng: bundlePng,
     updateManifestUrl: '$appHubProxyBase/apps/$appId/manifest.json',
-    // autoSync 包:升级跳过容器确认弹窗(发布侧已表达确认语义)。
-    autoUpdate: autoSync,
+    // 升级全自动(2026-11-11):一律跳过容器「发现新版本」确认弹窗。
+    autoUpdate: true,
   );
   if (ok) {
     ref.read(hubLayoutProvider.notifier).touch('mini:$appId');

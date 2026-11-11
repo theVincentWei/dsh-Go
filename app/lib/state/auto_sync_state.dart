@@ -1,6 +1,8 @@
-/// autoSync 静默同步(万器扩展,bundle.json 顶层 `autoSync: true`):链路建立 /
-/// 市场目录刷新时,对 autoSync 的 app 做「没装→静默装上、落后→静默升级」,
-/// 不弹容器升级确认(原生 autoUpdate 旁路,见 DiminaPlugin 'sync' 通道)。
+/// 静默同步(万器扩展):链路建立 / 市场目录刷新 / 桌面注册者重推时跑——
+/// **已安装**的 app 检测到新版本直接静默升级(2026-11-11 起全自动免确认,
+/// 不再看 bundle.json 的 autoSync 标志);`autoSync: true` 额外享受「没装 →
+/// 静默装上桌面」。升级走原生 autoUpdate 旁路,容器不再弹「发现新版本」
+/// 确认(DiminaPlugin 'sync' 通道)。
 ///
 /// 结构:
 ///   * [planAutoSync] 纯函数(可单测):目录 + 本机已装 → 动作列表;
@@ -62,8 +64,10 @@ class AutoSyncAction {
 
 /// 纯 planner:市场目录行 + 本机已装状态 → 动作列表。
 ///
-///   * 只看 `autoSync == true` 的目录行(缺省/缺字段 = false = 不参与);
-///   * 未装 → install;已装且目录 versionCode 更大 → update;
+///   * 升级全自动(2026-11-11 拍板):**已安装**的 app 只要目录版本更高就
+///     静默升级,不再看 autoSync 标志、不再弹容器确认;
+///   * `autoSync == true` 的目录行保留「未装 → 自动装上桌面」语义(缺省
+///     false = 只在市场出现,用户手动装);
 ///   * 已装不落后 / 目录缺 versionCode → 跳过;
 ///   * [attempted] 记录 (appId → 上次尝试的目标版本):同目标本周期已试过就
 ///     跳过(执行器负责冷却过期清理),失败重试交给下一次触发;
@@ -77,7 +81,7 @@ List<AutoSyncAction> planAutoSync({
   if (!enabled) return const <AutoSyncAction>[];
   final List<AutoSyncAction> actions = <AutoSyncAction>[];
   for (final Map<String, Object?> app in catalog) {
-    if (app['autoSync'] != true) continue;
+    final bool autoSync = app['autoSync'] == true;
     final String appId = app['appId'] as String? ?? '';
     if (appId.isEmpty) continue;
     final int? marketVersion =
@@ -97,7 +101,7 @@ List<AutoSyncAction> planAutoSync({
         updateManifestUrl: '$appHubProxyBase/apps/$appId/manifest.json',
         iconUrl: app['iconUrl'] as String?,
       ));
-    } else {
+    } else if (autoSync) {
       actions.add(AutoSyncAction(
         appId: appId,
         name: app['name'] as String? ?? appId,

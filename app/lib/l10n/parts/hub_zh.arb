@@ -360,5 +360,13 @@
         "type": "String"
       }
     }
+  },
+  "hubAppUnavailableOnMachine": "「{name}」在这台机器上不可用(后端未部署)",
+  "@hubAppUnavailableOnMachine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

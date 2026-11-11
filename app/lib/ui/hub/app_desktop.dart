@@ -102,8 +102,10 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
           // 已被重连换掉(见 apphub_proxy.dart)。
           updateManifestUrl:
               '$appHubProxyBase/apps/${mini.app.appId}/manifest.json',
-          // autoSync 包:升级跳过容器确认弹窗(发布侧已表达确认语义)。
-          autoUpdate: mini.app.autoSync,
+          // 升级全自动(2026-11-11):一律跳过容器「发现新版本」确认弹窗
+          // ——后台静默同步通常已把包换好,这里兜住「发版后立刻点开」的
+          // 竞态,打开即冷重启到新版。
+          autoUpdate: true,
         );
         if (ok) {
           ref.read(hubLayoutProvider.notifier).touch(mini.key);
@@ -290,4 +292,18 @@ class _HubDelegate implements HubDesktopDelegate {
 
   @override
   void onOpen(HubTile tile) => unawaited(_page._open(tile.key));
+
+  @override
+  void onUnavailableTap(HubTile tile) {
+    final BuildContext context = _page.context;
+    if (!context.mounted) return;
+    // 多机语义:点了「依赖后端而这台机器没部署」的置灰瓷贴。删除/卸载
+    // 不受置灰影响,这里只解释为什么点不开。
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(context.l10n.hubAppUnavailableOnMachine(tile.name)),
+        duration: const Duration(seconds: 4),
+      ));
+  }
 }

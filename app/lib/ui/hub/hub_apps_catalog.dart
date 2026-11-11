@@ -39,6 +39,9 @@ class MiniAppRef extends HubAppRef {
   /// 市场比本机新:桌面瓷贴挂「有更新」小点。
   final bool updateAvailable;
 
+  /// 多机语义:纯离线常驻可用;依赖后端的看当前机器运行态(查不到=置灰)。
+  bool get availableOnMachine => app.availableOnCurrentMachine;
+
   @override
   String get key => 'mini:${app.appId}';
   @override

@@ -316,6 +316,26 @@ void main() {
     expect(find.byKey(const ValueKey('hub-update-dot')), findsNothing); // 瓷贴角 dot 档退役
   });
 
+  testWidgets('依赖后端而这台机器没跑 → 置灰,点击弹「本机不可用」,离线的照常亮', (tester) async {
+    await _pump(tester, minis: <HubInstalledApp>[
+      const HubInstalledApp(
+          appId: 'wx1', name: '系统监视器', backendRequired: true, backendRunning: false),
+      const HubInstalledApp(appId: 'wx2', name: '记账本'),
+    ]);
+
+    IconTile tile(String label) => tester.widget<IconTile>(find.widgetWithText(IconTile, label));
+    // 依赖后端但 backendRunning=false → 置灰;纯离线(缺省)→ 照常点亮。
+    expect(tile('系统监视器').enabled, isFalse);
+    expect(tile('记账本').enabled, isTrue);
+
+    await tester.tap(find.text('系统监视器'));
+    await tester.pumpAndSettle();
+    expect(find.text('「系统监视器」在这台机器上不可用(后端未部署)'), findsOneWidget);
+    // 置灰不影响删除入口:整理模式「−」照常出现(钩子按 mini: 前缀注册)。
+    await _enterEdit(tester, '系统监视器');
+    expect(find.byIcon(Icons.remove), findsWidgets);
+  });
+
   testWidgets('新装未打开亮名字点,markOpened 熄灭(跨重启保持)', (tester) async {
     // 冷启动 + 空 seen:第一次清单里的 mini 都算「首次出现」→ 亮名字点。
     final ProviderContainer container = await _pump(tester, minis: <HubInstalledApp>[

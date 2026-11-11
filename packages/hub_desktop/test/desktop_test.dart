@@ -41,9 +41,13 @@ String _noMatch(String query) => '没有匹配「$query」的应用';
 /// 记录打开上报的假 delegate(卸载走钩子表,不走 delegate)。
 class _RecordingDelegate implements HubDesktopDelegate {
   final List<String> opened = <String>[];
+  final List<String> unavailableTapped = <String>[];
 
   @override
   void onOpen(HubTile tile) => opened.add(tile.key);
+
+  @override
+  void onUnavailableTap(HubTile tile) => unavailableTapped.add(tile.key);
 }
 
 HubTile _tile(
@@ -419,7 +423,7 @@ void main() {
     expect(find.text('99+'), findsOneWidget);
   });
 
-  testWidgets('enabled:false 整块置灰不可点,enabled 的可点并上报', (tester) async {
+  testWidgets('enabled:false 整块置灰不可开,点击转交 onUnavailableTap;enabled 的可点并上报', (tester) async {
     final _RecordingDelegate delegate = _RecordingDelegate();
     await _pump(
       tester,
@@ -436,6 +440,8 @@ void main() {
     await tester.tap(find.text('甲'));
     await tester.pumpAndSettle();
     expect(delegate.opened, <String>['feature:jia']);
+    // 置灰瓷贴的点击语义归宿主(「本机不可用」类提示)。
+    expect(delegate.unavailableTapped, <String>['feature:yi']);
   });
 
   testWidgets('组头角标:setSectionBadge 的组挂胶丸,别的组不挂', (tester) async {

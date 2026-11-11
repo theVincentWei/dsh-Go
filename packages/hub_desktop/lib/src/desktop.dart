@@ -612,6 +612,8 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       chipColor: _chipColorFor(tile),
       labelDot: tile.labelDot,
       onTap: () => _open(tile),
+      // 置灰瓷贴的点击也上报宿主(「本机不可用」类提示语义归宿主)。
+      onDisabledTap: () => widget.delegate.onUnavailableTap(tile),
     );
 
     if (!_editing) {
