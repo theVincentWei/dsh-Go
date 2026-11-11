@@ -6,6 +6,7 @@ import 'package:dsh_app/state/apphub_notices_state.dart';
 import 'package:dsh_app/ui/bots/bots_page.dart' show UnreadBadge;
 import 'package:dsh_app/ui/notify/notification_center.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -293,6 +294,40 @@ void main() {
       expect(fake.markedRead, <int>[4]);
       expect(find.text('点我'), findsNothing);
       expect(find.text('留着'), findsOneWidget);
+    });
+
+    testWidgets('升级告知点击（无 page）：进小程序首页（open 不带 path），并回写已读', (tester) async {
+      final fake = FakeNotices(
+        AppHubNotices(
+          loaded: true,
+          unread: 1,
+          notices: <MiniAppNotice>[
+            MiniAppNotice(
+              id: 9,
+              appId: 'a1',
+              templateId: kHostUpgradeTemplateId,
+              title: '记账',
+              body: '「记账」已升级至 v2.0.0',
+            ),
+          ],
+        ),
+      );
+      // 捕获容器 open 调用；返回 false = 打开失败，落通知中心兜底。
+      final List<MethodCall> calls = <MethodCall>[];
+      const MethodChannel dimina = MethodChannel('dsh/dimina');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(dimina, (call) async {
+            calls.add(call);
+            return false;
+          });
+      addTearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(dimina, null));
+      await pumpPage(tester, notices: fake.initial, fake: fake);
+      await tester.tap(find.text('「记账」已升级至 v2.0.0'));
+      await tester.pumpAndSettle();
+      final MethodCall open = calls.singleWhere((MethodCall call) => call.method == 'open');
+      expect(open.arguments.containsKey('path'), isFalse, reason: '升级告知没 page，点击进容器首页');
+      expect(fake.markedRead, <int>[9]);
     });
   });
 }

@@ -23,6 +23,7 @@ import '../../state/hosts_state.dart' show HostRef;
 import '../../state/notify_state.dart'
     show appForegroundProvider, notifyChannelProvider, notifySystemStatusProvider;
 import '../common/discard_guard.dart';
+import '../applet/hub_icon_cache.dart' show HubBundleIcon;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../applet/dimina/dimina_host.dart' show DiminaHost, DiminaUpdateEvent;
@@ -63,9 +64,11 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     super.dispose();
   }
 
-  /// 容器升级完成事件（契约 §6.4）：发一条瞬态告知——前台玻璃 Banner 数秒即收，
-  /// 后台走系统通知；**不写收件箱**（AppHubNoticesController 不 ingest），点通知
-  /// 只把 app 拉前台（kind=`update`，ChatAlertHost 不路由会话）。
+  /// 容器升级完成事件（契约 §6.4 修订，2026-11-12：升级告知也进收件箱）：
+  /// 先 POST 服务端落一条宿主告知，落上了就立刻拉一轮——通知经由既有管线
+  /// 投递（前台正式 Banner / 后台系统通知，未读角标、已读流转全部同正式
+  /// 通知）。服务端没落上（不可达/拒绝）回落瞬态告知：前台玻璃 Banner 数秒
+  /// 即收、后台 kind=`update` 系统通知，不写收件箱。
   Future<void> _onUpdateEvent(DiminaUpdateEvent event) async {
     if (event.event != 'applied') return;
     final int version = event.versionCode ?? 0;
@@ -93,6 +96,16 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     final String message = versionText.isEmpty
         ? appL10n.notifyUpdateAppliedPlain(appName)
         : appL10n.notifyUpdateApplied(appName, versionText);
+    final bool reported = await AppHubNoticeService.reportUpgrade(
+      appId: event.appId,
+      title: appName,
+      body: message,
+      dedupeKey: 'upgrade-${version > 0 ? version : (versionText.isEmpty ? 'latest' : versionText)}',
+    );
+    if (reported) {
+      unawaited(AppHubNoticeService.pollNow());
+      return;
+    }
     final MiniAppNotice notice = MiniAppNotice(
       id: -1,
       appId: event.appId,
@@ -259,6 +272,7 @@ class _NoticeBanner extends ConsumerWidget {
     final colors = DshColors.of(context);
     final surfaces = DshSurfaces.of(context);
     final appName = ref.watch(appHubAppNamesProvider).value?[notice.appId] ?? notice.appId;
+    final String? iconUrl = ref.watch(appHubAppMetaProvider).value?[notice.appId]?.iconUrl;
     return Semantics(
       container: true,
       liveRegion: true,
@@ -276,11 +290,18 @@ class _NoticeBanner extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              DecoratedBox(
-                decoration: ShapeDecoration(color: colors.infoContainer, shape: const CircleBorder()),
-                child: SizedBox.square(
-                  dimension: 32,
-                  child: Icon(AppIcons.notifications, size: 18, color: colors.onInfoContainer),
+              // 左侧 = 该小程序的应用图标（§6.4 修订）；没带图回落铃铛圆。
+              HubBundleIcon(
+                appId: notice.appId,
+                url: iconUrl,
+                size: 32,
+                fallback: DecoratedBox(
+                  decoration:
+                      ShapeDecoration(color: colors.infoContainer, shape: const CircleBorder()),
+                  child: SizedBox.square(
+                    dimension: 32,
+                    child: Icon(AppIcons.notifications, size: 18, color: colors.onInfoContainer),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -299,12 +320,15 @@ class _NoticeBanner extends ConsumerWidget {
                             style: theme.textTheme.titleSmall?.copyWith(fontSize: 15, height: 1.35),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          appName,
-                          maxLines: 1,
-                          style: theme.textTheme.labelSmall?.copyWith(color: colors.textTertiary),
-                        ),
+                        // 升级告知的 title 就是应用名，别再缀一遍。
+                        if (appName != notice.title) ...<Widget>[
+                          const SizedBox(width: 6),
+                          Text(
+                            appName,
+                            maxLines: 1,
+                            style: theme.textTheme.labelSmall?.copyWith(color: colors.textTertiary),
+                          ),
+                        ],
                       ],
                     ),
                     if (notice.body.isNotEmpty) ...<Widget>[
@@ -330,19 +354,20 @@ class _NoticeBanner extends ConsumerWidget {
   }
 }
 
-/// 瞬态告知（升级完成）的 Banner：一行告知，点一下即收（不跳任何页面）。
-class _TransientBanner extends StatelessWidget {
+/// 瞬态告知（升级完成，服务端没落上时的回落）：一行告知，点一下即收（不跳任何页面）。
+class _TransientBanner extends ConsumerWidget {
   const _TransientBanner({required this.notice, required this.onTap});
 
   final MiniAppNotice notice;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
     final surfaces = DshSurfaces.of(context);
+    final String? iconUrl = ref.watch(appHubAppMetaProvider).value?[notice.appId]?.iconUrl;
     return Semantics(
       container: true,
       liveRegion: true,
@@ -359,11 +384,18 @@ class _TransientBanner extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: <Widget>[
-              DecoratedBox(
-                decoration: ShapeDecoration(color: colors.successContainer, shape: const CircleBorder()),
-                child: SizedBox.square(
-                  dimension: 32,
-                  child: Icon(AppIcons.refresh, size: 18, color: colors.onSuccessContainer),
+              // 与正式 Banner 同款：应用图标优先，没带图回落绿色刷新圆。
+              HubBundleIcon(
+                appId: notice.appId,
+                url: iconUrl,
+                size: 32,
+                fallback: DecoratedBox(
+                  decoration:
+                      ShapeDecoration(color: colors.successContainer, shape: const CircleBorder()),
+                  child: SizedBox.square(
+                    dimension: 32,
+                    child: Icon(AppIcons.refresh, size: 18, color: colors.onSuccessContainer),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

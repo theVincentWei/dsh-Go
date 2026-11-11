@@ -23,6 +23,12 @@ import 'package:http/http.dart' as http;
 import '../notify/apphub_base.dart' show appHubBase;
 
 /// 一条小程序通知（AppHub `notify_messages` 行）。
+///
+/// 宿主上报告知（升级完成，§6.4 修订）的 template_id 固定值与服务端
+/// `hostNoticeTemplateId` 对齐（wanqi server/lib/notify_logic.dart）；客户端
+/// 用它认出「这条是升级告知」：没有 page，点击进小程序首页。
+const String kHostUpgradeTemplateId = 'system-upgrade';
+
 @immutable
 class MiniAppNotice {
   const MiniAppNotice({
@@ -378,21 +384,47 @@ class TransientNoticeController extends Notifier<MiniAppNotice?> {
   void clear() => state = null;
 }
 
-/// appId → 小程序名（通知中心分组头、跳转时的容器标题）。取 AppHub 市场目录，
-/// 失败时为空表，界面回落 appId。
-final appHubAppNamesProvider = FutureProvider<Map<String, String>>((ref) async {
+/// AppHub 市场目录里一条 app 的展示元数据：名字 + bundle 图标地址
+/// （`/api/v1/apps` 行的 `name`/`iconUrl`，§6.4 修订起通知条也带应用图标）。
+@immutable
+class AppHubAppMeta {
+  const AppHubAppMeta({required this.name, this.iconUrl});
+
+  final String name;
+
+  /// bundle 图标（包内 main/icon.png）的下载地址；null = 没带图，渲染回落。
+  final String? iconUrl;
+}
+
+/// appId → 展示元数据（通知条/收件箱渲染用）。取 AppHub 市场目录，失败时
+/// 为空表，界面回落 appId。只发一次请求，名字视图从它派生。
+final appHubAppMetaProvider = FutureProvider<Map<String, AppHubAppMeta>>((ref) async {
   try {
     final http.Response response = await http
         .get(Uri.parse('$appHubBase/api/v1/apps'))
         .timeout(const Duration(seconds: 8));
     final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
-    if (body is! Map || body['apps'] is! List) return const <String, String>{};
-    return <String, String>{
+    if (body is! Map || body['apps'] is! List) return const <String, AppHubAppMeta>{};
+    return <String, AppHubAppMeta>{
       for (final Object? app in body['apps'] as List<Object?>)
         if (app is Map && app['appId'] is String)
-          app['appId'] as String: '${app['name'] ?? app['appId']}',
+          app['appId'] as String: AppHubAppMeta(
+            name: '${app['name'] ?? app['appId']}',
+            iconUrl: app['iconUrl'] is String && (app['iconUrl'] as String).isNotEmpty
+                ? app['iconUrl'] as String
+                : null,
+          ),
     };
   } catch (_) {
-    return const <String, String>{};
+    return const <String, AppHubAppMeta>{};
   }
+});
+
+/// appId → 小程序名（通知中心分组头、跳转时的容器标题）。从
+/// [appHubAppMetaProvider] 派生，避免同目录拉两遍；失败时为空表。
+final appHubAppNamesProvider = FutureProvider<Map<String, String>>((ref) async {
+  final Map<String, AppHubAppMeta> meta = await ref.watch(appHubAppMetaProvider.future);
+  return <String, String>{
+    for (final MapEntry<String, AppHubAppMeta> entry in meta.entries) entry.key: entry.value.name,
+  };
 });

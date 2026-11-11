@@ -35,6 +35,51 @@ class AppHubNoticeService {
   /// ProviderScope exists ([start] runs before `runApp`).
   static ProviderContainer? _container;
 
+  /// 升级完成告知上报（契约 §6.4 修订，2026-11-12：升级告知也进收件箱）：
+  /// POST `/api/v1/notices` 落一条宿主告知，返回 false = 服务端没落上
+  /// （不可达/拒绝），调用方回落瞬态告知。dedupeKey 让升级重试幂等。
+  /// 运行时接缝（widget 测试注入假实现，仿 hubIconCache.debugLoader）。
+  static Future<bool> Function({
+    required String appId,
+    required String title,
+    required String body,
+    String? dedupeKey,
+  }) reportUpgrade = _postUpgradeNotice;
+
+  static Future<bool> _postUpgradeNotice({
+    required String appId,
+    required String title,
+    required String body,
+    String? dedupeKey,
+  }) async {
+    HttpClient? client;
+    try {
+      client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
+      final HttpClientRequest request =
+          await client.postUrl(Uri.parse('$appHubBase/api/v1/notices'));
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode(<String, Object?>{
+        'appId': appId,
+        'title': title,
+        'body': body,
+        if (dedupeKey != null && dedupeKey.isNotEmpty) 'dedupeKey': dedupeKey,
+      }));
+      final HttpClientResponse response =
+          await request.close().timeout(const Duration(seconds: 8));
+      await response.drain<void>();
+      return response.statusCode == 200;
+    } catch (error) {
+      // AppHub 不可达是常态（出门/服务器没起）：按没落上处理。
+      debugPrint('[apphub-notice] report upgrade failed: $error');
+      return false;
+    } finally {
+      client?.close(force: false);
+    }
+  }
+
+  /// 立即拉一轮（升级上报落库后调，不等下一个 60s 周期；测试注入空实现）。
+  static Future<void> Function() pollNow = _poll;
+
   /// Starts the 60s poll loop. Idempotent; safe before [runApp] (the timers
   /// live on the root isolate, same pattern as RefreshRateService).
   static void start({Duration interval = const Duration(seconds: 60)}) {

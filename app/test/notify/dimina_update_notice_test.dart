@@ -1,6 +1,10 @@
-// 升级完成告知（契约 §6.4）：容器 `applied` 事件 → 一条瞬态告知。
-// 前台弹玻璃 Banner 数秒即收，后台走 NotifyChannel；**不进未读收件箱**。
+// 升级完成告知（契约 §6.4 修订，2026-11-12：升级告知也进收件箱）：
+// 服务端落上（POST /api/v1/notices 200）→ 立即拉一轮，走既有投递管线——
+// 前台正式 Banner、未读收件箱一条记录（templateId=system-upgrade）；
+// 服务端没落上（不可达/拒绝）→ 回落瞬态告知：前台玻璃 Banner 数秒即收，
+// 后台走 NotifyChannel（kind=update），不进收件箱。
 
+import 'package:dsh_app/notify/apphub_notices.dart' show AppHubNoticeService;
 import 'package:dsh_app/state/apphub_notices_state.dart';
 import 'package:dsh_app/notify/notify_channel.dart' show NotifySystemStatus;
 import 'package:dsh_app/state/notify_state.dart'
@@ -71,9 +75,26 @@ void main() {
     addTearDown(() => TestDefaultBinaryMessengerBinding
         .instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
     await DiminaHost.sync(appId: 'wxapp', name: '记账');
+    // 默认注入「服务端没落上」：这组用例主打回落行为；要测进收件箱的用例
+    // 自己把 reportUpgrade 换成 true。测试完还原生产实现。
+    final Future<bool> Function({
+      required String appId,
+      required String title,
+      required String body,
+      String? dedupeKey,
+    }) originalReport = AppHubNoticeService.reportUpgrade;
+    final Future<void> Function() originalPoll = AppHubNoticeService.pollNow;
+    AppHubNoticeService.reportUpgrade =
+        ({required String appId, required String title, required String body, String? dedupeKey}) async =>
+            false;
+    AppHubNoticeService.pollNow = () async {};
+    addTearDown(() {
+      AppHubNoticeService.reportUpgrade = originalReport;
+      AppHubNoticeService.pollNow = originalPoll;
+    });
   });
 
-  testWidgets('applied 事件（前台）：弹瞬态 Banner 且不进未读收件箱', (tester) async {
+  testWidgets('applied 事件（前台，服务端没落上）：回落瞬态 Banner 且不进未读收件箱', (tester) async {
     final channel = FakeNotifyChannel();
     final container = await pumpHost(tester, <Override>[
       appHubNoticesProvider.overrideWith(_EmptyNotices.new),
@@ -83,7 +104,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('「记账」已升级至 v1.2.3'), findsOneWidget);
-    expect(container.read(appHubNoticesProvider).notices, isEmpty, reason: '升级告知是过场信息，不进收件箱');
+    expect(container.read(appHubNoticesProvider).notices, isEmpty, reason: '回落告知不进收件箱');
     expect(container.read(appHubNoticesProvider).unread, 0);
     expect(channel.shown, isEmpty, reason: '前台只弹 Banner，不发系统通知');
 
@@ -93,7 +114,45 @@ void main() {
     expect(find.text('「记账」已升级至 v1.2.3'), findsNothing);
   });
 
-  testWidgets('applied 事件（后台）：走系统通知、kind=update、不进收件箱', (tester) async {
+  testWidgets('applied 事件（服务端落上）：进收件箱，走既有管线出正式 Banner', (tester) async {
+    final channel = FakeNotifyChannel();
+    final container = await pumpHost(tester, <Override>[
+      appHubNoticesProvider.overrideWith(_EmptyNotices.new),
+      notifyChannelProvider.overrideWithValue(channel),
+    ]);
+    // 服务端落库后的既有管线：轮询把新行 ingest 进收件箱并弹正式 Banner。
+    const MiniAppNotice row = MiniAppNotice(
+      id: 7,
+      appId: 'wxapp',
+      templateId: kHostUpgradeTemplateId,
+      title: '记账',
+      body: '「记账」已升级至 v1.2.3',
+    );
+    String? capturedKey;
+    AppHubNoticeService.reportUpgrade =
+        ({required String appId, required String title, required String body, String? dedupeKey}) async {
+          capturedKey = dedupeKey;
+          container.read(appHubNoticesProvider.notifier).ingest(<MiniAppNotice>[row], unread: 1);
+          container.read(appHubNoticesProvider.notifier).showBanner(row);
+          return true;
+        };
+    await _applied(versionCode: 31);
+    await tester.pumpAndSettle();
+
+    expect(capturedKey, 'upgrade-31', reason: 'dedupeKey 带版本，升级重试幂等');
+    expect(container.read(appHubNoticesProvider).unread, 1);
+    expect(container.read(appHubNoticesProvider).notices.single.templateId, kHostUpgradeTemplateId);
+    // 前台弹正式 Banner（title=应用名，不缀应用名后缀），系统通知没发。
+    expect(find.text('「记账」已升级至 v1.2.3'), findsOneWidget);
+    expect(channel.shown, isEmpty);
+    // Banner 到点收起，收件箱记录保留（与回落瞬态告知的关键差异）。
+    await tester.pump(const Duration(seconds: 13));
+    await tester.pumpAndSettle();
+    expect(find.text('「记账」已升级至 v1.2.3'), findsNothing);
+    expect(container.read(appHubNoticesProvider).notices, hasLength(1));
+  });
+
+  testWidgets('applied 事件（后台，服务端没落上）：回落系统通知、kind=update、不进收件箱', (tester) async {
     final channel = FakeNotifyChannel();
     final container = await pumpHost(tester, <Override>[
       appHubNoticesProvider.overrideWith(_EmptyNotices.new),

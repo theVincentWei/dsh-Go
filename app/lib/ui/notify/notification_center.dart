@@ -32,20 +32,23 @@ void consumeMiniAppNotices(WidgetRef ref, String appId) {
   unawaited(ref.read(notifyChannelProvider).cancelGroup('apphub|$appId'));
 }
 
-/// 点一条小程序通知：先回写已读，有 [MiniAppNotice.page] 就打开小程序页，
-/// 打开失败（或没有 page）落到通知中心（契约 §5.3 点击跳转兜底）。
+/// 点一条小程序通知：先回写已读，有 [MiniAppNotice.page] 就打开小程序页；
+/// 升级告知（§6.4 修订）没有 page，点了进小程序首页——升级已生效，开门见
+/// 新版；打开失败（或都没有）落到通知中心（契约 §5.3 点击跳转兜底）。
 Future<void> openMiniAppNotice(BuildContext context, WidgetRef ref, MiniAppNotice notice) async {
   final AppHubNoticesController notices = ref.read(appHubNoticesProvider.notifier);
   notices.dismissBanner(notice);
   // 点击后回写已读是客户端职责（契约 §9.3）：不等它，也不让失败挡住跳转。
   unawaited(notices.markRead(<int>[notice.id]));
-  if (notice.page case final String page when page.isNotEmpty) {
-    if (await _openMiniAppPage(ref, notice)) {
+  final bool hasPage = notice.page != null && notice.page!.isNotEmpty;
+  final bool isUpgrade = notice.templateId == kHostUpgradeTemplateId;
+  if (hasPage || isUpgrade) {
+    if (await _openMiniAppPage(ref, notice, home: !hasPage)) {
       // 打开成功 = 整个 app 的未读都消费掉（刚才那条已单独报过，幂等）。
       consumeMiniAppNotices(ref, notice.appId);
       return;
     }
-    if (context.mounted) {
+    if (hasPage && context.mounted) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(content: Text(context.l10n.notifyCenterOpenFailed)),
       );
@@ -67,13 +70,14 @@ Future<void> openMiniAppNoticeTap(BuildContext context, WidgetRef ref, {required
   await Navigator.of(context, rootNavigator: true).push(NotificationCenterPage.route());
 }
 
-Future<bool> _openMiniAppPage(WidgetRef ref, MiniAppNotice notice) async {
+Future<bool> _openMiniAppPage(WidgetRef ref, MiniAppNotice notice, {bool home = false}) async {
   try {
     final Map<String, String> names = await ref.read(appHubAppNamesProvider.future);
     return await DiminaHost.open(
       appId: notice.appId,
       name: names[notice.appId] ?? notice.appId,
-      path: notice.page,
+      // home = 升级告知点击：不带 page，直接进容器首页（升级已生效）。
+      path: home ? null : notice.page,
       // 固定端口反代（与桌面/市场同款）：未装 = 首装，已装 = 后台拉新包。
       updateManifestUrl: '$appHubProxyBase/apps/${notice.appId}/manifest.json',
     );
@@ -245,12 +249,13 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
     );
   }
 
-  /// 在通知中心里点一条：有 page 才跳小程序页；没有就只是读掉（不再往栈上
-  /// 叠一个通知中心）。
+  /// 在通知中心里点一条：有 page 跳小程序页；升级告知（§6.4 修订）没有
+  /// page 也进小程序首页；都没有就只是读掉（不再往栈上叠一个通知中心）。
   Future<void> _openRow(BuildContext context, WidgetRef ref, MiniAppNotice notice) async {
     final AppHubNoticesController notices = ref.read(appHubNoticesProvider.notifier);
     notices.dismissBanner(notice);
-    if (notice.page case final String page when page.isNotEmpty) {
+    final bool hasPage = notice.page != null && notice.page!.isNotEmpty;
+    if (hasPage || notice.templateId == kHostUpgradeTemplateId) {
       await openMiniAppNotice(context, ref, notice);
       return;
     }
