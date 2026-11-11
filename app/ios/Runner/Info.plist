@@ -183,5 +183,9 @@
 	<string>Picks images to send to DSH as attachments.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Saves generated images to your photo library.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
