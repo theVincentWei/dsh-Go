@@ -155,5 +155,12 @@
   "apphubInfoVersion": "版本",
   "apphubInfoUpdated": "更新日期",
   "apphubInfoDeveloper": "开发者",
-  "apphubInfoLanguage": "语言"
+  "apphubInfoLanguage": "语言",
+  "catalogCurrentChat": "当前对话",
+  "catalogPlanGoal": "计划与目标",
+  "catalogPlanGoalSummary": "目标、计划与待办",
+  "catalogSubagents": "子代理",
+  "catalogSubagentsSummary": "谱系与状态，点开接着聊",
+  "catalogReference": "引用文件和对话",
+  "catalogReferenceSummary": "在输入框用 @ 引用"
 }

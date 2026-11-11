@@ -606,11 +606,11 @@ void main() {
       expect(container.read(activeHostProvider), HostRef.ssh(sampleSsh.id));
     });
 
-    testWidgets('聊天 tab: the empty list offers the install', (tester) async {
+    testWidgets('drawer: the empty list offers the install', (tester) async {
       usePhoneSurface(tester);
       await tester.pumpWidget(
         goldenApp(
-          home: HomeShell(chatBuilder: const SizedBox.expand()),
+          home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
           brightness: Brightness.light,
           overrides: [
             localRuntimeProvider.overrideWith(

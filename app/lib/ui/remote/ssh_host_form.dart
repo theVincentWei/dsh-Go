@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../remote/ssh/ssh_link.dart';
-import '../../remote/ssh/ssh_tunnel.dart';
 import '../../state/android_features.dart';
 import '../../state/attachments.dart';
 import '../../state/connection_state.dart';
@@ -255,7 +254,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
           });
         }
       },
-      tunnel: ref.read(sshTunnelFactoryProvider)(),
+      transportFactory: ref.read(sshTransportFactoryProvider),
       retryFirstOpen: false,
     );
     _test = link;

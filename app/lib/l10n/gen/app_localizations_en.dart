@@ -24,8 +24,7 @@ class L10nEn extends L10n {
       'Once authorized, accessibility will be turned back on if disabled in system settings. To stop phone control, turn it off in DSH Go.';
 
   @override
-  String get a11yRestoreForceStop =>
-      'After a force stop, reopen DSH Go to restore the service.';
+  String get a11yRestoreForceStop => 'After a force stop, reopen DSH Go to restore the service.';
 
   @override
   String get a11yRestoreGrant => 'Authorize and enable';
@@ -34,15 +33,13 @@ class L10nEn extends L10n {
   String get a11yRestoreGrantShizuku => 'Grant with Shizuku';
 
   @override
-  String get a11yRestoreGrantShizukuPermission =>
-      'Authorize Shizuku, then grant';
+  String get a11yRestoreGrantShizukuPermission => 'Authorize Shizuku, then grant';
 
   @override
   String get a11yRestoreGrantAdb => 'Grant with Direct ADB';
 
   @override
-  String get a11yRestoreRootNote =>
-      'Uses the authorized root connection to grant only this permission.';
+  String get a11yRestoreRootNote => 'Uses the authorized root connection to grant only this permission.';
 
   @override
   String get a11yRestoreSetup => 'Set up Shizuku or wireless debugging';
@@ -96,8 +93,7 @@ class L10nEn extends L10n {
   String get accessFeatureBackground => 'Keep running in background';
 
   @override
-  String get accessFeatureBackgroundNeeds =>
-      'Tells you when tasks finish; needs notifications and background access';
+  String get accessFeatureBackgroundNeeds => 'Tells you when tasks finish; needs notifications and background access';
 
   @override
   String get accessFeatureVoice => 'Voice input';
@@ -117,12 +113,10 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get accessVoiceMetered =>
-      'You\'re on mobile data; the download will use it';
+  String get accessVoiceMetered => 'You\'re on mobile data; the download will use it';
 
   @override
-  String get accessFilesRiskBody =>
-      'AI can read and change your photos, downloads and documents.';
+  String get accessFilesRiskBody => 'AI can read and change your photos, downloads and documents.';
 
   @override
   String accessStepCount(int index, int total) {
@@ -168,8 +162,7 @@ class L10nEn extends L10n {
   String get accessStorageTitle => 'Allow file access';
 
   @override
-  String get accessStorageWhy =>
-      'Lets AI read and write photos, downloads and documents';
+  String get accessStorageWhy => 'Lets AI read and write photos, downloads and documents';
 
   @override
   String get accessNotifyTitle => 'Allow notifications';
@@ -184,15 +177,13 @@ class L10nEn extends L10n {
   String get accessBatteryWhy => 'Tasks keep going when you switch apps';
 
   @override
-  String get accessVendorBackgroundWhy =>
-      'Keeps the system from cutting tasks off in the background';
+  String get accessVendorBackgroundWhy => 'Keeps the system from cutting tasks off in the background';
 
   @override
   String get accessAutostartTitle => 'Allow auto-start';
 
   @override
-  String get accessAutostartWhy =>
-      'Lets DSH Go come back after the system clears it';
+  String get accessAutostartWhy => 'Lets DSH Go come back after the system clears it';
 
   @override
   String accessVivoAutostartPath(String app) {
@@ -208,15 +199,13 @@ class L10nEn extends L10n {
   String get accessA11yTitle => 'Turn on accessibility';
 
   @override
-  String get accessA11yWhy =>
-      'Phone control reads the screen and taps through it';
+  String get accessA11yWhy => 'Phone control reads the screen and taps through it';
 
   @override
   String get accessPopupTitle => 'Allow pop-ups in background';
 
   @override
-  String get accessPopupWhy =>
-      'Brings you back to DSH Go when phone control is done';
+  String get accessPopupWhy => 'Brings you back to DSH Go when phone control is done';
 
   @override
   String accessVivoPopupPath(String app) {
@@ -253,8 +242,7 @@ class L10nEn extends L10n {
       'In App info, open “Advanced settings” and turn on “Allow restricted settings”';
 
   @override
-  String get accessRestrictedBack =>
-      'Back in Accessibility, turn on “DSH Phone Control”';
+  String get accessRestrictedBack => 'Back in Accessibility, turn on “DSH Phone Control”';
 
   @override
   String get accessRestrictedHelp => 'See how';
@@ -282,18 +270,12 @@ class L10nEn extends L10n {
 
   @override
   String accessSummaryLeft(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count still off',
-      one: '1 still off',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count still off', one: '1 still off');
     return '$_temp0';
   }
 
   @override
-  String get accessSummaryMessage =>
-      'Turn on the rest anytime in Settings › General › System permissions';
+  String get accessSummaryMessage => 'Turn on the rest anytime in Settings › General › System permissions';
 
   @override
   String get accessFinishFailed => 'Couldn’t finish setup';
@@ -1316,8 +1298,7 @@ class L10nEn extends L10n {
   String get activityUsageCumulativeInput => 'Total input';
 
   @override
-  String get activityUsageContextFull =>
-      'Context nearly full. Send /compact to compact it';
+  String get activityUsageContextFull => 'Context nearly full. Send /compact to compact it';
 
   @override
   String get activitySpanZero => '0 sec';
@@ -1357,12 +1338,7 @@ class L10nEn extends L10n {
 
   @override
   String activityUsageTurns(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count turns total',
-      one: '1 turn total',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count turns total', one: '1 turn total');
     return '$_temp0';
   }
 
@@ -1395,12 +1371,7 @@ class L10nEn extends L10n {
 
   @override
   String activitySummaryReadFiles(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Read $count files',
-      one: 'Read 1 file',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Read $count files', one: 'Read 1 file');
     return '$_temp0';
   }
 
@@ -1450,12 +1421,7 @@ class L10nEn extends L10n {
 
   @override
   String activitySummaryTotal(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Used $count tools',
-      one: 'Used 1 tool',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Used $count tools', one: 'Used 1 tool');
     return '$_temp0';
   }
 
@@ -1470,11 +1436,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String activityTraceSpanSemantics(
-    String title,
-    String detail,
-    String duration,
-  ) {
+  String activityTraceSpanSemantics(String title, String detail, String duration) {
     return '$title $detail, duration $duration';
   }
 
@@ -1505,12 +1467,7 @@ class L10nEn extends L10n {
 
   @override
   String activityStepRetryCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count times',
-      one: '1 time',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count times', one: '1 time');
     return '$_temp0';
   }
 
@@ -1593,12 +1550,7 @@ class L10nEn extends L10n {
 
   @override
   String activityRunningItems(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'among $count items',
-      one: 'among 1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'among $count items', one: 'among 1 item');
     return '$_temp0';
   }
 
@@ -1609,23 +1561,13 @@ class L10nEn extends L10n {
 
   @override
   String activityDiffFileCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count files',
-      one: '1 file',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count files', one: '1 file');
     return '$_temp0';
   }
 
   @override
   String activityDiffFileSemantics(String path, int added, int removed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      added,
-      locale: localeName,
-      other: '$added lines added',
-      one: '1 line added',
-    );
+    String _temp0 = intl.Intl.pluralLogic(added, locale: localeName, other: '$added lines added', one: '1 line added');
     String _temp1 = intl.Intl.pluralLogic(
       removed,
       locale: localeName,
@@ -1709,12 +1651,7 @@ class L10nEn extends L10n {
 
   @override
   String botsFolderCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count folders',
-      one: '1 folder',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count folders', one: '1 folder');
     return '$_temp0';
   }
 
@@ -1734,8 +1671,7 @@ class L10nEn extends L10n {
   String get botsFolderCurrent => 'Current directory';
 
   @override
-  String get botsFolderUnavailable =>
-      'The connection or folder changed. Reopen to continue.';
+  String get botsFolderUnavailable => 'The connection or folder changed. Reopen to continue.';
 
   @override
   String get botsFolderNoChoices => 'No other folders on the host.';
@@ -1763,34 +1699,19 @@ class L10nEn extends L10n {
 
   @override
   String botsSubagentCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count subagents',
-      one: '1 subagent',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count subagents', one: '1 subagent');
     return '$_temp0';
   }
 
   @override
   String botsRunningCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count running',
-      one: '1 running',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count running', one: '1 running');
     return '$_temp0';
   }
 
   @override
   String botsFailedCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count failed',
-      one: '1 failed',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count failed', one: '1 failed');
     return '$_temp0';
   }
 
@@ -1826,18 +1747,8 @@ class L10nEn extends L10n {
 
   @override
   String botsSubagentRunningCount(int count, int running) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count subagents',
-      one: '1 subagent',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      running,
-      locale: localeName,
-      other: '$running running',
-      one: '1 running',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count subagents', one: '1 subagent');
+    String _temp1 = intl.Intl.pluralLogic(running, locale: localeName, other: '$running running', one: '1 running');
     return '$_temp0, $_temp1';
   }
 
@@ -1860,8 +1771,7 @@ class L10nEn extends L10n {
   String get botsTeamNotEnabled => 'Agent team is off';
 
   @override
-  String get botsTeamDescription =>
-      'Agents work together on a shared task board';
+  String get botsTeamDescription => 'Agents work together on a shared task board';
 
   @override
   String get botsTeamEnabling => 'Turning on…';
@@ -1943,8 +1853,7 @@ class L10nEn extends L10n {
   String get botsNoMemberMessages => 'No messages between members yet';
 
   @override
-  String get botsMessagesIncomplete =>
-      'Some members’ messages didn’t load · Retry';
+  String get botsMessagesIncomplete => 'Some members’ messages didn’t load · Retry';
 
   @override
   String botsDateTime(String date, String time) {
@@ -2027,8 +1936,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get botsDeleteBotBody =>
-      'Its chats stay. Its memories move to the archive.';
+  String get botsDeleteBotBody => 'Its chats stay. Its memories move to the archive.';
 
   @override
   String get botsTokensToday => '24h tokens';
@@ -2067,8 +1975,7 @@ class L10nEn extends L10n {
   String get botsUsage => 'Usage';
 
   @override
-  String get botsUsageScanning =>
-      'Still counting older chats. Totals will fill in.';
+  String get botsUsageScanning => 'Still counting older chats. Totals will fill in.';
 
   @override
   String get botsUsageRefresh => 'Refresh';
@@ -2292,23 +2199,13 @@ class L10nEn extends L10n {
 
   @override
   String botsBotCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count bots',
-      one: '1 bot',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count bots', one: '1 bot');
     return '$_temp0';
   }
 
   @override
   String botsRoomCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count group chats',
-      one: '1 group chat',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count group chats', one: '1 group chat');
     return '$_temp0';
   }
 
@@ -2322,8 +2219,7 @@ class L10nEn extends L10n {
   String get botsNewGroup => 'New group';
 
   @override
-  String get botsDuplicateCreated =>
-      'Copied. It will show up in the list shortly.';
+  String get botsDuplicateCreated => 'Copied. It will show up in the list shortly.';
 
   @override
   String get botsDuplicate => 'Duplicate Bot';
@@ -2348,12 +2244,7 @@ class L10nEn extends L10n {
 
   @override
   String botsUnreadCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count unread',
-      one: '1 unread',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count unread', one: '1 unread');
     return '$_temp0';
   }
 
@@ -2375,12 +2266,7 @@ class L10nEn extends L10n {
 
   @override
   String botsMemberCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count members',
-      one: '1 member',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count members', one: '1 member');
     return '$_temp0';
   }
 
@@ -2394,8 +2280,7 @@ class L10nEn extends L10n {
   String get botsUpdateForPhone => 'Update to use it on your phone';
 
   @override
-  String get botsInstallDescription =>
-      'Always-on bots, each with its own memory and role';
+  String get botsInstallDescription => 'Always-on bots, each with its own memory and role';
 
   @override
   String botsInstallOnHost(String host) {
@@ -2427,12 +2312,7 @@ class L10nEn extends L10n {
 
   @override
   String botsMemoryCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Memory · $count',
-      one: 'Memory · 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Memory · $count', one: 'Memory · 1');
     return '$_temp0';
   }
 
@@ -2461,8 +2341,7 @@ class L10nEn extends L10n {
   String get botsRoleHint => 'What it does, in one sentence';
 
   @override
-  String get botsNewInstructionsHint =>
-      'How it should work and what to keep in mind';
+  String get botsNewInstructionsHint => 'How it should work and what to keep in mind';
 
   @override
   String get botsAppearance => 'Appearance';
@@ -2496,8 +2375,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get botsTextCompletenessUnknown =>
-      'Couldn’t confirm this is the complete text';
+  String get botsTextCompletenessUnknown => 'Couldn’t confirm this is the complete text';
 
   @override
   String get botsRoomGone => 'This group chat is gone';
@@ -2540,8 +2418,7 @@ class L10nEn extends L10n {
   String get botsRemoveMember => 'Remove from group';
 
   @override
-  String get botsDeleteRoomBody =>
-      'The group’s records stay. Its memories move to the archive.';
+  String get botsDeleteRoomBody => 'The group’s records stay. Its memories move to the archive.';
 
   @override
   String botsNamedAdmin(String name) {
@@ -2550,23 +2427,13 @@ class L10nEn extends L10n {
 
   @override
   String botsRoomWorkingCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count working',
-      one: '1 working',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count working', one: '1 working');
     return '$_temp0';
   }
 
   @override
   String botsMembersCountTitle(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Members · $count',
-      one: 'Members · 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Members · $count', one: 'Members · 1');
     return '$_temp0';
   }
 
@@ -2771,8 +2638,7 @@ class L10nEn extends L10n {
   String get botsChatNotFound => 'Chat not found';
 
   @override
-  String get botsBrowseUnsupported =>
-      'This connection doesn’t support file browsing';
+  String get botsBrowseUnsupported => 'This connection doesn’t support file browsing';
 
   @override
   String get botsWorkspace => 'Workspace';
@@ -2788,12 +2654,7 @@ class L10nEn extends L10n {
 
   @override
   String botsFileCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count files',
-      one: '1 file',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count files', one: '1 file');
     return '$_temp0';
   }
 
@@ -2939,12 +2800,10 @@ class L10nEn extends L10n {
   String get botsTerminalCloseBody => 'Processes inside will end';
 
   @override
-  String get botsTerminalUnsupported =>
-      'Terminal isn’t available on this connection';
+  String get botsTerminalUnsupported => 'Terminal isn’t available on this connection';
 
   @override
-  String get botsTerminalSupportedHosts =>
-      'Available on this phone or an SSH host';
+  String get botsTerminalSupportedHosts => 'Available on this phone or an SSH host';
 
   @override
   String get botsTerminalOpening => 'Opening terminal…';
@@ -3153,8 +3012,7 @@ class L10nEn extends L10n {
   String get botsRelayLimitRestore => 'Restore default';
 
   @override
-  String get botsRelayLimitConnectionChanged =>
-      'The connection changed. Close this sheet and open it again.';
+  String get botsRelayLimitConnectionChanged => 'The connection changed. Close this sheet and open it again.';
 
   @override
   String get botsMobileUnsupportedTitle => 'DS Bot isn\'t on mobile yet';
@@ -3163,12 +3021,10 @@ class L10nEn extends L10n {
   String get botsMobileApiRequired => 'Use it in DSH Web for now';
 
   @override
-  String get botsMobileApiMissing =>
-      'Not on mobile yet. Use it in DSH Web for now';
+  String get botsMobileApiMissing => 'Not on mobile yet. Use it in DSH Web for now';
 
   @override
-  String get botsCreationConnectionChanged =>
-      'The connection changed. Reopen this form to create on the current host.';
+  String get botsCreationConnectionChanged => 'The connection changed. Reopen this form to create on the current host.';
 
   @override
   String get brandXiaomi => 'Xiaomi / Redmi';
@@ -3324,8 +3180,7 @@ class L10nEn extends L10n {
   String get catalogCotTranslation => 'Translate thinking';
 
   @override
-  String get catalogCotTranslationSummary =>
-      'Expand thinking, then tap “Translate”';
+  String get catalogCotTranslationSummary => 'Expand thinking, then tap “Translate”';
 
   @override
   String get catalogVoiceInput => 'Voice input';
@@ -3498,12 +3353,7 @@ class L10nEn extends L10n {
 
   @override
   String catalogCordisVersionCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count versions',
-      one: '1 version',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count versions', one: '1 version');
     return '$_temp0';
   }
 
@@ -3517,16 +3367,13 @@ class L10nEn extends L10n {
   String get diagnosticsForAi => 'Let the AI read diagnostics';
 
   @override
-  String get diagnosticsForAiHint =>
-      'Write the snapshot where the engine can read it';
+  String get diagnosticsForAiHint => 'Write the snapshot where the engine can read it';
 
   @override
-  String get diagnosticsForAiDone =>
-      'Written — ask the AI to \"check the diagnostics\"';
+  String get diagnosticsForAiDone => 'Written — ask the AI to \"check the diagnostics\"';
 
   @override
-  String get diagnosticsForAiFailed =>
-      'Not written: the local runtime is not installed';
+  String get diagnosticsForAiFailed => 'Not written: the local runtime is not installed';
 
   @override
   String get catalogAppHubSection => 'AppHub apps';
@@ -3559,16 +3406,14 @@ class L10nEn extends L10n {
   String get apphubUninstall => 'Uninstall';
 
   @override
-  String get apphubUninstallBody =>
-      'Removes the on-device package and local data; the engine-side database is kept.';
+  String get apphubUninstallBody => 'Removes the on-device package and local data; the engine-side database is kept.';
 
   @override
   String get apphubUninstallWholeBody =>
       'This removes the mini program and stops its service on the host; host data is kept and restored on reinstall.';
 
   @override
-  String get apphubUninstallPurge =>
-      'Also wipe host data (ledgers etc. cannot be recovered)';
+  String get apphubUninstallPurge => 'Also wipe host data (ledgers etc. cannot be recovered)';
 
   @override
   String get apphubUninstallHostFailed =>
@@ -3614,8 +3459,7 @@ class L10nEn extends L10n {
   String get apphubPrivacyNone => 'No Data Collected';
 
   @override
-  String get apphubPrivacyNoneBody =>
-      'The developer says this mini program does not collect any of your data.';
+  String get apphubPrivacyNoneBody => 'The developer says this mini program does not collect any of your data.';
 
   @override
   String get apphubInfoCategory => 'Category';
@@ -3637,6 +3481,27 @@ class L10nEn extends L10n {
 
   @override
   String get apphubInfoLanguage => 'Language';
+
+  @override
+  String get catalogCurrentChat => 'Current chat';
+
+  @override
+  String get catalogPlanGoal => 'Plan and goal';
+
+  @override
+  String get catalogPlanGoalSummary => 'Goals, plans and to-dos';
+
+  @override
+  String get catalogSubagents => 'Subagents';
+
+  @override
+  String get catalogSubagentsSummary => 'Lineage and status; tap to chat';
+
+  @override
+  String get catalogReference => 'Reference files and chats';
+
+  @override
+  String get catalogReferenceSummary => 'Use @ in the composer';
 
   @override
   String get chatBackgroundTaskNotice => 'Background task notice';
@@ -3697,8 +3562,7 @@ class L10nEn extends L10n {
   String get chatContinuedInNewChat => 'Continued in a new chat';
 
   @override
-  String get chatReadOriginalImageFailed =>
-      'Couldn’t read the original image. Try again.';
+  String get chatReadOriginalImageFailed => 'Couldn’t read the original image. Try again.';
 
   @override
   String get chatRegenerateFailed => 'Couldn’t regenerate';
@@ -3707,8 +3571,7 @@ class L10nEn extends L10n {
   String get chatRegeneratedInNewChat => 'Regenerated in a new chat';
 
   @override
-  String get chatOpenedInNewChatReattach =>
-      'Opened in a new chat. Add attachments again.';
+  String get chatOpenedInNewChatReattach => 'Opened in a new chat. Add attachments again.';
 
   @override
   String get chatOpenedInNewChat => 'Opened in a new chat';
@@ -3794,8 +3657,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get chatAttachmentPermission =>
-      'Permission denied. Turn it on in system settings.';
+  String get chatAttachmentPermission => 'Permission denied. Turn it on in system settings.';
 
   @override
   String get chatOpenAttachmentFailed => 'Couldn’t open attachment';
@@ -3988,56 +3850,31 @@ class L10nEn extends L10n {
 
   @override
   String chatMentionAgeMinutes(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count min',
-      one: '1 min',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count min', one: '1 min');
     return '$_temp0';
   }
 
   @override
   String chatMentionAgeHours(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count h',
-      one: '1 h',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count h', one: '1 h');
     return '$_temp0';
   }
 
   @override
   String chatMentionAgeDays(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count days',
-      one: '1 day',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count days', one: '1 day');
     return '$_temp0';
   }
 
   @override
   String chatMentionAgeMonths(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count months',
-      one: '1 month',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count months', one: '1 month');
     return '$_temp0';
   }
 
   @override
   String chatMentionAgeYears(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count years',
-      one: '1 year',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count years', one: '1 year');
     return '$_temp0';
   }
 
@@ -4120,23 +3957,19 @@ class L10nEn extends L10n {
   String get chatVoicePermissionNeeded => 'Voice input needs microphone access';
 
   @override
-  String get chatVoiceUnavailable =>
-      'Speech recognition isn’t available on this phone';
+  String get chatVoiceUnavailable => 'Speech recognition isn’t available on this phone';
 
   @override
   String get chatVoiceNotHeard => 'Didn’t catch that. Try again.';
 
   @override
-  String get chatVoiceTranscriptionFailed =>
-      'Couldn’t transcribe this recording';
+  String get chatVoiceTranscriptionFailed => 'Couldn’t transcribe this recording';
 
   @override
-  String get chatVoiceNetworkFailed =>
-      'Couldn’t transcribe. Check your connection.';
+  String get chatVoiceNetworkFailed => 'Couldn’t transcribe. Check your connection.';
 
   @override
-  String get chatVoiceLanguageUnsupported =>
-      'This language isn’t supported yet';
+  String get chatVoiceLanguageUnsupported => 'This language isn’t supported yet';
 
   @override
   String get chatVoiceMicrophoneBusy => 'Microphone is in use';
@@ -4263,12 +4096,7 @@ class L10nEn extends L10n {
 
   @override
   String chatAllFiles(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'All $count files',
-      one: '1 file in total',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'All $count files', one: '1 file in total');
     return '$_temp0';
   }
 
@@ -4310,8 +4138,7 @@ class L10nEn extends L10n {
   String get chatAlreadyInDownloads => 'Already in Downloads on this phone';
 
   @override
-  String get chatArtifactCopyPathOnly =>
-      'This connection can’t read files. You can copy the path.';
+  String get chatArtifactCopyPathOnly => 'This connection can’t read files. You can copy the path.';
 
   @override
   String get chatReplying => 'Replying';
@@ -4366,23 +4193,13 @@ class L10nEn extends L10n {
 
   @override
   String chatMoreFiles(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count more files',
-      one: '1 more file',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count more files', one: '1 more file');
     return '$_temp0';
   }
 
   @override
   String chatFileChangeSemantics(String path, int added, int removed) {
-    String _temp0 = intl.Intl.pluralLogic(
-      added,
-      locale: localeName,
-      other: '$added lines added',
-      one: '1 line added',
-    );
+    String _temp0 = intl.Intl.pluralLogic(added, locale: localeName, other: '$added lines added', one: '1 line added');
     String _temp1 = intl.Intl.pluralLogic(
       removed,
       locale: localeName,
@@ -4450,8 +4267,7 @@ class L10nEn extends L10n {
   String get chatCommandCompactionFailed => 'Couldn’t compact. Try again.';
 
   @override
-  String get chatCommandCompactionIncomplete =>
-      'Compaction incomplete. Check the chat.';
+  String get chatCommandCompactionIncomplete => 'Compaction incomplete. Check the chat.';
 
   @override
   String get chatCommandPlanEnabled => 'Plan mode on';
@@ -4472,8 +4288,7 @@ class L10nEn extends L10n {
   String get chatCommandPlanInactive => 'Plan mode is off';
 
   @override
-  String get chatCommandPlanNoAttachments =>
-      'Can’t attach files when leaving plan mode';
+  String get chatCommandPlanNoAttachments => 'Can’t attach files when leaving plan mode';
 
   @override
   String get chatCommandNoGoal => 'No goal yet';
@@ -4512,13 +4327,7 @@ class L10nEn extends L10n {
   String get chatCommandGoalBlocked => 'Needs attention';
 
   @override
-  String chatCommandGoalSummary(
-    String title,
-    String objective,
-    String status,
-    int rounds,
-    int max,
-  ) {
+  String chatCommandGoalSummary(String title, String objective, String status, int rounds, int max) {
     return '$title\n$objective\n$status · Round $rounds/$max';
   }
 
@@ -4559,16 +4368,13 @@ class L10nEn extends L10n {
   String get chatEditAndResend => 'Edit and resend';
 
   @override
-  String get chatRegenerateHint =>
-      'Regenerate in a new chat. The original stays as is.';
+  String get chatRegenerateHint => 'Regenerate in a new chat. The original stays as is.';
 
   @override
-  String get chatBranchHint =>
-      'Continue in a new chat. The original stays as is.';
+  String get chatBranchHint => 'Continue in a new chat. The original stays as is.';
 
   @override
-  String get chatEditResendHint =>
-      'Rewrite in a new chat. The original stays as is.';
+  String get chatEditResendHint => 'Rewrite in a new chat. The original stays as is.';
 
   @override
   String get chatSaveToPhotos => 'Save to Photos';
@@ -4613,8 +4419,7 @@ class L10nEn extends L10n {
   String get chatTurnBlocked => 'This turn was blocked';
 
   @override
-  String get chatTurnEngineRestarted =>
-      'The engine restarted, interrupting this turn';
+  String get chatTurnEngineRestarted => 'The engine restarted, interrupting this turn';
 
   @override
   String get chatSignInAgain => 'Sign in again';
@@ -4739,8 +4544,7 @@ class L10nEn extends L10n {
   String get chatErrRateLimit => 'Too many requests. Try again later.';
 
   @override
-  String get chatErrContextLength =>
-      'Chat too long. Send /compact, then try again.';
+  String get chatErrContextLength => 'Chat too long. Send /compact, then try again.';
 
   @override
   String get chatErrModelUnavailable => 'Model service temporarily unavailable';
@@ -4768,12 +4572,7 @@ class L10nEn extends L10n {
 
   @override
   String chatTurnSteps(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count steps',
-      one: '1 step',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count steps', one: '1 step');
     return '$_temp0';
   }
 
@@ -4784,23 +4583,13 @@ class L10nEn extends L10n {
 
   @override
   String chatTurnToolCalls(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tool calls',
-      one: '1 tool call',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count tool calls', one: '1 tool call');
     return '$_temp0';
   }
 
   @override
   String chatTurnMessages(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count messages',
-      one: '1 message',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count messages', one: '1 message');
     return '$_temp0';
   }
 
@@ -4858,8 +4647,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get chatDownloadSheetHint =>
-      'Tap an entry to open its chat · resumes from the breakpoint';
+  String get chatDownloadSheetHint => 'Tap an entry to open its chat · resumes from the breakpoint';
 
   @override
   String get commonCancel => 'Cancel';
@@ -5091,12 +4879,7 @@ class L10nEn extends L10n {
 
   @override
   String commonItemCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items',
-      one: '1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count items', one: '1 item');
     return '$_temp0';
   }
 
@@ -5147,15 +4930,13 @@ class L10nEn extends L10n {
   String get companionSend => 'Send';
 
   @override
-  String get companionNotConnected =>
-      'I can\'t reach the engine right now. Tell me again in a bit?';
+  String get companionNotConnected => 'I can\'t reach the engine right now. Tell me again in a bit?';
 
   @override
   String get companionSendFailed => 'That didn\'t get through. Say it again?';
 
   @override
-  String get companionNeedsAttention =>
-      'Something needs your confirmation. Tap to see it';
+  String get companionNeedsAttention => 'Something needs your confirmation. Tap to see it';
 
   @override
   String get companionMenuHistory => 'View chat history';
@@ -5201,31 +4982,26 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get companionPackBroken =>
-      'This file can\'t be opened. It may not be an asset pack, or it may be damaged.';
+  String get companionPackBroken => 'This file can\'t be opened. It may not be an asset pack, or it may be damaged.';
 
   @override
-  String get companionPackRuntimeMismatch =>
-      'The runtime in this pack doesn\'t match this version of the app.';
+  String get companionPackRuntimeMismatch => 'The runtime in this pack doesn\'t match this version of the app.';
 
   @override
   String get companionPackNoRuntime =>
       'This pack only has a character and there\'s no runtime on this phone yet. Import a full asset pack first.';
 
   @override
-  String get companionPackNoModel =>
-      'No Live2D model (.model3.json) found in the pack.';
+  String get companionPackNoModel => 'No Live2D model (.model3.json) found in the pack.';
 
   @override
-  String get companionPackUnsafe =>
-      'The pack has files or paths that aren\'t allowed, so it wasn\'t imported.';
+  String get companionPackUnsafe => 'The pack has files or paths that aren\'t allowed, so it wasn\'t imported.';
 
   @override
   String get companionPackTooLarge => 'This asset pack is too large.';
 
   @override
-  String get companionPackStorage =>
-      'Couldn\'t write the files. Check your phone\'s free storage.';
+  String get companionPackStorage => 'Couldn\'t write the files. Check your phone\'s free storage.';
 
   @override
   String companionGreetFirst(String name) {
@@ -5239,8 +5015,7 @@ class L10nEn extends L10n {
   String get companionGreetNoon => 'It\'s noon already. Have you eaten?';
 
   @override
-  String get companionGreetAfternoon =>
-      'Good afternoon. I was just daydreaming.';
+  String get companionGreetAfternoon => 'Good afternoon. I was just daydreaming.';
 
   @override
   String get companionGreetEvening => 'Good evening. How was your day?';
@@ -5249,8 +5024,7 @@ class L10nEn extends L10n {
   String get companionGreetLate => 'Still up this late?';
 
   @override
-  String get companionGreetLong =>
-      'It\'s been a while! I thought you\'d forgotten me.';
+  String get companionGreetLong => 'It\'s been a while! I thought you\'d forgotten me.';
 
   @override
   String get companionGreetBack => 'Hm? Back again.';
@@ -5343,8 +5117,7 @@ class L10nEn extends L10n {
   String get companionArriving => 'She\'s swimming over…';
 
   @override
-  String get companionPrivacyLine =>
-      'Assets stay on this phone. Chats go through the current host.';
+  String get companionPrivacyLine => 'Assets stay on this phone. Chats go through the current host.';
 
   @override
   String get companionMemoryTitle => 'What she remembers';
@@ -5364,8 +5137,7 @@ class L10nEn extends L10n {
   String get companionMemorySave => 'Save';
 
   @override
-  String get companionMemoryHint =>
-      'For example: I like unsweetened tea and don\'t drink coffee';
+  String get companionMemoryHint => 'For example: I like unsweetened tea and don\'t drink coffee';
 
   @override
   String get companionMemoryForget => 'Forget';
@@ -5381,8 +5153,7 @@ class L10nEn extends L10n {
       'Write down what you\'d like her to remember. It stays on the current host, and you can edit or delete it anytime.';
 
   @override
-  String get companionMemoryUnsupported =>
-      'This host can\'t keep her memories yet';
+  String get companionMemoryUnsupported => 'This host can\'t keep her memories yet';
 
   @override
   String get companionMemoryUnsupportedHint =>
@@ -5395,8 +5166,7 @@ class L10nEn extends L10n {
   String get companionMemoryRetry => 'Retry';
 
   @override
-  String get companionMemoryConflict =>
-      'It was just changed elsewhere, so it\'s been refreshed';
+  String get companionMemoryConflict => 'It was just changed elsewhere, so it\'s been refreshed';
 
   @override
   String get companionMemoryFull => 'The list is full. Delete some first';
@@ -5438,8 +5208,7 @@ class L10nEn extends L10n {
   String get companionRest2 => 'Go on, I\'m listening.';
 
   @override
-  String get companionTouchHintHome =>
-      'Tap the shell, the bubble and the cushion, or drag a snack to her mouth';
+  String get companionTouchHintHome => 'Tap the shell, the bubble and the cushion, or drag a snack to her mouth';
 
   @override
   String get companionMenuMode => 'How she talks';
@@ -5448,27 +5217,22 @@ class L10nEn extends L10n {
   String get companionModeLight => 'Light';
 
   @override
-  String get companionModeLightHint =>
-      'Chat only. The phone talks to the model; no engine';
+  String get companionModeLightHint => 'Chat only. The phone talks to the model; no engine';
 
   @override
   String get companionModeFull => 'Full';
 
   @override
-  String get companionModeFullHint =>
-      'DSH on the host, with tools and phone control';
+  String get companionModeFullHint => 'DSH on the host, with tools and phone control';
 
   @override
-  String get companionLightNoKey =>
-      'Light mode needs a DeepSeek API key. Add one in Settings and we can talk.';
+  String get companionLightNoKey => 'Light mode needs a DeepSeek API key. Add one in Settings and we can talk.';
 
   @override
-  String get companionLightBadKey =>
-      'The API key seems wrong, or it is no longer valid.';
+  String get companionLightBadKey => 'The API key seems wrong, or it is no longer valid.';
 
   @override
-  String get companionLightBusy =>
-      'It is busy over there. Tell me again in a bit?';
+  String get companionLightBusy => 'It is busy over there. Tell me again in a bit?';
 
   @override
   String get companionNotConnectedTryLight =>
@@ -5500,8 +5264,7 @@ class L10nEn extends L10n {
   String get companionMenuInvite => 'Invitations';
 
   @override
-  String get companionMenuInviteHint =>
-      'When you sit quietly with her, she may now and then ask you to rest together';
+  String get companionMenuInviteHint => 'When you sit quietly with her, she may now and then ask you to rest together';
 
   @override
   String get companionSetupBundled => 'Bring her home';
@@ -5570,8 +5333,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get companionTaskFailedUntitled =>
-      'Your task over there seems to have hit an error. Take a look?';
+  String get companionTaskFailedUntitled => 'Your task over there seems to have hit an error. Take a look?';
 
   @override
   String companionTaskApproval(String title) {
@@ -5579,8 +5341,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get companionTaskApprovalUntitled =>
-      'Something over there is waiting for your approval.';
+  String get companionTaskApprovalUntitled => 'Something over there is waiting for your approval.';
 
   @override
   String companionTaskQuestion(String title) {
@@ -5588,8 +5349,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get companionTaskQuestionUntitled =>
-      'There\'s a question waiting for you over there.';
+  String get companionTaskQuestionUntitled => 'There\'s a question waiting for you over there.';
 
   @override
   String get companionTaskOpen => 'Take a look';
@@ -5598,12 +5358,10 @@ class L10nEn extends L10n {
   String get companionMenuVoice => 'Her voice';
 
   @override
-  String get companionMenuVoiceHint =>
-      'Reads her words aloud with the phone\'s own voice';
+  String get companionMenuVoiceHint => 'Reads her words aloud with the phone\'s own voice';
 
   @override
-  String get companionVoiceHello =>
-      'Hi, this is my voice. Keep it on if you like it.';
+  String get companionVoiceHello => 'Hi, this is my voice. Keep it on if you like it.';
 
   @override
   String get companionVoiceUnavailable =>
@@ -5616,8 +5374,7 @@ class L10nEn extends L10n {
   String get companionVoiceOn => 'Let her speak';
 
   @override
-  String get companionVoiceOffHint =>
-      'When you turn it on, she says hello in the chosen voice first.';
+  String get companionVoiceOffHint => 'When you turn it on, she says hello in the chosen voice first.';
 
   @override
   String get companionVoiceOff => 'Off';
@@ -5642,8 +5399,7 @@ class L10nEn extends L10n {
   String get companionVoiceCustom => 'Custom HTTP';
 
   @override
-  String get companionVoiceCustomHint =>
-      'Anything else: describe the request and the reply';
+  String get companionVoiceCustomHint => 'Anything else: describe the request and the reply';
 
   @override
   String get companionVoiceApi => 'API';
@@ -5652,8 +5408,7 @@ class L10nEn extends L10n {
   String get companionVoiceBase => 'Address';
 
   @override
-  String get companionVoiceBaseHelper =>
-      'Up to /v1; the app adds /audio/speech';
+  String get companionVoiceBaseHelper => 'Up to /v1; the app adds /audio/speech';
 
   @override
   String get companionVoiceKeyHelper => 'Kept in this phone\'s secure storage';
@@ -5665,8 +5420,7 @@ class L10nEn extends L10n {
   String get companionVoiceVoice => 'Voice';
 
   @override
-  String get companionVoiceVoiceHelper =>
-      'The service\'s voice name, like alloy, or a speaker on your own server';
+  String get companionVoiceVoiceHelper => 'The service\'s voice name, like alloy, or a speaker on your own server';
 
   @override
   String get companionVoiceRequest => 'Request';
@@ -5684,8 +5438,7 @@ class L10nEn extends L10n {
   String get companionVoiceHeaders => 'Headers';
 
   @override
-  String get companionVoiceHeadersHelper =>
-      'One per line; kept in secure storage';
+  String get companionVoiceHeadersHelper => 'One per line; kept in secure storage';
 
   @override
   String get companionVoiceBody => 'Body';
@@ -5701,8 +5454,7 @@ class L10nEn extends L10n {
       'If the reply is JSON: where the audio is (base64 or a link), like data.audio. Leave empty when it returns audio';
 
   @override
-  String get companionVoicePrivacy =>
-      'What she says is sent to the service you enter.';
+  String get companionVoicePrivacy => 'What she says is sent to the service you enter.';
 
   @override
   String get companionVoicePreview => 'Preview';
@@ -5722,12 +5474,10 @@ class L10nEn extends L10n {
   String get companionVoiceNotSetUp => 'Fill in the address above first.';
 
   @override
-  String get companionVoiceFallback =>
-      'Couldn\'t reach her voice service, so the phone\'s own voice stood in';
+  String get companionVoiceFallback => 'Couldn\'t reach her voice service, so the phone\'s own voice stood in';
 
   @override
-  String get companionGreetFirstNameless =>
-      'Hi, I live here now. Nice to meet you.';
+  String get companionGreetFirstNameless => 'Hi, I live here now. Nice to meet you.';
 
   @override
   String companionRenamed(String name) {
@@ -5738,8 +5488,7 @@ class L10nEn extends L10n {
   String get companionVoicePreset => 'Popular services';
 
   @override
-  String get companionVoicePresetHint =>
-      'Xiaomi MiMo, OpenAI, SiliconFlow, Alibaba Model Studio: just add a key';
+  String get companionVoicePresetHint => 'Xiaomi MiMo, OpenAI, SiliconFlow, Alibaba Model Studio: just add a key';
 
   @override
   String get companionVoiceService => 'Service';
@@ -5750,8 +5499,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get companionVoiceVoiceCustomHelper =>
-      'Pick one, or type a voice ID the service gave you';
+  String get companionVoiceVoiceCustomHelper => 'Pick one, or type a voice ID the service gave you';
 
   @override
   String get companionVoiceStyle => 'Speaking style';
@@ -5802,8 +5550,7 @@ class L10nEn extends L10n {
   String get companionCloneReplace => 'Replace';
 
   @override
-  String get companionCloneTooLarge =>
-      'The recording is too large (7 MB at most). Trim it and try again.';
+  String get companionCloneTooLarge => 'The recording is too large (7 MB at most). Trim it and try again.';
 
   @override
   String get companionCloneNotAudio => 'Only mp3 or wav recordings work.';
@@ -5827,8 +5574,7 @@ class L10nEn extends L10n {
   String get companionPersonaCallMeHint => 'e.g. Sam';
 
   @override
-  String get companionPersonaCallMeHelper =>
-      'Leave empty for nothing in particular';
+  String get companionPersonaCallMeHelper => 'Leave empty for nothing in particular';
 
   @override
   String get companionPersonaText => 'Persona';
@@ -5868,8 +5614,7 @@ class L10nEn extends L10n {
       'This engine only supports remembering the last choice, not fixed defaults. It cannot confirm whether defaults were saved when switching models.';
 
   @override
-  String get engineNewChatDefaultsUnsupported =>
-      'This host has no editable default model settings';
+  String get engineNewChatDefaultsUnsupported => 'This host has no editable default model settings';
 
   @override
   String get engineNewChatDefaultsSelectionUnavailable =>
@@ -5909,8 +5654,7 @@ class L10nEn extends L10n {
       'Can’t check whether any tasks are using account models. Signing out interrupts any that are.';
 
   @override
-  String get engineAccountSignOutFailed =>
-      'Couldn’t sign out. Try again later.';
+  String get engineAccountSignOutFailed => 'Couldn’t sign out. Try again later.';
 
   @override
   String get engineAccountTitle => 'Account';
@@ -5922,19 +5666,16 @@ class L10nEn extends L10n {
   String get engineAccountDeepSeek => 'DeepSeek account';
 
   @override
-  String get engineAccountProfileUnavailable =>
-      'Can’t load account details right now';
+  String get engineAccountProfileUnavailable => 'Can’t load account details right now';
 
   @override
   String get engineAccountBalance => 'Balance';
 
   @override
-  String get engineAccountBalanceHint =>
-      'Account models are charged to your balance';
+  String get engineAccountBalanceHint => 'Account models are charged to your balance';
 
   @override
-  String get engineAccountBalanceEngineOff =>
-      'Start the engine to see your balance';
+  String get engineAccountBalanceEngineOff => 'Start the engine to see your balance';
 
   @override
   String get engineAccountTopUp => 'Top up';
@@ -5949,22 +5690,19 @@ class L10nEn extends L10n {
   String get engineAccountGrantedBalance => 'Granted balance';
 
   @override
-  String get engineAccountBalanceUnavailable =>
-      'Can’t load your balance right now';
+  String get engineAccountBalanceUnavailable => 'Can’t load your balance right now';
 
   @override
   String get engineAccountNoKeyNeeded => 'No API key needed when signed in';
 
   @override
-  String get engineAccountUnsupported =>
-      'This engine doesn’t support account sign-in';
+  String get engineAccountUnsupported => 'This engine doesn’t support account sign-in';
 
   @override
   String get engineAccountSignInDeepSeek => 'Sign in with DeepSeek';
 
   @override
-  String get engineAccountAutoStart =>
-      'Signing in starts the engine automatically';
+  String get engineAccountAutoStart => 'Signing in starts the engine automatically';
 
   @override
   String get engineAccountReplaceKey => 'Replace key';
@@ -6031,16 +5769,13 @@ class L10nEn extends L10n {
   String get engineAccountSignedOut => 'Signed out';
 
   @override
-  String get engineAccountUsageFact =>
-      'Usage is charged to your account balance';
+  String get engineAccountUsageFact => 'Usage is charged to your account balance';
 
   @override
-  String get engineAccountBrowserFact =>
-      'Sign in with your browser. DSH never sees your password';
+  String get engineAccountBrowserFact => 'Sign in with your browser. DSH never sees your password';
 
   @override
-  String get engineAccountCredentialsFact =>
-      'Sign-in credentials stay on this phone';
+  String get engineAccountCredentialsFact => 'Sign-in credentials stay on this phone';
 
   @override
   String get engineSubagentTitle => 'Subagent';
@@ -6100,8 +5835,7 @@ class L10nEn extends L10n {
   String get engineFieldShow => 'Show';
 
   @override
-  String get engineFieldFromEnvironment =>
-      'Provided by the startup environment';
+  String get engineFieldFromEnvironment => 'Provided by the startup environment';
 
   @override
   String get engineFieldItem => 'item';
@@ -6239,8 +5973,7 @@ class L10nEn extends L10n {
   String get engineFieldResultsUnit => 'results';
 
   @override
-  String get engineSearchSendOriginalQuestion =>
-      'Include your original question in searches';
+  String get engineSearchSendOriginalQuestion => 'Include your original question in searches';
 
   @override
   String get engineChatLogUpload => 'Upload chat logs to DeepSeek';
@@ -6261,8 +5994,7 @@ class L10nEn extends L10n {
   String get engineTranslationFollowLanguage => 'Follow interface language';
 
   @override
-  String get engineTranslationLanguageHint =>
-      'Enter auto or a language code, such as zh, en or ja';
+  String get engineTranslationLanguageHint => 'Enter auto or a language code, such as zh, en or ja';
 
   @override
   String get enginePluginIndexSources => 'Index sources';
@@ -6271,8 +6003,7 @@ class L10nEn extends L10n {
   String get enginePluginIndexUrl => 'Index URL';
 
   @override
-  String get engineFieldHttpUrlHint =>
-      'A URL starting with http:// or https://';
+  String get engineFieldHttpUrlHint => 'A URL starting with http:// or https://';
 
   @override
   String get enginePermissionNewChat => 'New chat permissions';
@@ -6494,8 +6225,7 @@ class L10nEn extends L10n {
   String get engineSettingsReadOnly => 'Engine settings are read-only';
 
   @override
-  String get engineSubagentSavedUnavailable =>
-      'Saved but currently unavailable';
+  String get engineSubagentSavedUnavailable => 'Saved but currently unavailable';
 
   @override
   String get engineSubagentKeepOneModel => 'Keep at least one model';
@@ -6544,8 +6274,7 @@ class L10nEn extends L10n {
   String get engineProviderIssues => 'Issues';
 
   @override
-  String get engineProviderRejectedConfig =>
-      'The engine rejected some settings';
+  String get engineProviderRejectedConfig => 'The engine rejected some settings';
 
   @override
   String get engineProviderConnection => 'Connection';
@@ -6560,15 +6289,13 @@ class L10nEn extends L10n {
   String get engineProviderNoModels => 'No models yet';
 
   @override
-  String get engineProviderWebConfigured =>
-      'Configured in DSH Web. You can view or delete it here';
+  String get engineProviderWebConfigured => 'Configured in DSH Web. You can view or delete it here';
 
   @override
   String get engineProviderDelete => 'Delete provider';
 
   @override
-  String get engineProviderConfigFile =>
-      'Provided by the engine config file. Can’t delete it here';
+  String get engineProviderConfigFile => 'Provided by the engine config file. Can’t delete it here';
 
   @override
   String get engineProviderTesting => 'Testing';
@@ -6580,8 +6307,7 @@ class L10nEn extends L10n {
   String get engineProviderKeyFirst => 'Enter an API key first';
 
   @override
-  String get engineProviderNoDiscoveredModels =>
-      'The service listed no models. Add them manually.';
+  String get engineProviderNoDiscoveredModels => 'The service listed no models. Add them manually.';
 
   @override
   String get engineProviderNeedModel => 'Add at least one model';
@@ -6668,8 +6394,7 @@ class L10nEn extends L10n {
   String get engineProvidersStartEngine => 'Start the engine to add providers';
 
   @override
-  String get engineProvidersUnsupported =>
-      'This host doesn’t support custom providers';
+  String get engineProvidersUnsupported => 'This host doesn’t support custom providers';
 
   @override
   String get engineProvidersNotConfiguredHere => 'Not configured on this host';
@@ -6690,16 +6415,13 @@ class L10nEn extends L10n {
   String get engineProvidersCustom => 'Custom';
 
   @override
-  String get engineProvidersCompatibleHint =>
-      'OpenAI- and Anthropic-compatible services';
+  String get engineProvidersCompatibleHint => 'OpenAI- and Anthropic-compatible services';
 
   @override
-  String get engineProvidersReadOnly =>
-      'Engine settings are read-only. Can’t add providers';
+  String get engineProvidersReadOnly => 'Engine settings are read-only. Can’t add providers';
 
   @override
-  String get engineSubscriptionSignOutBody =>
-      'Its models will be removed from the model picker.';
+  String get engineSubscriptionSignOutBody => 'Its models will be removed from the model picker.';
 
   @override
   String get engineSubscriptionNoModels => 'No models';
@@ -6726,8 +6448,7 @@ class L10nEn extends L10n {
   String get engineSubscriptionCode => 'Verification code';
 
   @override
-  String get engineSubscriptionWaitingVerification =>
-      'Waiting for verification…';
+  String get engineSubscriptionWaitingVerification => 'Waiting for verification…';
 
   @override
   String get engineSubscriptionCopyCode => 'Copy code';
@@ -6757,12 +6478,7 @@ class L10nEn extends L10n {
 
   @override
   String engineLayerCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count levels',
-      one: '1 level',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count levels', one: '1 level');
     return '$_temp0';
   }
 
@@ -6798,12 +6514,7 @@ class L10nEn extends L10n {
 
   @override
   String engineFieldByteCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count bytes',
-      one: '1 byte',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count bytes', one: '1 byte');
     return '$_temp0';
   }
 
@@ -6896,12 +6607,7 @@ class L10nEn extends L10n {
 
   @override
   String engineProviderModelCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Models · $count',
-      one: 'Model · 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Models · $count', one: 'Model · 1');
     return '$_temp0';
   }
 
@@ -6933,45 +6639,25 @@ class L10nEn extends L10n {
 
   @override
   String engineProviderCandidateCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count total',
-      one: '1 total',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count total', one: '1 total');
     return '$_temp0';
   }
 
   @override
   String engineProviderAddModels(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Add $count models',
-      one: 'Add 1 model',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Add $count models', one: 'Add 1 model');
     return '$_temp0';
   }
 
   @override
   String engineProviderModels(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count models',
-      one: '1 model',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count models', one: '1 model');
     return '$_temp0';
   }
 
   @override
   String engineProvidersSummary(int total, int ready) {
-    String _temp0 = intl.Intl.pluralLogic(
-      total,
-      locale: localeName,
-      other: '$total providers',
-      one: '1 provider',
-    );
+    String _temp0 = intl.Intl.pluralLogic(total, locale: localeName, other: '$total providers', one: '1 provider');
     return '$_temp0 · $ready ready';
   }
 
@@ -7007,34 +6693,19 @@ class L10nEn extends L10n {
 
   @override
   String engineFieldItemCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items',
-      one: '1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count items', one: '1 item');
     return '$_temp0';
   }
 
   @override
   String engineFieldUseCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count times',
-      one: '1 time',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count times', one: '1 time');
     return '$_temp0';
   }
 
   @override
   String engineFieldResultCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count results',
-      one: '1 result',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count results', one: '1 result');
     return '$_temp0';
   }
 
@@ -7109,27 +6780,19 @@ class L10nEn extends L10n {
   String get engineFieldEditOnWeb => 'Edit this item on the web';
 
   @override
-  String get engineSettingsHostChanged =>
-      'The host changed. Reopen these settings to edit.';
+  String get engineSettingsHostChanged => 'The host changed. Reopen these settings to edit.';
 
   @override
-  String get engineSecretTargetChanged =>
-      'This field changed. Reopen it to edit.';
+  String get engineSecretTargetChanged => 'This field changed. Reopen it to edit.';
 
   @override
   String engineSettingsGroupCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count settings',
-      one: '1 setting',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count settings', one: '1 setting');
     return '$_temp0';
   }
 
   @override
-  String get featuresCordisSubtitle =>
-      'Dynamic plugins · Cleared when the engine restarts';
+  String get featuresCordisSubtitle => 'Dynamic plugins · Cleared when the engine restarts';
 
   @override
   String get featuresCordisUnavailable => 'Cordis isn’t available here';
@@ -7166,8 +6829,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get featuresPresetDeleteHint =>
-      'It won’t be available for new chats. Existing chats stay as they are.';
+  String get featuresPresetDeleteHint => 'It won’t be available for new chats. Existing chats stay as they are.';
 
   @override
   String get featuresDeleted => 'Deleted';
@@ -7188,8 +6850,7 @@ class L10nEn extends L10n {
   String get featuresPresetDuplicate => 'Duplicate preset';
 
   @override
-  String get featuresPresetDefaultDeleteHint =>
-      'Set another preset as the default for new chats first';
+  String get featuresPresetDefaultDeleteHint => 'Set another preset as the default for new chats first';
 
   @override
   String get featuresAgentPresets => 'Agent presets';
@@ -7269,19 +6930,16 @@ class L10nEn extends L10n {
   String get featuresPermissionCustom => 'Custom';
 
   @override
-  String get featuresPermissionReadOnlyHint =>
-      'View files without changing them';
+  String get featuresPermissionReadOnlyHint => 'View files without changing them';
 
   @override
-  String get featuresPermissionWorkspaceWriteHint =>
-      'Edit workspace files; ask before going beyond';
+  String get featuresPermissionWorkspaceWriteHint => 'Edit workspace files; ask before going beyond';
 
   @override
   String get featuresPermissionFullAccessHint => 'Run without asking';
 
   @override
-  String get featuresPermissionAutoReviewHint =>
-      'The model reviews each action and asks when unsure';
+  String get featuresPermissionAutoReviewHint => 'The model reviews each action and asks when unsure';
 
   @override
   String get featuresPresetStandard => 'Standard mode';
@@ -7296,20 +6954,16 @@ class L10nEn extends L10n {
   String get featuresPresetCreator => 'Creator mode';
 
   @override
-  String get featuresPresetStandardDescription =>
-      'Code, files, and research for most tasks';
+  String get featuresPresetStandardDescription => 'Code, files, and research for most tasks';
 
   @override
-  String get featuresPresetPtcDescription =>
-      'Batch tool calls, then filter, analyze, and summarize';
+  String get featuresPresetPtcDescription => 'Batch tool calls, then filter, analyze, and summarize';
 
   @override
-  String get featuresPresetMinimalDescription =>
-      'Terminal and image viewing only, for testing and comparison';
+  String get featuresPresetMinimalDescription => 'Terminal and image viewing only, for testing and comparison';
 
   @override
-  String get featuresPresetCreatorDescription =>
-      'Have the agent write plugins to customize DSH';
+  String get featuresPresetCreatorDescription => 'Have the agent write plugins to customize DSH';
 
   @override
   String featuresHostUnreachable(String name) {
@@ -7334,17 +6988,11 @@ class L10nEn extends L10n {
   String get featuresJobsEmpty => 'No background jobs';
 
   @override
-  String get featuresJobsEmptyHint =>
-      'Commands such as dev servers appear here';
+  String get featuresJobsEmptyHint => 'Commands such as dev servers appear here';
 
   @override
   String featuresJobsEndedCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Ended · $count',
-      one: 'Ended · 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Ended · $count', one: 'Ended · 1');
     return '$_temp0';
   }
 
@@ -7365,12 +7013,7 @@ class L10nEn extends L10n {
 
   @override
   String featuresJobRecentLines(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Last $count lines',
-      one: 'Last 1 line',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Last $count lines', one: 'Last 1 line');
     return '$_temp0';
   }
 
@@ -7390,8 +7033,7 @@ class L10nEn extends L10n {
   String get featuresPermissionAutoTitle => 'Turn on Auto review?';
 
   @override
-  String get featuresPermissionAutoWarning =>
-      'The model decides whether to allow each action. It may get it wrong.';
+  String get featuresPermissionAutoWarning => 'The model decides whether to allow each action. It may get it wrong.';
 
   @override
   String get featuresSwitchFailed => 'Couldn’t switch';
@@ -7400,15 +7042,13 @@ class L10nEn extends L10n {
   String get featuresPermissions => 'Permissions';
 
   @override
-  String get featuresPermissionsSubtitle =>
-      'Choose when to ask before running commands or editing files';
+  String get featuresPermissionsSubtitle => 'Choose when to ask before running commands or editing files';
 
   @override
   String get featuresPermissionsReadFailed => 'Couldn’t load permissions';
 
   @override
-  String get featuresPermissionCustomHint =>
-      'Choosing a preset replaces your custom permissions';
+  String get featuresPermissionCustomHint => 'Choosing a preset replaces your custom permissions';
 
   @override
   String get featuresModuleInstructions => 'Workspace instructions';
@@ -7510,8 +7150,7 @@ class L10nEn extends L10n {
   String get featuresPresetIdLength => 'Up to 40 characters';
 
   @override
-  String get featuresPresetIdFormat =>
-      'Use lowercase letters, numbers, and hyphens';
+  String get featuresPresetIdFormat => 'Use lowercase letters, numbers, and hyphens';
 
   @override
   String get featuresPresetIdTaken => 'This ID is already in use';
@@ -7543,12 +7182,10 @@ class L10nEn extends L10n {
   String get featuresPresetDescription => 'Description';
 
   @override
-  String get featuresPresetDescriptionHint =>
-      'Describe what it’s for in one sentence';
+  String get featuresPresetDescriptionHint => 'Describe what it’s for in one sentence';
 
   @override
-  String get featuresPresetConfigReadFailed =>
-      'Couldn’t load preset configuration';
+  String get featuresPresetConfigReadFailed => 'Couldn’t load preset configuration';
 
   @override
   String get featuresPresetCreateTitle => 'New agent preset';
@@ -7581,8 +7218,7 @@ class L10nEn extends L10n {
   String get featuresPresetSystemPromptHint => 'Who you are and how you work';
 
   @override
-  String get featuresPresetReplaceSystemPrompt =>
-      'Replace the full system prompt';
+  String get featuresPresetReplaceSystemPrompt => 'Replace the full system prompt';
 
   @override
   String get featuresPresetTools => 'Tools';
@@ -7708,20 +7344,12 @@ class L10nEn extends L10n {
   }
 
   @override
-  String featuresCronMonthDaysAndWeekdays(
-    String days,
-    String weekdays,
-    String months,
-  ) {
+  String featuresCronMonthDaysAndWeekdays(String days, String weekdays, String months) {
     return 'Monthly on $days, if $weekdays$months';
   }
 
   @override
-  String featuresCronMonthDaysOrWeekdays(
-    String days,
-    String weekdays,
-    String months,
-  ) {
+  String featuresCronMonthDaysOrWeekdays(String days, String weekdays, String months) {
     return 'Monthly on $days or $weekdays$months';
   }
 
@@ -7770,12 +7398,7 @@ class L10nEn extends L10n {
 
   @override
   String featuresCronEveryHours(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Every $count hours',
-      one: 'Every hour',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Every $count hours', one: 'Every hour');
     return '$_temp0';
   }
 
@@ -7824,8 +7447,7 @@ class L10nEn extends L10n {
   String get featuresMinimumMinute => 'At least 1 minute';
 
   @override
-  String get featuresTimeDoesNotExist =>
-      'This time doesn’t exist in this time zone';
+  String get featuresTimeDoesNotExist => 'This time doesn’t exist in this time zone';
 
   @override
   String get featuresChooseFutureTime => 'Choose a future time';
@@ -7887,8 +7509,7 @@ class L10nEn extends L10n {
   String get featuresScheduleInstruction => 'Instructions';
 
   @override
-  String get featuresScheduleInstructionHint =>
-      'For example: Summarize yesterday’s commits for me';
+  String get featuresScheduleInstructionHint => 'For example: Summarize yesterday’s commits for me';
 
   @override
   String get featuresScheduleRunTime => 'Run time';
@@ -7938,30 +7559,25 @@ class L10nEn extends L10n {
   String get featuresScheduleNotFound => 'This automation no longer exists';
 
   @override
-  String get featuresScheduleEndedError =>
-      'This automation has ended and can’t be edited';
+  String get featuresScheduleEndedError => 'This automation has ended and can’t be edited';
 
   @override
-  String get featuresScheduleConflict =>
-      'This automation just changed. Go back and try again.';
+  String get featuresScheduleConflict => 'This automation just changed. Go back and try again.';
 
   @override
-  String get featuresScheduleInvalidPrompt =>
-      'Enter a name and instructions. Names can have up to 120 characters.';
+  String get featuresScheduleInvalidPrompt => 'Enter a name and instructions. Names can have up to 120 characters.';
 
   @override
   String get featuresScheduleInvalidTime => 'Invalid run time';
 
   @override
-  String get featuresScheduleIntervalTooShort =>
-      'Interval must be at least 1 minute';
+  String get featuresScheduleIntervalTooShort => 'Interval must be at least 1 minute';
 
   @override
   String get featuresScheduleTimeOutOfRange => 'Time is out of range';
 
   @override
-  String get featuresScheduleSubagentError =>
-      'This chat can’t receive automations';
+  String get featuresScheduleSubagentError => 'This chat can’t receive automations';
 
   @override
   String get featuresEvery => 'Every';
@@ -7995,8 +7611,7 @@ class L10nEn extends L10n {
   String get featuresZonesAll => 'All';
 
   @override
-  String get featuresZoneSearchHint =>
-      'Search cities, time zones, or UTC offsets';
+  String get featuresZoneSearchHint => 'Search cities, time zones, or UTC offsets';
 
   @override
   String get featuresZonesNoMatch => 'No matching time zones';
@@ -8173,8 +7788,7 @@ class L10nEn extends L10n {
   String get featuresSchedulesEmpty => 'No automations yet';
 
   @override
-  String get featuresSchedulesEmptyHint =>
-      'Send to a chat and run automatically at the scheduled time';
+  String get featuresSchedulesEmptyHint => 'Send to a chat and run automatically at the scheduled time';
 
   @override
   String get featuresScheduleNewTask => 'New automation';
@@ -8192,20 +7806,14 @@ class L10nEn extends L10n {
   String get featuresSchedules => 'Automations';
 
   @override
-  String get featuresSchedulesSubtitle =>
-      'Send to the original chat at the scheduled time';
+  String get featuresSchedulesSubtitle => 'Send to the original chat at the scheduled time';
 
   @override
   String get featuresSchedulesSearch => 'Search automations';
 
   @override
   String featuresSchedulesAllCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'All $count',
-      one: 'All 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'All $count', one: 'All 1');
     return '$_temp0';
   }
 
@@ -8292,8 +7900,7 @@ class L10nEn extends L10n {
       'Logs aren’t available over DSH Remote. Export them from DSH Web on your computer.';
 
   @override
-  String get featuresExportShareHint =>
-      'Attach to feedback or send to yourself';
+  String get featuresExportShareHint => 'Attach to feedback or send to yourself';
 
   @override
   String get featuresExportSaveDownloads => 'Save to Downloads';
@@ -8302,8 +7909,7 @@ class L10nEn extends L10n {
   String get featuresExportDownloadsHint => 'Save in Downloads/DSH-Go';
 
   @override
-  String get featuresExportContents =>
-      'All records and attachments from this chat and its subagents';
+  String get featuresExportContents => 'All records and attachments from this chat and its subagents';
 
   @override
   String get featuresSkillUseHere => 'Use in chat';
@@ -8324,8 +7930,7 @@ class L10nEn extends L10n {
   String get featuresSkillsEmptyHint => 'Skills in .dsh/skills appear here';
 
   @override
-  String get featuresSkillsSourceHint =>
-      'From the project’s and ~/.dsh skills folders';
+  String get featuresSkillsSourceHint => 'From the project’s and ~/.dsh skills folders';
 
   @override
   String featuresSkillUsage(String usage) {
@@ -8351,23 +7956,13 @@ class L10nEn extends L10n {
 
   @override
   String featuresArtifactsAllCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'All $count',
-      one: 'All 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'All $count', one: 'All 1');
     return '$_temp0';
   }
 
   @override
   String featuresArtifactsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count files',
-      one: '1 file',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count files', one: '1 file');
     return '$_temp0';
   }
 
@@ -8389,8 +7984,7 @@ class L10nEn extends L10n {
   String get featuresArtifactsEmpty => 'No output files yet';
 
   @override
-  String get featuresArtifactsEmptyHint =>
-      'Files delivered or generated by AI appear here';
+  String get featuresArtifactsEmptyHint => 'Files delivered or generated by AI appear here';
 
   @override
   String get featuresListSeparator => ', ';
@@ -8449,45 +8043,25 @@ class L10nEn extends L10n {
 
   @override
   String featuresRuleIntervalHours(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Every $count hours',
-      one: 'Every hour',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Every $count hours', one: 'Every hour');
     return '$_temp0';
   }
 
   @override
   String featuresSchedulesActiveCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Active $count',
-      one: 'Active 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Active $count', one: 'Active 1');
     return '$_temp0';
   }
 
   @override
   String featuresSchedulesEndedCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Ended $count',
-      one: 'Ended 1',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Ended $count', one: 'Ended 1');
     return '$_temp0';
   }
 
   @override
   String featuresScheduleRetention(int days, int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'Last $days days',
-      one: 'Last 1 day',
-    );
+    String _temp0 = intl.Intl.pluralLogic(days, locale: localeName, other: 'Last $days days', one: 'Last 1 day');
     String _temp1 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -8499,12 +8073,7 @@ class L10nEn extends L10n {
 
   @override
   String featuresScheduleRetentionUnknown(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'Last $days days',
-      one: 'Last 1 day',
-    );
+    String _temp0 = intl.Intl.pluralLogic(days, locale: localeName, other: 'Last $days days', one: 'Last 1 day');
     return '$_temp0, entry limit unavailable';
   }
 
@@ -8524,12 +8093,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String featuresPresetUpdateRequest(
-    String name,
-    String id,
-    String replacing,
-    String directory,
-  ) {
+  String featuresPresetUpdateRequest(String name, String id, String replacing, String directory) {
     return 'Update agent preset “$name” ($id): Write these two files verbatim in the workspace. Use plugin_manager to remove bundle `$replacing`, then use install_bundle to install the `$directory` directory. Do only this.\n\n';
   }
 
@@ -8539,8 +8103,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get featuresPermissionResetHint =>
-      'The new-chat default is no longer valid';
+  String get featuresPermissionResetHint => 'The new-chat default is no longer valid';
 
   @override
   String get featuresPermissionResetDefault => 'Restore default';
@@ -8592,8 +8155,7 @@ class L10nEn extends L10n {
   String get harmonyUnknownResultsReview => 'Review';
 
   @override
-  String get harmonyUnknownResultsTitle =>
-      'These tool calls have unknown results';
+  String get harmonyUnknownResultsTitle => 'These tool calls have unknown results';
 
   @override
   String harmonyUnknownResultsBody(String tools) {
@@ -8604,12 +8166,10 @@ class L10nEn extends L10n {
   String get harmonyUnknownResultsContinue => 'Continue this conversation';
 
   @override
-  String get harmonyUnknownResultsChanged =>
-      'Something changed. Please look again.';
+  String get harmonyUnknownResultsChanged => 'Something changed. Please look again.';
 
   @override
-  String get harmonyUnknownResultsFailed =>
-      'Couldn\'t confirm that. Try again.';
+  String get harmonyUnknownResultsFailed => 'Couldn\'t confirm that. Try again.';
 
   @override
   String get harmonyCallsNotRecorded =>
@@ -8619,16 +8179,13 @@ class L10nEn extends L10n {
   String get harmonyAccessSubtitle => 'What each feature needs from HarmonyOS';
 
   @override
-  String get harmonyNotifyWhy =>
-      'While the app is running, tells you when a reply ends or needs you';
+  String get harmonyNotifyWhy => 'While the app is running, tells you when a reply ends or needs you';
 
   @override
-  String get harmonyKwSystemAccess =>
-      'permissions,grant,microphone,notification permission,reply alerts,voice input';
+  String get harmonyKwSystemAccess => 'permissions,grant,microphone,notification permission,reply alerts,voice input';
 
   @override
-  String get harmonyBackgroundSubtitle =>
-      'On-device chats pause when the app leaves the screen';
+  String get harmonyBackgroundSubtitle => 'On-device chats pause when the app leaves the screen';
 
   @override
   String get harmonyBackgroundAway => 'When the app leaves the screen';
@@ -8650,16 +8207,13 @@ class L10nEn extends L10n {
   String get harmonyBackgroundStay => 'Keep the app on screen';
 
   @override
-  String get harmonyBackgroundUseRemote =>
-      'Or run them on a connected remote host';
+  String get harmonyBackgroundUseRemote => 'Or run them on a connected remote host';
 
   @override
-  String get harmonyEngineBackgroundHint =>
-      'The on-device engine pauses when the app leaves the screen';
+  String get harmonyEngineBackgroundHint => 'The on-device engine pauses when the app leaves the screen';
 
   @override
-  String get harmonyKwBackground =>
-      'background activity,keep alive,suspended,paused,killed';
+  String get harmonyKwBackground => 'background activity,keep alive,suspended,paused,killed';
 
   @override
   String get harmonyPausedInBackground => 'Paused while in the background';
@@ -8669,24 +8223,21 @@ class L10nEn extends L10n {
       'Alerts need the app running: the system suspends it seconds after it leaves the screen, and none go out then';
 
   @override
-  String get harmonyLiveUnavailable =>
-      'Live activities aren\'t available in this version yet';
+  String get harmonyLiveUnavailable => 'Live activities aren\'t available in this version yet';
 
   @override
   String get harmonySchedulesLocal =>
       'Tasks on this phone only fire while the app is running: they won\'t run on time while the system has it suspended';
 
   @override
-  String get harmonyPageUnavailable =>
-      'This page isn\'t available in this version yet';
+  String get harmonyPageUnavailable => 'This page isn\'t available in this version yet';
 
   @override
   String get harmonyNotificationSettingsFailed =>
       'Couldn’t open system settings. Turn on notifications in Settings → Notifications & status bar → DSH Go.';
 
   @override
-  String get harmonySearchUnavailable =>
-      'This isn\'t available in this version yet';
+  String get harmonySearchUnavailable => 'This isn\'t available in this version yet';
 
   @override
   String get harmonyCredentialsSection => 'Keys';
@@ -8709,8 +8260,7 @@ class L10nEn extends L10n {
   String get harmonyCredentialsClearAction => 'Clear keys';
 
   @override
-  String get harmonyCredentialsCleared =>
-      'Cleared. Enter them or sign in again.';
+  String get harmonyCredentialsCleared => 'Cleared. Enter them or sign in again.';
 
   @override
   String get harmonyCredentialsClearFailed => 'Couldn’t clear. Try again.';
@@ -8745,8 +8295,7 @@ class L10nEn extends L10n {
   String get hubSessionChangedFiles => 'Files changed';
 
   @override
-  String get hubSessionTrajectoryHint =>
-      'Steps and time for each turn appear here';
+  String get hubSessionTrajectoryHint => 'Steps and time for each turn appear here';
 
   @override
   String get hubSessionLoadEarlier => 'Load earlier turns';
@@ -8764,22 +8313,19 @@ class L10nEn extends L10n {
   String get hubSessionNoChanges => 'No files changed yet';
 
   @override
-  String get hubSessionShellChangesHint =>
-      'Files changed with shell commands aren’t shown here';
+  String get hubSessionShellChangesHint => 'Files changed with shell commands aren’t shown here';
 
   @override
   String get hubSessionChanges => 'Chat changes';
 
   @override
-  String get hubSessionChangesNote =>
-      'Only changes made with write and edit tools in loaded history are included';
+  String get hubSessionChangesNote => 'Only changes made with write and edit tools in loaded history are included';
 
   @override
   String get hubSessionNoGoal => 'No goal or to-dos yet';
 
   @override
-  String get hubSessionGoalHint =>
-      'AI lists to-dos for complex tasks. Follow their progress here';
+  String get hubSessionGoalHint => 'AI lists to-dos for complex tasks. Follow their progress here';
 
   @override
   String get hubSessionGoal => 'Goal';
@@ -8833,8 +8379,7 @@ class L10nEn extends L10n {
   String get hubSettingsFullAccessTitle => 'Turn on Full access?';
 
   @override
-  String get hubSettingsFullAccessBody =>
-      'AI won’t ask before running commands or changing files.';
+  String get hubSettingsFullAccessBody => 'AI won’t ask before running commands or changing files.';
 
   @override
   String get hubSettingsStorageTitle => 'Let AI access phone files?';
@@ -8847,8 +8392,7 @@ class L10nEn extends L10n {
       'Storage access wasn’t granted. Allow “All files access” for DSH Go in system settings, then try again.';
 
   @override
-  String get hubSettingsRestartRequired =>
-      'Takes effect after restarting the engine';
+  String get hubSettingsRestartRequired => 'Takes effect after restarting the engine';
 
   @override
   String get hubSettingsRestartNow => 'Restart now';
@@ -8872,8 +8416,7 @@ class L10nEn extends L10n {
   String get hubSettingsVisualReplies => 'Visual replies';
 
   @override
-  String get hubSettingsVisualRepliesHint =>
-      'Charts, comparisons and tappable options';
+  String get hubSettingsVisualRepliesHint => 'Charts, comparisons and tappable options';
 
   @override
   String get hubSettingsPhoneControl => 'Phone control';
@@ -8894,8 +8437,7 @@ class L10nEn extends L10n {
   String get hubSettingsCollapseSteps => 'Collapse steps when done';
 
   @override
-  String get hubSettingsCollapseStepsHint =>
-      'Fold thinking and tool calls into one line';
+  String get hubSettingsCollapseStepsHint => 'Fold thinking and tool calls into one line';
 
   @override
   String get hubSettingsWebPhoneLayout => 'Web phone layout';
@@ -9031,12 +8573,7 @@ class L10nEn extends L10n {
 
   @override
   String hubSessionTurns(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count turns',
-      one: '1 turn',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count turns', one: '1 turn');
     return '$_temp0';
   }
 
@@ -9053,12 +8590,7 @@ class L10nEn extends L10n {
 
   @override
   String hubSessionStepCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count steps',
-      one: '1 step',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count steps', one: '1 step');
     return '$_temp0';
   }
 
@@ -9085,12 +8617,7 @@ class L10nEn extends L10n {
 
   @override
   String hubSessionEditCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Edited $count times',
-      one: 'Edited once',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'Edited $count times', one: 'Edited once');
     return '$_temp0';
   }
 
@@ -9181,12 +8708,7 @@ class L10nEn extends L10n {
 
   @override
   String hubPluginComponentCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count components',
-      one: '1 component',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count components', one: '1 component');
     return '$_temp0';
   }
 
@@ -9251,12 +8773,10 @@ class L10nEn extends L10n {
   String get hubTableTintNone => 'Plain';
 
   @override
-  String get hubTableTintFillHint =>
-      'Alternating rows, easier to scan long tables';
+  String get hubTableTintFillHint => 'Alternating rows, easier to scan long tables';
 
   @override
-  String get hubTableTintFollowHint =>
-      'Header tint only, body follows the reply';
+  String get hubTableTintFollowHint => 'Header tint only, body follows the reply';
 
   @override
   String get hubTableTintNoneHint => 'Grid lines only, the lightest';
@@ -9296,12 +8816,7 @@ class L10nEn extends L10n {
 
   @override
   String hubValueHosts(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count hosts',
-      one: '1 host',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count hosts', one: '1 host');
     return '$_temp0';
   }
 
@@ -9310,12 +8825,7 @@ class L10nEn extends L10n {
 
   @override
   String hubValuePlugins(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count plugins',
-      one: '1 plugin',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count plugins', one: '1 plugin');
     return '$_temp0';
   }
 
@@ -9345,8 +8855,7 @@ class L10nEn extends L10n {
   String get hubRecentGroup => 'Recently used';
 
   @override
-  String get hubEditing =>
-      'Editing: drag icons to move them across groups; tap ⋯ by a group\'s name to manage it';
+  String get hubEditing => 'Editing: drag icons to move them across groups; tap ⋯ by a group\'s name to manage it';
 
   @override
   String get hubDefaultGroup => 'Apps';
@@ -9389,13 +8898,15 @@ class L10nEn extends L10n {
   String get autoSyncTitle => 'Silent sync';
 
   @override
-  String get autoSyncSummary =>
-      'Mini programs on the server install and update automatically without prompts';
+  String get autoSyncSummary => 'Mini programs on the server install and update automatically without prompts';
 
   @override
   String hubAppUnavailableOnMachine(String name) {
     return '\"$name\" is unavailable on this machine (backend not deployed)';
   }
+
+  @override
+  String get hubQuickPanelItems => 'What it lists';
 
   @override
   String get iosSaveToFiles => 'Save to Files';
@@ -9407,12 +8918,10 @@ class L10nEn extends L10n {
   String get iosSavingToFiles => 'Saving to Files…';
 
   @override
-  String get iosCommandExportDescription =>
-      'Export this chat’s full history as a ZIP to share or save to Files';
+  String get iosCommandExportDescription => 'Export this chat’s full history as a ZIP to share or save to Files';
 
   @override
-  String get iosEnableBanners =>
-      'Turn on Banners in Settings if they don’t appear';
+  String get iosEnableBanners => 'Turn on Banners in Settings if they don’t appear';
 
   @override
   String get iosNotificationSettingsFailed =>
@@ -9494,24 +9003,19 @@ class L10nEn extends L10n {
   String get iosLinuxUninstalling => 'Uninstalling…';
 
   @override
-  String get iosLinuxRestartEngine =>
-      'Installed. Restart the engine on this phone for commands to use it.';
+  String get iosLinuxRestartEngine => 'Installed. Restart the engine on this phone for commands to use it.';
 
   @override
-  String get iosLinuxErrorNetwork =>
-      'The download didn\'t work. Check the connection and try again.';
+  String get iosLinuxErrorNetwork => 'The download didn\'t work. Check the connection and try again.';
 
   @override
-  String get iosLinuxErrorDamaged =>
-      'The download was incomplete and has been discarded. Try again.';
+  String get iosLinuxErrorDamaged => 'The download was incomplete and has been discarded. Try again.';
 
   @override
-  String get iosLinuxErrorNoSpace =>
-      'There isn\'t enough storage on this phone.';
+  String get iosLinuxErrorNoSpace => 'There isn\'t enough storage on this phone.';
 
   @override
-  String get iosLinuxErrorInUse =>
-      'The Linux environment is in use. Reopen the app to uninstall it.';
+  String get iosLinuxErrorInUse => 'The Linux environment is in use. Reopen the app to uninstall it.';
 
   @override
   String get iosLinuxErrorOther => 'That didn\'t finish. Try again.';
@@ -9530,12 +9034,10 @@ class L10nEn extends L10n {
   String get iosLinuxResume => 'Turn Linux back on';
 
   @override
-  String get iosLinuxResumed =>
-      'Turned back on. Restart the local engine for commands to use it.';
+  String get iosLinuxResumed => 'Turned back on. Restart the local engine for commands to use it.';
 
   @override
-  String get iosLinuxErrorBusy =>
-      'Linux is still in use. Try again once the command stops, or reopen the app.';
+  String get iosLinuxErrorBusy => 'Linux is still in use. Try again once the command stops, or reopen the app.';
 
   @override
   String get iosPhoneLinkTitle => 'On-device connection';
@@ -9551,23 +9053,19 @@ class L10nEn extends L10n {
   String get iosPhoneLinkStepPairing => 'Import a pairing record';
 
   @override
-  String get iosPhoneLinkPairingHint =>
-      'A remote pairing file (.plist) made on a Mac or Windows computer';
+  String get iosPhoneLinkPairingHint => 'A remote pairing file (.plist) made on a Mac or Windows computer';
 
   @override
   String get iosPhoneLinkPairingDevice => 'Kept on this phone';
 
   @override
-  String get iosPhoneLinkPairingSession =>
-      'This time only, cleared when the app quits';
+  String get iosPhoneLinkPairingSession => 'This time only, cleared when the app quits';
 
   @override
-  String get iosPhoneLinkPairingLocked =>
-      'The saved record can be read once the phone is unlocked';
+  String get iosPhoneLinkPairingLocked => 'The saved record can be read once the phone is unlocked';
 
   @override
-  String get iosPhoneLinkPairingUnreadable =>
-      'The saved record can\'t be read. Import it again.';
+  String get iosPhoneLinkPairingUnreadable => 'The saved record can\'t be read. Import it again.';
 
   @override
   String get iosPhoneLinkImport => 'Import';
@@ -9576,8 +9074,7 @@ class L10nEn extends L10n {
   String get iosPhoneLinkReplace => 'Replace';
 
   @override
-  String get iosPhoneLinkLegacy =>
-      'A pairing file from an earlier version was found';
+  String get iosPhoneLinkLegacy => 'A pairing file from an earlier version was found';
 
   @override
   String get iosPhoneLinkLegacyHint =>
@@ -9590,15 +9087,13 @@ class L10nEn extends L10n {
   String get iosPhoneLinkStepEnable => 'Turn on the developer connection';
 
   @override
-  String get iosPhoneLinkEnableHint =>
-      'Off by default. Turning it off stops any phone task at once.';
+  String get iosPhoneLinkEnableHint => 'Off by default. Turning it off stops any phone task at once.';
 
   @override
   String get iosPhoneLinkStepCheck => 'Check the connection';
 
   @override
-  String get iosPhoneLinkCheckHint =>
-      'Confirms the VPN, pairing and developer services all work';
+  String get iosPhoneLinkCheckHint => 'Confirms the VPN, pairing and developer services all work';
 
   @override
   String get iosPhoneLinkCheck => 'Check';
@@ -9666,31 +9161,25 @@ class L10nEn extends L10n {
   String get iosPhoneLinkClipboardRestore => 'Restore';
 
   @override
-  String get iosPhoneLinkClipboardOverwrite =>
-      'Restore anyway, replacing what is there now';
+  String get iosPhoneLinkClipboardOverwrite => 'Restore anyway, replacing what is there now';
 
   @override
   String get iosPhoneLinkClipboardDiscard => 'Discard the saved clipboard';
 
   @override
-  String get iosPhoneLinkErrorBusy =>
-      'Another step is still running. Try again when it finishes.';
+  String get iosPhoneLinkErrorBusy => 'Another step is still running. Try again when it finishes.';
 
   @override
-  String get iosPhoneLinkErrorForeground =>
-      'Do this with the app open and the phone unlocked.';
+  String get iosPhoneLinkErrorForeground => 'Do this with the app open and the phone unlocked.';
 
   @override
-  String get iosPhoneLinkErrorPairingInvalid =>
-      'This file isn\'t a usable remote pairing record.';
+  String get iosPhoneLinkErrorPairingInvalid => 'This file isn\'t a usable remote pairing record.';
 
   @override
-  String get iosPhoneLinkErrorStorage =>
-      'Saving didn\'t work. \"Kept on this phone\" needs a device passcode.';
+  String get iosPhoneLinkErrorStorage => 'Saving didn\'t work. \"Kept on this phone\" needs a device passcode.';
 
   @override
-  String get iosPhoneLinkErrorPairingRequired =>
-      'Import a pairing record first.';
+  String get iosPhoneLinkErrorPairingRequired => 'Import a pairing record first.';
 
   @override
   String get iosPhoneLinkErrorTunnel =>
@@ -9701,32 +9190,25 @@ class L10nEn extends L10n {
       'The phone didn\'t accept this pairing record. Make a new one and import it.';
 
   @override
-  String get iosPhoneLinkErrorDdiNeeded =>
-      'The developer disk image needs preparing first.';
+  String get iosPhoneLinkErrorDdiNeeded => 'The developer disk image needs preparing first.';
 
   @override
-  String get iosPhoneLinkErrorDdiDownload =>
-      'The download didn\'t work. Check the network and try again.';
+  String get iosPhoneLinkErrorDdiDownload => 'The download didn\'t work. Check the network and try again.';
 
   @override
-  String get iosPhoneLinkErrorDdiIntegrity =>
-      'The downloaded image failed its check and was thrown away.';
+  String get iosPhoneLinkErrorDdiIntegrity => 'The downloaded image failed its check and was thrown away.';
 
   @override
-  String get iosPhoneLinkErrorDdiUnsupported =>
-      'There\'s no image for this phone\'s model or iOS version.';
+  String get iosPhoneLinkErrorDdiUnsupported => 'There\'s no image for this phone\'s model or iOS version.';
 
   @override
-  String get iosPhoneLinkErrorDdiMount =>
-      'Mounting didn\'t work. An image already in use isn\'t replaced.';
+  String get iosPhoneLinkErrorDdiMount => 'Mounting didn\'t work. An image already in use isn\'t replaced.';
 
   @override
-  String get iosPhoneLinkErrorClipboardChanged =>
-      'Something else was copied since, so it wasn\'t restored.';
+  String get iosPhoneLinkErrorClipboardChanged => 'Something else was copied since, so it wasn\'t restored.';
 
   @override
-  String get iosPhoneLinkFaulted =>
-      'The last connection didn\'t confirm it closed';
+  String get iosPhoneLinkFaulted => 'The last connection didn\'t confirm it closed';
 
   @override
   String get iosPhoneLinkFaultedHint =>
@@ -9751,8 +9233,7 @@ class L10nEn extends L10n {
   String get iosPetPipReady => 'Ready; it appears when a phone task starts';
 
   @override
-  String get iosPetPipKeepingAlive =>
-      'Keeping the app running in the background';
+  String get iosPetPipKeepingAlive => 'Keeping the app running in the background';
 
   @override
   String get iosPetPipAlways => 'Keep it after tasks end';
@@ -9761,12 +9242,10 @@ class L10nEn extends L10n {
   String get iosPetPipStart => 'Start picture-in-picture';
 
   @override
-  String get iosPetPipStartHint =>
-      'If picture-in-picture didn\'t appear on its own, open it here';
+  String get iosPetPipStartHint => 'If picture-in-picture didn\'t appear on its own, open it here';
 
   @override
-  String get iosPetPipPaused =>
-      'The phone task was paused from picture-in-picture';
+  String get iosPetPipPaused => 'The phone task was paused from picture-in-picture';
 
   @override
   String get iosPetPipReview => 'Resume or stop';
@@ -9781,20 +9260,16 @@ class L10nEn extends L10n {
   String get iosPetPipErrorNoPet => 'Choose a pet first';
 
   @override
-  String get iosPetPipErrorUnsupported =>
-      'This phone doesn\'t support picture-in-picture';
+  String get iosPetPipErrorUnsupported => 'This phone doesn\'t support picture-in-picture';
 
   @override
-  String get iosPetPipErrorLocked =>
-      'Picture-in-picture stopped when the phone locked';
+  String get iosPetPipErrorLocked => 'Picture-in-picture stopped when the phone locked';
 
   @override
-  String get iosPetPipErrorAudio =>
-      'Picture-in-picture stopped while recording, a call or other audio took over';
+  String get iosPetPipErrorAudio => 'Picture-in-picture stopped while recording, a call or other audio took over';
 
   @override
-  String get iosPetPipErrorPack =>
-      'This pet\'s artwork has a problem. Try another one.';
+  String get iosPetPipErrorPack => 'This pet\'s artwork has a problem. Try another one.';
 
   @override
   String get iosPetPipErrorStart => 'Picture-in-picture couldn\'t open';
@@ -9914,22 +9389,19 @@ class L10nEn extends L10n {
   String get iconShortcutConfirm => 'Confirm in the dialog that appears';
 
   @override
-  String get iconShortcutNoDialog =>
-      'No dialog? Allow DSH Go to create home screen shortcuts in system settings.';
+  String get iconShortcutNoDialog => 'No dialog? Allow DSH Go to create home screen shortcuts in system settings.';
 
   @override
   String get iconShortcutSettings => 'Settings';
 
   @override
-  String get iconShortcutUnsupported =>
-      'This home screen doesn’t take shortcuts';
+  String get iconShortcutUnsupported => 'This home screen doesn’t take shortcuts';
 
   @override
   String get iconShortcutFailed => 'Couldn’t add it. Try again later.';
 
   @override
-  String get searchKwLaunchScreen =>
-      'splash,startup,launch animation,opening screen';
+  String get searchKwLaunchScreen => 'splash,startup,launch animation,opening screen';
 
   @override
   String get searchKwIconShortcut => 'shortcut,custom icon,home screen picture';
@@ -10008,8 +9480,7 @@ class L10nEn extends L10n {
       'Android 16 Live Updates. Shown on Xiaomi HyperOS 3.1+, OPPO / OnePlus ColorOS 16, Honor MagicOS 10 and Pixel; vivo\'s Atomic Island and Samsung\'s Now Bar are open only to apps the maker partners with.';
 
   @override
-  String get liveUnsupported =>
-      'This phone\'s system doesn\'t support live activities yet';
+  String get liveUnsupported => 'This phone\'s system doesn\'t support live activities yet';
 
   @override
   String get liveBlockedTitle => 'Live activities are off for DSH Go';
@@ -10105,8 +9576,7 @@ class L10nEn extends L10n {
   String get localEnvUninstallFailed => 'Couldn’t uninstall. Try again.';
 
   @override
-  String get localEnvPhoneNeedsRuntime =>
-      'Available after installing on this phone';
+  String get localEnvPhoneNeedsRuntime => 'Available after installing on this phone';
 
   @override
   String get localEnvSignInNeedsRuntime => 'Needs DSH on this phone';
@@ -10119,8 +9589,7 @@ class L10nEn extends L10n {
       'The engine starts once each time the app opens, so starting it again reopens the app.';
 
   @override
-  String get engineReopenFailed =>
-      'The engine needs the app reopened before it can start again. Please reopen it.';
+  String get engineReopenFailed => 'The engine needs the app reopened before it can start again. Please reopen it.';
 
   @override
   String get engineCapShell => 'Command line';
@@ -10155,8 +9624,11 @@ class L10nEn extends L10n {
   String get engineCapNone => 'Unavailable';
 
   @override
-  String get marketInstallRefused =>
-      'This engine can\'t install market plugins';
+  String get marketInstallRefused => 'This engine can\'t install market plugins';
+
+  @override
+  String get localEnvGateBody =>
+      'This phone doesn\'t run DSH locally, so these settings aren\'t available. To enable them, install the runtime under Remote hosts.';
 
   @override
   String get marketSectionOfficial => 'Official';
@@ -10206,40 +9678,34 @@ class L10nEn extends L10n {
   String get marketFlagShell => 'Runs commands';
 
   @override
-  String get marketFlagShellBody =>
-      'Its code runs system commands (child_process)';
+  String get marketFlagShellBody => 'Its code runs system commands (child_process)';
 
   @override
   String get marketFlagNetwork => 'Network access';
 
   @override
-  String get marketFlagNetworkBody =>
-      'Its code makes network requests (fetch, http, WebSocket)';
+  String get marketFlagNetworkBody => 'Its code makes network requests (fetch, http, WebSocket)';
 
   @override
   String get marketFlagFilesystem => 'Writes outside the workspace';
 
   @override
-  String get marketFlagFilesystemBody =>
-      'Writes to paths outside the workspace';
+  String get marketFlagFilesystemBody => 'Writes to paths outside the workspace';
 
   @override
   String get marketFlagObfuscated => 'Hard to review';
 
   @override
-  String get marketFlagObfuscatedBody =>
-      'Has large minified or obfuscated files; hard to tell what they do';
+  String get marketFlagObfuscatedBody => 'Has large minified or obfuscated files; hard to tell what they do';
 
   @override
   String get marketFlagNotAdapted => 'Not made for DSH Go';
 
   @override
-  String get marketFlagNotAdaptedBody =>
-      'Declares no DSH Go native protocol, so it has no native screens in the app';
+  String get marketFlagNotAdaptedBody => 'Declares no DSH Go native protocol, so it has no native screens in the app';
 
   @override
-  String get marketFlagOtherBody =>
-      'Another trait the automatic checks reported';
+  String get marketFlagOtherBody => 'Another trait the automatic checks reported';
 
   @override
   String get marketChecksTitle => 'Automatic checks';
@@ -10248,8 +9714,7 @@ class L10nEn extends L10n {
   String get marketChecksClean => 'No risky traits found';
 
   @override
-  String get marketChecksNote =>
-      'Traits the automatic checks found; they don\'t mean the plugin is malicious';
+  String get marketChecksNote => 'Traits the automatic checks found; they don\'t mean the plugin is malicious';
 
   @override
   String marketCheckedOn(String date) {
@@ -10312,8 +9777,7 @@ class L10nEn extends L10n {
   String get marketSubmit => 'Submit a plugin';
 
   @override
-  String get marketSubmitHint =>
-      'On GitHub; listed once the automatic checks pass';
+  String get marketSubmitHint => 'On GitHub; listed once the automatic checks pass';
 
   @override
   String marketLinkNotFound(String name) {
@@ -10321,8 +9785,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get marketVerificationUnavailableTitle =>
-      'Could not verify the version';
+  String get marketVerificationUnavailableTitle => 'Could not verify the version';
 
   @override
   String get marketVerificationUnavailableBody =>
@@ -10397,12 +9860,7 @@ class L10nEn extends L10n {
 
   @override
   String mediaCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count images',
-      one: '1 image',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count images', one: '1 image');
     return '$_temp0';
   }
 
@@ -10422,8 +9880,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get mediaErrorPolicyInput =>
-      'The description didn\'t pass content review';
+  String get mediaErrorPolicyInput => 'The description didn\'t pass content review';
 
   @override
   String get mediaErrorPolicyOutput => 'The result didn\'t pass content review';
@@ -10583,8 +10040,7 @@ class L10nEn extends L10n {
   String get mediaNoDescription => 'Describe it first';
 
   @override
-  String get mediaDescriptionTooLong =>
-      'Too long to generate. Shorten the description';
+  String get mediaDescriptionTooLong => 'Too long to generate. Shorten the description';
 
   @override
   String get mediaInstallTitle => 'Images and video';
@@ -10619,16 +10075,13 @@ class L10nEn extends L10n {
   String get mediaSettingsLegacyDefault => 'Older general default';
 
   @override
-  String get mediaSettingsLegacyDefaultHint =>
-      'The 0.2.x setting; used when a kind has no default of its own';
+  String get mediaSettingsLegacyDefaultHint => 'The 0.2.x setting; used when a kind has no default of its own';
 
   @override
-  String get mediaSettingsLegacyDefaultStale =>
-      'Its service is unavailable; clear it so generation does not fail';
+  String get mediaSettingsLegacyDefaultStale => 'Its service is unavailable; clear it so generation does not fail';
 
   @override
-  String get mediaSettingsLegacyDefaultClear =>
-      'Clear the older general default';
+  String get mediaSettingsLegacyDefaultClear => 'Clear the older general default';
 
   @override
   String get mediaSettingsDefaultModel => 'Default model';
@@ -10642,8 +10095,7 @@ class L10nEn extends L10n {
       'Choose a default model for images and for video; leave it on Auto to use the first available one.';
 
   @override
-  String get mediaSettingsNoVideoModels =>
-      'This host\'s catalogue has no video models yet';
+  String get mediaSettingsNoVideoModels => 'This host\'s catalogue has no video models yet';
 
   @override
   String get mediaSettingsServices => 'Services';
@@ -10661,8 +10113,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get mediaSettingsNoServices =>
-      'No services yet. Add a provider to start making images or video.';
+  String get mediaSettingsNoServices => 'No services yet. Add a provider to start making images or video.';
 
   @override
   String get mediaSettingsNoModels => 'No models selected';
@@ -10683,15 +10134,13 @@ class L10nEn extends L10n {
       'The model catalogue has no models yet. Existing services can still be edited, but nothing can be added and no default chosen yet.';
 
   @override
-  String get mediaSettingsNoPresets =>
-      'There are no services to add from this catalogue yet.';
+  String get mediaSettingsNoPresets => 'There are no services to add from this catalogue yet.';
 
   @override
   String get mediaSettingsLimits => 'Request limits';
 
   @override
-  String get mediaSettingsLimitsHint =>
-      'Caps images and bytes per request; defaults are the plugin hard limits';
+  String get mediaSettingsLimitsHint => 'Caps images and bytes per request; defaults are the plugin hard limits';
 
   @override
   String get mediaSettingsMaxImages => 'Images per request';
@@ -10715,16 +10164,13 @@ class L10nEn extends L10n {
   String get mediaSettingsDailyBudget => 'Daily budget (CNY)';
 
   @override
-  String get mediaSettingsDailyBudgetHint =>
-      'Resets on the Shanghai date; generation pauses once it\'s used up';
+  String get mediaSettingsDailyBudgetHint => 'Resets on the Shanghai date; generation pauses once it\'s used up';
 
   @override
-  String get mediaSettingsUnknownPriceHold =>
-      'Hold per request when the price is unknown (CNY)';
+  String get mediaSettingsUnknownPriceHold => 'Hold per request when the price is unknown (CNY)';
 
   @override
-  String get mediaSettingsUnknownPriceHoldHint =>
-      'Reserved per request; not a cap the provider charges by';
+  String get mediaSettingsUnknownPriceHoldHint => 'Reserved per request; not a cap the provider charges by';
 
   @override
   String get mediaSettingsApiKey => 'API key';
@@ -10737,8 +10183,7 @@ class L10nEn extends L10n {
       'Images and video from one provider can share one API key; no need to enter it again.';
 
   @override
-  String get mediaSettingsReuseKeyNone =>
-      'No other service from this provider yet.';
+  String get mediaSettingsReuseKeyNone => 'No other service from this provider yet.';
 
   @override
   String get mediaSettingsReuseKeyShared => 'Shared';
@@ -10747,8 +10192,7 @@ class L10nEn extends L10n {
   String get mediaSettingsModels => 'Models';
 
   @override
-  String get mediaSettingsModelsEmpty =>
-      'The catalogue has no models for this protocol';
+  String get mediaSettingsModelsEmpty => 'The catalogue has no models for this protocol';
 
   @override
   String get mediaSettingsModelKeepOne => 'Keep at least one model';
@@ -10763,8 +10207,7 @@ class L10nEn extends L10n {
   String get mediaSettingsBaseUrl => 'API base URL';
 
   @override
-  String get mediaSettingsBaseUrlInvalid =>
-      'The address must start with https://';
+  String get mediaSettingsBaseUrlInvalid => 'The address must start with https://';
 
   @override
   String get mediaSettingsProvider => 'Provider id';
@@ -10773,8 +10216,7 @@ class L10nEn extends L10n {
   String get mediaSettingsKeyRef => 'Credential name';
 
   @override
-  String get mediaSettingsKeyRefInvalid =>
-      'Use letters, digits and underscores only';
+  String get mediaSettingsKeyRefInvalid => 'Use letters, digits and underscores only';
 
   @override
   String get mediaSettingsResponseFormat => 'Response format';
@@ -10789,8 +10231,7 @@ class L10nEn extends L10n {
   String get mediaSettingsServiceGone => 'This service is gone';
 
   @override
-  String get mediaSettingsServiceGoneBody =>
-      'It may have been removed elsewhere. Go back to add it again.';
+  String get mediaSettingsServiceGoneBody => 'It may have been removed elsewhere. Go back to add it again.';
 
   @override
   String get mediaSettingsDelete => 'Delete service';
@@ -10805,28 +10246,22 @@ class L10nEn extends L10n {
       'Only this host\'s service entry is removed; the API key is kept. Defaults pointing at it are cleared too.';
 
   @override
-  String get mediaSettingsNoImageModels =>
-      'The catalogue has no image models yet';
+  String get mediaSettingsNoImageModels => 'The catalogue has no image models yet';
 
   @override
-  String get mediaSettingsNoAvailableService =>
-      'No service is ready yet (add one and enter its key)';
+  String get mediaSettingsNoAvailableService => 'No service is ready yet (add one and enter its key)';
 
   @override
-  String get mediaSettingsNoImageService =>
-      'No image service is ready yet (add one and enter its key)';
+  String get mediaSettingsNoImageService => 'No image service is ready yet (add one and enter its key)';
 
   @override
-  String get mediaSettingsNoVideoService =>
-      'No video service is ready yet (add one and enter its key)';
+  String get mediaSettingsNoVideoService => 'No video service is ready yet (add one and enter its key)';
 
   @override
-  String get mediaSettingsKeyExternal =>
-      'Managed by another setting; only referenced here';
+  String get mediaSettingsKeyExternal => 'Managed by another setting; only referenced here';
 
   @override
-  String get mediaSettingsEnabledHint =>
-      'Turns this service off for generation';
+  String get mediaSettingsEnabledHint => 'Turns this service off for generation';
 
   @override
   String get nearbyThisChat => 'This chat';
@@ -10873,12 +10308,10 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get notifyCenterLoadFailed =>
-      'Can\'t reach AppHub — showing what already arrived';
+  String get notifyCenterLoadFailed => 'Can\'t reach AppHub — showing what already arrived';
 
   @override
-  String get notifyCenterOpenFailed =>
-      'Couldn\'t open that mini program page; it\'s still in the notification center';
+  String get notifyCenterOpenFailed => 'Couldn\'t open that mini program page; it\'s still in the notification center';
 
   @override
   String get notifyCenterDismiss => 'Dismiss';
@@ -10954,8 +10387,7 @@ class L10nEn extends L10n {
   String get performanceLightHint => 'Reduce ongoing effects and resource use';
 
   @override
-  String get performanceChoiceHint =>
-      'Your pet and engine choices take priority';
+  String get performanceChoiceHint => 'Your pet and engine choices take priority';
 
   @override
   String get performanceCooling => 'Reducing effects until the device cools';
@@ -10970,8 +10402,7 @@ class L10nEn extends L10n {
   String get performanceAnimations => 'Interface animation';
 
   @override
-  String get performanceSystemMotion =>
-      'Also follows the system\'s remove animations setting';
+  String get performanceSystemMotion => 'Also follows the system\'s remove animations setting';
 
   @override
   String get performanceFluid => 'Fluid motion';
@@ -10984,8 +10415,7 @@ class L10nEn extends L10n {
   String get performanceFollowMode => 'Follow the performance mode';
 
   @override
-  String get performanceRemoteHint =>
-      'Connect to a computer or server to reduce work on this phone';
+  String get performanceRemoteHint => 'Connect to a computer or server to reduce work on this phone';
 
   @override
   String get performanceRefresh => 'Refresh rate';
@@ -11001,26 +10431,22 @@ class L10nEn extends L10n {
       'Auto: fastest while drawing, handed back when still; System: the system decides.';
 
   @override
-  String get searchKwRefreshRate =>
-      'refresh rate high refresh 120Hz 90Hz smooth';
+  String get searchKwRefreshRate => 'refresh rate high refresh 120Hz 90Hz smooth';
 
   @override
   String get petActionSending => 'Sending…';
 
   @override
-  String get petActionTargetChanged =>
-      'Host changed. Reopen Quick ask; your text is kept.';
+  String get petActionTargetChanged => 'Host changed. Reopen Quick ask; your text is kept.';
 
   @override
-  String get petActionSendFailed =>
-      'Couldn’t send. Your text is kept; try again.';
+  String get petActionSendFailed => 'Couldn’t send. Your text is kept; try again.';
 
   @override
   String get petActionBusy => 'This chat is busy. Choose New chat.';
 
   @override
-  String get petActionVoiceMissing =>
-      'Download the offline voice model in the app first.';
+  String get petActionVoiceMissing => 'Download the offline voice model in the app first.';
 
   @override
   String get petActionVoiceTitle => 'Voice for Quick ask';
@@ -11108,8 +10534,7 @@ class L10nEn extends L10n {
   String get phoneEngineKeepAlive => 'Background running';
 
   @override
-  String get phoneEngineKeepAliveHint =>
-      'Prevent Android from stopping the engine';
+  String get phoneEngineKeepAliveHint => 'Prevent Android from stopping the engine';
 
   @override
   String get phoneEngineDiagnostics => 'Diagnostics';
@@ -11127,8 +10552,7 @@ class L10nEn extends L10n {
   String get phoneEngineStopTitle => 'Stop the engine?';
 
   @override
-  String get phoneEngineStopBody =>
-      'Active chats will be interrupted. You can start it again anytime.';
+  String get phoneEngineStopBody => 'Active chats will be interrupted. You can start it again anytime.';
 
   @override
   String get phoneEngineInstallRuntime => 'Install runtime';
@@ -11149,8 +10573,7 @@ class L10nEn extends L10n {
   String get phoneEngineReset => 'Reset runtime';
 
   @override
-  String get phoneEngineResetHint =>
-      'Delete chats and files, then extract again';
+  String get phoneEngineResetHint => 'Delete chats and files, then extract again';
 
   @override
   String get phoneEngineResetTitle => 'Reset the runtime?';
@@ -11163,8 +10586,7 @@ class L10nEn extends L10n {
   String get phoneEngineKeepUiSkills => 'Keep interface settings and skills';
 
   @override
-  String get phoneEngineKeepPluginsSettings =>
-      'Keep installed plugins and settings';
+  String get phoneEngineKeepPluginsSettings => 'Keep installed plugins and settings';
 
   @override
   String get phoneEngineDeleteReset => 'Delete and reset';
@@ -11203,8 +10625,7 @@ class L10nEn extends L10n {
   String get phoneEngineError => 'Something went wrong';
 
   @override
-  String get phoneEngineRuntimeCorrupt =>
-      'The bundled runtime is damaged. Reinstall DSH.';
+  String get phoneEngineRuntimeCorrupt => 'The bundled runtime is damaged. Reinstall DSH.';
 
   @override
   String get phoneEngineExited => 'The engine quit unexpectedly';
@@ -11213,12 +10634,10 @@ class L10nEn extends L10n {
   String get phoneEngineRuntimeMissing => 'The runtime isn’t installed yet';
 
   @override
-  String get phoneEngineSafeUnsupported =>
-      'This runtime doesn’t support Safe mode. Update DSH.';
+  String get phoneEngineSafeUnsupported => 'This runtime doesn’t support Safe mode. Update DSH.';
 
   @override
-  String get phoneEngineRuntimeIncomplete =>
-      'The bundled runtime is incomplete. Reinstall DSH.';
+  String get phoneEngineRuntimeIncomplete => 'The bundled runtime is incomplete. Reinstall DSH.';
 
   @override
   String get phoneLogEmpty => 'No logs yet';
@@ -11314,8 +10733,7 @@ class L10nEn extends L10n {
   String get phoneActionLogEmpty => 'No actions yet';
 
   @override
-  String get phoneActionLogEmptyHint =>
-      'Every step DSH takes on your phone appears here';
+  String get phoneActionLogEmptyHint => 'Every step DSH takes on your phone appears here';
 
   @override
   String get phoneAppRuleDeny => 'Hands off';
@@ -11327,23 +10745,19 @@ class L10nEn extends L10n {
   String get phoneAppRuleNormal => 'As usual';
 
   @override
-  String get phoneAppRuleDenyHint =>
-      'No reading or tapping. Default for banking and payment apps.';
+  String get phoneAppRuleDenyHint => 'No reading or tapping. Default for banking and payment apps.';
 
   @override
-  String get phoneAppRuleConfirmHint =>
-      'Can read. Asks before tapping or typing.';
+  String get phoneAppRuleConfirmHint => 'Can read. Asks before tapping or typing.';
 
   @override
-  String get phoneAppRuleNormalHint =>
-      'Asks only before sensitive actions, like sending';
+  String get phoneAppRuleNormalHint => 'Asks only before sensitive actions, like sending';
 
   @override
   String get phoneAppRulesTitle => 'App rules';
 
   @override
-  String get phoneAppRulesSubtitle =>
-      'Unlisted apps work as usual. Sensitive actions still need approval.';
+  String get phoneAppRulesSubtitle => 'Unlisted apps work as usual. Sensitive actions still need approval.';
 
   @override
   String get phoneAppRulesUnavailable => 'Can’t read app rules';
@@ -11361,8 +10775,7 @@ class L10nEn extends L10n {
   String get phoneAppRulesAddHint => 'Add by package name';
 
   @override
-  String get phoneSensitiveActionsNote =>
-      'Passwords, verification codes, payments and system settings are up to you';
+  String get phoneSensitiveActionsNote => 'Passwords, verification codes, payments and system settings are up to you';
 
   @override
   String get phoneAppRulesSaveFailed => 'Couldn’t save. Try again later.';
@@ -11374,8 +10787,7 @@ class L10nEn extends L10n {
   String get phoneAppRulesPackage => 'Package name';
 
   @override
-  String get phoneAppRulesPackageHint =>
-      'Find it in Settings → Apps → App info';
+  String get phoneAppRulesPackageHint => 'Find it in Settings → Apps → App info';
 
   @override
   String get phoneDndRequiresAndroid => 'Requires Android 14 or later';
@@ -11406,12 +10818,10 @@ class L10nEn extends L10n {
   String get phoneDndTitle => 'Non-disruptive mode';
 
   @override
-  String get phoneDndSubtitle =>
-      'Works on a hidden screen while you use your phone';
+  String get phoneDndSubtitle => 'Works on a hidden screen while you use your phone';
 
   @override
-  String get phoneDndUnsupported =>
-      'This phone needs Android 14 or later to use this feature.';
+  String get phoneDndUnsupported => 'This phone needs Android 14 or later to use this feature.';
 
   @override
   String get phoneDndRequirements => 'Requirements';
@@ -11423,8 +10833,7 @@ class L10nEn extends L10n {
   String get phoneDndReactivate => 'Reactivate after restarting your phone.';
 
   @override
-  String get phoneDndKeepDebugging =>
-      'With Shizuku or Direct ADB, stay on Wi-Fi with Wireless debugging on.';
+  String get phoneDndKeepDebugging => 'With Shizuku or Direct ADB, stay on Wi-Fi with Wireless debugging on.';
 
   @override
   String get phoneReady => 'Ready';
@@ -11481,8 +10890,7 @@ class L10nEn extends L10n {
   String get phoneDndStateNotPaired => 'Not paired';
 
   @override
-  String get phoneDndShizukuViaSui =>
-      'On this phone the Shizuku interface comes from Sui. Use Sui instead.';
+  String get phoneDndShizukuViaSui => 'On this phone the Shizuku interface comes from Sui. Use Sui instead.';
 
   @override
   String get phoneDndSuiMissing =>
@@ -11503,8 +10911,7 @@ class L10nEn extends L10n {
       'Couldn’t ask Sui for permission. Check that the Sui module is enabled and try again.';
 
   @override
-  String get phoneDndRootWaiting =>
-      'Waiting for root. Answer your root manager’s prompt.';
+  String get phoneDndRootWaiting => 'Waiting for root. Answer your root manager’s prompt.';
 
   @override
   String get phoneDndRootConnected =>
@@ -11529,8 +10936,7 @@ class L10nEn extends L10n {
       'Open Shizuku and follow “Start via Wireless debugging” (requires Wi-Fi). This page refreshes when you return.';
 
   @override
-  String get phoneDndGrantShizukuHint =>
-      'Shizuku is running. Allow DSH Go to use it next.';
+  String get phoneDndGrantShizukuHint => 'Shizuku is running. Allow DSH Go to use it next.';
 
   @override
   String get phoneDndGrantShizuku => 'Allow DSH Go';
@@ -11569,8 +10975,7 @@ class L10nEn extends L10n {
       'Turn on “Wireless debugging” in Developer options while connected to Wi-Fi. Developer options is usually in “System” or “Additional settings”.';
 
   @override
-  String get phoneDndStartPairingStep =>
-      'Return here and tap “Start pairing”. DSH sends a notification.';
+  String get phoneDndStartPairingStep => 'Return here and tap “Start pairing”. DSH sends a notification.';
 
   @override
   String get phoneDndGetPairingCodeStep =>
@@ -11584,8 +10989,7 @@ class L10nEn extends L10n {
   String get phoneDndStartPairing => 'Start pairing';
 
   @override
-  String get phoneDndPairingNotificationSent =>
-      'Notification sent. Get the code in “Wireless debugging”.';
+  String get phoneDndPairingNotificationSent => 'Notification sent. Get the code in “Wireless debugging”.';
 
   @override
   String get phoneDndManualEntry => 'Enter manually';
@@ -11594,8 +10998,7 @@ class L10nEn extends L10n {
   String get phoneDndConnect => 'Connect';
 
   @override
-  String get phoneDndManualEntryHint =>
-      'No input field in the notification? Use “Enter manually”.';
+  String get phoneDndManualEntryHint => 'No input field in the notification? Use “Enter manually”.';
 
   @override
   String get phoneDndXiaomiUsbHint =>
@@ -11611,8 +11014,7 @@ class L10nEn extends L10n {
   String get phoneDndPortLabel => 'Port (optional)';
 
   @override
-  String get phoneDndPortHint =>
-      'The number after the colon in “IP address & port” below the pairing code';
+  String get phoneDndPortHint => 'The number after the colon in “IP address & port” below the pairing code';
 
   @override
   String get phoneDndPair => 'Pair';
@@ -11627,8 +11029,7 @@ class L10nEn extends L10n {
   String get phoneConfirmAlways => 'Always skip';
 
   @override
-  String get phoneConfirmAskHint =>
-      'Asks before entering a new app, sending, deleting or paying';
+  String get phoneConfirmAskHint => 'Asks before entering a new app, sending, deleting or paying';
 
   @override
   String get phoneConfirmTaskHint => 'Asks once per task';
@@ -11643,8 +11044,7 @@ class L10nEn extends L10n {
   String get phoneConfirmAlwaysTitle => 'Always skip confirmation?';
 
   @override
-  String get phoneConfirmAlwaysBody =>
-      'Opening apps, tapping, sending and deleting will happen without asking you.';
+  String get phoneConfirmAlwaysBody => 'Opening apps, tapping, sending and deleting will happen without asking you.';
 
   @override
   String get phoneConfirmSaveFailed => 'Couldn’t change. Try again later.';
@@ -11662,23 +11062,19 @@ class L10nEn extends L10n {
   String get phoneDisabled => 'Off';
 
   @override
-  String get phoneOpenAccessibilityFailed =>
-      'Can’t open settings. Find DSH in Settings → Accessibility.';
+  String get phoneOpenAccessibilityFailed => 'Can’t open settings. Find DSH in Settings → Accessibility.';
 
   @override
-  String get phoneOpenAppInfoFailed =>
-      'Can’t open app info. Find DSH Go in Settings → Apps.';
+  String get phoneOpenAppInfoFailed => 'Can’t open app info. Find DSH Go in Settings → Apps.';
 
   @override
-  String get phoneStopFailed =>
-      'Couldn’t stop. Tap “Stop” on the floating bar or notification.';
+  String get phoneStopFailed => 'Couldn’t stop. Tap “Stop” on the floating bar or notification.';
 
   @override
   String get phoneControlTitle => 'Phone control';
 
   @override
-  String get phoneControlSubtitle =>
-      'Reads the screen and taps for you. Stop anytime.';
+  String get phoneControlSubtitle => 'Reads the screen and taps for you. Stop anytime.';
 
   @override
   String get phoneControlWorking => 'Operating your phone';
@@ -11688,15 +11084,13 @@ class L10nEn extends L10n {
       'Confirmation skipped for this task · Pause or stop from the floating bar';
 
   @override
-  String get phoneControlFloatingBarHint =>
-      'Pause or stop from the floating bar';
+  String get phoneControlFloatingBarHint => 'Pause or stop from the floating bar';
 
   @override
   String get phoneControlAdvanced => 'Advanced';
 
   @override
-  String get phoneControlKeepAliveHint =>
-      'Prevent Android from turning off accessibility';
+  String get phoneControlKeepAliveHint => 'Prevent Android from turning off accessibility';
 
   @override
   String get phoneControlReadingEllipsis => 'Reading…';
@@ -11714,12 +11108,10 @@ class L10nEn extends L10n {
   String get phoneControlLocalOnly => 'Only available with this phone’s engine';
 
   @override
-  String get phoneControlAfterEngineStarts =>
-      'Takes effect when the engine starts';
+  String get phoneControlAfterEngineStarts => 'Takes effect when the engine starts';
 
   @override
-  String get phoneControlNeedsAccessibility =>
-      'One step left: turn on accessibility';
+  String get phoneControlNeedsAccessibility => 'One step left: turn on accessibility';
 
   @override
   String get phoneControlReady => 'Ready to control your phone';
@@ -11731,16 +11123,13 @@ class L10nEn extends L10n {
   String get phoneControlAccessibilityService => 'Accessibility service';
 
   @override
-  String get phoneControlAccessibilityReady =>
-      'Ready to read the screen and tap';
+  String get phoneControlAccessibilityReady => 'Ready to read the screen and tap';
 
   @override
-  String get phoneControlAccessibilityReconnect =>
-      'Service disconnected. Turn it off and on again.';
+  String get phoneControlAccessibilityReconnect => 'Service disconnected. Turn it off and on again.';
 
   @override
-  String get phoneControlAccessibilityHint =>
-      'Needed to read the screen and tap';
+  String get phoneControlAccessibilityHint => 'Needed to read the screen and tap';
 
   @override
   String get phoneControlGoSettings => 'Open settings';
@@ -11749,27 +11138,23 @@ class L10nEn extends L10n {
   String get phoneControlGoEnable => 'Turn on';
 
   @override
-  String get phoneControlAccessibilityBlocked =>
-      'Accessibility switch disabled?';
+  String get phoneControlAccessibilityBlocked => 'Accessibility switch disabled?';
 
   @override
   String get phoneControlRestrictedAfterAttempt =>
       'Looks like it didn’t turn on. Sideloaded apps need “Allow restricted settings” first.';
 
   @override
-  String get phoneControlRestrictedHint =>
-      'Sideloaded apps need “Allow restricted settings” first';
+  String get phoneControlRestrictedHint => 'Sideloaded apps need “Allow restricted settings” first';
 
   @override
   String get phoneControlNotifications => 'Notifications';
 
   @override
-  String get phoneControlNotificationsPairingHint =>
-      'Used for approvals, stopping and pairing codes';
+  String get phoneControlNotificationsPairingHint => 'Used for approvals, stopping and pairing codes';
 
   @override
-  String get phoneControlNotificationsHint =>
-      'Needed for approvals and the “Stop” button';
+  String get phoneControlNotificationsHint => 'Needed for approvals and the “Stop” button';
 
   @override
   String get phoneControlAllowed => 'Allowed';
@@ -11781,12 +11166,10 @@ class L10nEn extends L10n {
   String get phoneControlReadScreen => 'Read current screen';
 
   @override
-  String get phoneControlReadScreenHint =>
-      'See what DSH reads, without sending it to the model';
+  String get phoneControlReadScreenHint => 'See what DSH reads, without sending it to the model';
 
   @override
-  String get phoneControlEnableAccessibilityFirst =>
-      'Turn on the accessibility service first';
+  String get phoneControlEnableAccessibilityFirst => 'Turn on the accessibility service first';
 
   @override
   String get phoneControlLoading => 'Loading';
@@ -11798,22 +11181,19 @@ class L10nEn extends L10n {
   String get phoneControlRecentActions => 'Recent actions';
 
   @override
-  String get phoneControlRecentActionsHint =>
-      'Every step is logged, without screen contents';
+  String get phoneControlRecentActionsHint => 'Every step is logged, without screen contents';
 
   @override
   String get phoneControlAllActions => 'All actions';
 
   @override
-  String get phoneControlModuleNotReady =>
-      'Phone control isn’t ready in this version';
+  String get phoneControlModuleNotReady => 'Phone control isn’t ready in this version';
 
   @override
   String get phoneControlSafeModeUnavailable => 'Unavailable in Safe mode';
 
   @override
-  String get phoneControlSafeModeHint =>
-      'Safe mode skips plugins. Switch to normal mode to use this.';
+  String get phoneControlSafeModeHint => 'Safe mode skips plugins. Switch to normal mode to use this.';
 
   @override
   String get phoneControlRemoteHost => 'Connected to a remote host';
@@ -11837,8 +11217,7 @@ class L10nEn extends L10n {
   String get phoneControlTapType => 'Tap and type for you';
 
   @override
-  String get phoneControlSensitiveHint =>
-      'Asks before sending or buying. Never pays.';
+  String get phoneControlSensitiveHint => 'Asks before sending or buying. Never pays.';
 
   @override
   String get phoneDisclosureWhatTitle => 'What it reads';
@@ -11851,8 +11230,7 @@ class L10nEn extends L10n {
   String get phoneDisclosureWhenTitle => 'When it reads';
 
   @override
-  String get phoneDisclosureWhenBody =>
-      'Only when you start a task or tap “Read current screen”. Never otherwise.';
+  String get phoneDisclosureWhenBody => 'Only when you start a task or tap “Read current screen”. Never otherwise.';
 
   @override
   String get phoneDisclosureWhoTitle => 'Who receives it';
@@ -11883,8 +11261,7 @@ class L10nEn extends L10n {
       'DSH reads the screen and taps like you do to get things done. Before turning it on, here’s what to know:';
 
   @override
-  String get phoneDisclosureRestartNote =>
-      'The engine will restart, interrupting any reply in progress';
+  String get phoneDisclosureRestartNote => 'The engine will restart, interrupting any reply in progress';
 
   @override
   String get phoneDisclosureNotNow => 'Not now';
@@ -11921,12 +11298,10 @@ class L10nEn extends L10n {
       'First try turning on DSH in “Accessibility”. When “Restricted setting” appears, tap “OK”. The option below appears only after this step.';
 
   @override
-  String get phoneRestrictedOpenInfoStep =>
-      'Return here and tap “Open app info”.';
+  String get phoneRestrictedOpenInfoStep => 'Return here and tap “Open app info”.';
 
   @override
-  String get phoneRestrictedBackAccessibility =>
-      'Return to “Accessibility” and turn on DSH.';
+  String get phoneRestrictedBackAccessibility => 'Return to “Accessibility” and turn on DSH.';
 
   @override
   String get phoneRestrictedMenuStep =>
@@ -11937,8 +11312,7 @@ class L10nEn extends L10n {
       'First try turning on DSH Go in floating window settings. When “Restricted setting” appears, tap “OK”. The option below appears only after this step.';
 
   @override
-  String get phoneRestrictedBackOverlay =>
-      'Return to floating window settings and turn on DSH Go.';
+  String get phoneRestrictedBackOverlay => 'Return to floating window settings and turn on DSH Go.';
 
   @override
   String get phoneRestrictedHuaweiOverlay =>
@@ -11953,8 +11327,7 @@ class L10nEn extends L10n {
       'The location varies by OriginOS version. If there are no three dots, scroll to the bottom of App info.';
 
   @override
-  String get phoneRestrictedAdvancedStep =>
-      'In “Advanced settings”, find “Allow restricted settings” and turn it on.';
+  String get phoneRestrictedAdvancedStep => 'In “Advanced settings”, find “Allow restricted settings” and turn it on.';
 
   @override
   String get phoneRestrictedOppoNote =>
@@ -12043,29 +11416,25 @@ class L10nEn extends L10n {
   String get phoneScreenEmpty => '(No readable text on screen)';
 
   @override
-  String get phoneScreenReadNote =>
-      'This is what the model would see. This read wasn’t sent to the model.';
+  String get phoneScreenReadNote => 'This is what the model would see. This read wasn’t sent to the model.';
 
   @override
   String get phoneFailureSafeStartup => 'Couldn’t start even in Safe mode';
 
   @override
-  String get phoneFailureSafeStartupHint =>
-      'Likely a global configuration or runtime issue';
+  String get phoneFailureSafeStartupHint => 'Likely a global configuration or runtime issue';
 
   @override
   String get phoneFailureKilled => 'Android stopped the engine';
 
   @override
-  String get phoneFailureKilledHint =>
-      'Likely low memory or battery restrictions';
+  String get phoneFailureKilledHint => 'Likely low memory or battery restrictions';
 
   @override
   String get phoneFailureLaunch => 'Local runtime couldn’t start';
 
   @override
-  String get phoneFailureLaunchHint =>
-      'Check the logs, or connect to a remote host to continue';
+  String get phoneFailureLaunchHint => 'Check the logs, or connect to a remote host to continue';
 
   @override
   String get phoneFailureNoSpaceHint => 'Free up some space and try again';
@@ -12101,8 +11470,7 @@ class L10nEn extends L10n {
   String get phoneSafeMoveAsideTitle => 'Move these files aside first?';
 
   @override
-  String get phoneSafeMoveAsideIntro =>
-      'They affect all configurations, including Safe mode:';
+  String get phoneSafeMoveAsideIntro => 'They affect all configurations, including Safe mode:';
 
   @override
   String get phoneSafeMoveAsideNote =>
@@ -12115,12 +11483,10 @@ class L10nEn extends L10n {
   String get phoneSafeMoveAsideStart => 'Move and start';
 
   @override
-  String get phoneSafeNoRestoreNeeded =>
-      'Configuration matches the last working version. No restore needed.';
+  String get phoneSafeNoRestoreNeeded => 'Configuration matches the last working version. No restore needed.';
 
   @override
-  String get phoneSafeNoRestoreRecord =>
-      'No previous working configuration recorded';
+  String get phoneSafeNoRestoreRecord => 'No previous working configuration recorded';
 
   @override
   String get phoneSafeRestoreTitle => 'Restore the last working configuration?';
@@ -12129,8 +11495,7 @@ class L10nEn extends L10n {
   String get phoneSafeRestoreStart => 'Restore and start';
 
   @override
-  String get phoneSafeRestoredStarting =>
-      'Restored the last working configuration. Starting…';
+  String get phoneSafeRestoredStarting => 'Restored the last working configuration. Starting…';
 
   @override
   String get phoneSafeRestoreFailed => 'Couldn’t restore';
@@ -12144,12 +11509,10 @@ class L10nEn extends L10n {
       'The configuration operation finished, but the engine has not stopped or restarted. Wait for it to stop before starting it again.';
 
   @override
-  String get phoneSafeRestoreIntro =>
-      'DSH will restore the last working configuration:';
+  String get phoneSafeRestoreIntro => 'DSH will restore the last working configuration:';
 
   @override
-  String get phoneSafeRestoreSettings =>
-      '• Restore settings to that version (save current settings as a backup)';
+  String get phoneSafeRestoreSettings => '• Restore settings to that version (save current settings as a backup)';
 
   @override
   String get phoneSafeRestoreNote =>
@@ -12175,8 +11538,7 @@ class L10nEn extends L10n {
   String get phoneSafeFailureLog => 'Logs around the failure';
 
   @override
-  String get phoneSafeFailureLogEmpty =>
-      'No output recorded at the time of failure';
+  String get phoneSafeFailureLogEmpty => 'No output recorded at the time of failure';
 
   @override
   String get phoneSafeBannerTitle => 'Safe mode · Plugins not loaded';
@@ -12189,16 +11551,13 @@ class L10nEn extends L10n {
       'If no errors occur within 2 minutes, recovery is complete. Otherwise, Safe mode returns automatically.';
 
   @override
-  String get phoneSafeBannerRunningHint =>
-      'Your chats are safe. Fix the configuration, then return to normal mode.';
+  String get phoneSafeBannerRunningHint => 'Your chats are safe. Fix the configuration, then return to normal mode.';
 
   @override
-  String get phoneSafeBannerFailedHint =>
-      'Couldn’t start even in Safe mode. Check the engine page.';
+  String get phoneSafeBannerFailedHint => 'Couldn’t start even in Safe mode. Check the engine page.';
 
   @override
-  String get phoneSafeBannerStoppedHint =>
-      'Engine stopped. Next start will still use Safe mode.';
+  String get phoneSafeBannerStoppedHint => 'Engine stopped. Next start will still use Safe mode.';
 
   @override
   String get phoneSafeRepair => 'Help me fix it';
@@ -12213,22 +11572,19 @@ class L10nEn extends L10n {
   String get phoneSafeReasonManual => 'Turned on manually';
 
   @override
-  String get phoneSafeNormalSettingsHint =>
-      'Restart with original configuration and plugins';
+  String get phoneSafeNormalSettingsHint => 'Restart with original configuration and plugins';
 
   @override
   String get phoneSafeStartSettings => 'Start in Safe mode';
 
   @override
-  String get phoneSafeStartSettingsHint =>
-      'Skip plugins to troubleshoot startup';
+  String get phoneSafeStartSettingsHint => 'Skip plugins to troubleshoot startup';
 
   @override
   String get phoneSafeAutoSettings => 'Automatic Safe mode';
 
   @override
-  String get phoneSafeAutoSettingsHint =>
-      'Turn on after repeated startup failures';
+  String get phoneSafeAutoSettingsHint => 'Turn on after repeated startup failures';
 
   @override
   String get phoneAccentMist => 'Mist';
@@ -12263,12 +11619,7 @@ class L10nEn extends L10n {
 
   @override
   String phoneLogLineCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count lines',
-      one: '1 line',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count lines', one: '1 line');
     return '$_temp0';
   }
 
@@ -12447,28 +11798,24 @@ class L10nEn extends L10n {
   String get phoneResetDeletesChatsWorkspaces => 'chats and workspaces';
 
   @override
-  String get phoneResetBodyChatsWorkspaces =>
-      'This will delete chats and workspaces, then reinstall the runtime.';
+  String get phoneResetBodyChatsWorkspaces => 'This will delete chats and workspaces, then reinstall the runtime.';
 
   @override
-  String get phoneResetDeletesWithPlugins =>
-      'chats, workspaces, plugins and settings';
+  String get phoneResetDeletesWithPlugins => 'chats, workspaces, plugins and settings';
 
   @override
   String get phoneResetBodyWithPlugins =>
       'This will delete chats, workspaces, plugins and settings, then reinstall the runtime.';
 
   @override
-  String get phoneResetDeletesWithUi =>
-      'chats, workspaces, interface settings and skills';
+  String get phoneResetDeletesWithUi => 'chats, workspaces, interface settings and skills';
 
   @override
   String get phoneResetBodyWithUi =>
       'This will delete chats, workspaces, interface settings and skills, then reinstall the runtime.';
 
   @override
-  String get phoneResetDeletesEverything =>
-      'chats, workspaces, plugins, settings, interface settings and skills';
+  String get phoneResetDeletesEverything => 'chats, workspaces, plugins, settings, interface settings and skills';
 
   @override
   String get phoneResetBodyEverything =>
@@ -12486,8 +11833,7 @@ class L10nEn extends L10n {
   String get phoneControlDisabledRestarting => 'Off · Restarting the engine';
 
   @override
-  String get phoneControlEnabledPending =>
-      'On · Takes effect when the engine starts';
+  String get phoneControlEnabledPending => 'On · Takes effect when the engine starts';
 
   @override
   String get phoneReturnAfterDone => 'Back to DSH Go when done';
@@ -12526,20 +11872,17 @@ class L10nEn extends L10n {
       'This start used compatible launch; the reason is above. Your choice is kept, and the next start tries again.';
 
   @override
-  String get phoneDirectStopFirst =>
-      'Stop the local engine before changing its launch method.';
+  String get phoneDirectStopFirst => 'Stop the local engine before changing its launch method.';
 
   @override
   String get phoneDirectSafeHint =>
       'Safe mode uses compatible launch. This choice applies when you return to normal mode.';
 
   @override
-  String get phoneDirectNeedsRuntime =>
-      'This option needs a runtime with direct launch support.';
+  String get phoneDirectNeedsRuntime => 'This option needs a runtime with direct launch support.';
 
   @override
-  String get phoneDirectChangeFailed =>
-      'Could not change the launch method. Stop the local engine and try again.';
+  String get phoneDirectChangeFailed => 'Could not change the launch method. Stop the local engine and try again.';
 
   @override
   String get phoneActualLaunchMode => 'Current launch';
@@ -12566,16 +11909,13 @@ class L10nEn extends L10n {
   String get phoneLaunchCompatible => 'Compatible launch';
 
   @override
-  String get phoneDirectIncompatibleFiles =>
-      'Plugin files not tidied yet, compatible launch for now';
+  String get phoneDirectIncompatibleFiles => 'Plugin files not tidied yet, compatible launch for now';
 
   @override
-  String get phoneDirectNotEnoughSpace =>
-      'Not enough storage, compatible launch for now';
+  String get phoneDirectNotEnoughSpace => 'Not enough storage, compatible launch for now';
 
   @override
-  String get phoneDirectMigrationFailed =>
-      'File tidy-up unfinished, compatible launch for now';
+  String get phoneDirectMigrationFailed => 'File tidy-up unfinished, compatible launch for now';
 
   @override
   String get phoneDirectLaunchFailed => 'Direct launch failed';
@@ -12606,16 +11946,14 @@ class L10nEn extends L10n {
       'Starts on demand after approval and stops when the task ends, closing the system’s “Automation Running” indicator.';
 
   @override
-  String get phoneIosSetupHint =>
-      'Keep LocalDevVPN connected. On first use, allow control for 30 minutes.';
+  String get phoneIosSetupHint => 'Keep LocalDevVPN connected. On first use, allow control for 30 minutes.';
 
   @override
   String get phoneIosReturnHint =>
       'Return to this conversation when the task finishes, then stop the phone-control service.';
 
   @override
-  String get phoneIosNeedsSetup =>
-      'The runner is not ready. Check the local engine and developer setup.';
+  String get phoneIosNeedsSetup => 'The runner is not ready. Check the local engine and developer setup.';
 
   @override
   String get phoneTaskResultReady => 'Task complete · View result';
@@ -12627,8 +11965,7 @@ class L10nEn extends L10n {
   String get phoneBackgroundGuideTitle => 'Confirmations and return';
 
   @override
-  String get phoneBackgroundGuideSubtitle =>
-      'See confirmations and task results in time';
+  String get phoneBackgroundGuideSubtitle => 'See confirmations and task results in time';
 
   @override
   String get phoneBackgroundGuideBody =>
@@ -12649,8 +11986,7 @@ class L10nEn extends L10n {
   String get phoneBackgroundOpenSettings => 'Open system settings';
 
   @override
-  String get phoneBackgroundNotificationBlocked =>
-      'Allow pop-up alerts for phone-control notifications';
+  String get phoneBackgroundNotificationBlocked => 'Allow pop-up alerts for phone-control notifications';
 
   @override
   String get phonePrivilegedUpgrade =>
@@ -12729,8 +12065,7 @@ class L10nEn extends L10n {
   String get phoneKeepWaitingService => 'Waiting for the service to run';
 
   @override
-  String get phoneKeepWaitingPermission =>
-      'Not authorized. Reconnects once you grant it.';
+  String get phoneKeepWaitingPermission => 'Not authorized. Reconnects once you grant it.';
 
   @override
   String get phoneKeepWaitingNetwork => 'Waiting for Wi‑Fi';
@@ -12739,8 +12074,7 @@ class L10nEn extends L10n {
   String get phoneKeepNotPaired => 'Not paired. Pair wireless debugging first.';
 
   @override
-  String get phoneKeepFailed =>
-      'Couldn’t reconnect. Tries again when you open the app or start a task.';
+  String get phoneKeepFailed => 'Couldn’t reconnect. Tries again when you open the app or start a task.';
 
   @override
   String get phoneModeTitle => 'How DSH confirms';
@@ -12752,8 +12086,7 @@ class L10nEn extends L10n {
   String get phoneModeAsk => 'Ask me at key steps';
 
   @override
-  String get phoneModeAskHint =>
-      'Before a new app, sending, deleting or paying';
+  String get phoneModeAskHint => 'Before a new app, sending, deleting or paying';
 
   @override
   String get phoneModeAuto => 'Fully automatic';
@@ -12788,8 +12121,7 @@ class L10nEn extends L10n {
   String get phoneYoursOwnApp => 'DSH Go itself';
 
   @override
-  String get phoneYoursDenyList =>
-      'Apps set to Hands off in App rules, banking and payment by default';
+  String get phoneYoursDenyList => 'Apps set to Hands off in App rules, banking and payment by default';
 
   @override
   String get phoneUnlockTitle => 'Lift limits';
@@ -12801,15 +12133,13 @@ class L10nEn extends L10n {
   String get phoneUnlockSystem => 'System settings';
 
   @override
-  String get phoneUnlockSystemHint =>
-      'Permissions, installers, security center, notifications';
+  String get phoneUnlockSystemHint => 'Permissions, installers, security center, notifications';
 
   @override
   String get phoneUnlockSecrets => 'Passwords and codes';
 
   @override
-  String get phoneUnlockSecretsHint =>
-      'Fill in passwords, verification and payment codes';
+  String get phoneUnlockSecretsHint => 'Fill in passwords, verification and payment codes';
 
   @override
   String get phoneUnlockOwnApp => 'DSH Go itself';
@@ -12821,8 +12151,7 @@ class L10nEn extends L10n {
   String get phoneUnlockBusy => 'Can’t turn on while a task is running';
 
   @override
-  String get phoneUnlockFootnote =>
-      'Once on, the consequences are yours. Turn on only when needed, and off when done.';
+  String get phoneUnlockFootnote => 'Once on, the consequences are yours. Turn on only when needed, and off when done.';
 
   @override
   String get phoneUnlockBanks => 'Banking and payment apps';
@@ -12835,12 +12164,7 @@ class L10nEn extends L10n {
 
   @override
   String phoneUnlockCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count on',
-      one: '1 on',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count on', one: '1 on');
     return '$_temp0';
   }
 
@@ -12851,8 +12175,7 @@ class L10nEn extends L10n {
   String get phoneUnlockConfirmSystemTitle => 'Let AI operate system settings?';
 
   @override
-  String get phoneUnlockConfirmSecretsTitle =>
-      'Let AI fill in passwords and codes?';
+  String get phoneUnlockConfirmSecretsTitle => 'Let AI fill in passwords and codes?';
 
   @override
   String get phoneUnlockConfirmOwnAppTitle => 'Let AI operate DSH Go itself?';
@@ -12871,8 +12194,7 @@ class L10nEn extends L10n {
       'Open and change system settings, including permissions, accessibility and developer options';
 
   @override
-  String get phoneUnlockSystemCan2 =>
-      'Install, update or uninstall apps in the installer';
+  String get phoneUnlockSystemCan2 => 'Install, update or uninstall apps in the installer';
 
   @override
   String get phoneUnlockSystemCan3 =>
@@ -12883,60 +12205,49 @@ class L10nEn extends L10n {
       'Malicious instructions in a web page, message or file could lead AI to turn off protections, grant permissions to other apps or install apps';
 
   @override
-  String get phoneUnlockSystemRisk2 =>
-      'Network, account or security settings changed by mistake are yours to restore';
+  String get phoneUnlockSystemRisk2 => 'Network, account or security settings changed by mistake are yours to restore';
 
   @override
-  String get phoneUnlockSecretsCan1 =>
-      'Type into password, verification-code and payment-code fields';
+  String get phoneUnlockSecretsCan1 => 'Type into password, verification-code and payment-code fields';
 
   @override
-  String get phoneUnlockSecretsCan2 =>
-      'Use codes it sees in chats, texts or notifications to sign in or verify';
+  String get phoneUnlockSecretsCan2 => 'Use codes it sees in chats, texts or notifications to sign in or verify';
 
   @override
-  String get phoneUnlockSecretsCan3 =>
-      'The action log shows •••• and never what was typed';
+  String get phoneUnlockSecretsCan3 => 'The action log shows •••• and never what was typed';
 
   @override
   String get phoneUnlockSecretsRisk1 =>
       'Malicious instructions could lead AI to enter a code somewhere else, letting someone into your account';
 
   @override
-  String get phoneUnlockSecretsRisk2 =>
-      'It could complete a payment or transfer you didn’t intend';
+  String get phoneUnlockSecretsRisk2 => 'It could complete a payment or transfer you didn’t intend';
 
   @override
-  String get phoneUnlockOwnAppCan1 =>
-      'Tap and type inside DSH Go, including changing settings';
+  String get phoneUnlockOwnAppCan1 => 'Tap and type inside DSH Go, including changing settings';
 
   @override
-  String get phoneUnlockOwnAppCan2 =>
-      'Read conversations and settings on DSH Go’s screens';
+  String get phoneUnlockOwnAppCan2 => 'Read conversations and settings on DSH Go’s screens';
 
   @override
   String get phoneUnlockOwnAppRisk1 =>
       'Malicious instructions could lead AI to approve its own requests or turn confirmations off';
 
   @override
-  String get phoneUnlockOwnAppRisk2 =>
-      'What’s on these screens is sent to the model';
+  String get phoneUnlockOwnAppRisk2 => 'What’s on these screens is sent to the model';
 
   @override
-  String get phoneUnlockDisclaimer1 =>
-      'Once on, AI can do the above without anyone confirming.';
+  String get phoneUnlockDisclaimer1 => 'Once on, AI can do the above without anyone confirming.';
 
   @override
-  String get phoneUnlockDisclaimer2 =>
-      'AI can be misled by content in web pages, messages or files.';
+  String get phoneUnlockDisclaimer2 => 'AI can be misled by content in web pages, messages or files.';
 
   @override
   String get phoneUnlockDisclaimer3 =>
       'Any resulting loss to your accounts, money, data or device is yours to bear. DSH Go and its developers accept no liability.';
 
   @override
-  String get phoneUnlockDisclaimer4 =>
-      'Turn it on only when you need it, and off when you’re done.';
+  String get phoneUnlockDisclaimer4 => 'Turn it on only when you need it, and off when you’re done.';
 
   @override
   String get phoneUnlockDisclaimer5 =>
@@ -12959,8 +12270,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get searchKwPhoneUnlock =>
-      'lift limits,unlock,passwords,codes,system settings,itself,risk,disclaimer';
+  String get searchKwPhoneUnlock => 'lift limits,unlock,passwords,codes,system settings,itself,risk,disclaimer';
 
   @override
   String get pluginConfigUnsaved => 'Unsaved';
@@ -12994,12 +12304,7 @@ class L10nEn extends L10n {
 
   @override
   String pluginConfigChanges(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count changes',
-      one: '1 change',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count changes', one: '1 change');
     return '$_temp0';
   }
 
@@ -13022,8 +12327,7 @@ class L10nEn extends L10n {
   String get pluginConfigRestored => 'Previous settings restored';
 
   @override
-  String get pluginConfigStopped =>
-      'Didn\'t take effect, and the previous settings couldn\'t be restored';
+  String get pluginConfigStopped => 'Didn\'t take effect, and the previous settings couldn\'t be restored';
 
   @override
   String get pluginConfigRestore => 'Restore';
@@ -13053,19 +12357,16 @@ class L10nEn extends L10n {
   String get pluginConfigSecretUnbound => 'Needs plugin support';
 
   @override
-  String get pluginConfigListFailed =>
-      'Couldn\'t read the plugin list. Try again later.';
+  String get pluginConfigListFailed => 'Couldn\'t read the plugin list. Try again later.';
 
   @override
-  String get pluginConfigListUpdating =>
-      'The plugin list is updating. Try again in a moment.';
+  String get pluginConfigListUpdating => 'The plugin list is updating. Try again in a moment.';
 
   @override
   String get pluginConfigFixed => 'Set by configuration file';
 
   @override
-  String get pluginConfigFixedNote =>
-      'Set by a configuration file. View only here.';
+  String get pluginConfigFixedNote => 'Set by a configuration file. View only here.';
 
   @override
   String get pluginConfigReadOnly => 'Read-only';
@@ -13152,12 +12453,10 @@ class L10nEn extends L10n {
   String get plugInputNoPassword => 'Plugins cannot use password fields';
 
   @override
-  String get plugInputBadBinding =>
-      'Input binding must be a field path under data';
+  String get plugInputBadBinding => 'Input binding must be a field path under data';
 
   @override
-  String get plugInputDuplicateBinding =>
-      'Each field can bind to only one input';
+  String get plugInputDuplicateBinding => 'Each field can bind to only one input';
 
   @override
   String get plugInputNamedPattern => 'Use a built-in validation pattern';
@@ -13244,12 +12543,10 @@ class L10nEn extends L10n {
   String get pluginsReloadRequested => 'Engine restart requested';
 
   @override
-  String get pluginsReloadChanged =>
-      'The host or plugin state changed. Try again.';
+  String get pluginsReloadChanged => 'The host or plugin state changed. Try again.';
 
   @override
-  String get pluginsReloadFailed =>
-      'Couldn’t restart the engine. Check its logs.';
+  String get pluginsReloadFailed => 'Couldn’t restart the engine. Check its logs.';
 
   @override
   String get pluginsFile => 'File';
@@ -13351,12 +12648,7 @@ class L10nEn extends L10n {
 
   @override
   String pluginsLineCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count lines',
-      one: '1 line',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count lines', one: '1 line');
     return '$_temp0';
   }
 
@@ -13370,15 +12662,13 @@ class L10nEn extends L10n {
   String get pluginsOffValue => 'Off';
 
   @override
-  String get pluginsOfficialUnavailable =>
-      'This host doesn’t have this official plugin';
+  String get pluginsOfficialUnavailable => 'This host doesn’t have this official plugin';
 
   @override
   String get pluginsEnabled => 'Enabled';
 
   @override
-  String get pluginsVersionMismatch =>
-      'Version differs from the shared version';
+  String get pluginsVersionMismatch => 'Version differs from the shared version';
 
   @override
   String get pluginsCurrentVersion => 'Current version';
@@ -13415,12 +12705,10 @@ class L10nEn extends L10n {
   String get pluginsReplaceContent => 'Replace existing content';
 
   @override
-  String get pluginsSafeModeInstallBlocked =>
-      'Can’t install plugins in Safe mode';
+  String get pluginsSafeModeInstallBlocked => 'Can’t install plugins in Safe mode';
 
   @override
-  String get pluginsHostInstallBlocked =>
-      'Can’t install plugins on this host from here';
+  String get pluginsHostInstallBlocked => 'Can’t install plugins on this host from here';
 
   @override
   String get pluginsInstallFailed => 'Installation failed';
@@ -13444,8 +12732,7 @@ class L10nEn extends L10n {
   String get pluginsProfileTitle => 'DSH Go settings';
 
   @override
-  String get pluginsGistTokenInvalid =>
-      'GitHub token is invalid or lacks Gist permission';
+  String get pluginsGistTokenInvalid => 'GitHub token is invalid or lacks Gist permission';
 
   @override
   String pluginsGistCreateHttpFailed(int status) {
@@ -13490,8 +12777,7 @@ class L10nEn extends L10n {
   String get pluginsNoThirdParty => 'No third-party plugins yet';
 
   @override
-  String get pluginsPluginsDescription =>
-      'Add tools, memory, and models to DSH';
+  String get pluginsPluginsDescription => 'Add tools, memory, and models to DSH';
 
   @override
   String get pluginsBrowseMarket => 'Browse plugins';
@@ -13527,12 +12813,7 @@ class L10nEn extends L10n {
 
   @override
   String pluginsMarketCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count plugins',
-      one: '1 plugin',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count plugins', one: '1 plugin');
     return '$_temp0 · from dshfind';
   }
 
@@ -13599,8 +12880,7 @@ class L10nEn extends L10n {
   String get pluginsAllowBuildScripts => 'Allow build scripts?';
 
   @override
-  String get pluginsBuildScriptPackages =>
-      'These packages run scripts during installation:';
+  String get pluginsBuildScriptPackages => 'These packages run scripts during installation:';
 
   @override
   String pluginsBuildScriptWarning(String host) {
@@ -13649,8 +12929,7 @@ class L10nEn extends L10n {
   String get pluginsThatComputer => 'That computer';
 
   @override
-  String get pluginsCommandAfterInstall =>
-      'After installing, restart DSH on that computer, then refresh here';
+  String get pluginsCommandAfterInstall => 'After installing, restart DSH on that computer, then refresh here';
 
   @override
   String get pluginsError => 'Error';
@@ -13669,34 +12948,19 @@ class L10nEn extends L10n {
 
   @override
   String pluginsComponentCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count components',
-      one: '1 component',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count components', one: '1 component');
     return '$_temp0';
   }
 
   @override
   String pluginsEnabledCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count enabled',
-      one: '1 enabled',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count enabled', one: '1 enabled');
     return '$_temp0';
   }
 
   @override
   String pluginsErrorCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count errors',
-      one: '1 error',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count errors', one: '1 error');
     return '$_temp0';
   }
 
@@ -13728,12 +12992,7 @@ class L10nEn extends L10n {
 
   @override
   String pluginsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items',
-      one: '1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count items', one: '1 item');
     return '$_temp0';
   }
 
@@ -13761,12 +13020,10 @@ class L10nEn extends L10n {
   String get pluginsGet => 'Get';
 
   @override
-  String get pluginsLoadingCannotCancel =>
-      'Loading the plugin. This step can’t be cancelled.';
+  String get pluginsLoadingCannotCancel => 'Loading the plugin. This step can’t be cancelled.';
 
   @override
-  String get pluginsInstallDuration =>
-      'Takes a minute or two. You can leave this page.';
+  String get pluginsInstallDuration => 'Takes a minute or two. You can leave this page.';
 
   @override
   String get pluginsViewInstallLogs => 'View install logs';
@@ -13781,21 +13038,16 @@ class L10nEn extends L10n {
   String get pluginsCommandCopied => 'Command copied';
 
   @override
-  String get pluginsMissingFiles =>
-      'Plugin files are missing. Reinstall to fix.';
+  String get pluginsMissingFiles => 'Plugin files are missing. Reinstall to fix.';
 
   @override
   String get pluginsNotDshPlugin => 'Not a DSH plugin, can’t load';
 
   @override
-  String get pluginsIncompatible =>
-      'Incompatible with this DSH version, not loaded';
+  String get pluginsIncompatible => 'Incompatible with this DSH version, not loaded';
 
   @override
-  String pluginsRequiresDshVersion(
-    String requiredVersion,
-    String currentVersion,
-  ) {
+  String pluginsRequiresDshVersion(String requiredVersion, String currentVersion) {
     return 'Requires DSH $requiredVersion, currently $currentVersion, not loaded';
   }
 
@@ -13827,12 +13079,10 @@ class L10nEn extends L10n {
   String get pluginsMarketTitle => 'Plugin market';
 
   @override
-  String get pluginsConnectToManage =>
-      'Connect to the engine to manage plugins';
+  String get pluginsConnectToManage => 'Connect to the engine to manage plugins';
 
   @override
-  String get pluginsSafeModeOperationsBlocked =>
-      'Can’t install or uninstall plugins in Safe mode';
+  String get pluginsSafeModeOperationsBlocked => 'Can’t install or uninstall plugins in Safe mode';
 
   @override
   String pluginsRelayToggleOnly(String host) {
@@ -13852,12 +13102,10 @@ class L10nEn extends L10n {
       'Installed plugins appear when the engine is running. You can browse the market now.';
 
   @override
-  String get pluginsIconChanged =>
-      'Icon selected. Return to your home screen to see the change.';
+  String get pluginsIconChanged => 'Icon selected. Return to your home screen to see the change.';
 
   @override
-  String get pluginsIconChangeFailed =>
-      'Couldn’t change the icon. Try again later.';
+  String get pluginsIconChangeFailed => 'Couldn’t change the icon. Try again later.';
 
   @override
   String get pluginsTheme => 'Theme';
@@ -13953,8 +13201,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get pluginsVivoBatteryStep =>
-      'Turn on “Allow high background power usage”';
+  String get pluginsVivoBatteryStep => 'Turn on “Allow high background power usage”';
 
   @override
   String pluginsXiaomiBatteryFullPath(String app) {
@@ -13965,8 +13212,7 @@ class L10nEn extends L10n {
   String get pluginsXiaomiAutostart => 'Turn on “Autostart” on the same page';
 
   @override
-  String get pluginsHuaweiBatteryStep =>
-      'Turn off “Manage automatically” and turn on “Allow background activity”';
+  String get pluginsHuaweiBatteryStep => 'Turn off “Manage automatically” and turn on “Allow background activity”';
 
   @override
   String get pluginsOppoBatteryStep => 'Turn on “Allow background activity”';
@@ -13978,8 +13224,7 @@ class L10nEn extends L10n {
   String get pluginsBackgroundTitle => 'Background running';
 
   @override
-  String get pluginsBackgroundDescription =>
-      'Let chats finish in the background';
+  String get pluginsBackgroundDescription => 'Let chats finish in the background';
 
   @override
   String get pluginsSystem => 'System';
@@ -13997,8 +13242,7 @@ class L10nEn extends L10n {
   String get pluginsStayOnline => 'Stay online';
 
   @override
-  String get pluginsKeepEngineNotification =>
-      'Keep the “Engine running” notification';
+  String get pluginsKeepEngineNotification => 'Keep the “Engine running” notification';
 
   @override
   String pluginsLockInRecents(String app) {
@@ -14031,8 +13275,7 @@ class L10nEn extends L10n {
   String get pluginsDiagnostics => 'Diagnostics';
 
   @override
-  String get pluginsDiagnosticsDescription =>
-      'Include with bug reports. No API keys or tokens.';
+  String get pluginsDiagnosticsDescription => 'Include with bug reports. No API keys or tokens.';
 
   @override
   String get pluginsRuntime => 'Runtime';
@@ -14068,8 +13311,7 @@ class L10nEn extends L10n {
   String get pluginsCopyDiagnostics => 'Copy diagnostics';
 
   @override
-  String get pluginsDiagnosticsContents =>
-      'Versions and connection status only';
+  String get pluginsDiagnosticsContents => 'Versions and connection status only';
 
   @override
   String get pluginsNotificationsPartlyBlocked => 'Some blocked by system';
@@ -14091,20 +13333,16 @@ class L10nEn extends L10n {
   String get pluginsSystemNotificationsOff => 'System notifications are off';
 
   @override
-  String get pluginsBackgroundNoAlerts =>
-      'You won’t get alerts while the app is in the background';
+  String get pluginsBackgroundNoAlerts => 'You won’t get alerts while the app is in the background';
 
   @override
-  String get pluginsApprovalNotificationsOff =>
-      '“Needs approval” notifications are off';
+  String get pluginsApprovalNotificationsOff => '“Needs approval” notifications are off';
 
   @override
-  String get pluginsBackgroundNoApprovalAlerts =>
-      'You won’t get approval alerts while the app is in the background';
+  String get pluginsBackgroundNoApprovalAlerts => 'You won’t get approval alerts while the app is in the background';
 
   @override
-  String get pluginsDoneNotificationsOff =>
-      '“Turn ended” notifications are off';
+  String get pluginsDoneNotificationsOff => '“Turn ended” notifications are off';
 
   @override
   String get pluginsBackgroundNoDoneAlerts =>
@@ -14114,22 +13352,19 @@ class L10nEn extends L10n {
   String get pluginsTurnOn => 'Turn on';
 
   @override
-  String get pluginsNotificationsDescription =>
-      'Get alerts when chats finish or need you';
+  String get pluginsNotificationsDescription => 'Get alerts when chats finish or need you';
 
   @override
   String get pluginsAllowNotifications => 'Allow notifications';
 
   @override
-  String get pluginsNotificationsAndBanners =>
-      'System notifications and top banners';
+  String get pluginsNotificationsAndBanners => 'System notifications and top banners';
 
   @override
   String get pluginsAlerts => 'Alerts';
 
   @override
-  String get pluginsRemoteAlertsRequirement =>
-      'Remote host alerts need the app running and connected';
+  String get pluginsRemoteAlertsRequirement => 'Remote host alerts need the app running and connected';
 
   @override
   String get pluginsTurnComplete => 'Turn complete';
@@ -14141,12 +13376,10 @@ class L10nEn extends L10n {
   String get pluginsErrorOrStopped => 'Error or stopped';
 
   @override
-  String get pluginsErrorOrStoppedDescription =>
-      'Request failed, engine restarted, or stopped';
+  String get pluginsErrorOrStoppedDescription => 'Request failed, engine restarted, or stopped';
 
   @override
-  String get pluginsApprovalDescription =>
-      'Approval needed to run commands, edit files, and more';
+  String get pluginsApprovalDescription => 'Approval needed to run commands, edit files, and more';
 
   @override
   String get pluginsQuestions => 'Questions for you';
@@ -14158,26 +13391,22 @@ class L10nEn extends L10n {
   String get pluginsSystemSettings => 'System settings';
 
   @override
-  String get pluginsLockScreenPrivacy =>
-      'Chat content stays hidden on the lock screen';
+  String get pluginsLockScreenPrivacy => 'Chat content stays hidden on the lock screen';
 
   @override
   String get pluginsSoundBannerLockScreen => 'Sound, banners, and lock screen';
 
   @override
-  String get pluginsEnableFloatingNotifications =>
-      'Turn on “Floating notifications” if banners don’t appear';
+  String get pluginsEnableFloatingNotifications => 'Turn on “Floating notifications” if banners don’t appear';
 
   @override
   String get pluginsPersonalPreferences => 'Personal preferences';
 
   @override
-  String get pluginsPreferencesDescription =>
-      'New chats will follow these instructions';
+  String get pluginsPreferencesDescription => 'New chats will follow these instructions';
 
   @override
-  String get pluginsPreferencesHint =>
-      'For example: Reply in Chinese. I mainly write Flutter.';
+  String get pluginsPreferencesHint => 'For example: Reply in Chinese. I mainly write Flutter.';
 
   @override
   String get pluginsSaving => 'Saving';
@@ -14234,8 +13463,7 @@ class L10nEn extends L10n {
   String get pluginsUnavailable => 'Unavailable';
 
   @override
-  String get pluginsHostProfileReadFailed =>
-      'Couldn’t read this host’s settings';
+  String get pluginsHostProfileReadFailed => 'Couldn’t read this host’s settings';
 
   @override
   String get pluginsAlreadyMatches => 'This host already matches';
@@ -14253,8 +13481,7 @@ class L10nEn extends L10n {
   String get pluginsImport => 'Import';
 
   @override
-  String get pluginsHostPluginsReadFailed =>
-      'Couldn’t read this host’s plugins';
+  String get pluginsHostPluginsReadFailed => 'Couldn’t read this host’s plugins';
 
   @override
   String pluginsUpdateTo(String version) {
@@ -14312,53 +13539,32 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get pluginsLocalPluginUnshareable =>
-      'This plugin was installed locally and can’t be shared';
+  String get pluginsLocalPluginUnshareable => 'This plugin was installed locally and can’t be shared';
 
   @override
   String get pluginsSharePlugin => 'Share plugin';
 
   @override
   String pluginsPluginCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count plugins',
-      one: '1 plugin',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count plugins', one: '1 plugin');
     return '$_temp0';
   }
 
   @override
   String pluginsSettingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count settings',
-      one: '1 setting',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count settings', one: '1 setting');
     return '$_temp0';
   }
 
   @override
   String pluginsPresetCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count presets',
-      one: '1 preset',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count presets', one: '1 preset');
     return '$_temp0';
   }
 
   @override
   String pluginsSkillCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count skills',
-      one: '1 skill',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count skills', one: '1 skill');
     return '$_temp0';
   }
 
@@ -14379,12 +13585,7 @@ class L10nEn extends L10n {
 
   @override
   String pluginsFileCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count files',
-      one: '1 file',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count files', one: '1 file');
     return '$_temp0';
   }
 
@@ -14410,8 +13611,7 @@ class L10nEn extends L10n {
   String get pluginsShareSheetOpenFailed => 'Couldn’t open sharing';
 
   @override
-  String get pluginsSavePermissionDenied =>
-      'Couldn’t save without storage permission';
+  String get pluginsSavePermissionDenied => 'Couldn’t save without storage permission';
 
   @override
   String get pluginsQrCode => 'QR code';
@@ -14467,8 +13667,7 @@ class L10nEn extends L10n {
   String get pluginsDisableFailed => 'Couldn’t disable';
 
   @override
-  String get pluginsEnabledRestartLocal =>
-      'Enabled. Restart the engine to apply.';
+  String get pluginsEnabledRestartLocal => 'Enabled. Restart the engine to apply.';
 
   @override
   String pluginsEnabledRestartRemote(String host) {
@@ -14476,8 +13675,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get pluginsDisabledRestartLocal =>
-      'Disabled. Restart the engine to apply.';
+  String get pluginsDisabledRestartLocal => 'Disabled. Restart the engine to apply.';
 
   @override
   String pluginsDisabledRestartRemote(String host) {
@@ -14542,12 +13740,7 @@ class L10nEn extends L10n {
 
   @override
   String pluginsSettingsChanges(String shown, int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items',
-      one: '1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count items', one: '1 item');
     return '$shown and more · $_temp0';
   }
 
@@ -14575,8 +13768,7 @@ class L10nEn extends L10n {
   String get pluginsLoadUnreported => 'Not reported';
 
   @override
-  String get pluginsLoadNoRuntimeDetail =>
-      'The host did not return the runtime error details. Check its engine logs.';
+  String get pluginsLoadNoRuntimeDetail => 'The host did not return the runtime error details. Check its engine logs.';
 
   @override
   String get pluginsLoadRemoteLogs => 'Check the engine logs on this host.';
@@ -14607,12 +13799,7 @@ class L10nEn extends L10n {
 
   @override
   String plugslotsIssueCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count problems',
-      one: '1 problem',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count problems', one: '1 problem');
     return '$_temp0';
   }
 
@@ -14710,8 +13897,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get plugslotsIssueLate =>
-      'Came back more than 3 s after the tap; ignored';
+  String get plugslotsIssueLate => 'Came back more than 3 s after the tap; ignored';
 
   @override
   String get plugslotsIssueHttps => 'Only https links';
@@ -14749,8 +13935,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get plugslotsCodeInvalidManifest =>
-      'The declaration is invalid; native parts are off';
+  String get plugslotsCodeInvalidManifest => 'The declaration is invalid; native parts are off';
 
   @override
   String get plugslotsCodeInvalidField => 'Wrong format; skipped';
@@ -14781,18 +13966,12 @@ class L10nEn extends L10n {
 
   @override
   String plugslotsCodeViolation(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count times',
-      one: 'once',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count times', one: 'once');
     return 'Failed $_temp0';
   }
 
   @override
-  String get plugslotsCodeDegraded =>
-      'Too many errors; off until the next start';
+  String get plugslotsCodeDegraded => 'Too many errors; off until the next start';
 
   @override
   String get plugslotsCodeTimeout => 'The plugin didn\'t answer in time';
@@ -14849,8 +14028,7 @@ class L10nEn extends L10n {
   String get plugslotsVoiceSwitch => 'Hear you speak';
 
   @override
-  String get plugslotsPickerUnavailable =>
-      'File selection is unavailable on this device';
+  String get plugslotsPickerUnavailable => 'File selection is unavailable on this device';
 
   @override
   String get plugslotsPickerBusy => 'Finish the current file selection first';
@@ -14861,8 +14039,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get plugslotsPickerFailed =>
-      'Could not share the files with this plugin. Try again';
+  String get plugslotsPickerFailed => 'Could not share the files with this plugin. Try again';
 
   @override
   String get plugslotsWebPlacesTitle => 'In DSH Web';
@@ -14957,12 +14134,7 @@ class L10nEn extends L10n {
 
   @override
   String plugViewArgsLimit(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit bytes',
-      one: '1 byte',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit bytes', one: '1 byte');
     return 'Action args exceed $_temp0; ignored';
   }
 
@@ -14986,76 +14158,47 @@ class L10nEn extends L10n {
 
   @override
   String plugViewColumnLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first columns',
-      one: '1 column',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first columns', one: '1 column');
     return '$_temp0, exceeding the limit of $second';
   }
 
   @override
   String plugViewFirstColumns(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit columns',
-      one: '1 column',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit columns', one: '1 column');
     return 'Showing only the first $_temp0';
   }
 
   @override
   String plugViewFirstRows(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit rows',
-      one: '1 row',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit rows', one: '1 row');
     return 'Showing only the first $_temp0';
   }
 
   @override
-  String get plugViewOnePrimary =>
-      'A view has at most one primary button; this one is drawn as plain';
+  String get plugViewOnePrimary => 'A view has at most one primary button; this one is drawn as plain';
 
   @override
   String get plugViewBadImageSource =>
       'Images take a plugin asset (asset:<path>, png, jpg, webp or gif) or a data:image/… URL';
 
   @override
-  String get plugViewBadAspect =>
-      'aspect must be a number from 0.25 to 4; ignored';
+  String get plugViewBadAspect => 'aspect must be a number from 0.25 to 4; ignored';
 
   @override
   String plugViewImageTooLarge(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit bytes',
-      one: '1 byte',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit bytes', one: '1 byte');
     return 'data: image exceeds $_temp0';
   }
 
   @override
-  String get plugViewImageDecode =>
-      'Image can’t be decoded (PNG, JPEG, WebP or GIF only)';
+  String get plugViewImageDecode => 'Image can’t be decoded (PNG, JPEG, WebP or GIF only)';
 
   @override
-  String get plugViewImagePixels =>
-      'Image exceeds the size limit: 4096 per side, 4 million pixels in total';
+  String get plugViewImagePixels => 'Image exceeds the size limit: 4096 per side, 4 million pixels in total';
 
   @override
   String plugViewTooDeep(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit levels',
-      one: '1 level',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit levels', one: '1 level');
     return 'JSON nested deeper than $_temp0';
   }
 
@@ -15073,24 +14216,16 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get plugViewStyleReserved =>
-      'This appearance is reserved for the app; ignored';
+  String get plugViewStyleReserved => 'This appearance is reserved for the app; ignored';
 
   @override
-  String get plugViewStyleContainerOnly =>
-      'This style is only available on stack and row';
+  String get plugViewStyleContainerOnly => 'This style is only available on stack and row';
 
   @override
-  String get plugViewStyleTextOnly =>
-      'This style is only available on text, metric and callout';
+  String get plugViewStyleTextOnly => 'This style is only available on text, metric and callout';
 
   @override
-  String plugViewContrastAdjusted(
-    String mode,
-    String before,
-    String after,
-    String minimum,
-  ) {
+  String plugViewContrastAdjusted(String mode, String before, String after, String minimum) {
     return '$mode: $before adjusted to $after, contrast at least $minimum:1';
   }
 
@@ -15178,8 +14313,7 @@ class L10nEn extends L10n {
   String get remoteErrIdentityKeyChanged => 'Host identity key has changed';
 
   @override
-  String get remoteErrIdentityUnconfirmed =>
-      'Host identity fingerprint hasn’t been confirmed';
+  String get remoteErrIdentityUnconfirmed => 'Host identity fingerprint hasn’t been confirmed';
 
   @override
   String get remoteErrConnectionReplaced => 'Remote connection was replaced';
@@ -15191,12 +14325,10 @@ class L10nEn extends L10n {
   String get remoteErrHostNotOwned => 'Host isn’t in your DSH Remote account';
 
   @override
-  String get remoteErrUpdateNeeded =>
-      'Version mismatch. Update DSH Go and the host’s remote plugin';
+  String get remoteErrUpdateNeeded => 'Version mismatch. Update DSH Go and the host’s remote plugin';
 
   @override
-  String get remoteErrVersionIncompatible =>
-      'Update DSH or the remote plugin on the host';
+  String get remoteErrVersionIncompatible => 'Update DSH or the remote plugin on the host';
 
   @override
   String get remoteErrSignInTimeout => 'Sign-in timed out';
@@ -15205,8 +14337,7 @@ class L10nEn extends L10n {
   String get remoteSignInCancelled => 'Sign-in cancelled';
 
   @override
-  String get remoteErrBrowserSignInUnsupported =>
-      'Server doesn’t support browser sign-in';
+  String get remoteErrBrowserSignInUnsupported => 'Server doesn’t support browser sign-in';
 
   @override
   String get remoteErrTooManyRequests => 'Too many requests';
@@ -15250,8 +14381,7 @@ class L10nEn extends L10n {
       'dsh isn’t installed on the host. Install it and retry, or enter its full path as the start command.';
 
   @override
-  String get remoteStartCommandExample =>
-      'Example start command: ~/.nvm/versions/node/v22.0.0/bin/dsh web';
+  String get remoteStartCommandExample => 'Example start command: ~/.nvm/versions/node/v22.0.0/bin/dsh web';
 
   @override
   String get remoteErrDshStartTimeout => 'Remote DSH took too long to start';
@@ -15268,16 +14398,13 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get remoteErrNoShell =>
-      'Host has no sh. Only Linux and macOS are supported.';
+  String get remoteErrNoShell => 'Host has no sh. Only Linux and macOS are supported.';
 
   @override
-  String get remoteErrFingerprintChanged =>
-      'Host fingerprint changed. Disconnected.';
+  String get remoteErrFingerprintChanged => 'Host fingerprint changed. Disconnected.';
 
   @override
-  String get remoteErrFingerprintUnconfirmed =>
-      'Host fingerprint hasn’t been confirmed';
+  String get remoteErrFingerprintUnconfirmed => 'Host fingerprint hasn’t been confirmed';
 
   @override
   String get remoteHostTrustCancelled => 'Host trust cancelled';
@@ -15295,8 +14422,7 @@ class L10nEn extends L10n {
   String get remoteDshStarted => 'Started DSH on the host';
 
   @override
-  String get remoteErrDshTokenRejected =>
-      'Remote DSH rejected the sign-in token';
+  String get remoteErrDshTokenRejected => 'Remote DSH rejected the sign-in token';
 
   @override
   String get remoteErrDshSignIn => 'Couldn’t sign in to remote DSH';
@@ -15328,15 +14454,13 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get remoteErrSshNetworkChanged =>
-      'SSH disconnected after a network change';
+  String get remoteErrSshNetworkChanged => 'SSH disconnected after a network change';
 
   @override
   String get remoteErrReadFingerprint => 'Couldn’t read the host fingerprint';
 
   @override
-  String get remoteErrNoFingerprint =>
-      'Server didn’t provide a host fingerprint';
+  String get remoteErrNoFingerprint => 'Server didn’t provide a host fingerprint';
 
   @override
   String get remoteErrPasswordMissing => 'Enter a password';
@@ -15382,8 +14506,7 @@ class L10nEn extends L10n {
   String get remoteErrUsernamePassword => 'Incorrect username or password';
 
   @override
-  String get remoteErrPrivateKeyRejected =>
-      'Server doesn’t accept this private key';
+  String get remoteErrPrivateKeyRejected => 'Server doesn’t accept this private key';
 
   @override
   String remoteAuthorizedKeysHelp(String username, String error) {
@@ -15406,29 +14529,25 @@ class L10nEn extends L10n {
   String get remoteErrCommandTimeout => 'Remote command timed out';
 
   @override
-  String get remoteHostedErrNetwork =>
-      'Can’t reach the sharing service. Check your connection and try again.';
+  String get remoteHostedErrNetwork => 'Can’t reach the sharing service. Check your connection and try again.';
 
   @override
   String get remoteHostedErrTooLarge => 'Chat is too large to create a link';
 
   @override
-  String get remoteHostedErrRateLimited =>
-      'Sharing too often. Try again later.';
+  String get remoteHostedErrRateLimited => 'Sharing too often. Try again later.';
 
   @override
   String get remoteHostedErrCreate => 'Couldn’t create link';
 
   @override
-  String get remoteHostedErrUnavailable =>
-      'Sharing service is unavailable. Try again later.';
+  String get remoteHostedErrUnavailable => 'Sharing service is unavailable. Try again later.';
 
   @override
   String get remoteHostedErrGone => 'Link expired or was deleted';
 
   @override
-  String get remoteHostedErrForbidden =>
-      'You don’t have permission to delete this link';
+  String get remoteHostedErrForbidden => 'You don’t have permission to delete this link';
 
   @override
   String get remoteHostedErrBroken => 'Link is incomplete or damaged';
@@ -15477,12 +14596,7 @@ class L10nEn extends L10n {
 
   @override
   String remoteForumUnreadCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count unread',
-      one: '1 unread',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count unread', one: '1 unread');
     return '$_temp0';
   }
 
@@ -15580,8 +14694,7 @@ class L10nEn extends L10n {
   String get remoteForumSignedIn => 'Signed in to Forum';
 
   @override
-  String get remoteForumSignInForNotifications =>
-      'Sign in to see notifications';
+  String get remoteForumSignInForNotifications => 'Sign in to see notifications';
 
   @override
   String get remoteForumErrNotifications => 'Couldn’t load notifications';
@@ -15827,56 +14940,31 @@ class L10nEn extends L10n {
 
   @override
   String remoteForumMinutesAgo(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count min ago',
-      one: '1 min ago',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count min ago', one: '1 min ago');
     return '$_temp0';
   }
 
   @override
   String remoteForumHoursAgo(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count h ago',
-      one: '1 h ago',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count h ago', one: '1 h ago');
     return '$_temp0';
   }
 
   @override
   String remoteForumDaysAgo(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count days ago',
-      one: '1 day ago',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count days ago', one: '1 day ago');
     return '$_temp0';
   }
 
   @override
   String remoteForumReplyCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count replies',
-      one: '1 reply',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count replies', one: '1 reply');
     return '$_temp0';
   }
 
   @override
   String remoteForumNewReplyCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count new replies',
-      one: '1 new reply',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count new replies', one: '1 new reply');
     return '$_temp0';
   }
 
@@ -15916,8 +15004,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get remoteHostKeyChangeWarning =>
-      'DSH will refuse to connect if the fingerprint changes.';
+  String get remoteHostKeyChangeWarning => 'DSH will refuse to connect if the fingerprint changes.';
 
   @override
   String get remoteHostKeyTrustAgain => 'Trust again';
@@ -15958,8 +15045,7 @@ class L10nEn extends L10n {
   String get remoteConnectionMethods => 'Via SSH or DSH Remote';
 
   @override
-  String get remoteRelayLoginRequired =>
-      'Enter the server address, email and password';
+  String get remoteRelayLoginRequired => 'Enter the server address, email and password';
 
   @override
   String get remoteErrSignIn => 'Couldn’t sign in';
@@ -15968,8 +15054,7 @@ class L10nEn extends L10n {
   String get remoteSelfHostedServer => 'Self-hosted server';
 
   @override
-  String get remoteSelfHostedSignInHelp =>
-      'Sign in to your own liguobao/ds-harness-remote with email and password';
+  String get remoteSelfHostedSignInHelp => 'Sign in to your own liguobao/ds-harness-remote with email and password';
 
   @override
   String get remoteServerAddress => 'Server address';
@@ -15987,15 +15072,13 @@ class L10nEn extends L10n {
   String get remoteConsole => 'Remote console';
 
   @override
-  String get remoteHostsIntro =>
-      'Keep using DSH from your computer or server on your phone';
+  String get remoteHostsIntro => 'Keep using DSH from your computer or server on your phone';
 
   @override
   String get remoteSshHosts => 'SSH hosts';
 
   @override
-  String get remoteSshRequirements =>
-      'Host needs SSH enabled and DSH installed';
+  String get remoteSshRequirements => 'Host needs SSH enabled and DSH installed';
 
   @override
   String get remoteAddSshHost => 'Add SSH host';
@@ -16063,8 +15146,7 @@ class L10nEn extends L10n {
   String get remoteErrRefreshHosts => 'Couldn’t refresh host list';
 
   @override
-  String get remoteSwitchWarning =>
-      'Connects to one host at a time. Switching disconnects the previous host.';
+  String get remoteSwitchWarning => 'Connects to one host at a time. Switching disconnects the previous host.';
 
   @override
   String get remoteRefreshHosts => 'Refresh hosts';
@@ -16079,8 +15161,7 @@ class L10nEn extends L10n {
   String get remoteNoHosts => 'No hosts yet';
 
   @override
-  String get remoteRelaySetupHelp =>
-      'Install the remote plugin in the host’s DSH and sign in';
+  String get remoteRelaySetupHelp => 'Install the remote plugin in the host’s DSH and sign in';
 
   @override
   String get remoteRelaySignOutTitle => 'Sign out of DSH Remote?';
@@ -16093,8 +15174,7 @@ class L10nEn extends L10n {
   String get remoteRelaySignInTitle => 'Sign in to DSH Remote';
 
   @override
-  String get remoteRelaySignInHelp =>
-      'No network setup. End-to-end encrypted connection.';
+  String get remoteRelaySignInHelp => 'No network setup. End-to-end encrypted connection.';
 
   @override
   String get remoteBrowserSignIn => 'Sign in in browser';
@@ -16108,8 +15188,7 @@ class L10nEn extends L10n {
   String get remoteComingSoon => 'Coming soon';
 
   @override
-  String get remoteSelfHostedEmailSignIn =>
-      'Self-hosted server · Email sign-in';
+  String get remoteSelfHostedEmailSignIn => 'Self-hosted server · Email sign-in';
 
   @override
   String get remoteBrowserSignInPending => 'Finish signing in in your browser…';
@@ -16124,12 +15203,10 @@ class L10nEn extends L10n {
   String get remoteSshUsernameRequired => 'Enter a username';
 
   @override
-  String get remoteSshPasswordRequired =>
-      'Enter an SSH password, or use a private key';
+  String get remoteSshPasswordRequired => 'Enter an SSH password, or use a private key';
 
   @override
-  String get remoteSshKeyRequired =>
-      'Paste the full private key (starting with -----BEGIN)';
+  String get remoteSshKeyRequired => 'Paste the full private key (starting with -----BEGIN)';
 
   @override
   String get remoteHostKeyResetTitle => 'Reset host fingerprint?';
@@ -16156,12 +15233,10 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get remoteErrPublicKeyFile =>
-      'This isn’t a private key. Choose the file without .pub (such as id_ed25519).';
+  String get remoteErrPublicKeyFile => 'This isn’t a private key. Choose the file without .pub (such as id_ed25519).';
 
   @override
-  String get remotePrivateKeyImported =>
-      'Private key imported. You can delete the original file.';
+  String get remotePrivateKeyImported => 'Private key imported. You can delete the original file.';
 
   @override
   String get remoteEditHost => 'Edit host';
@@ -16176,8 +15251,7 @@ class L10nEn extends L10n {
   String get remoteHostIcon => 'Device icon';
 
   @override
-  String get remoteHostIconHelp =>
-      'Shown on host lists and the switcher. Cosmetic; change any time.';
+  String get remoteHostIconHelp => 'Shown on host lists and the switcher. Cosmetic; change any time.';
 
   @override
   String get remoteHostIconDefault => 'Default';
@@ -16219,16 +15293,14 @@ class L10nEn extends L10n {
   String get remoteAuthentication => 'Sign-in method';
 
   @override
-  String get remotePasswordStorageHelp =>
-      'Saved only on this phone, encrypted by Android Keystore';
+  String get remotePasswordStorageHelp => 'Saved only on this phone, encrypted by Android Keystore';
 
   @override
   String get remoteKeyStorageHelp =>
       'Saved only on this phone, encrypted by Android Keystore. Supports Ed25519, RSA and ECDSA.';
 
   @override
-  String get remotePasswordStorageHelpIos =>
-      'Saved only on this phone, encrypted by the system keychain';
+  String get remotePasswordStorageHelpIos => 'Saved only on this phone, encrypted by the system keychain';
 
   @override
   String get remoteKeyStorageHelpIos =>
@@ -16250,15 +15322,13 @@ class L10nEn extends L10n {
   String get remoteStartCommand => 'Start command';
 
   @override
-  String get remoteStartCommandHelp =>
-      'If installed with nvm, you can enter the full path';
+  String get remoteStartCommandHelp => 'If installed with nvm, you can enter the full path';
 
   @override
   String get remoteWorkingDirectory => 'Working directory (optional)';
 
   @override
-  String get remoteWorkingDirectoryHelp =>
-      'Default folder for new chats. Supports ~/.';
+  String get remoteWorkingDirectoryHelp => 'Default folder for new chats. Supports ~/.';
 
   @override
   String get remoteHostFingerprint => 'Host fingerprint';
@@ -16267,8 +15337,7 @@ class L10nEn extends L10n {
   String get remoteHostKeyNotConfirmed => 'Not confirmed yet';
 
   @override
-  String get remoteHostKeyFirstCheck =>
-      'You’ll be asked to check the fingerprint on first connection';
+  String get remoteHostKeyFirstCheck => 'You’ll be asked to check the fingerprint on first connection';
 
   @override
   String get remoteDeleteHost => 'Delete this host';
@@ -16326,8 +15395,7 @@ class L10nEn extends L10n {
   String get remoteHostedNoLinks => 'No shared links yet';
 
   @override
-  String get remoteHostedErrDeleteNetwork =>
-      'Couldn’t delete. Check your connection and try again.';
+  String get remoteHostedErrDeleteNetwork => 'Couldn’t delete. Check your connection and try again.';
 
   @override
   String get remoteHostedErrDelete => 'Couldn’t delete. Try again later.';
@@ -16372,8 +15440,7 @@ class L10nEn extends L10n {
   String get remoteDirectoryGo => 'Go';
 
   @override
-  String get remoteDirectoryAbsolutePath =>
-      'Enter the full path, starting with “/”';
+  String get remoteDirectoryAbsolutePath => 'Enter the full path, starting with “/”';
 
   @override
   String get remoteDirectoryNewFolder => 'New folder';
@@ -16410,8 +15477,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get remoteDirectoryTruncated =>
-      'Too many folders. Only the first ones are listed.';
+  String get remoteDirectoryTruncated => 'Too many folders. Only the first ones are listed.';
 
   @override
   String get remoteWorkspaceAdd => 'Add workspace';
@@ -16429,12 +15495,7 @@ class L10nEn extends L10n {
 
   @override
   String remoteWorkspaceChatCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count chats',
-      one: '1 chat',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count chats', one: '1 chat');
     return '$_temp0';
   }
 
@@ -16502,12 +15563,10 @@ class L10nEn extends L10n {
   String get remoteDirectoryInvalidName => 'Name can’t contain “/”';
 
   @override
-  String get remoteWorkspaceErrNameConflict =>
-      'A workspace with this name already exists';
+  String get remoteWorkspaceErrNameConflict => 'A workspace with this name already exists';
 
   @override
-  String get remoteWorkspaceErrInvalidPath =>
-      'This folder can’t be used as a workspace';
+  String get remoteWorkspaceErrInvalidPath => 'This folder can’t be used as a workspace';
 
   @override
   String get remoteWorkspaceErrNotFound => 'This workspace no longer exists';
@@ -16516,16 +15575,13 @@ class L10nEn extends L10n {
   String get remoteDirectoryErrUnreadable => 'Couldn’t open this folder';
 
   @override
-  String get remoteDirectoryErrExists =>
-      'A folder with this name already exists';
+  String get remoteDirectoryErrExists => 'A folder with this name already exists';
 
   @override
-  String get remoteDirectoryErrUnavailable =>
-      'This host can’t browse folders here';
+  String get remoteDirectoryErrUnavailable => 'This host can’t browse folders here';
 
   @override
-  String get remoteWorkspaceErrUnsupported =>
-      'This host doesn’t support this action';
+  String get remoteWorkspaceErrUnsupported => 'This host doesn’t support this action';
 
   @override
   String get remoteWorkspaceAllChats => 'All chats';
@@ -16549,12 +15605,7 @@ class L10nEn extends L10n {
 
   @override
   String remoteWorkspaceCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count workspaces',
-      one: '1 workspace',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count workspaces', one: '1 workspace');
     return '$_temp0';
   }
 
@@ -16564,33 +15615,19 @@ class L10nEn extends L10n {
   }
 
   @override
-  String remoteHostKeyMismatchDetail(
-    String saved,
-    String received,
-    String type,
-  ) {
+  String remoteHostKeyMismatchDetail(String saved, String received, String type) {
     return 'If the host was reinstalled or replaced, reset its fingerprint in host settings.\nSaved: $saved\nReceived: $received ($type)';
   }
 
   @override
   String remoteForumCompactReplies(int count, String label) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$label replies',
-      one: '$label reply',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$label replies', one: '$label reply');
     return '$_temp0';
   }
 
   @override
   String remoteForumCompactViews(int count, String label) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$label views',
-      one: '$label view',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$label views', one: '$label view');
     return '$_temp0';
   }
 
@@ -16732,12 +15769,10 @@ class L10nEn extends L10n {
   String get remoteNetworkMeasuring => 'Measuring…';
 
   @override
-  String get remoteNetworkMeasureFailed =>
-      'Couldn’t measure latency. Try again later.';
+  String get remoteNetworkMeasureFailed => 'Couldn’t measure latency. Try again later.';
 
   @override
-  String get remoteNetworkDisconnected =>
-      'Disconnected. Reconnect to measure latency.';
+  String get remoteNetworkDisconnected => 'Disconnected. Reconnect to measure latency.';
 
   @override
   String get remoteNetworkFallback => 'Fallback reason';
@@ -16747,39 +15782,32 @@ class L10nEn extends L10n {
       'A direct connection wasn’t available; an available route was selected automatically.';
 
   @override
-  String get remoteNetworkFallbackWebrtcUnavailable =>
-      'WebRTC is unavailable on this device; using Relay.';
+  String get remoteNetworkFallbackWebrtcUnavailable => 'WebRTC is unavailable on this device; using Relay.';
 
   @override
-  String get remoteNetworkFallbackDirectFailed =>
-      'LAN / P2P couldn’t connect; tried the next available route.';
+  String get remoteNetworkFallbackDirectFailed => 'LAN / P2P couldn’t connect; tried the next available route.';
 
   @override
-  String get remoteNetworkFallbackDirectTimeout =>
-      'LAN / P2P timed out; tried the next available route.';
+  String get remoteNetworkFallbackDirectTimeout => 'LAN / P2P timed out; tried the next available route.';
 
   @override
   String get remoteNetworkFallbackDirectRecentlyFailed =>
       'A recent direct attempt failed; using an available relay for this connection.';
 
   @override
-  String get remoteNetworkFallbackTurnUnavailable =>
-      'TURN is unavailable; using Relay.';
+  String get remoteNetworkFallbackTurnUnavailable => 'TURN is unavailable; using Relay.';
 
   @override
-  String get remoteNetworkFallbackTurnFailed =>
-      'TURN couldn’t connect; using Relay.';
+  String get remoteNetworkFallbackTurnFailed => 'TURN couldn’t connect; using Relay.';
 
   @override
   String get remoteNetworkFallbackTurnTimeout => 'TURN timed out; using Relay.';
 
   @override
-  String get remoteNetworkFallbackPathUnverified =>
-      'The WebRTC route type hasn’t been confirmed.';
+  String get remoteNetworkFallbackPathUnverified => 'The WebRTC route type hasn’t been confirmed.';
 
   @override
-  String get remoteNetworkSnapshotHint =>
-      'Shows the last confirmed route and latency. Refresh to check again.';
+  String get remoteNetworkSnapshotHint => 'Shows the last confirmed route and latency. Refresh to check again.';
 
   @override
   String get remoteNetworkObservedAt => 'Last checked';
@@ -16808,36 +15836,30 @@ class L10nEn extends L10n {
       'Reduces historical tool details on supporting DSH Remote Hosts; live replies and approvals stay unchanged. Switch hosts or restart the app to apply. Older Hosts keep full history.';
 
   @override
-  String get searchKwRemoteCompactHistory =>
-      'compact slim lite history tools transfer bandwidth remote';
+  String get searchKwRemoteCompactHistory => 'compact slim lite history tools transfer bandwidth remote';
 
   @override
-  String get stateWorkspaceFilesHint =>
-      'Files uploaded to the current workspace:';
+  String get stateWorkspaceFilesHint => 'Files uploaded to the current workspace:';
 
   @override
   String get stateRemoteUploadNameInvalid =>
       'The host rejected the filename. Shorten it or remove special characters and try again.';
 
   @override
-  String get stateRemoteUploadWorkspaceUnavailable =>
-      'This chat has no writable working directory';
+  String get stateRemoteUploadWorkspaceUnavailable => 'This chat has no writable working directory';
 
   @override
-  String get stateRemoteUploadWorkspaceChanged =>
-      'The working directory changed. Check it before uploading again.';
+  String get stateRemoteUploadWorkspaceChanged => 'The working directory changed. Check it before uploading again.';
 
   @override
-  String get stateRemoteUploadLimit =>
-      'The host refused the upload. Check the file size or try again later.';
+  String get stateRemoteUploadLimit => 'The host refused the upload. Check the file size or try again later.';
 
   @override
   String get stateRemoteUploadUnsupported =>
       'This host does not support file uploads. Update its Remote plugin and reconnect.';
 
   @override
-  String get stateRemoteUploadTooLarge =>
-      'The file exceeds the remote upload protocol\'s size limit';
+  String get stateRemoteUploadTooLarge => 'The file exceeds the remote upload protocol\'s size limit';
 
   @override
   String get riskDontShowAgain => 'Don’t show again';
@@ -16894,16 +15916,13 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get askAiNoGuide =>
-      'This host doesn’t have the DSH Go guide, so answers may be off';
+  String get askAiNoGuide => 'This host doesn’t have the DSH Go guide, so answers may be off';
 
   @override
-  String get askAiQuestionOverview =>
-      'What can DSH Go do, and where should I start?';
+  String get askAiQuestionOverview => 'What can DSH Go do, and where should I start?';
 
   @override
-  String get askAiQuestionPhoneControl =>
-      'How does phone control work, and what are the risks?';
+  String get askAiQuestionPhoneControl => 'How does phone control work, and what are the risks?';
 
   @override
   String get askAiQuestionPhoneAlways =>
@@ -16914,20 +15933,17 @@ class L10nEn extends L10n {
       'What is the app list in phone control for, and what are the risks of allowing banking and payment apps?';
 
   @override
-  String get askAiQuestionFullAccess =>
-      'What happens with full access on, and what are the risks?';
+  String get askAiQuestionFullAccess => 'What happens with full access on, and what are the risks?';
 
   @override
   String get askAiQuestionPhoneFiles =>
       'With “Access phone files” on, which files can AI read and change, and how do I turn it off?';
 
   @override
-  String get askAiQuestionAllowForChat =>
-      'What does “Allow for chat” let through, and how do I turn it off?';
+  String get askAiQuestionAllowForChat => 'What does “Allow for chat” let through, and how do I turn it off?';
 
   @override
-  String get askAiQuestionPlugins =>
-      'What can plugins do, and what should I watch for with third-party ones?';
+  String get askAiQuestionPlugins => 'What can plugins do, and what should I watch for with third-party ones?';
 
   @override
   String get askAiQuestionRemote =>
@@ -16983,8 +15999,7 @@ class L10nEn extends L10n {
   String get searchKwPerformance => 'battery,smooth,lag,lite,full,speed';
 
   @override
-  String get searchKwVoice =>
-      'speech recognition,dictation,microphone,mic,voice';
+  String get searchKwVoice => 'speech recognition,dictation,microphone,mic,voice';
 
   @override
   String get searchKwNotifications => 'alerts,push,banner,sound';
@@ -17008,8 +16023,7 @@ class L10nEn extends L10n {
   String get searchKwEngine => 'engine,runtime,start,stop,restart,DSH';
 
   @override
-  String get searchKwBackground =>
-      'keep alive,background activity,battery optimization,autostart,killed';
+  String get searchKwBackground => 'keep alive,background activity,battery optimization,autostart,killed';
 
   @override
   String get searchKwSystemAccess =>
@@ -17019,12 +16033,10 @@ class L10nEn extends L10n {
   String get searchKwDiagnostics => 'logs,troubleshoot,report,bug,errors';
 
   @override
-  String get searchKwModels =>
-      'model providers,providers,provider,switch model,OpenRouter,ChatGPT,Claude';
+  String get searchKwModels => 'model providers,providers,provider,switch model,OpenRouter,ChatGPT,Claude';
 
   @override
-  String get searchKwEngineParams =>
-      'engine settings,advanced,parameters,subagent,commands';
+  String get searchKwEngineParams => 'engine settings,advanced,parameters,subagent,commands';
 
   @override
   String get searchKwSubagent => 'subagent settings,depth,concurrency,subtasks';
@@ -17051,15 +16063,13 @@ class L10nEn extends L10n {
   String get searchKwAllFeatures => 'features,catalog,everything';
 
   @override
-  String get searchKwAccount =>
-      'account,balance,top up,sign in,sign out,api key,usage,DeepSeek';
+  String get searchKwAccount => 'account,balance,top up,sign in,sign out,api key,usage,DeepSeek';
 
   @override
   String get searchKwRemote => 'remote,ssh,computer,server,DSH Remote,connect';
 
   @override
-  String get searchKwPermission =>
-      'permissions,approval,don\'t ask,read only,full access,auto-run commands';
+  String get searchKwPermission => 'permissions,approval,don\'t ask,read only,full access,auto-run commands';
 
   @override
   String get searchKwAgentPresets => 'presets,mode,agent mode';
@@ -17071,8 +16081,7 @@ class L10nEn extends L10n {
   String get searchKwLanguage => 'chinese,english,locale';
 
   @override
-  String get searchKwAutoCommands =>
-      'don\'t ask,auto approve,full access,no confirmation';
+  String get searchKwAutoCommands => 'don\'t ask,auto approve,full access,no confirmation';
 
   @override
   String get searchKwPhoneFiles => 'storage,files,downloads,photos';
@@ -17123,8 +16132,7 @@ class L10nEn extends L10n {
   String get searchKwLicenses => 'license,open source';
 
   @override
-  String get searchKwDarkMode =>
-      'dark,light,dark mode,night,theme,system,appearance';
+  String get searchKwDarkMode => 'dark,light,dark mode,night,theme,system,appearance';
 
   @override
   String get searchKwAccent => 'color,colour,accent,palette,wallpaper';
@@ -17179,8 +16187,7 @@ class L10nEn extends L10n {
   String get searchKwNotifySystem => 'sound,banner,lock screen,system';
 
   @override
-  String get searchKwPhoneConfirm =>
-      'don\'t ask,confirm,always ask,no confirmation';
+  String get searchKwPhoneConfirm => 'don\'t ask,confirm,always ask,no confirmation';
 
   @override
   String get searchKwPhoneAutoCollapse => 'floating bar,collapse,bubble';
@@ -17204,12 +16211,10 @@ class L10nEn extends L10n {
   String get searchKwEngineUninstall => 'uninstall,remove,free space';
 
   @override
-  String get searchKwWorkspaceRecovery =>
-      'workspace,index,recovery,rescue,missing chats,chats won\'t open';
+  String get searchKwWorkspaceRecovery => 'workspace,index,recovery,rescue,missing chats,chats won\'t open';
 
   @override
-  String get searchKwAddProvider =>
-      'add model,new provider,custom model,base url';
+  String get searchKwAddProvider => 'add model,new provider,custom model,base url';
 
   @override
   String get searchKwSubagentDepth => 'depth,levels';
@@ -17284,8 +16289,7 @@ class L10nEn extends L10n {
   String get searchKwAbout => 'about,version,update,licenses';
 
   @override
-  String get searchKwPhoneConfirmEntry =>
-      'confirmation,phone control,don\'t ask';
+  String get searchKwPhoneConfirmEntry => 'confirmation,phone control,don\'t ask';
 
   @override
   String get searchKwWebCodingView => 'coding view,work view,web';
@@ -17297,16 +16301,13 @@ class L10nEn extends L10n {
   String get searchKwWebBusySend => 'send,queue,while AI works';
 
   @override
-  String get searchKwPluginsMarket =>
-      'plugin market,install plugins,marketplace';
+  String get searchKwPluginsMarket => 'plugin market,install plugins,marketplace';
 
   @override
-  String get searchKwUsageStats =>
-      'statistics,stats,usage data,analytics,telemetry,anonymous,privacy,data';
+  String get searchKwUsageStats => 'statistics,stats,usage data,analytics,telemetry,anonymous,privacy,data';
 
   @override
-  String get searchNeedsLocalEngineOn =>
-      'Available while this phone runs the engine';
+  String get searchNeedsLocalEngineOn => 'Available while this phone runs the engine';
 
   @override
   String get shellDeletePermanently => 'Delete permanently';
@@ -17315,8 +16316,7 @@ class L10nEn extends L10n {
   String get shellDeleteNoUndo => 'Cannot be undone; this is not archive';
 
   @override
-  String get shellDeleteChecking =>
-      'Checking whether this host supports permanent deletion…';
+  String get shellDeleteChecking => 'Checking whether this host supports permanent deletion…';
 
   @override
   String get shellDeleteUnsupported =>
@@ -17372,12 +16372,7 @@ class L10nEn extends L10n {
       other: 'Deleted $deleted chats',
       one: 'Deleted 1 chat',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      failed,
-      locale: localeName,
-      other: '$failed failed',
-      one: '1 failed',
-    );
+    String _temp1 = intl.Intl.pluralLogic(failed, locale: localeName, other: '$failed failed', one: '1 failed');
     return '$_temp0; $_temp1';
   }
 
@@ -17386,47 +16381,39 @@ class L10nEn extends L10n {
       'Stop running work before deleting. The host also checks active tasks and schedules.';
 
   @override
-  String get shellDeleteRelated =>
-      'This chat has related subagent work. The host refused deletion to protect it.';
+  String get shellDeleteRelated => 'This chat has related subagent work. The host refused deletion to protect it.';
 
   @override
-  String get shellDeleteWriterHeld =>
-      'Another process is using this chat. Close it there and try again.';
+  String get shellDeleteWriterHeld => 'Another process is using this chat. Close it there and try again.';
 
   @override
-  String get shellDeleteNotFound =>
-      'The chat no longer exists on this host. Refresh the list.';
+  String get shellDeleteNotFound => 'The chat no longer exists on this host. Refresh the list.';
 
   @override
   String get shellDeleteConnectionLost =>
       'The connection was lost and the deletion result is unconfirmed. Refresh the chat list before taking further action.';
 
   @override
-  String get shellDeleteArchivePending =>
-      'An archive operation is pending. Finish or undo it before deleting.';
+  String get shellDeleteArchivePending => 'An archive operation is pending. Finish or undo it before deleting.';
 
   @override
-  String get shellDeleteInventoryChanged =>
-      'The chat list changed. Refresh and select the chats again.';
+  String get shellDeleteInventoryChanged => 'The chat list changed. Refresh and select the chats again.';
 
   @override
   String get shellDeleteProtocolError =>
       'The deletion result is unconfirmed. Refresh the chat list before taking further action.';
 
   @override
-  String get shellDeleteNotAttempted =>
-      'Not attempted. Check the chat list before trying again.';
+  String get shellDeleteNotAttempted => 'Not attempted. Check the chat list before trying again.';
 
   @override
-  String get shellDeleteFailed =>
-      'The host could not confirm deletion. Refresh before retrying.';
+  String get shellDeleteFailed => 'The host could not confirm deletion. Refresh before retrying.';
 
   @override
   String get setupAppearanceTitle => 'Choose a look';
 
   @override
-  String get setupAppearanceMessage =>
-      'You can change this anytime in Settings';
+  String get setupAppearanceMessage => 'You can change this anytime in Settings';
 
   @override
   String get setupLightMode => 'Lightweight mode';
@@ -17460,12 +16447,10 @@ class L10nEn extends L10n {
   String get setupAwaitSignIn => 'DeepSeek sign-in opens when it’s ready';
 
   @override
-  String get shellApiKeyPrefixWarning =>
-      'DeepSeek keys usually start with sk-. Check you copied the right key.';
+  String get shellApiKeyPrefixWarning => 'DeepSeek keys usually start with sk-. Check you copied the right key.';
 
   @override
-  String get shellApiKeyIncompleteWarning =>
-      'This key looks incomplete. Check you copied it all.';
+  String get shellApiKeyIncompleteWarning => 'This key looks incomplete. Check you copied it all.';
 
   @override
   String get shellBrowserUrlCopied => 'Couldn’t open your browser. URL copied.';
@@ -17483,8 +16468,7 @@ class L10nEn extends L10n {
   String get shellEnterApiKey => 'Enter API key';
 
   @override
-  String get shellApiKeyBilling =>
-      'Billed by the DeepSeek platform based on usage';
+  String get shellApiKeyBilling => 'Billed by the DeepSeek platform based on usage';
 
   @override
   String get shellSaving => 'Saving';
@@ -17511,12 +16495,10 @@ class L10nEn extends L10n {
   String get shellConnectDeepSeek => 'Connect DeepSeek';
 
   @override
-  String get shellConnectDeepSeekMessage =>
-      'Sign in to DeepSeek to start. No API key needed.';
+  String get shellConnectDeepSeekMessage => 'Sign in to DeepSeek to start. No API key needed.';
 
   @override
-  String get shellAccountSignInUnsupported =>
-      'This engine doesn’t support account sign-in';
+  String get shellAccountSignInUnsupported => 'This engine doesn’t support account sign-in';
 
   @override
   String get shellSignInDeepSeek => 'Sign in with DeepSeek';
@@ -17780,12 +16762,7 @@ class L10nEn extends L10n {
 
   @override
   String shellSelectedCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count selected',
-      one: '1 selected',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count selected', one: '1 selected');
     return '$_temp0';
   }
 
@@ -17833,8 +16810,7 @@ class L10nEn extends L10n {
   String get shellSearchTitlesHint => 'Search titles, including archived chats';
 
   @override
-  String get shellSearchContentHint =>
-      'Search titles and content, including archived chats';
+  String get shellSearchContentHint => 'Search titles and content, including archived chats';
 
   @override
   String get shellLoadingChatsEllipsis => 'Loading chats…';
@@ -17843,15 +16819,13 @@ class L10nEn extends L10n {
   String get shellNoMatchingChats => 'No matching chats';
 
   @override
-  String get shellSearchDifferentKeywords =>
-      'Try another keyword, or separate words with spaces';
+  String get shellSearchDifferentKeywords => 'Try another keyword, or separate words with spaces';
 
   @override
   String get shellArchived => 'Archived';
 
   @override
-  String get shellRestoreBeforeOpening =>
-      'Restore this archived chat to open it';
+  String get shellRestoreBeforeOpening => 'Restore this archived chat to open it';
 
   @override
   String get shellRestoreAndOpen => 'Restore and open';
@@ -17866,12 +16840,10 @@ class L10nEn extends L10n {
   String get shellHostTitleSearchOnly => 'This host only supports title search';
 
   @override
-  String get shellContentSearchFailed =>
-      'Couldn’t search content. Showing title matches only.';
+  String get shellContentSearchFailed => 'Couldn’t search content. Showing title matches only.';
 
   @override
-  String get shellContentSearchLimit =>
-      'Content search shows the 20 most relevant chats';
+  String get shellContentSearchLimit => 'Content search shows the 20 most relevant chats';
 
   @override
   String get shellMoveToOtherFolder => 'Move to another folder';
@@ -17900,12 +16872,7 @@ class L10nEn extends L10n {
 
   @override
   String shellUnreadCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count unread',
-      one: '1 unread',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count unread', one: '1 unread');
     return '$_temp0';
   }
 
@@ -17953,8 +16920,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get shellHostChatsAfterConnecting =>
-      'This host’s chats appear once connected';
+  String get shellHostChatsAfterConnecting => 'This host’s chats appear once connected';
 
   @override
   String shellCurrentHostLabel(String name, String view) {
@@ -18035,12 +17001,7 @@ class L10nEn extends L10n {
 
   @override
   String shellSettingCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items',
-      one: '1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count items', one: '1 item');
     return '$_temp0';
   }
 
@@ -18052,12 +17013,7 @@ class L10nEn extends L10n {
 
   @override
   String shellSuggestionCardCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count cards',
-      one: '1 card',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count cards', one: '1 card');
     return '$_temp0';
   }
 
@@ -18139,8 +17095,7 @@ class L10nEn extends L10n {
   String get shellConfigUnknownKey => 'Unknown key, ignored';
 
   @override
-  String get shellConfigDuplicateKey =>
-      'Duplicate key, only the last one applies';
+  String get shellConfigDuplicateKey => 'Duplicate key, only the last one applies';
 
   @override
   String get shellConfigDuplicateItem => 'Duplicate, ignored';
@@ -18195,19 +17150,16 @@ class L10nEn extends L10n {
   String get shellConfigHeaderItem => 'Expected a button ID or object';
 
   @override
-  String get shellConfigHeaderId =>
-      'IDs can use letters, numbers, and -, starting with a lowercase letter';
+  String get shellConfigHeaderId => 'IDs can use letters, numbers, and -, starting with a lowercase letter';
 
   @override
   String get shellConfigIdTaken => 'Duplicate ID';
 
   @override
-  String get shellConfigCommandSlash =>
-      'Command names don’t include /, removed';
+  String get shellConfigCommandSlash => 'Command names don’t include /, removed';
 
   @override
-  String get shellConfigCommandName =>
-      'Command names can only use letters, numbers, and : . _ -';
+  String get shellConfigCommandName => 'Command names can only use letters, numbers, and : . _ -';
 
   @override
   String get shellConfigNoNewline => 'Line breaks aren’t allowed';
@@ -18222,12 +17174,10 @@ class L10nEn extends L10n {
   String get shellConfigAccentFormat => 'Use #RRGGBB for colors';
 
   @override
-  String get shellConfigAccentBoth =>
-      'Choose either this or accentPreset; accentPreset used';
+  String get shellConfigAccentBoth => 'Choose either this or accentPreset; accentPreset used';
 
   @override
-  String get shellConfigPetId =>
-      'IDs can only use lowercase letters, numbers, and -';
+  String get shellConfigPetId => 'IDs can only use lowercase letters, numbers, and -';
 
   @override
   String get shellConfigKeysFormat => 'Invalid format, for example ctrl+k';
@@ -18250,8 +17200,7 @@ class L10nEn extends L10n {
   String get shellConfigSlotName => 'Invalid slot name format';
 
   @override
-  String get shellConfigUnknownSlot =>
-      'This slot isn’t in DSH yet, kept for later';
+  String get shellConfigUnknownSlot => 'This slot isn’t in DSH yet, kept for later';
 
   @override
   String get shellConfigUnseatableSlot => 'Plugins aren’t supported here';
@@ -18332,8 +17281,7 @@ class L10nEn extends L10n {
   String get shellJsonBadEscape => 'Invalid string escape';
 
   @override
-  String get shellJsonStringNewline =>
-      'Strings can’t contain literal line breaks';
+  String get shellJsonStringNewline => 'Strings can’t contain literal line breaks';
 
   @override
   String get shellJsonControlCharacter => 'String contains a control character';
@@ -18410,15 +17358,13 @@ class L10nEn extends L10n {
   String get shellInstallInterfaceSkill => 'Install interface skill';
 
   @override
-  String get shellInstallInterfaceSkillMessage =>
-      'Once installed, AI can adjust the app’s interface as you ask';
+  String get shellInstallInterfaceSkillMessage => 'Once installed, AI can adjust the app’s interface as you ask';
 
   @override
   String get shellNoUiJson => 'No ui.json';
 
   @override
-  String get shellConfigUsingPrevious =>
-      'Not applied, still using the previous configuration';
+  String get shellConfigUsingPrevious => 'Not applied, still using the previous configuration';
 
   @override
   String get shellConfigDroppedHeading => 'Not applied';
@@ -18481,6 +17427,14 @@ class L10nEn extends L10n {
   String get shellPanelNoPlugins => 'No plugin panels for this chat yet';
 
   @override
+  String get shellQuickPanel => 'Shortcuts';
+
+  @override
+  String shellQuickPanelHint(String path) {
+    return 'Change these in $path';
+  }
+
+  @override
   String starPromptTitle(int hours) {
     String _temp0 = intl.Intl.pluralLogic(
       hours,
@@ -18531,16 +17485,13 @@ class L10nEn extends L10n {
   String get stateDiagnosticsSubject => 'DSH Go diagnostics bundle';
 
   @override
-  String get stateStoragePermission =>
-      'No storage permission to save to Downloads';
+  String get stateStoragePermission => 'No storage permission to save to Downloads';
 
   @override
-  String get stateDiagnosticsStorageFull =>
-      'Not enough storage to create the diagnostics bundle';
+  String get stateDiagnosticsStorageFull => 'Not enough storage to create the diagnostics bundle';
 
   @override
-  String get stateDiagnosticsExportFailed =>
-      'Couldn’t export diagnostics bundle';
+  String get stateDiagnosticsExportFailed => 'Couldn’t export diagnostics bundle';
 
   @override
   String get stateForumUnreachable => 'Can’t reach the forum';
@@ -18663,8 +17614,7 @@ class L10nEn extends L10n {
   String get statePhoneNotReady => 'Phone control isn’t ready';
 
   @override
-  String get stateBackgroundRestricted =>
-      'Background network access is restricted';
+  String get stateBackgroundRestricted => 'Background network access is restricted';
 
   @override
   String get stateBackgroundFinish => 'Let chats finish in the background';
@@ -18694,34 +17644,28 @@ class L10nEn extends L10n {
   String get stateSignInInterrupted => 'Sign-in interrupted';
 
   @override
-  String get stateAccountUnsupported =>
-      'This engine doesn’t support account sign-in';
+  String get stateAccountUnsupported => 'This engine doesn’t support account sign-in';
 
   @override
-  String get stateCheckPhoneNetwork =>
-      'Check your phone’s network and try again';
+  String get stateCheckPhoneNetwork => 'Check your phone’s network and try again';
 
   @override
-  String get stateServiceUnavailableRetry =>
-      'Service unavailable. Try again later.';
+  String get stateServiceUnavailableRetry => 'Service unavailable. Try again later.';
 
   @override
   String get stateAuthorizationFailed => 'Authorization failed. Sign in again.';
 
   @override
-  String get stateAuthorizationExpired =>
-      'Authorization page expired. Sign in again.';
+  String get stateAuthorizationExpired => 'Authorization page expired. Sign in again.';
 
   @override
   String get stateRestartEngineRetry => 'Restart from Engine, then try again';
 
   @override
-  String get stateEngineStartingRetry =>
-      'The engine is starting. Try again later.';
+  String get stateEngineStartingRetry => 'The engine is starting. Try again later.';
 
   @override
-  String get stateEngineDisconnectedSignIn =>
-      'Engine disconnected. Sign in again.';
+  String get stateEngineDisconnectedSignIn => 'Engine disconnected. Sign in again.';
 
   @override
   String get stateUpdateRuntimeOrKey => 'Update the runtime or use an API key';
@@ -18766,22 +17710,19 @@ class L10nEn extends L10n {
   String get stateIconInk => 'Ink';
 
   @override
-  String get stateAppDisclaimer =>
-      'Built on DeepSeek Harness · Unofficial DeepSeek app';
+  String get stateAppDisclaimer => 'Built on DeepSeek Harness · Unofficial DeepSeek app';
 
   @override
   String get stateWallpaper => 'Wallpaper';
 
   @override
-  String get stateFileMissing =>
-      'File not found. It may have been deleted or moved.';
+  String get stateFileMissing => 'File not found. It may have been deleted or moved.';
 
   @override
   String get stateFileNoApp => 'No app on this phone can open this file type';
 
   @override
-  String get stateFileConnectionLimit =>
-      'File is too large for this connection';
+  String get stateFileConnectionLimit => 'File is too large for this connection';
 
   @override
   String get stateFileReadUnsupported => 'This connection can’t read files';
@@ -18856,8 +17797,7 @@ class L10nEn extends L10n {
   String get stateChatForkUnavailable => 'Can’t branch here';
 
   @override
-  String get stateChatImagesTooLarge =>
-      'Images are too large. Send fewer at once.';
+  String get stateChatImagesTooLarge => 'Images are too large. Send fewer at once.';
 
   @override
   String get stateChatSyncInterrupted => 'Chat sync interrupted';
@@ -18869,8 +17809,7 @@ class L10nEn extends L10n {
   String get stateChatSyncRetry => 'Sync again';
 
   @override
-  String get stateChatSyncRequired =>
-      'Chat is not synced yet. Sync again and retry.';
+  String get stateChatSyncRequired => 'Chat is not synced yet. Sync again and retry.';
 
   @override
   String get stateChatAutoApproveFailed => 'Couldn’t allow automatically';
@@ -18882,8 +17821,7 @@ class L10nEn extends L10n {
   String get stateCommandFailed => 'Command didn’t run';
 
   @override
-  String get stateChatStopSteered =>
-      'Couldn’t stop this turn. Sent as a steer.';
+  String get stateChatStopSteered => 'Couldn’t stop this turn. Sent as a steer.';
 
   @override
   String get stateChatTextOnlyModel =>
@@ -18903,15 +17841,13 @@ class L10nEn extends L10n {
   String get stateChatStopFailed => 'Couldn’t stop. Try again.';
 
   @override
-  String get stateChatTurnEnded =>
-      'This turn has ended. Your message will start a new turn.';
+  String get stateChatTurnEnded => 'This turn has ended. Your message will start a new turn.';
 
   @override
   String get stateChatSteerFailed => 'Couldn’t steer';
 
   @override
-  String get stateChatUndoTooLate =>
-      'Too late. AI has already read this message.';
+  String get stateChatUndoTooLate => 'Too late. AI has already read this message.';
 
   @override
   String get stateChatUndoFailed => 'Couldn’t undo';
@@ -18929,8 +17865,7 @@ class L10nEn extends L10n {
   String get stateChatHistoryFailed => 'Couldn’t load history';
 
   @override
-  String get stateChatBranchLastReply =>
-      'Branch from the last reply of a finished turn';
+  String get stateChatBranchLastReply => 'Branch from the last reply of a finished turn';
 
   @override
   String get stateChatBranchFailed => 'Couldn’t branch';
@@ -18939,8 +17874,7 @@ class L10nEn extends L10n {
   String get stateChatEarlierHistoryFailed => 'Couldn’t load earlier history';
 
   @override
-  String get stateChatNoEarlierHistory =>
-      'There’s no history before this message. Start a new chat.';
+  String get stateChatNoEarlierHistory => 'There’s no history before this message. Start a new chat.';
 
   @override
   String get stateCommandNewDescription => 'Start a new chat';
@@ -18955,29 +17889,25 @@ class L10nEn extends L10n {
   String get stateCommandExportLabel => 'Export logs';
 
   @override
-  String get stateCommandExportDescription =>
-      'Export this chat’s full history as a ZIP to share or save to Downloads';
+  String get stateCommandExportDescription => 'Export this chat’s full history as a ZIP to share or save to Downloads';
 
   @override
   String get stateAllFeatures => 'All features';
 
   @override
-  String get stateCommandFeaturesDescription =>
-      'Access every feature in DSH Web';
+  String get stateCommandFeaturesDescription => 'Access every feature in DSH Web';
 
   @override
   String get stateCompactLabel => 'Compact';
 
   @override
-  String get stateCommandCompactDescription =>
-      'Compact the chat above to free up context';
+  String get stateCommandCompactDescription => 'Compact the chat above to free up context';
 
   @override
   String get statePermissionLabel => 'Permission';
 
   @override
-  String get stateCommandPermissionDescription =>
-      'Switch the permission preset (sandbox mode + approval policy)';
+  String get stateCommandPermissionDescription => 'Switch the permission preset (sandbox mode + approval policy)';
 
   @override
   String get stateCommandPermissionHint => '<preset name>';
@@ -18992,8 +17922,7 @@ class L10nEn extends L10n {
   String get stateGoalLabel => 'Goal';
 
   @override
-  String get stateCommandGoalDescription =>
-      'Set or view the goal for a long-running task';
+  String get stateCommandGoalDescription => 'Set or view the goal for a long-running task';
 
   @override
   String get stateFeedbackLabel => 'Feedback';
@@ -19029,8 +17958,7 @@ class L10nEn extends L10n {
   String get stateCordisNoApproval => 'Run permission wasn’t granted';
 
   @override
-  String get stateCordisBackendFailed =>
-      'Couldn’t start the background component';
+  String get stateCordisBackendFailed => 'Couldn’t start the background component';
 
   @override
   String get stateCordisClientLoadFailed => 'Couldn’t load the interface';
@@ -19077,8 +18005,7 @@ class L10nEn extends L10n {
   String get stateSettingsRefreshed => 'Changed elsewhere. Refreshed.';
 
   @override
-  String get stateCredentialFromEnvironment =>
-      'This key comes from the engine’s environment and can’t be changed here';
+  String get stateCredentialFromEnvironment => 'This key comes from the engine’s environment and can’t be changed here';
 
   @override
   String get stateSettingsFromFile => 'Set by configuration file';
@@ -19096,8 +18023,7 @@ class L10nEn extends L10n {
   String get statePluginDisabled => 'Plugin is disabled';
 
   @override
-  String get stateSettingsRestartRequired =>
-      'Restart the engine to change this';
+  String get stateSettingsRestartRequired => 'Restart the engine to change this';
 
   @override
   String get stateSettingsInvalidValue => 'Invalid value';
@@ -19163,22 +18089,19 @@ class L10nEn extends L10n {
   String get stateSshHost => 'SSH host';
 
   @override
-  String get stateHostBrowserFailed =>
-      'Couldn’t open the browser. Copy the sign-in link and open it in a browser.';
+  String get stateHostBrowserFailed => 'Couldn’t open the browser. Copy the sign-in link and open it in a browser.';
 
   @override
   String get stateSignInFailed => 'Couldn’t sign in';
 
   @override
-  String get stateMarketTooLarge =>
-      'Plugin catalog is too large. Download stopped.';
+  String get stateMarketTooLarge => 'Plugin catalog is too large. Download stopped.';
 
   @override
   String get stateMarketUnreachable => 'Can’t reach the plugin catalog';
 
   @override
-  String get stateMarketInsecure =>
-      'Couldn’t connect securely to the plugin catalog';
+  String get stateMarketInsecure => 'Couldn’t connect securely to the plugin catalog';
 
   @override
   String get stateMarketTimeout => 'Plugin catalog timed out';
@@ -19196,8 +18119,7 @@ class L10nEn extends L10n {
   String get stateRegistryMirror => 'npmmirror mirror';
 
   @override
-  String get statePluginIncompatible =>
-      'This plugin doesn’t support the current DSH version.';
+  String get statePluginIncompatible => 'This plugin doesn’t support the current DSH version.';
 
   @override
   String get statePluginInstallCancelled => 'Installation cancelled';
@@ -19212,8 +18134,7 @@ class L10nEn extends L10n {
   String get statePluginNetworkFailed => 'Can’t connect';
 
   @override
-  String get statePluginSourceUnreachable =>
-      'Can’t reach the plugin’s source website';
+  String get statePluginSourceUnreachable => 'Can’t reach the plugin’s source website';
 
   @override
   String get statePluginDownloadTimeout => 'Download timed out';
@@ -19240,15 +18161,13 @@ class L10nEn extends L10n {
   String get statePluginTooNew => 'Version is too new';
 
   @override
-  String get statePluginWaitForRelease =>
-      'Available to install 24 hours after release';
+  String get statePluginWaitForRelease => 'Available to install 24 hours after release';
 
   @override
   String get statePluginVersionMissing => 'Version not found';
 
   @override
-  String get statePluginRegistryVersionMissing =>
-      'This version isn’t in the registry yet';
+  String get statePluginRegistryVersionMissing => 'This version isn’t in the registry yet';
 
   @override
   String get stateDeviceStorageFull => 'Not enough device storage';
@@ -19257,8 +18176,7 @@ class L10nEn extends L10n {
   String get statePluginNoWritePermission => 'No write permission';
 
   @override
-  String get statePluginConfigReadOnly =>
-      'Engine configuration directory isn’t writable';
+  String get statePluginConfigReadOnly => 'Engine configuration directory isn’t writable';
 
   @override
   String get statePluginIntegrityFailed => 'File verification failed';
@@ -19282,8 +18200,7 @@ class L10nEn extends L10n {
   String get statePluginInvalid => 'Not a DSH plugin';
 
   @override
-  String get statePluginNoEntry =>
-      'This package has no plugin entry. Installation rolled back.';
+  String get statePluginNoEntry => 'This package has no plugin entry. Installation rolled back.';
 
   @override
   String get statePluginInUse => 'Plugin is in use';
@@ -19301,34 +18218,28 @@ class L10nEn extends L10n {
   String get statePluginAuthorizationExpired => 'Authorization expired';
 
   @override
-  String get statePluginBuildChanged =>
-      'Build scripts changed. Reinstall the plugin.';
+  String get statePluginBuildChanged => 'Build scripts changed. Reinstall the plugin.';
 
   @override
   String get statePluginInvalidAddress => 'Invalid installation URL';
 
   @override
-  String get statePluginCatalogInvalidAddress =>
-      'The catalog’s installation URL is invalid';
+  String get statePluginCatalogInvalidAddress => 'The catalog’s installation URL is invalid';
 
   @override
   String get statePluginOperationIncomplete => 'Operation didn’t finish';
 
   @override
-  String get statePluginRemoteForbidden =>
-      'This host doesn’t allow remote installation';
+  String get statePluginRemoteForbidden => 'This host doesn’t allow remote installation';
 
   @override
-  String get statePluginRelayToggleOnly =>
-      'Relay connections can only turn plugins on or off';
+  String get statePluginRelayToggleOnly => 'Relay connections can only turn plugins on or off';
 
   @override
-  String get statePluginManagementUnsupported =>
-      'Host doesn’t support plugin management';
+  String get statePluginManagementUnsupported => 'Host doesn’t support plugin management';
 
   @override
-  String get statePluginEngineUnsupported =>
-      'This engine doesn’t support plugin management';
+  String get statePluginEngineUnsupported => 'This engine doesn’t support plugin management';
 
   @override
   String get statePluginResultMissing => 'Couldn’t get the installation result';
@@ -19373,8 +18284,7 @@ class L10nEn extends L10n {
   String get stateProviderUrlRequired => 'Enter a Base URL';
 
   @override
-  String get stateProviderUrlInvalid =>
-      'Enter a full URL starting with http:// or https://';
+  String get stateProviderUrlInvalid => 'Enter a full URL starting with http:// or https://';
 
   @override
   String get stateProviderUrlSuffix => 'Remove the part after ? or #';
@@ -19383,8 +18293,7 @@ class L10nEn extends L10n {
   String get stateProviderKeyRequired => 'Enter an API key';
 
   @override
-  String get stateProviderKeyOnly =>
-      'Paste only the key, without the variable name';
+  String get stateProviderKeyOnly => 'Paste only the key, without the variable name';
 
   @override
   String get stateProviderKeyQuotes => 'Remove the surrounding quotes';
@@ -19402,20 +18311,16 @@ class L10nEn extends L10n {
   String get stateProviderAlreadyAdded => 'Already added';
 
   @override
-  String get stateProviderConflict =>
-      'Provider changed. Go back and try again.';
+  String get stateProviderConflict => 'Provider changed. Go back and try again.';
 
   @override
-  String get stateProviderUnsupported =>
-      'This engine version doesn’t support this action';
+  String get stateProviderUnsupported => 'This engine version doesn’t support this action';
 
   @override
-  String get stateProviderKeyRejected =>
-      'API key is invalid or lacks permission';
+  String get stateProviderKeyRejected => 'API key is invalid or lacks permission';
 
   @override
-  String get stateProviderModelsMissing =>
-      'Model list not found. Check the Base URL.';
+  String get stateProviderModelsMissing => 'Model list not found. Check the Base URL.';
 
   @override
   String get stateProviderRateLimited => 'Too many requests. Try again later.';
@@ -19424,20 +18329,16 @@ class L10nEn extends L10n {
   String get stateProviderResponseTooLarge => 'Response is too large';
 
   @override
-  String get stateProviderUnreachable =>
-      'Can’t reach this address. Check the Base URL and network.';
+  String get stateProviderUnreachable => 'Can’t reach this address. Check the Base URL and network.';
 
   @override
-  String get stateProviderModelsUnreadable =>
-      'Couldn’t read the model list. Check the Base URL.';
+  String get stateProviderModelsUnreadable => 'Couldn’t read the model list. Check the Base URL.';
 
   @override
-  String get stateProviderManualModels =>
-      'This protocol can’t list models. Add them manually.';
+  String get stateProviderManualModels => 'This protocol can’t list models. Add them manually.';
 
   @override
-  String get stateProviderConfigRejected =>
-      'The engine rejected this configuration. Check the protocol and model.';
+  String get stateProviderConfigRejected => 'The engine rejected this configuration. Check the protocol and model.';
 
   @override
   String get stateProviderOffline => 'Can’t reach the engine';
@@ -19458,8 +18359,7 @@ class L10nEn extends L10n {
   String get stateSafeManualEntry => 'I entered Safe mode manually';
 
   @override
-  String get stateScheduleNotCreated =>
-      'Chat ended without creating the automation';
+  String get stateScheduleNotCreated => 'Chat ended without creating the automation';
 
   @override
   String get stateScheduleChatFailed => 'Chat failed';
@@ -19474,8 +18374,7 @@ class L10nEn extends L10n {
   String get stateQuestionPending => 'Needs an answer';
 
   @override
-  String get stateExportRelayUnsupported =>
-      'Export isn’t available over Relay yet';
+  String get stateExportRelayUnsupported => 'Export isn’t available over Relay yet';
 
   @override
   String get stateExportChatMissing => 'Chat not found';
@@ -19487,24 +18386,19 @@ class L10nEn extends L10n {
   String get stateSizeExtraLarge => 'Extra large';
 
   @override
-  String get stateSubscriptionUnsupported =>
-      'This engine doesn’t support subscription sign-in';
+  String get stateSubscriptionUnsupported => 'This engine doesn’t support subscription sign-in';
 
   @override
-  String get stateSubscriptionUnreachable =>
-      'Can’t reach the sign-in service. Check your network and try again.';
+  String get stateSubscriptionUnreachable => 'Can’t reach the sign-in service. Check your network and try again.';
 
   @override
-  String get stateSubscriptionSignInFailed =>
-      'Couldn’t finish signing in. Try again.';
+  String get stateSubscriptionSignInFailed => 'Couldn’t finish signing in. Try again.';
 
   @override
-  String get stateSubscriptionTimeout =>
-      'Request timed out. Check your network and try again.';
+  String get stateSubscriptionTimeout => 'Request timed out. Check your network and try again.';
 
   @override
-  String get stateSubscriptionDisconnected =>
-      'Engine disconnected. Try again later.';
+  String get stateSubscriptionDisconnected => 'Engine disconnected. Try again later.';
 
   @override
   String get stateTerminalLimit => 'Terminal limit reached';
@@ -19537,23 +18431,13 @@ class L10nEn extends L10n {
 
   @override
   String stateSharePluginCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count plugins',
-      one: '1 plugin',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count plugins', one: '1 plugin');
     return '$_temp0';
   }
 
   @override
   String stateShareSkillCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count skills',
-      one: '1 skill',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count skills', one: '1 skill');
     return '$_temp0';
   }
 
@@ -19805,11 +18689,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String statePluginRegistryProgress(
-    String registry,
-    int attempt,
-    int attempts,
-  ) {
+  String statePluginRegistryProgress(String registry, int attempt, int attempts) {
     return 'Downloading from $registry (registry $attempt/$attempts)';
   }
 
@@ -19941,43 +18821,37 @@ class L10nEn extends L10n {
   String get updateUpToDate => 'You’re up to date';
 
   @override
-  String get updateCheckUnavailable =>
-      'Can’t check for updates right now. Try again later.';
+  String get updateCheckUnavailable => 'Can’t check for updates right now. Try again later.';
 
   @override
   String get updateDownloadInterrupted => 'Download interrupted';
 
   @override
-  String get updateDownloadInterruptedMessage =>
-      'The network is disconnected or too slow. Retry to resume.';
+  String get updateDownloadInterruptedMessage => 'The network is disconnected or too slow. Retry to resume.';
 
   @override
   String get updateDownloadUnavailable => 'Download link unavailable';
 
   @override
-  String get updateDownloadUnavailableMessage =>
-      'Try again later, or download from the release page.';
+  String get updateDownloadUnavailableMessage => 'Try again later, or download from the release page.';
 
   @override
   String get updateChecksumFailed => 'Package verification failed';
 
   @override
-  String get updateChecksumFailedMessage =>
-      'The file doesn’t match the release and was deleted. Try again.';
+  String get updateChecksumFailedMessage => 'The file doesn’t match the release and was deleted. Try again.';
 
   @override
   String get updateChecksumMissing => 'Verification info missing';
 
   @override
-  String get updateChecksumMissingMessage =>
-      'For safety, download from the release page to install.';
+  String get updateChecksumMissingMessage => 'For safety, download from the release page to install.';
 
   @override
   String get updateStorageWriteFailed => 'Couldn’t save package';
 
   @override
-  String get updateStorageWriteFailedMessage =>
-      'Storage may be full. Free up space and try again.';
+  String get updateStorageWriteFailedMessage => 'Storage may be full. Free up space and try again.';
 
   @override
   String get updateFreeSpaceRetry => 'Free up space and try again.';
@@ -19998,8 +18872,7 @@ class L10nEn extends L10n {
   String get updateInstallCancelled => 'Installation cancelled';
 
   @override
-  String get updateInstallCancelledMessage =>
-      'The package is saved. You can install it anytime.';
+  String get updateInstallCancelledMessage => 'The package is saved. You can install it anytime.';
 
   @override
   String get updateInstallUnconfirmed => 'Installation result not confirmed';
@@ -20019,15 +18892,13 @@ class L10nEn extends L10n {
   String get updateWrongPackage => 'This isn’t a DSH package';
 
   @override
-  String get updateWrongPackageMessage =>
-      'The wrong file was downloaded and deleted. Try again later.';
+  String get updateWrongPackageMessage => 'The wrong file was downloaded and deleted. Try again later.';
 
   @override
   String get updateDowngradeBlocked => 'Can’t install an older version';
 
   @override
-  String get updateDowngradeBlockedMessage =>
-      'The DSH on your phone is newer than this package.';
+  String get updateDowngradeBlockedMessage => 'The DSH on your phone is newer than this package.';
 
   @override
   String get updateIncompatible => 'Incompatible with this phone';
@@ -20040,8 +18911,7 @@ class L10nEn extends L10n {
   String get updatePackageCorrupt => 'Package is damaged';
 
   @override
-  String get updatePackageCorruptMessage =>
-      'It was deleted. Download it again.';
+  String get updatePackageCorruptMessage => 'It was deleted. Download it again.';
 
   @override
   String get updateInstallBlocked => 'Installation blocked';
@@ -20054,8 +18924,7 @@ class L10nEn extends L10n {
   String get updateInstallIncomplete => 'Installation incomplete';
 
   @override
-  String get updateInstallIncompleteMessage =>
-      'Try again, or download from the release page.';
+  String get updateInstallIncompleteMessage => 'Try again, or download from the release page.';
 
   @override
   String updateBrowserOpenFailed(String host, String path) {
@@ -20082,8 +18951,7 @@ class L10nEn extends L10n {
   String get updateNoReleaseNotes => 'No release notes for this version.';
 
   @override
-  String get updateInstallKeepsData =>
-      'DSH Go closes to install. Your chats and settings stay.';
+  String get updateInstallKeepsData => 'DSH Go closes to install. Your chats and settings stay.';
 
   @override
   String get updateNoCompatiblePackage => 'No package for this phone';
@@ -20097,22 +18965,19 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get updateDownloadInBackgroundNote =>
-      'Download continues after you close this window';
+  String get updateDownloadInBackgroundNote => 'Download continues after you close this window';
 
   @override
   String get updateVerifyingPackage => 'Verifying package…';
 
   @override
-  String get updateVerifyingPackageNote =>
-      'Checking the file matches the release';
+  String get updateVerifyingPackageNote => 'Checking the file matches the release';
 
   @override
   String get updateInstalling => 'Installing…';
 
   @override
-  String get updateConfirmInstallNote =>
-      'Confirm installation in the system prompt';
+  String get updateConfirmInstallNote => 'Confirm installation in the system prompt';
 
   @override
   String get updatePackageDownloaded => 'Package downloaded';
@@ -20140,8 +19005,7 @@ class L10nEn extends L10n {
   String get updateInstallWithSystem => 'Install with the system installer';
 
   @override
-  String get updateSystemInstallerFailed =>
-      'Couldn\'t open the system installer';
+  String get updateSystemInstallerFailed => 'Couldn\'t open the system installer';
 
   @override
   String get updateStarProject => 'Star it';
@@ -20167,8 +19031,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get updateNoPackage =>
-      'No package for this release yet. Check the release page.';
+  String get updateNoPackage => 'No package for this release yet. Check the release page.';
 
   @override
   String updateDownloadingPercent(int percent) {
@@ -20182,15 +19045,13 @@ class L10nEn extends L10n {
   String get usageStatsSection => 'Improve DSH Go';
 
   @override
-  String get usageStatsFooter =>
-      'Only usage counts, versions and the phone’s maker. Never chats, files or accounts.';
+  String get usageStatsFooter => 'Only usage counts, versions and the phone’s maker. Never chats, files or accounts.';
 
   @override
   String get usageNoticeBody => 'No chats or personal info.\nTurn off anytime.';
 
   @override
-  String get usageUpgradeNotice =>
-      'New: anonymous usage stats, to help improve DSH Go.\nNo chats or personal info.';
+  String get usageUpgradeNotice => 'New: anonymous usage stats, to help improve DSH Go.\nNo chats or personal info.';
 
   @override
   String get usageUpgradeLearn => 'Learn more';
@@ -20235,23 +19096,13 @@ class L10nEn extends L10n {
 
   @override
   String viewArtifactLines(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count lines',
-      one: '1 line',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count lines', one: '1 line');
     return 'Large file. Showing the first $_temp0';
   }
 
   @override
   String viewArtifactRows(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count rows',
-      one: '1 row',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count rows', one: '1 row');
     return 'Showing the first $_temp0';
   }
 
@@ -20286,12 +19137,7 @@ class L10nEn extends L10n {
 
   @override
   String viewArtifactPages(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pages',
-      one: '1 page',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count pages', one: '1 page');
     return '$_temp0';
   }
 
@@ -20350,8 +19196,7 @@ class L10nEn extends L10n {
   String get viewBalanceNoAlert => 'Off';
 
   @override
-  String get viewBalanceBannerHidden =>
-      'Balance alert hidden until DSH Go restarts';
+  String get viewBalanceBannerHidden => 'Balance alert hidden until DSH Go restarts';
 
   @override
   String get viewBalanceTurnOff => 'Turn off';
@@ -20376,8 +19221,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get viewBalanceModelDisabled =>
-      'Insufficient balance. Model disabled.';
+  String get viewBalanceModelDisabled => 'Insufficient balance. Model disabled.';
 
   @override
   String get viewBalanceRestore => 'Top up to resume';
@@ -20423,18 +19267,8 @@ class L10nEn extends L10n {
 
   @override
   String viewUiBytesLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first bytes',
-      one: 'second byte',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      second,
-      locale: localeName,
-      other: '$second bytes',
-      one: 'second byte',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first bytes', one: 'second byte');
+    String _temp1 = intl.Intl.pluralLogic(second, locale: localeName, other: '$second bytes', one: 'second byte');
     return 'View is $_temp0, exceeding the limit of $_temp1';
   }
 
@@ -20505,12 +19339,7 @@ class L10nEn extends L10n {
 
   @override
   String viewUiChildLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first items',
-      one: 'second item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first items', one: 'second item');
     String _temp1 = intl.Intl.pluralLogic(
       second,
       locale: localeName,
@@ -20575,12 +19404,7 @@ class L10nEn extends L10n {
 
   @override
   String viewUiFirstPoints(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit points',
-      one: '1 point',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit points', one: '1 point');
     return 'Showing only the first $_temp0';
   }
 
@@ -20590,17 +19414,11 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get viewUiSkippedSeries =>
-      'Expected an array of numbers; series skipped';
+  String get viewUiSkippedSeries => 'Expected an array of numbers; series skipped';
 
   @override
   String viewUiValuesCategories(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first values',
-      one: 'second value',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first values', one: 'second value');
     String _temp1 = intl.Intl.pluralLogic(
       second,
       locale: localeName,
@@ -20640,23 +19458,13 @@ class L10nEn extends L10n {
 
   @override
   String viewUiSeriesLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first series',
-      one: 'second series',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first series', one: 'second series');
     return '$_temp0, exceeding the limit of $second';
   }
 
   @override
   String viewUiFirstSeriesCount(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit series',
-      one: '1 series',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit series', one: '1 series');
     return 'Showing only the first $_temp0';
   }
 
@@ -20675,23 +19483,13 @@ class L10nEn extends L10n {
 
   @override
   String viewUiItemLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first items',
-      one: 'second item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first items', one: 'second item');
     return '$_temp0, exceeding the limit of $second';
   }
 
   @override
   String viewUiFirstItems(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit items',
-      one: '1 item',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit items', one: '1 item');
     return 'Showing only the first $_temp0';
   }
 
@@ -20701,17 +19499,11 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get viewUiSkippedItemLabel =>
-      'Expected a non-empty string; item skipped';
+  String get viewUiSkippedItemLabel => 'Expected a non-empty string; item skipped';
 
   @override
   String viewUiRowLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first rows',
-      one: 'second row',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first rows', one: 'second row');
     return '$_temp0, exceeding the limit of $second';
   }
 
@@ -20723,12 +19515,7 @@ class L10nEn extends L10n {
 
   @override
   String viewUiFirstRows(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit rows',
-      one: '1 row',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit rows', one: '1 row');
     return 'Showing only the first $_temp0 per item';
   }
 
@@ -20739,23 +19526,13 @@ class L10nEn extends L10n {
 
   @override
   String viewUiStepLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first steps',
-      one: 'second step',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first steps', one: 'second step');
     return '$_temp0, exceeding the limit of $second';
   }
 
   @override
   String viewUiFirstSteps(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit steps',
-      one: '1 step',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit steps', one: '1 step');
     return 'Truncated: showing only the first $_temp0';
   }
 
@@ -20784,23 +19561,13 @@ class L10nEn extends L10n {
 
   @override
   String viewUiOptionLimit(int first, int second) {
-    String _temp0 = intl.Intl.pluralLogic(
-      first,
-      locale: localeName,
-      other: '$first options',
-      one: 'second option',
-    );
+    String _temp0 = intl.Intl.pluralLogic(first, locale: localeName, other: '$first options', one: 'second option');
     return '$_temp0, exceeding the limit of $second';
   }
 
   @override
   String viewUiFirstOptions(int limit) {
-    String _temp0 = intl.Intl.pluralLogic(
-      limit,
-      locale: localeName,
-      other: '$limit options',
-      one: '1 option',
-    );
+    String _temp0 = intl.Intl.pluralLogic(limit, locale: localeName, other: '$limit options', one: '1 option');
     return 'Truncated: showing only the first $_temp0';
   }
 
@@ -20823,8 +19590,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get viewUiSummaryInvalid =>
-      '[View] (formatting error, couldn’t display)';
+  String get viewUiSummaryInvalid => '[View] (formatting error, couldn’t display)';
 
   @override
   String viewUiSummaryText(String value) {
@@ -21054,23 +19820,13 @@ class L10nEn extends L10n {
 
   @override
   String viewScheduleDaysAhead(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count days',
-      one: '1 day',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count days', one: '1 day');
     return 'In $_temp0';
   }
 
   @override
   String viewScheduleDaysOverdue(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count days',
-      one: '1 day',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count days', one: '1 day');
     return '$_temp0 overdue';
   }
 
@@ -21081,12 +19837,7 @@ class L10nEn extends L10n {
 
   @override
   String viewScheduleCountLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count automations',
-      one: '1 automation',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count automations', one: '1 automation');
     return '$_temp0';
   }
 
@@ -21137,8 +19888,7 @@ class L10nEn extends L10n {
   String get viewModelKeyRequired => 'API key needed';
 
   @override
-  String get viewModelProvidersHint =>
-      'Supports DeepSeek and other model providers';
+  String get viewModelProvidersHint => 'Supports DeepSeek and other model providers';
 
   @override
   String get viewModelEnterKey => 'Enter API key';
@@ -21160,12 +19910,7 @@ class L10nEn extends L10n {
 
   @override
   String viewContinueRange(int first, int second, int third) {
-    String _temp0 = intl.Intl.pluralLogic(
-      third,
-      locale: localeName,
-      other: '$third turns',
-      one: '1 turn',
-    );
+    String _temp0 = intl.Intl.pluralLogic(third, locale: localeName, other: '$third turns', one: '1 turn');
     return 'Turns $first–$second of $_temp0';
   }
 
@@ -21179,12 +19924,7 @@ class L10nEn extends L10n {
 
   @override
   String viewImageCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count images',
-      one: '1 image',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count images', one: '1 image');
     return '$_temp0';
   }
 
@@ -21239,23 +19979,13 @@ class L10nEn extends L10n {
 
   @override
   String viewShareMessageCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count messages',
-      one: '1 message',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count messages', one: '1 message');
     return '$_temp0';
   }
 
   @override
   String viewShareToolCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tool calls',
-      one: '1 tool call',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count tool calls', one: '1 tool call');
     return '$_temp0';
   }
 
@@ -21269,8 +19999,7 @@ class L10nEn extends L10n {
   String get viewShareMarkdownHint => 'Plain text, readable anywhere';
 
   @override
-  String get viewShareLinkHint =>
-      'End-to-end encrypted. The server can’t see your content.';
+  String get viewShareLinkHint => 'End-to-end encrypted. The server can’t see your content.';
 
   @override
   String get viewSharePreview => 'Preview';
@@ -21349,23 +20078,13 @@ class L10nEn extends L10n {
 
   @override
   String viewReplaySeconds(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sec',
-      one: '1 sec',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count sec', one: '1 sec');
     return '$_temp0';
   }
 
   @override
   String viewReplayMinutes(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count min',
-      one: '1 min',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count min', one: '1 min');
     return '$_temp0';
   }
 
@@ -21406,12 +20125,7 @@ class L10nEn extends L10n {
 
   @override
   String viewShareSteps(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count steps',
-      one: '1 step',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count steps', one: '1 step');
     return '$_temp0';
   }
 
@@ -21479,12 +20193,7 @@ class L10nEn extends L10n {
 
   @override
   String viewShareImagesMarker(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count images',
-      one: '1 image',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count images', one: '1 image');
     return '[$_temp0]';
   }
 
@@ -21508,67 +20217,37 @@ class L10nEn extends L10n {
 
   @override
   String viewScheduleHoursAhead(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count h',
-      one: '1 h',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count h', one: '1 h');
     return 'In $_temp0';
   }
 
   @override
   String viewScheduleHoursOverdue(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count h',
-      one: '1 h',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count h', one: '1 h');
     return '$_temp0 overdue';
   }
 
   @override
   String viewScheduleMinutesAhead(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count min',
-      one: '1 min',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count min', one: '1 min');
     return 'In $_temp0';
   }
 
   @override
   String viewScheduleMinutesOverdue(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count min',
-      one: '1 min',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count min', one: '1 min');
     return '$_temp0 overdue';
   }
 
   @override
   String viewScheduleSecondsAhead(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sec',
-      one: '1 sec',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count sec', one: '1 sec');
     return 'In $_temp0';
   }
 
   @override
   String viewScheduleSecondsOverdue(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sec',
-      one: '1 sec',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count sec', one: '1 sec');
     return '$_temp0 overdue';
   }
 
@@ -21618,29 +20297,14 @@ class L10nEn extends L10n {
 
   @override
   String viewReplayHours(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count h',
-      one: '1 h',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count h', one: '1 h');
     return '$_temp0';
   }
 
   @override
   String viewReplayHoursMinutes(int hours, int minutes) {
-    String _temp0 = intl.Intl.pluralLogic(
-      hours,
-      locale: localeName,
-      other: '$hours h',
-      one: '1 h',
-    );
-    String _temp1 = intl.Intl.pluralLogic(
-      minutes,
-      locale: localeName,
-      other: '$minutes min',
-      one: '1 min',
-    );
+    String _temp0 = intl.Intl.pluralLogic(hours, locale: localeName, other: '$hours h', one: '1 h');
+    String _temp1 = intl.Intl.pluralLogic(minutes, locale: localeName, other: '$minutes min', one: '1 min');
     return '$_temp0 $_temp1';
   }
 
@@ -21707,12 +20371,7 @@ class L10nEn extends L10n {
 
   @override
   String viewScheduleCountNextLabel(int count, String when) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count automations',
-      one: '1 automation',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count automations', one: '1 automation');
     return '$_temp0, next $when';
   }
 
@@ -21743,11 +20402,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String viewMetricCaptionSemantics(
-    String label,
-    String value,
-    String caption,
-  ) {
+  String viewMetricCaptionSemantics(String label, String value, String caption) {
     return '$label $value, $caption';
   }
 
@@ -21823,88 +20478,70 @@ class L10nEn extends L10n {
   String get voiceModeEngine => 'Voice model';
 
   @override
-  String get voiceModeAutoHint =>
-      'Uses the voice model when it’s ready, otherwise the phone’s service';
+  String get voiceModeAutoHint => 'Uses the voice model when it’s ready, otherwise the phone’s service';
 
   @override
-  String get voiceModeSystemHint =>
-      'Use the recognition service selected on this phone';
+  String get voiceModeSystemHint => 'Use the recognition service selected on this phone';
 
   @override
-  String get voiceModeEngineHint =>
-      'Recognizes speech with the engine’s voice model';
+  String get voiceModeEngineHint => 'Recognizes speech with the engine’s voice model';
 
   @override
-  String get voiceFallbackStarted =>
-      'Switched to the voice model. Please speak again.';
+  String get voiceFallbackStarted => 'Switched to the voice model. Please speak again.';
 
   @override
-  String get voiceChooseSystem =>
-      'Select a speech recognition service in system settings';
+  String get voiceChooseSystem => 'Select a speech recognition service in system settings';
 
   @override
-  String get voiceConfigureEngine =>
-      'Download the voice model in voice settings first';
+  String get voiceConfigureEngine => 'Download the voice model in voice settings first';
 
   @override
-  String get voiceConfigureEither =>
-      'The phone’s service isn’t available. Download the voice model in voice settings.';
+  String get voiceConfigureEither => 'The phone’s service isn’t available. Download the voice model in voice settings.';
 
   @override
-  String get voiceErrorNetworkTimeout =>
-      'Speech recognition timed out. Check your connection.';
+  String get voiceErrorNetworkTimeout => 'Speech recognition timed out. Check your connection.';
 
   @override
-  String get voiceErrorNetwork =>
-      'Speech recognition could not connect to the network';
+  String get voiceErrorNetwork => 'Speech recognition could not connect to the network';
 
   @override
   String get voiceErrorAudio => 'Audio recording failed. Check the microphone.';
 
   @override
-  String get voiceErrorServer =>
-      'The system speech service failed. Try again later.';
+  String get voiceErrorServer => 'The system speech service failed. Try again later.';
 
   @override
-  String get voiceErrorClient =>
-      'Could not start system recognition. Check the speech service.';
+  String get voiceErrorClient => 'Could not start system recognition. Check the speech service.';
 
   @override
-  String get voiceErrorSpeechTimeout =>
-      'No speech was detected. Please speak again.';
+  String get voiceErrorSpeechTimeout => 'No speech was detected. Please speak again.';
 
   @override
   String get voiceErrorNoMatch => 'Didn’t catch that. Try again.';
 
   @override
-  String get voiceErrorBusy =>
-      'The system speech service is busy. Try again later.';
+  String get voiceErrorBusy => 'The system speech service is busy. Try again later.';
 
   @override
   String get voiceErrorPermission => 'Voice input needs microphone access';
 
   @override
-  String get voiceErrorTooManyRequests =>
-      'Too many speech requests. Try again later.';
+  String get voiceErrorTooManyRequests => 'Too many speech requests. Try again later.';
 
   @override
   String get voiceErrorDisconnected => 'The system speech service disconnected';
 
   @override
-  String get voiceErrorLanguageUnsupported =>
-      'System recognition does not support this language';
+  String get voiceErrorLanguageUnsupported => 'System recognition does not support this language';
 
   @override
-  String get voiceErrorLanguageUnavailable =>
-      'Download this language in the speech service first';
+  String get voiceErrorLanguageUnavailable => 'Download this language in the speech service first';
 
   @override
-  String get voiceErrorSupportCheck =>
-      'The speech service cannot check recognition support';
+  String get voiceErrorSupportCheck => 'The speech service cannot check recognition support';
 
   @override
-  String get voiceErrorDownloadEvents =>
-      'The speech service cannot report model download progress';
+  String get voiceErrorDownloadEvents => 'The speech service cannot report model download progress';
 
   @override
   String voiceErrorUnknown(int code) {
@@ -21961,8 +20598,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get voiceModelWaitingNote =>
-      'The download starts once the engine is running';
+  String get voiceModelWaitingNote => 'The download starts once the engine is running';
 
   @override
   String get voiceModelFailNetwork => 'Couldn’t reach the download source';
@@ -21971,12 +20607,10 @@ class L10nEn extends L10n {
   String get voiceModelFailTimeout => 'The download stopped making progress';
 
   @override
-  String get voiceModelFailCertificate =>
-      'Secure connection failed; check the phone’s date';
+  String get voiceModelFailCertificate => 'Secure connection failed; check the phone’s date';
 
   @override
-  String get voiceModelFailServer =>
-      'The download source is unavailable for now';
+  String get voiceModelFailServer => 'The download source is unavailable for now';
 
   @override
   String get voiceModelFailIntegrity => 'The files didn’t pass verification';
@@ -22017,12 +20651,10 @@ class L10nEn extends L10n {
       'Voice input will use the phone’s service. You can download the model again any time.';
 
   @override
-  String get voiceModelDeleteFailed =>
-      'Couldn’t delete the voice model. Try again.';
+  String get voiceModelDeleteFailed => 'Couldn’t delete the voice model. Try again.';
 
   @override
-  String get voiceModelDeleteStopping =>
-      'The download is still stopping. Delete again in a moment.';
+  String get voiceModelDeleteStopping => 'The download is still stopping. Delete again in a moment.';
 
   @override
   String voiceModelStartedToast(String size) {
@@ -22051,19 +20683,16 @@ class L10nEn extends L10n {
   String get voiceModelNoticePreparing => 'Checking the voice model';
 
   @override
-  String get voiceModelNoticeFailed =>
-      'Voice model download failed. Open the app to retry.';
+  String get voiceModelNoticeFailed => 'Voice model download failed. Open the app to retry.';
 
   @override
   String get voiceScribeReadFailed => 'Could not read voice settings. Retry.';
 
   @override
-  String get voiceScribeSavedReadFailed =>
-      'Saved. Refresh to see the latest settings.';
+  String get voiceScribeSavedReadFailed => 'Saved. Refresh to see the latest settings.';
 
   @override
-  String get voiceScribeSaveUnconfirmed =>
-      'Couldn’t confirm the save. Refresh or retry.';
+  String get voiceScribeSaveUnconfirmed => 'Couldn’t confirm the save. Refresh or retry.';
 
   @override
   String get voiceScribeTitle => 'Voice settings';
@@ -22078,12 +20707,10 @@ class L10nEn extends L10n {
   String get voiceScribeRefresh => 'Refresh';
 
   @override
-  String get voiceScribeHostChanged =>
-      'The connection changed. Reopen to continue.';
+  String get voiceScribeHostChanged => 'The connection changed. Reopen to continue.';
 
   @override
-  String get voiceScribeUnsupported =>
-      'Voice settings aren’t available on this connection.';
+  String get voiceScribeUnsupported => 'Voice settings aren’t available on this connection.';
 
   @override
   String get voiceScribePluginDefault => 'Default';
@@ -22105,12 +20732,7 @@ class L10nEn extends L10n {
 
   @override
   String voiceScribeHotwordRules(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count rules',
-      one: '1 rule',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count rules', one: '1 rule');
     return '$_temp0';
   }
 
@@ -22183,15 +20805,13 @@ class L10nEn extends L10n {
       'Yes. Saturday afternoon is sunny with a light breeze and waves under half a metre, the best day this week.';
 
   @override
-  String get wallpaperSampleNote =>
-      'It cools down fast in the evening, so bring a light jacket.';
+  String get wallpaperSampleNote => 'It cools down fast in the evening, so bring a light jacket.';
 
   @override
   String get wallpaperSampleTool => 'Checked 3 weather sources';
 
   @override
-  String get searchKwWallpaper =>
-      'background,background image,chat background,custom background,backdrop,blur,photo';
+  String get searchKwWallpaper => 'background,background image,chat background,custom background,backdrop,blur,photo';
 
   @override
   String get webTitle => 'DSH Web';
@@ -22200,15 +20820,13 @@ class L10nEn extends L10n {
   String get webSshAppOnly => 'SSH tunnel links only open in the app';
 
   @override
-  String get webRelayUnavailable =>
-      'DSH Web isn’t available through DSH Remote. Open it on that computer.';
+  String get webRelayUnavailable => 'DSH Web isn’t available through DSH Remote. Open it on that computer.';
 
   @override
   String get webSshHost => 'SSH host';
 
   @override
-  String get webLocalAppOnly =>
-      'This phone’s link has a launch token and only opens in the app';
+  String get webLocalAppOnly => 'This phone’s link has a launch token and only opens in the app';
 
   @override
   String get webEngineStatus => 'Engine status';
@@ -22289,39 +20907,31 @@ class L10nEn extends L10n {
   String get webPageNotOpened => 'Couldn’t open the page';
 
   @override
-  String get webCheckConnection =>
-      'Check your network or engine status and try again';
+  String get webCheckConnection => 'Check your network or engine status and try again';
 
   @override
-  String get webTargetSessionMissing =>
-      'Couldn’t find this chat in DSH Web. You’re on the home page.';
+  String get webTargetSessionMissing => 'Couldn’t find this chat in DSH Web. You’re on the home page.';
 
   @override
   String get webTargetNotLoaded => 'DSH Web hasn’t finished loading';
 
   @override
-  String get webTargetSettingsMissing =>
-      'Couldn’t find these settings. You may need to sign in or enable the plugin.';
+  String get webTargetSettingsMissing => 'Couldn’t find these settings. You may need to sign in or enable the plugin.';
 
   @override
-  String get webTargetPluginMissing =>
-      'Couldn’t find this plugin. It may be missing from this profile.';
+  String get webTargetPluginMissing => 'Couldn’t find this plugin. It may be missing from this profile.';
 
   @override
-  String get webTargetSidebarFailed =>
-      'Couldn’t open the sidebar. Open this chat in DSH Web and try again.';
+  String get webTargetSidebarFailed => 'Couldn’t open the sidebar. Open this chat in DSH Web and try again.';
 
   @override
-  String get webTargetCordisMissing =>
-      'Couldn’t find the Cordis panel. The plugin may have been removed.';
+  String get webTargetCordisMissing => 'Couldn’t find the Cordis panel. The plugin may have been removed.';
 
   @override
-  String get webTargetNewChatFailed =>
-      'Couldn’t start a chat. You’re on the DSH Web home page.';
+  String get webTargetNewChatFailed => 'Couldn’t start a chat. You’re on the DSH Web home page.';
 
   @override
-  String get webTargetPageFailed =>
-      'Couldn’t open this page. You’re on the DSH Web home page.';
+  String get webTargetPageFailed => 'Couldn’t open this page. You’re on the DSH Web home page.';
 
   @override
   String webConnectHostFirst(String name) {

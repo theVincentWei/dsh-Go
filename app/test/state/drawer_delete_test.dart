@@ -83,7 +83,7 @@ Future<({DrawerHost host, HostConnection connection, ProviderContainer container
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: const SizedBox.expand()),
+      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
       overrides: [
         ...workspaceOverrides(host, current: 's1', prefs: const WorkspacePrefs(loaded: true)).skip(1),
         switchConnectionProvider.overrideWith(() => SwitchConnection(connection)),

@@ -35,5 +35,6 @@
   "engineCapKeepsRunning": "Keeps running",
   "engineCapYes": "Available",
   "engineCapNone": "Unavailable",
-  "marketInstallRefused": "This engine can't install market plugins"
+  "marketInstallRefused": "This engine can't install market plugins",
+  "localEnvGateBody": "This phone doesn't run DSH locally, so these settings aren't available. To enable them, install the runtime under Remote hosts."
 }

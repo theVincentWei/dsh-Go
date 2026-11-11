@@ -2,7 +2,7 @@ import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/common/empty_view.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/session_list_page.dart';
+import 'package:dsh_app/ui/shell/sessions_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +36,7 @@ void main() {
               home: Builder(
                 builder: (context) => MediaQuery(
                   data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
-                  child: HomeShell(chatBuilder: const SizedBox.expand()),
+                  child: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
                 ),
               ),
             ),
@@ -61,7 +61,7 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 400));
 
-          final container = ProviderScope.containerOf(tester.element(find.byType(SessionListPage)));
+          final container = ProviderScope.containerOf(tester.element(find.byType(SessionsDrawer)));
           expect(container.read(workspacePrefsProvider).selected, isNull);
           expect(find.text('Earlier conversation'), findsOneWidget);
           // Changing a view filter must not rewrite historical membership.

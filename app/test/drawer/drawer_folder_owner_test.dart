@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/pets/pet_overlay_actions.dart';
+import 'package:dsh_app/ui/shell/drawer/drawer_filter_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:dsh_app/runtime/runtime_state.dart';
 import 'package:dsh_app/state/connection_state.dart';
@@ -61,7 +62,7 @@ Future<(ProviderContainer, DrawerView)> _start(WidgetTester tester, {required bo
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: const SizedBox.expand()),
+      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
       overrides: [
         localRuntimeProvider.overrideWith(
           () => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus)),
@@ -103,7 +104,7 @@ void main() {
   testWidgets('background pet host switch retires the open folder creation', (tester) async {
     final (container, bView) = await _start(tester, sameFolderId: false);
     await _switchB(tester, container, bView);
-    await tester.tap(find.byTooltip('对话列表'));
+    await tester.tap(find.byType(DrawerViewButton));
     await _settle(tester);
     await tester.tap(find.text('新建文件夹'));
     await _settle(tester);
@@ -135,7 +136,7 @@ void main() {
 
   testWidgets('same Host folder creation still saves its name and returns to drawer', (tester) async {
     final (container, bView) = await _start(tester, sameFolderId: false);
-    await tester.tap(find.byTooltip('对话列表'));
+    await tester.tap(find.byType(DrawerViewButton));
     await _settle(tester);
     await tester.tap(find.text('新建文件夹'));
     await _settle(tester);

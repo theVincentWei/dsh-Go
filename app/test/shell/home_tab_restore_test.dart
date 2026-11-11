@@ -39,7 +39,7 @@ Future<void> _pumpShell(WidgetTester tester, {Map<String, Object> prefs = const 
   SharedPreferences.setMockInitialValues(prefs);
   usePhoneSurface(tester);
   await tester.pumpWidget(
-    goldenApp(home: HomeShell(chatBuilder: const SizedBox.expand()), brightness: Brightness.light, overrides: _homeOverrides()),
+    goldenApp(home: HomeShell(chatBuilder: (_) => const SizedBox.expand()), brightness: Brightness.light, overrides: _homeOverrides()),
   );
   // _restoreTab's prefs round trip lands on a later frame; let the shell
   // settle (the restore's page jump included).

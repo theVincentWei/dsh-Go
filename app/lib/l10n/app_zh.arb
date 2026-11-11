@@ -2062,6 +2062,13 @@
   "apphubInfoUpdated": "更新日期",
   "apphubInfoDeveloper": "开发者",
   "apphubInfoLanguage": "语言",
+  "catalogCurrentChat": "当前对话",
+  "catalogPlanGoal": "计划与目标",
+  "catalogPlanGoalSummary": "目标、计划与待办",
+  "catalogSubagents": "子代理",
+  "catalogSubagentsSummary": "谱系与状态，点开接着聊",
+  "catalogReference": "引用文件和对话",
+  "catalogReferenceSummary": "在输入框用 @ 引用",
   "chatBackgroundTaskNotice": "后台任务通知",
   "chatBackgroundTaskMessage": "后台任务消息",
   "chatDeclineQuestion": "不回答",
@@ -5251,6 +5258,7 @@
       }
     }
   },
+  "hubQuickPanelItems": "显示的入口",
   "iosSaveToFiles": "存到「文件」",
   "iosFilesFolderHint": "文件 App 的 DSH Go 文件夹",
   "iosSavingToFiles": "正在存到「文件」…",
@@ -5555,6 +5563,7 @@
   "engineCapYes": "可以",
   "engineCapNone": "不可用",
   "marketInstallRefused": "这个引擎不能安装市场插件",
+  "localEnvGateBody": "这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。",
   "marketSectionOfficial": "官方",
   "marketSectionAdapted": "适配 DSH Go",
   "marketSectionAll": "全部",
@@ -10145,6 +10154,15 @@
   "shellPanelHost": "主机",
   "shellPanelOpenFull": "打开完整页面",
   "shellPanelNoPlugins": "这段对话还没有插件面板",
+  "shellQuickPanel": "快捷入口",
+  "shellQuickPanelHint": "在「{path}」里调整",
+  "@shellQuickPanelHint": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "starPromptTitle": "{hours, plural, =0{本鱼已经在 DSH Go 里陪你半个小时啦⁠~} =1{本鱼已经在 DSH Go 里陪你一个小时啦⁠~} other{本鱼已经在 DSH Go 里陪你 {hours} 个小时啦⁠~}}",
   "@starPromptTitle": {
     "description": "The star prompt's first line. hours is the whole hours of use so far, rounded down; 0 is half an hour (the first ask comes after 30 minutes). The word joiner keeps the ~ on the line of the word before it.",

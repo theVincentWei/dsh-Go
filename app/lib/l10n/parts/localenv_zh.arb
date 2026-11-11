@@ -65,7 +65,13 @@
   "engineReopenFailed": "引擎要重新打开 App 才能再启动，请手动重开一次。",
   "engineCapShell": "命令行",
   "engineCapShellBuiltin": "内置 {count} 个命令",
-  "@engineCapShellBuiltin": {"placeholders": {"count": {"type": "int"}}},
+  "@engineCapShellBuiltin": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "engineCapShellSystem": "系统",
   "engineCapNodeScripts": "Node 脚本",
   "engineCapMarket": "安装市场插件",
@@ -74,5 +80,6 @@
   "engineCapKeepsRunning": "继续运行",
   "engineCapYes": "可以",
   "engineCapNone": "不可用",
-  "marketInstallRefused": "这个引擎不能安装市场插件"
+  "marketInstallRefused": "这个引擎不能安装市场插件",
+  "localEnvGateBody": "这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。"
 }

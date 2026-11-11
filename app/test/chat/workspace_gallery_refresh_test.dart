@@ -23,6 +23,7 @@ class _LocalPictures extends ArtifactFiles {
     Artifact artifact, {
     void Function(double? progress)? onProgress,
     int maxBytes = maxRemoteArtifactBytes,
+    String? taskLabel,
   }) async => File('${dir.path}/${artifact.name}');
 }
 

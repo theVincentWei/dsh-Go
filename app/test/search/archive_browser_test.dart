@@ -2,6 +2,7 @@ import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
+import 'package:dsh_app/ui/shell/drawer/drawer_filter_bar.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/session_search_page.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +29,7 @@ Future<(DrawerHost, ProviderContainer)> openArchive(WidgetTester tester) async {
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: const SizedBox.expand()),
+      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
       overrides: workspaceOverrides(host, prefs: const WorkspacePrefs(loaded: true), current: null),
     ),
   );
@@ -36,8 +37,8 @@ Future<(DrawerHost, ProviderContainer)> openArchive(WidgetTester tester) async {
   final container = ProviderScope.containerOf(tester.element(find.byType(HomeShell)));
   addTearDown(container.read(activeConnectionProvider).value!.client.close);
   expect(container.read(sessionsProvider).value, isEmpty);
-  // 视图选项已并入标题行的「对话列表」圆钮（原 DrawerViewButton）。
-  await tester.tap(find.byTooltip('对话列表'));
+  expect(find.byType(DrawerViewButton), findsOneWidget);
+  await tester.tap(find.byType(DrawerViewButton));
   await settle(tester);
   await tester.tap(find.text('已归档'));
   await settle(tester);
@@ -47,7 +48,7 @@ Future<(DrawerHost, ProviderContainer)> openArchive(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('all-archived list tab remains browsable and restores before opening', (tester) async {
+  testWidgets('all-archived drawer remains browsable and restores before opening', (tester) async {
     final (host, container) = await openArchive(tester);
     await tester.tap(find.byType(SearchResultTile));
     await settle(tester);

@@ -1,11 +1,8 @@
 // Golden screenshots of the remote UI: the Remote page (signed in / out /
 // failed link), the host sheet, the SSH host form with its test progress, the
-// host-key dialog and the 聊天 tab on an SSH host.
+// host-key dialog and the drawer on an SSH host.
 //
 //   flutter test --update-goldens test/remote/remote_golden_test.dart
-//
-// TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上重录（drawer_ssh → chat_tab_ssh，
-// drawer_ssh_reconnecting → chat_tab_ssh_reconnecting）。
 
 import 'package:dsh_app/remote/relay/relay_backend.dart';
 import 'package:dsh_app/remote/link_status.dart';
@@ -203,8 +200,8 @@ void main() {
   );
 
   goldenBoth(
-    'chat_tab_ssh',
-    () => HomeShell(chatBuilder: const SizedBox.expand()),
+    'drawer_ssh',
+    () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
     overrides: () => [
       ..._remote(),
       sessionsProvider.overrideWith(() => FakeSessions(sampleSessions().take(4).toList())),
@@ -213,8 +210,8 @@ void main() {
   );
 
   goldenBoth(
-    'chat_tab_ssh_reconnecting',
-    () => HomeShell(chatBuilder: const SizedBox.expand()),
+    'drawer_ssh_reconnecting',
+    () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
     overrides: () => [
       ..._remote(
         status: const HostLinkStatus(

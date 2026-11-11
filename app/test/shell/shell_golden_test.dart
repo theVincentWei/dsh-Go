@@ -1,4 +1,3 @@
-// TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录
 // Golden screenshots of the app shell, onboarding and secondary screens.
 //
 //   flutter test --update-goldens test/shell
@@ -7,7 +6,6 @@
 // native runtime, secure storage or the network is replaced by a fake.
 
 import 'package:dsh_app/runtime/runtime_bridge.dart';
-import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:dsh_app/runtime/runtime_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
@@ -23,24 +21,10 @@ import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:dsh_app/ui/web/local_web_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'golden_harness.dart';
 
 const _key = 'sk-4c1f0e7b9a2d4e6f8a1b3c5d7e9fa3f9';
-
-/// HomeShell 会读 SharedPreferences 恢复上次的 tab。
-List<Override> _homeOverrides() {
-  SharedPreferences.setMockInitialValues({});
-  return [
-    localRuntimeProvider.overrideWith(
-      () => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus)),
-    ),
-    localRuntimeLogsProvider.overrideWithBuild((ref, notifier) => sampleLogs),
-    sessionsProvider.overrideWith(() => FakeSessions(sampleSessions())),
-    currentSessionProvider.overrideWith(() => FakeCurrentSession('s2')),
-  ];
-}
 
 void main() {
   goldenBoth('welcome', () => WelcomePage(onStart: () {}));
@@ -89,8 +73,18 @@ void main() {
     overrides: () => [settingsProvider.overrideWith(() => FakeSettings(const AppSettings(loaded: true)))],
   );
 
-  // 聊天 tab（旧「drawer」金图的等价物）：标题行、过滤胶囊、会话列表与新对话 FAB。
-  goldenBoth('chats_tab', () => HomeShell(chatBuilder: const _FakeChat()), overrides: _homeOverrides);
+  goldenBoth(
+    'drawer',
+    () => HomeShell(chatBuilder: (_) => const _FakeChat(), initiallyOpen: true),
+    overrides: () => [
+      localRuntimeProvider.overrideWith(
+        () => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus)),
+      ),
+      localRuntimeLogsProvider.overrideWithBuild((ref, notifier) => sampleLogs),
+      sessionsProvider.overrideWith(() => FakeSessions(sampleSessions())),
+      currentSessionProvider.overrideWith(() => FakeCurrentSession('s2')),
+    ],
+  );
 
   goldenBoth(
     'engine',
@@ -167,29 +161,26 @@ void main() {
     },
   );
 
-  // 引擎停止时的聊天 tab：没有会话，空态给出一颗「启动引擎」。
+  // Drawer with the engine stopped: no sessions, a start button.
   goldenBoth(
-    'chats_tab_stopped',
-    () => HomeShell(chatBuilder: const _FakeChat()),
-    overrides: () {
-      SharedPreferences.setMockInitialValues({});
-      return [
-        localRuntimeProvider.overrideWith(
-          () => FakeRuntime(
-            LocalRuntimeState(
-              loaded: true,
-              status: RuntimeStatus(
-                phase: RuntimePhase.installed,
-                abi: runningStatus.abi,
-                bundledVersion: runningStatus.bundledVersion,
-                installedVersion: runningStatus.installedVersion,
-              ),
+    'drawer_stopped',
+    () => HomeShell(chatBuilder: (_) => const _FakeChat(), initiallyOpen: true),
+    overrides: () => [
+      localRuntimeProvider.overrideWith(
+        () => FakeRuntime(
+          LocalRuntimeState(
+            loaded: true,
+            status: RuntimeStatus(
+              phase: RuntimePhase.installed,
+              abi: runningStatus.abi,
+              bundledVersion: runningStatus.bundledVersion,
+              installedVersion: runningStatus.installedVersion,
             ),
           ),
         ),
-        sessionsProvider.overrideWith(() => FakeSessions(const [])),
-      ];
-    },
+      ),
+      sessionsProvider.overrideWith(() => FakeSessions(const [])),
+    ],
   );
 
   // Web fallback while the engine is down.
@@ -205,8 +196,8 @@ void main() {
   );
 }
 
-/// 点开会话时推入的聊天页替身（旧实现里它在抽屉后面）：几块消息形状，让
-/// 玻璃有东西可以采样。
+/// Stand-in for the chat screen behind the drawer: a few message shapes so the
+/// glass has something to blur.
 class _FakeChat extends StatelessWidget {
   const _FakeChat();
 
