@@ -60,8 +60,17 @@ class _EmptyNotices extends AppHubNoticesController {
 }
 
 void main() {
-  setUp(() {
-    DiminaHost.ensureNativeHandler();
+  setUp(() async {
+    // 36c7d762 通知入口迁移后,ensureNativeHandler 随容器 Header 铃铛接线一起
+    // 拆掉了;但 applied 事件仍走 `dsh/dimina` 的 onUpdateEvent 分发。测试里
+    // 挂分发器借用公开的 sync()(它第一步就是挂 handler):mock 掉通道出站,
+    // 返回 null = 老原生不支持,调用方静默,无副作用。
+    const MethodChannel channel = MethodChannel('dsh/dimina');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async => null);
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+    await DiminaHost.sync(appId: 'wxapp', name: '记账');
   });
 
   testWidgets('applied 事件（前台）：弹瞬态 Banner 且不进未读收件箱', (tester) async {
