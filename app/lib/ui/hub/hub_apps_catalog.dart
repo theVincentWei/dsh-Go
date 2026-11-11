@@ -7,11 +7,16 @@
 // 「新应用」进默认组;源还在加载(settled=false)时页面先不做迁移,免得把
 // 本该回原位的应用当新应用。
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hub_desktop/hub_desktop.dart' show HubIcon, HubTile, IconTile;
 
 import '../../l10n/l10n.dart';
 import '../applet/apphub_market_page.dart' show ApphubMarketPage;
-import '../applet/hub_apps_group.dart' show HubInstalledApp, hubInstalledProvider;
+import '../applet/hub_app_icon.dart' show HubAppIcon, hubAppHasIcon, hubAppIconSpec;
+import '../applet/hub_apps_group.dart' show HubInstalledApp, hubAppGlyph, hubInstalledProvider;
+import '../applet/hub_icon_cache.dart' show HubBundleIcon;
+import '../common/feature_tile.dart' show FeatureTile;
 import '../features/feature_catalog.dart'
     show FeatureItem, FeatureSection, featureSectionsProvider, hubDesktopTools;
 import '../theme/app_icons.dart' show AppIcons;
@@ -137,3 +142,40 @@ final hubCatalogProvider = Provider.autoDispose<HubCatalog>((ref) {
     settled: !minis.isLoading,
   );
 });
+
+/// 目录项 → 引擎瓷贴(HubTile)。图标三档对齐原桌面渲染顺序:bundle 图标
+/// 直通(widget 档)> 图标库键 + 实底彩块(glyph 档,字形由宿主
+/// glyphBuilder 构建)> 万能单色字形(widget 档)。[iconColor] = 主色
+/// (万能字形与无 tile 的 feature 图标用)。小程序可卸载(挂了宿主卸载
+/// 钩子);自带功能不可卸。
+HubTile hubTileOf(HubAppRef app, {required bool enabled, required Color iconColor}) {
+  final HubIcon icon = switch (app) {
+    MiniAppRef(:final app) when app.iconUrl != null => HubIcon.widget(HubBundleIcon(
+        appId: app.appId,
+        versionCode: app.installedVersionCode ?? app.marketVersionCode,
+        url: app.iconUrl,
+        size: IconTile.dimension,
+        fallback: _libraryIcon(app.iconKey, iconColor),
+      )),
+    MiniAppRef(:final app) when hubAppHasIcon(app.iconKey) =>
+      HubIcon.glyph(app.iconKey!, color: hubAppIconSpec(app.iconKey)!.color),
+    MiniAppRef(:final app) => HubIcon.widget(_libraryIcon(app.iconKey, iconColor)),
+    FeatureAppRef(:final item) => switch (item.tile) {
+        final kind? => HubIcon.widget(FeatureTile(kind, size: 30)),
+        null => HubIcon.widget(Icon(item.icon, size: 20, color: iconColor)),
+      },
+  };
+  return HubTile(
+    key: app.key,
+    name: app.name,
+    icon: icon,
+    enabled: enabled,
+    uninstallable: app is MiniAppRef,
+  );
+}
+
+/// 图标库兜底:库内键白色字形(实底彩块由引擎按 glyph 档的 color 染),
+/// 库外落万能单色字形(老行为)。
+Widget _libraryIcon(String? iconKey, Color iconColor) => hubAppHasIcon(iconKey)
+    ? HubAppIcon(iconKey: iconKey, size: IconTile.dimension, tiled: false)
+    : Icon(hubAppGlyph(iconKey), size: 20, color: iconColor);

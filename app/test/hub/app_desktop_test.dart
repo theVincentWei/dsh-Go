@@ -1,6 +1,10 @@
-// 「小程序」桌面页的 widget 测试:迁移渲染、搜索平铺、长按整理模式、组内 /
-// 跨组拖拽、新建 / 删除分组、小程序「−」卸载角标。字体由 flutter_test_config
-// 统一加载;动画关闭(goldenApp)时摇摆不转,可 pumpAndSettle。
+// 「小程序」桌面页的宿主侧 widget 测试:目录翻译(buildHubCatalog /
+// needsSession 置灰)、absorb 编排(新装小程序垫进 AppHub 组)、壳相关的
+// 用例(长按进整理 + 「完成」与大标题对齐、整理中系统返回先退整理)、
+// 小程序更新红点与「−」卸载角标的端到端。纯引擎行为(分组渲染/搜索/拖拽
+// /新建删除分组/角标渲染/置灰)在 packages/hub_desktop/test/desktop_test。
+// 字体由 flutter_test_config 统一加载;动画关闭(goldenApp)时摇摆不转,
+// 可 pumpAndSettle。
 
 import 'dart:convert';
 
@@ -18,14 +22,14 @@ import 'package:dsh_app/state/settings_state.dart'
 import 'package:dsh_app/ui/applet/hub_apps_group.dart'
     show HubInstalledApp, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
-import 'package:dsh_app/ui/hub/hub_apps_catalog.dart' show HubCatalog, buildHubCatalog;
 import 'package:dsh_app/ui/features/feature_catalog.dart';
-import 'package:dsh_app/ui/common/tile_grid.dart' show IconTile;
+import 'package:dsh_app/ui/hub/hub_apps_catalog.dart' show HubCatalog, buildHubCatalog;
 import 'package:dsh_app/ui/shell/home_shell.dart' show HomeShell;
 import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hub_desktop/hub_desktop.dart' show IconTile;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../shell/golden_harness.dart';
@@ -107,17 +111,6 @@ Future<void> _reveal(WidgetTester tester, Finder finder) async {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
-  testWidgets('迁移后按原目录渲染分组,没有打开记录时不显示最近使用', (tester) async {
-    await _pump(tester, sections: _twoGroups());
-
-    expect(find.text('组A'), findsOneWidget);
-    expect(find.text('组B'), findsOneWidget);
-    expect(find.text('甲'), findsOneWidget);
-    expect(find.text('应用市场'), findsOneWidget); // AppHub 组里的市场入口
-    expect(find.text('最近使用'), findsNothing);
-    expect(find.text('完成'), findsNothing); // 默认不在整理模式
-  });
-
   testWidgets('新装小程序自动垫进 AppHub 组,不再沉到默认组', (tester) async {
     // 预置一份「迁移时市场为空」的旧布局:AppHub 组只有市场入口,没有 mini
     // (真机上装过小程序之后才升级到本版的布局长这样)。
@@ -198,18 +191,6 @@ void main() {
     expect(tile('终端').enabled, isTrue);
   });
 
-  testWidgets('搜索:平铺结果,分组头消失', (tester) async {
-    await _pump(tester, sections: _twoGroups());
-
-    await tester.enterText(find.byType(TextField), '甲');
-    await tester.pumpAndSettle();
-
-    expect(find.text('组A'), findsNothing);
-    expect(find.text('组B'), findsNothing);
-    expect(find.widgetWithText(IconTile, '甲'), findsOneWidget);
-    expect(find.widgetWithText(IconTile, '乙'), findsNothing);
-  });
-
   testWidgets('长按任意图标进整理模式,「完成」退出', (tester) async {
     await _pump(tester, sections: _twoGroups());
 
@@ -263,11 +244,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('完成'), findsNothing); // 初始不在整理模式
 
-    // BISECT5: 不进编辑。container.read(hubEditingProvider.notifier).set(true);
-    // await tester.pumpAndSettle();
-    // expect(container.read(hubEditingProvider), isTrue);
-    // expect(find.text('完成'), findsOneWidget);
-
     // 系统返回:shell 的 PopScope 分支应退整理而不是切回会话 tab。
     expect(find.text('搜索小程序'), findsOneWidget); // 还在小程序 tab 上
 
@@ -283,84 +259,6 @@ void main() {
     ]);
 
     expect(find.byKey(const ValueKey('hub-update-dot')), findsOneWidget);
-  });
-
-  testWidgets('组内拖拽换位并落库', (tester) async {
-    final ProviderContainer container = await _pump(tester, sections: _twoGroups());
-    await _enterEdit(tester, '甲');
-
-    final Offset from = tester.getCenter(find.text('甲'));
-    final TestGesture gesture = await tester.startGesture(from);
-    await tester.pump(const Duration(milliseconds: 300)); // 过 LongPress 的 delay
-    await gesture.moveBy(const Offset(24, 0));
-    await tester.pump(const Duration(milliseconds: 60));
-    await gesture.moveBy(const Offset(56, 0)); // 落到「乙」的槽位(约 78px 一格)
-    await tester.pump(const Duration(milliseconds: 60));
-    await gesture.up();
-    await tester.pumpAndSettle();
-
-    final HubLayout layout = container.read(hubLayoutProvider);
-    expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
-    expect(layout.items['feature:jia']!.order, 1);
-    expect(layout.items['feature:yi']!.order, 0);
-    expect(
-      tester.getCenter(find.text('甲')).dx,
-      greaterThan(tester.getCenter(find.text('乙')).dx),
-    );
-  });
-
-  testWidgets('跨组拖拽:甲从组A落到组B的丁前', (tester) async {
-    final ProviderContainer container = await _pump(tester, sections: _twoGroups());
-    // 桌面多了「本对话」组,844 高的画布上「组B」会落到折叠线以下(拖动落点
-    // 在视口外就收不到 onMove)。这条测的是跨组落表,用更高的画布让起点与
-    // 落点同屏。
-    tester.view.physicalSize = const Size(390 * 2, 1000 * 2);
-    await tester.pumpAndSettle();
-    await _enterEdit(tester, '甲');
-
-    final Offset from = tester.getCenter(find.text('甲'));
-    final Offset to = tester.getCenter(find.text('丁'));
-    final TestGesture gesture = await tester.startGesture(from);
-    await tester.pump(const Duration(milliseconds: 300));
-    const int steps = 14;
-    for (var i = 1; i <= steps; i++) {
-      await gesture.moveTo(Offset.lerp(from, to, i / steps)!);
-      await tester.pump(const Duration(milliseconds: 30));
-    }
-    await gesture.up();
-    await tester.pumpAndSettle();
-
-    final HubLayout layout = container.read(hubLayoutProvider);
-    expect(layout.items['feature:jia']!.sectionId, 'seed:组B');
-    expect(find.text('甲'), findsOneWidget);
-  });
-
-  testWidgets('整理模式:新建分组', (tester) async {
-    await _pump(tester, sections: _twoGroups());
-    await _enterEdit(tester, '甲');
-
-    await _reveal(tester, find.text('新建分组'));
-    await tester.tap(find.text('新建分组'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, '收藏');
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('收藏'), findsOneWidget);
-  });
-
-  testWidgets('整理模式:删除分组后应用回「应用」组,不卸载', (tester) async {
-    await _pump(tester, sections: _twoGroups());
-    await _enterEdit(tester, '甲');
-
-    // 分组头从上到下:本对话、AppHub、组A、组B、应用;组A 的菜单是第 2 个。
-    await tester.tap(find.byIcon(Icons.more_horiz).at(2));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('删除分组'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('组A'), findsNothing);
-    expect(find.text('甲'), findsOneWidget); // 落回「应用」组,只是换组不卸载
   });
 
   testWidgets('整理模式下小程序图标出「−」卸载角标', (tester) async {

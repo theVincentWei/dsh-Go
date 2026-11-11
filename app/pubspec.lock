@@ -451,6 +451,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  hub_desktop:
+    dependency: "direct main"
+    description:
+      path: "../packages/hub_desktop"
+      relative: true
+    source: path
+    version: "0.1.0"
   image_picker:
     dependency: "direct main"
     description:

@@ -1,7 +1,7 @@
 // 「小程序」桌面布局的状态测试:首装迁移、未安置回退、拖拽落表、分组增删
 // 改序、最近使用、持久化(prefs mock)。桌面页的渲染与手势在 app_desktop_test。
 
-import 'package:dsh_app/state/hub_layout_state.dart';
+import 'package:hub_desktop/hub_desktop.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';

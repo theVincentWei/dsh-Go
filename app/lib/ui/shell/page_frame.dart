@@ -42,6 +42,8 @@ class AppPage extends StatefulWidget {
     this.padBottom = true,
     this.solidBar = true,
     this.compactHeader = false,
+    this.body,
+    this.bodyScroll,
   });
 
   final String title;
@@ -76,6 +78,17 @@ class AppPage extends StatefulWidget {
   /// as tabs the pages live on the root route, pushed over the shell they
   /// keep the floating bar with the back key.
   final bool compactHeader;
+
+  /// 直通滚动体:给了它,页面就不再包自己的 `CustomScrollView`,滚动完全由
+  /// [body] 自带(自带 controller);页面只保留 pinned 头部、洗白与浮栏。
+  /// 「小程序」桌面引擎包(hub_desktop)要自己持有 ScrollController(P3 拖拽
+  /// 边缘自动滚动的前提),从这条入口进来。此时 [slivers] 与 [padBottom]
+  /// 不参与(body 自己收尾)。其他页面不传,行为零变化。
+  final Widget? body;
+
+  /// [body] 的滚动控制器:偏移喂给头部洗白与 bar 标题的手递手,让直通滚动
+  /// 体和页面自带滚动看起来是同一条滚动轴。
+  final ScrollController? bodyScroll;
 
   /// The floating bar's height (back/menu keys, title hand-off); pages that
   /// don't use [AppPage] offset their content by the same amount to keep the
@@ -128,6 +141,7 @@ class _AppPageState extends State<AppPage> {
   void initState() {
     super.initState();
     _controller.addListener(() => _offset.value = _controller.hasClients ? _controller.offset : 0.0);
+    widget.bodyScroll?.addListener(_onBodyScroll);
     // Opened for one row (a search result, a row link): bring it into view.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(seekSpot(context, _controller));
@@ -135,7 +149,26 @@ class _AppPageState extends State<AppPage> {
   }
 
   @override
+  void didUpdateWidget(AppPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.bodyScroll, widget.bodyScroll)) {
+      oldWidget.bodyScroll?.removeListener(_onBodyScroll);
+      widget.bodyScroll?.addListener(_onBodyScroll);
+      _onBodyScroll();
+    }
+  }
+
+  /// The pass-through body's own controller feeds the header wash and the
+  /// bar-title hand-off, so it reads as one scroll axis with the page.
+  void _onBodyScroll() {
+    final ScrollController? bodyScroll = widget.bodyScroll;
+    if (bodyScroll == null) return;
+    _offset.value = bodyScroll.hasClients ? bodyScroll.offset : 0.0;
+  }
+
+  @override
   void dispose() {
+    widget.bodyScroll?.removeListener(_onBodyScroll);
     _controller.dispose();
     _offset.dispose();
     super.dispose();
@@ -212,6 +245,11 @@ class _AppPageState extends State<AppPage> {
         ),
       );
     }
+    // 直通滚动体(body 模式):滚动由外部自带,页面把头部占位信息交给它
+    // (body 自己空出顶部安全区 + 大标题高度),洗白与浮栏照旧由本页画。
+    final Widget? body = widget.body == null
+        ? null
+        : PageBodyInsets(top: top, headerHeight: _hasHeader ? _headerHeight : 0, child: widget.body!);
     final page = AnnotatedRegion<SystemUiOverlayStyle>(
       value: dshSystemOverlay(theme.brightness),
       child: AppBackdrop(
@@ -226,17 +264,18 @@ class _AppPageState extends State<AppPage> {
                 Stack(
                   children: [
                     Positioned.fill(
-                      child: CustomScrollView(
-                        controller: _controller,
-                        physics: AppMotion.scrollPhysics(context),
-                        slivers: [
-                          SliverToBoxAdapter(
-                            child: SizedBox(height: top + (header != null ? _headerHeight : 0)),
+                      child: body ??
+                          CustomScrollView(
+                            controller: _controller,
+                            physics: AppMotion.scrollPhysics(context),
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: SizedBox(height: top + (header != null ? _headerHeight : 0)),
+                              ),
+                              for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
+                              if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
+                            ],
                           ),
-                          for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
-                          if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
-                        ],
-                      ),
                     ),
                     Positioned(
                       left: 0,
@@ -264,36 +303,37 @@ class _AppPageState extends State<AppPage> {
                   ],
                 )
               else
-                CustomScrollView(
-                  controller: _controller,
-                  physics: AppMotion.scrollPhysics(context),
-                  slivers: [
-                    SliverToBoxAdapter(child: SizedBox(height: top)),
-                    if (header != null)
-                      SliverPadding(
-                        padding: side,
-                        sliver: SliverToBoxAdapter(
-                          child: ValueListenableBuilder<double>(
-                            valueListenable: _offset,
-                            // Pulled past the top (only the fluid tier's lists go there), the
-                            // headline swells a little with the pull.
-                            builder: (context, offset, child) => Opacity(
-                              opacity: _headerOpacity(offset),
-                              alwaysIncludeSemantics: true,
-                              child: Transform.scale(
-                                scale: 1 + (-offset / 900).clamp(0.0, 0.1),
-                                alignment: AlignmentDirectional.topStart,
-                                child: child,
+                body ??
+                    CustomScrollView(
+                      controller: _controller,
+                      physics: AppMotion.scrollPhysics(context),
+                      slivers: [
+                        SliverToBoxAdapter(child: SizedBox(height: top)),
+                        if (header != null)
+                          SliverPadding(
+                            padding: side,
+                            sliver: SliverToBoxAdapter(
+                              child: ValueListenableBuilder<double>(
+                                valueListenable: _offset,
+                                // Pulled past the top (only the fluid tier's lists go there), the
+                                // headline swells a little with the pull.
+                                builder: (context, offset, child) => Opacity(
+                                  opacity: _headerOpacity(offset),
+                                  alwaysIncludeSemantics: true,
+                                  child: Transform.scale(
+                                    scale: 1 + (-offset / 900).clamp(0.0, 0.1),
+                                    alignment: AlignmentDirectional.topStart,
+                                    child: child,
+                                  ),
+                                ),
+                                child: KeyedSubtree(key: _headerKey, child: header),
                               ),
                             ),
-                            child: KeyedSubtree(key: _headerKey, child: header),
                           ),
-                        ),
-                      ),
-                    for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
-                    if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
-                  ],
-                ),
+                        for (final sliver in widget.slivers) SliverPadding(padding: side, sliver: sliver),
+                        if (widget.padBottom) SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
+                      ],
+                    ),
               if (!compact)
                 Positioned(
                   left: 0,
@@ -369,6 +409,31 @@ class _AppPageState extends State<AppPage> {
     );
     return UiTrace(scope: 'page', child: page);
   }
+}
+
+/// [AppPage.body] 直通模式下,页面交给 body 的头部占位信息:内容首屏要空出
+/// 顶部安全区(+浮栏)+ 已量得的大标题高度,内容才能像页面自带滚动时一样
+/// 从 pinned 标题底下经过、被洗白。
+class PageBodyInsets extends InheritedWidget {
+  const PageBodyInsets({
+    super.key,
+    required this.top,
+    required this.headerHeight,
+    required super.child,
+  });
+
+  /// 顶部安全区 + 浮栏高度(compact 页浮栏为 0)。
+  final double top;
+
+  /// 已量得的大标题(或 hero)高度;没有头部时为 0。
+  final double headerHeight;
+
+  static PageBodyInsets? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PageBodyInsets>();
+
+  @override
+  bool updateShouldNotify(PageBodyInsets oldWidget) =>
+      oldWidget.top != top || oldWidget.headerHeight != headerHeight;
 }
 
 /// 44dp round chrome-glass button (top bars), 22dp glyph, with press feedback.
