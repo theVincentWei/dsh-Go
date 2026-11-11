@@ -272,7 +272,6 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
                       ? SlashedIcon(
                           key: const ValueKey('hub-recents-slash'),
                           icon: Icons.history,
-                          cutoutColor: Theme.of(context).colorScheme.surface,
                         )
                       : null,
                 ),
