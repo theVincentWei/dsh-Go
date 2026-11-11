@@ -3387,6 +3387,17 @@ class L10nEn extends L10n {
   String get apphubUninstallBody => 'Removes the on-device package and local data; the engine-side database is kept.';
 
   @override
+  String get apphubUninstallWholeBody =>
+      'This removes the mini program and stops its service on the host; host data is kept and restored on reinstall.';
+
+  @override
+  String get apphubUninstallPurge => 'Also wipe host data (ledgers etc. cannot be recovered)';
+
+  @override
+  String get apphubUninstallHostFailed =>
+      'Host command did not succeed; uninstalled locally only. The host backend may still be running — retry later.';
+
+  @override
   String get apphubNoMarket => 'AppHub unreachable';
 
   @override

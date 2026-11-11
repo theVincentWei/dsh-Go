@@ -5966,6 +5966,24 @@ abstract class L10n {
   /// **'删除手机上的小程序包与本地数据;引擎侧业务库保留。'**
   String get apphubUninstallBody;
 
+  /// No description provided for @apphubUninstallWholeBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'将卸载此小程序并停止主机上的服务;主机数据将保留,重装即恢复。'**
+  String get apphubUninstallWholeBody;
+
+  /// No description provided for @apphubUninstallPurge.
+  ///
+  /// In zh, this message translates to:
+  /// **'同时清除主机数据(账本等不可恢复)'**
+  String get apphubUninstallPurge;
+
+  /// No description provided for @apphubUninstallHostFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'主机命令未成功,已仅卸载本机;主机后端可能仍在运行,可稍后重试。'**
+  String get apphubUninstallHostFailed;
+
   /// No description provided for @apphubNoMarket.
   ///
   /// In zh, this message translates to:

@@ -3227,6 +3227,15 @@ class L10nZh extends L10n {
   String get apphubUninstallBody => '删除手机上的小程序包与本地数据;引擎侧业务库保留。';
 
   @override
+  String get apphubUninstallWholeBody => '将卸载此小程序并停止主机上的服务;主机数据将保留,重装即恢复。';
+
+  @override
+  String get apphubUninstallPurge => '同时清除主机数据(账本等不可恢复)';
+
+  @override
+  String get apphubUninstallHostFailed => '主机命令未成功,已仅卸载本机;主机后端可能仍在运行,可稍后重试。';
+
+  @override
   String get apphubNoMarket => 'AppHub 未连接';
 
   @override

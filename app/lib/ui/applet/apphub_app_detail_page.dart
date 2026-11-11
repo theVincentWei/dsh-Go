@@ -19,6 +19,7 @@ import '../../l10n/l10n.dart';
 import '../../notify/apphub_base.dart' show appHubBase;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
+import 'apphub_uninstall_dialog.dart' show showAndRunAppUninstall;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
 import 'hub_apps_group.dart' show hubInstalledProvider;
@@ -304,21 +305,16 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
   }
 
   Future<void> _uninstall() async {
-    final L10n l10n = context.l10n;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialog) => AlertDialog(
-        title: Text('${l10n.apphubUninstall} ${widget.app.name}'),
-        content: Text(l10n.apphubUninstallBody),
-        actions: <Widget>[
-          TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(l10n.commonCancel)),
-          FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(l10n.apphubUninstall)),
-        ],
-      ),
+    // 整包卸载语义(规范 §6):弹窗新文案 + 「同时清除主机数据」勾选;
+    // 编排 = 先主机 remove(引擎终端通道,停后端/反注册)后本机卸载,
+    // 主机不可达降级仅本机(提示条),已装清单在编排里失效重查。
+    final bool localOk = await showAndRunAppUninstall(
+      context,
+      ref,
+      appId: widget.app.appId,
+      name: widget.app.name,
     );
-    if (ok != true) return;
-    await DiminaHost.uninstall(widget.app.appId, clearUserData: true);
-    if (!mounted) return;
+    if (!localOk || !mounted) return;
     ref.invalidate(hubInstalledProvider);
     setState(() => _installed = <String, Object?>{'installed': false});
   }

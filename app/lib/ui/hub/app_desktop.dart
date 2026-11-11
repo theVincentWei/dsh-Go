@@ -22,6 +22,7 @@ import '../../state/apphub_notices_state.dart' show appHubNoticesProvider;
 import '../../state/auto_sync_state.dart' show autoSyncProvider;
 import '../../state/hub_layout_state.dart';
 import '../../state/sessions_state.dart' show currentSessionProvider;
+import '../applet/apphub_uninstall_dialog.dart' show showAndRunAppUninstall;
 import '../applet/dimina/dimina_host.dart';
 import '../applet/hub_app_icon.dart'
     show HubAppIcon, hubAppHasIcon, hubAppIconSpec;
@@ -236,23 +237,13 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
   }
 
   Future<void> _confirmUninstall(MiniAppRef app) async {
-    final L10n l10n = context.l10n;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialog) => AlertDialog(
-        title: Text('${l10n.apphubUninstall} ${app.app.name}'),
-        content: Text(l10n.apphubUninstallBody),
-        actions: <Widget>[
-          TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(l10n.commonCancel)),
-          FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(l10n.apphubUninstall)),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    await DiminaHost.uninstall(app.app.appId, clearUserData: true);
     if (!mounted) return;
-    // 布局槽位保留(重装原位恢复),清单立刻少它。
-    ref.invalidate(hubInstalledProvider);
+    // 整包卸载语义(规范 §6):弹窗新文案 + 「同时清除主机数据」勾选;
+    // 编排 = 先主机 remove(引擎终端通道)后本机卸载,主机不可达降级仅本机,
+    // 失败信息走 SnackBar;布局槽位保留(重装原位恢复),已装清单在编排里
+    // 失效重查。
+    await showAndRunAppUninstall(context, ref,
+        appId: app.app.appId, name: app.app.name);
   }
 
   // ---------- 分组管理 ----------
