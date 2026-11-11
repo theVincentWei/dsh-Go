@@ -29,6 +29,10 @@ import org.json.JSONObject
  * 模板名从 AppHub `GET /api/v1/apps/<id>/notify/templates` 拉（经 Dart 通道，
  * 因为只有 Dart 知道当前 appHubBase/隧道端口）；拉不到就显示「通知 N」，
  * 绝不把 `tpl_xxx` 内部 id 摆给用户看。v1 用原生 Dialog，v2 换 Flutter 玻璃 sheet。
+ *
+ * **权限总闸**：2026-11-11 拍板整套权限系统尚无设计，先全关、接口保留。
+ * [AUTO_ACCEPT_WITHOUT_PANEL] 为 true 时本面板短路成全 accept（不弹框、不记账），
+ * 小程序无需改动；与服务端 `kCurrentNotifyPolicy` 同拍板，统一设计时一起恢复。
  */
 class NotifyExtModule(
     private val activityProvider: () -> Activity?,
@@ -64,6 +68,15 @@ class NotifyExtModule(
         }
         if (appId.isEmpty() || tmplIds.isEmpty()) {
             callback.onFail(JSONObject().apply { put("errMsg", "showSubscribePanel:fail bad appId/tmplIds") })
+            return
+        }
+        // 权限总闸关着（2026-11-11 临时）：不弹面板、不写 prefs、不上报 consent，
+        // 所有模板直接回 accept。小程序代码一行不动（照旧调 requestSubscribeMessage
+        // 并拿到 accept）；统一权限系统落地时把常量改回 false，面板自然恢复。
+        if (AUTO_ACCEPT_WITHOUT_PANEL) {
+            val results = LinkedHashMap<String, String>()
+            for (id in tmplIds) results[id] = "accept"
+            callback.onSuccess(JSONObject().apply { put("results", ConsentResults(results).toJson()) })
             return
         }
         fetchTemplates(appId) { appName, names ->
@@ -172,6 +185,13 @@ class NotifyExtModule(
     }
 
     private fun subscribeState(): JSONObject = JSONObject().apply {
+        // 权限总闸关着时对外口径统一为「总开关开、无历史表态」：不让旧的
+        // reject/mainSwitch=false 残留把存量小程序误导成「不能订阅」。
+        if (AUTO_ACCEPT_WITHOUT_PANEL) {
+            put("mainSwitch", true)
+            put("itemSettings", JSONObject())
+            return@apply
+        }
         put("mainSwitch", mainSwitch())
         put("itemSettings", itemSettings())
     }
@@ -204,6 +224,15 @@ class NotifyExtModule(
         (value * ctx.resources.displayMetrics.density).toInt()
 
     companion object {
+        /**
+         * **权限总闸（2026-11-11 拍板：整套权限系统尚无设计，先全关、接口保留）**。
+         *
+         * true = 订阅面板短路：不弹框、不写 prefs、不上报 consent，所有模板直接回
+         * `accept`。小程序照旧调 `wx.requestSubscribeMessage` 并成功返回，代码无需
+         * 改动；统一权限系统落地时**与 server 总闸一起**改回 false（服务端对应
+         * `notify_logic.dart` 的 `kCurrentNotifyPolicy`）。
+         */
+        const val AUTO_ACCEPT_WITHOUT_PANEL = true
         private const val PREFS = "dsh_notify"
         private const val KEY_MAIN_SWITCH = "main_switch"
         private const val KEY_ITEM_SETTINGS = "item_settings"
