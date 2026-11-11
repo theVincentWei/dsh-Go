@@ -131,7 +131,8 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
         ),
         if (state.unread > 0)
           GlassIconButton(
-            icon: AppIcons.done,
+            // 扫帚 = 一键清掉全部未读；原来用对勾，和「已完成」混淆看不出语义。
+            icon: AppIcons.clearAll,
             tooltip: l10n.notifyCenterMarkAll,
             onPressed: () => unawaited(ref.read(appHubNoticesProvider.notifier).markAllRead()),
           ),
@@ -193,19 +194,27 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
               padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
               child: Row(
                 children: <Widget>[
-                  Flexible(
-                    child: Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: groupTitleStyle(context),
+                  // 「文字 + 未读角标」整体吃掉剩余宽度，折叠箭头才贴得住行尾：
+                  // Flexible + Spacer 会被当成两个 flex 平分空间，箭头卡在半路。
+                  Expanded(
+                    child: Row(
+                      children: <Widget>[
+                        Flexible(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: groupTitleStyle(context),
+                          ),
+                        ),
+                        if (unread > 0) ...<Widget>[
+                          const SizedBox(width: 8),
+                          UnreadBadge(unread),
+                        ],
+                      ],
                     ),
                   ),
-                  if (unread > 0) ...<Widget>[
-                    const SizedBox(width: 8),
-                    UnreadBadge(unread),
-                  ],
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   Icon(
                     collapsed ? AppIcons.disclosure : AppIcons.expand,
                     size: 18,
