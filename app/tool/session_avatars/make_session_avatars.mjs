@@ -1,31 +1,42 @@
-// Generates the session-list avatar gallery (app/assets/session_avatars/):
-// DiceBear "Critters" avatars, one transparent 96 px PNG per gallery slot,
-// deterministic per seed so re-running with the pinned dependencies (see
-// package.json) reproduces the same images byte for byte.
+// Generates an avatar gallery (app/assets/<dir>/): DiceBear avatars, one
+// 108 px PNG per gallery slot, deterministic per seed so re-running with the
+// pinned dependencies (see package.json) reproduces the same images byte for
+// byte.
 //
-// The app picks a slot by FNV-1a of the session id (DshColors.identityIndex,
-// SessionAvatarGallery.count), so every conversation keeps its avatar across
-// restarts, reinstalls and hosts without any runtime dependency on DiceBear.
+// Galleries baked today (licenses in THIRD_PARTY_NOTICES.md 素材 section):
+//   critters   → app/assets/session_avatars/  (session list; the style paints
+//               its own opaque background, so only a thin ring of the app's
+//               tint disc stays visible)
+//   pixel-art  → app/assets/agent_avatars/    (agents & team; transparent
+//               artwork floating on the app's tint disc)
+//
+// The app picks a slot by FNV-1a of a stable key (session id, agent name;
+// DshColors.identityIndex, AvatarGallery), so every conversation or agent
+// keeps its avatar across restarts, reinstalls and hosts without any runtime
+// dependency on DiceBear.
 //
 // Setup once (npm needs network):
 //   cd tool/session_avatars && npm install --registry=https://registry.npmmirror.com
-// Run from app/:
-//   node tool/session_avatars/make_session_avatars.mjs [--preview out.png]
-//
-// Art: the "Critters" style from DiceBear 10 (https://www.dicebear.com/styles/critters/),
-// dedicated to the public domain under CC0 1.0 — no attribution required.
-// Provenance is documented in THIRD_PARTY_NOTICES.md (素材 section).
+// Run from app/ (defaults to the session critters gallery):
+//   node tool/session_avatars/make_session_avatars.mjs
+//     [--style pixel-art --out assets/agent_avatars] [--preview out.png]
 
 import { Avatar, Style } from '@dicebear/core';
-import critters from '@dicebear/styles/critters.json' with { type: 'json' };
 import { Resvg } from '@resvg/resvg-js';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-// .../app/assets/session_avatars
-const outDir = join(here, '..', '..', 'assets', 'session_avatars');
+
+const arg = (name, fallback) => {
+  const i = process.argv.indexOf(name);
+  return i > 0 ? process.argv[i + 1] : fallback;
+};
+const styleName = arg('--style', 'critters');
+const style = (await import(`@dicebear/styles/${styleName}.json`, { with: { type: 'json' } })).default;
+const out = arg('--out', 'assets/session_avatars');
+const outDir = isAbsolute(out) ? out : join(here, '..', '..', out);
 
 const count = 100;
 const pixels = 108; // 36 dp at 3x; Flutter downsamples for lower densities.
@@ -37,7 +48,7 @@ const preview = previewIndex > 0 ? process.argv[previewIndex + 1] : null;
 await mkdir(outDir, { recursive: true });
 const cells = [];
 for (let i = 0; i < count; i++) {
-  const svg = new Avatar(new Style(critters), { seed: `${seedPrefix}-${i}` }).toString();
+  const svg = new Avatar(new Style(style), { seed: `${seedPrefix}-${i}` }).toString();
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: pixels } }).render().asPng();
   const name = `avatar_${String(i).padStart(2, '0')}.png`;
   await writeFile(join(outDir, name), png);
