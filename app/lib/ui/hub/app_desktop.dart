@@ -37,6 +37,7 @@ import '../common/list_page_row.dart' show ListPageCard, ListPageRow;
 import '../common/search_capsule.dart' show SearchCapsule;
 import '../common/sheet_title_bar.dart' show SheetTitleBar;
 import '../common/tile_grid.dart' show FeatureGroupLabel, IconTile, TileGrid;
+import '../notify/service_notices_key.dart' show ServiceNoticesKey;
 import '../features/all_features_page.dart' show dshWebOpenerProvider;
 import '../features/feature_catalog.dart';
 import '../shell/page_frame.dart' show AppPage;
@@ -732,6 +733,15 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage>
           title: l10n.tabMiniApps,
           children: children,
         ),
+        // 「服务通知」钥匙(契约 §6.1;2026-11-11 拍板:星河容器 Header 不再放
+        // 通知铃铛,入口收在宿主页面头):大标题行右上角,固定不随滚动,
+        // 未读时挂计数角标;整理模式让位给同槽位的「完成」键。
+        if (!_editing)
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 10,
+            right: 24,
+            child: const ServiceNoticesKey(),
+          ),
         // 编辑态「完成」长在大标题行右端(与 iOS 桌面编辑同款):根路由没有
         // 浮动栏(page_frame 的 compact 态),叠加是唯一的出处,固定不随滚动。
         if (_editing)

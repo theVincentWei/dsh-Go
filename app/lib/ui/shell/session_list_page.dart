@@ -16,7 +16,6 @@ import '../../l10n/l10n.dart';
 import '../../runtime/local_footprint.dart';
 import '../../runtime/runtime_bridge.dart';
 import '../../runtime/runtime_state.dart';
-import '../../state/apphub_notices_state.dart' show appHubNoticesProvider;
 import '../../state/bots_state.dart';
 import '../../state/connection_state.dart';
 import '../../state/drawer_view_state.dart';
@@ -45,7 +44,8 @@ import '../theme/theme.dart';
 import '../workspace/workspace_switcher.dart';
 import '../workspace/workspaces_page.dart';
 import '../pets/pet_perch.dart';
-import '../notify/notification_center.dart' show NotificationCenterPage;
+import '../common/round_key.dart' show RoundKey;
+import '../notify/service_notices_key.dart' show ServiceNoticesKey;
 import '../pets/pet_stage.dart';
 import 'adaptive/adaptive_layout.dart' show WindowClass;
 import 'drawer/drawer_actions.dart';
@@ -329,9 +329,9 @@ class _TitleRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(child: Text(context.l10n.chatListTitle, style: Theme.of(context).textTheme.headlineLarge)),
-        const _ServiceNoticesKey(),
+        const ServiceNoticesKey(),
         const SizedBox(width: 8),
-        _RoundKey(
+        RoundKey(
           icon: AppIcons.folderOpen,
           tooltip: l10n.remoteWorkspace,
           onTap: () => showWorkspaceSheet(
@@ -340,7 +340,7 @@ class _TitleRow extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 8),
-        _RoundKey(
+        RoundKey(
           icon: AppIcons.search,
           tooltip: l10n.shellSearchChats,
           onTap: () async {
@@ -353,96 +353,6 @@ class _TitleRow extends ConsumerWidget {
         const SizedBox(width: 8),
         _ViewOptionsKey(onOpenChat: onOpenChat),
       ],
-    );
-  }
-}
-
-/// A pill-glass circle key of the title row (no blur: the page sits on the
-/// shell's own glass backdrop).
-class _RoundKey extends StatelessWidget {
-  const _RoundKey({required this.icon, required this.tooltip, required this.onTap});
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  static const size = 34.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Semantics(
-        button: true,
-        label: tooltip,
-        onTap: onTap,
-        excludeSemantics: true,
-        child: SizedBox.square(
-          dimension: size,
-          child: GlassSurface(
-            tier: GlassTier.pill,
-            circle: true,
-            onTap: onTap,
-            child: Center(child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 「服务通知」：小程序通知中心的入口（契约 §6.1 会话列表顶部），未读时挂
-/// 计数小角标。它跟会话列表无关，所以不放进列表、放在标题行最前。
-class _ServiceNoticesKey extends ConsumerWidget {
-  const _ServiceNoticesKey();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final int unread = ref.watch(appHubNoticesProvider.select((state) => state.unread));
-    final Widget key = _RoundKey(
-      icon: AppIcons.notifications,
-      tooltip: context.l10n.notifyCenterTitle,
-      onTap: () => Navigator.of(context).push(NotificationCenterPage.route()),
-    );
-    if (unread <= 0) return key;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        key,
-        Positioned(right: -3, top: -3, child: _UnreadDot(unread)),
-      ],
-    );
-  }
-}
-
-class _UnreadDot extends StatelessWidget {
-  const _UnreadDot(this.count);
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-      child: DecoratedBox(
-        decoration: ShapeDecoration(color: scheme.error, shape: const StadiumBorder()),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Center(
-            widthFactor: 1,
-            child: Text(
-              count > 99 ? '99+' : '$count',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: scheme.onError,
-                fontSize: 9,
-                height: 1,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -461,7 +371,7 @@ class _ViewOptionsKey extends ConsumerWidget {
     ref.watch(sessionsProvider);
     final hasArchived = ref.read(sessionsProvider.notifier).archivedSessions.isNotEmpty;
     if (scope == null || (scope.sessions.isEmpty && !filtered && !hasArchived)) return const SizedBox.shrink();
-    return _RoundKey(
+    return RoundKey(
       icon: AppIcons.more,
       tooltip: context.l10n.shellChatList,
       onTap: () => openDrawerViewOptions(context, ref, onOpenChat: onOpenChat),

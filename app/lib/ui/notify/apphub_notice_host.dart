@@ -1,7 +1,8 @@
 /// 小程序通知的宿主件（挂在首页 shell，画根 Overlay 里的一张玻璃 Banner，
 /// 本身不画东西）：把轮询服务绑到 ProviderScope、前台弹 Banner、回后台时把
-/// 还挂着的 Banner 换成系统通知；并把未读数推给原生的小程序容器 Header 铃铛
-/// （契约 §6.3），Bell 点击回调到达时 push 通知中心。
+/// 还挂着的 Banner 换成系统通知。2026-11-11 拍板：星河容器 Header 不再放
+/// 通知铃铛（原 §6.3 的 setNotifyEntry/pushNotifyUnread/openNotificationCenter
+/// 接线已拆），通知中心入口改在宿主自己的页面头（会话列表 + 小程序桌面）。
 ///
 /// 与聊天的 [ChatAlertHost] 共用同一层根 Overlay，但不混流：聊天通知不进
 /// 通知中心、小程序通知不进会话流（契约 §6.2）。生命周期/前台判定复用
@@ -25,7 +26,7 @@ import '../common/discard_guard.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../applet/dimina/dimina_host.dart' show DiminaHost, DiminaUpdateEvent;
-import 'notification_center.dart' show NotificationCenterPage, openMiniAppNotice;
+import 'notification_center.dart' show openMiniAppNotice;
 
 class AppHubNoticeHost extends ConsumerStatefulWidget {
   const AppHubNoticeHost({super.key});
@@ -36,25 +37,14 @@ class AppHubNoticeHost extends ConsumerStatefulWidget {
 
 class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
   OverlayEntry? _entry;
-  StreamSubscription<void>? _bellTaps;
   StreamSubscription<DiminaUpdateEvent>? _updates;
 
   /// 已告知过的「升级完成」版本：同一个 app 的同一版本只说一次。
   static final Map<String, int> _appliedVersions = <String, int>{};
 
-  /// 通知中心正在开：容器铃铛连点两下不要叠两层。
-  bool _openingCenter = false;
-
-  /// 最近一次推给原生容器的未读数（避免每帧重复发通道消息）。
-  int? _pushedUnread;
-
   @override
   void initState() {
     super.initState();
-    // 原生→Dart 的处理器要早于第一次打开小程序挂上：容器 resume 时拉
-    // fetchUnread、铃铛点击 openNotificationCenter 都走它。
-    DiminaHost.ensureNativeHandler();
-    _bellTaps = DiminaHost.notificationCenterRequests.listen((_) => unawaited(_openNotificationCenter()));
     // Bundle 静默升级完成 → 一条瞬态告知（契约 §6.4；不进未读收件箱）。
     _updates = DiminaHost.updateEvents.listen((event) => unawaited(_onUpdateEvent(event)));
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,7 +57,6 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
   @override
   void dispose() {
     unawaited(_updates?.cancel());
-    unawaited(_bellTaps?.cancel());
     _entry?.remove();
     _entry?.dispose();
     _entry = null;
@@ -132,20 +121,6 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     );
   }
 
-  /// 容器 Header 铃铛被点（原生已把 MainActivity 带回前台）：push 通知中心。
-  /// 已在通知中心就不叠层；进入前先回根，与系统通知 tap 的路由观感一致。
-  Future<void> _openNotificationCenter() async {
-    if (!mounted || _openingCenter) return;
-    _openingCenter = true;
-    try {
-      final NavigatorState navigator = Navigator.of(context, rootNavigator: true);
-      navigator.popUntil((route) => route.isFirst);
-      await navigator.push(NotificationCenterPage.route());
-    } finally {
-      _openingCenter = false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // 离开 app 时 Banner 还没消掉：换成系统通知（与聊天 Banner 同一规则）。
@@ -162,17 +137,6 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
         ref.watch(notifySystemStatusProvider.select((status) => status.value?.native ?? false));
     if (native) {
       AppHubNoticeService.bind(ProviderScope.containerOf(context, listen: false));
-      // 未读变化（轮询/读过/全部已读/refresh）→ 推容器 Header 铃铛角标（§6.3）。
-      // 首次 mount 也补推一次（启动时容器可能已经在后台）。
-      final int unread = ref.watch(appHubNoticesProvider.select((state) => state.unread));
-      ref.listen<int>(
-        appHubNoticesProvider.select((state) => state.unread),
-        (_, int next) => unawaited(DiminaHost.pushNotifyUnread(next)),
-      );
-      if (unread != _pushedUnread) {
-        _pushedUnread = unread;
-        unawaited(DiminaHost.pushNotifyUnread(unread));
-      }
     }
     return const SizedBox.shrink();
   }
