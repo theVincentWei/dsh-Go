@@ -277,23 +277,20 @@ void main() {
     await _enterEdit(tester, '甲');
     expect(find.byIcon(Icons.history), findsOneWidget);
 
-    // 隐藏:组消失,钥匙置灰(iOS 式 45%)。
+    // 隐藏:组消失,图标换「钟面 + 斜杠」组合(mock 拍板样式):斜杠
+    // 覆盖层在(Key 定位),history 钟面仍在(被底色垫条截断、细斜杠压住)。
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
     expect(find.text('最近使用'), findsNothing);
-    final Opacity grey = tester.widget<Opacity>(
-      find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(Opacity)).first,
-    );
-    expect(grey.opacity, 0.45);
+    expect(find.byKey(const ValueKey('hub-recents-slash')), findsOneWidget);
+    expect(find.byIcon(Icons.history), findsOneWidget);
 
-    // 再点:恢复显示,不置灰。
+    // 再点:恢复显示,裸 history,斜杠覆盖层消失。
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
     expect(find.text('最近使用'), findsOneWidget);
-    final Opacity lit = tester.widget<Opacity>(
-      find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(Opacity)).first,
-    );
-    expect(lit.opacity, 1.0);
+    expect(find.byIcon(Icons.history), findsOneWidget);
+    expect(find.byKey(const ValueKey('hub-recents-slash')), findsNothing);
   });
 
   testWidgets('整理中系统返回先退整理,不切 tab(shell 返回键分支)', (tester) async {

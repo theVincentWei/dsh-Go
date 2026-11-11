@@ -7,9 +7,18 @@ import '../theme/theme.dart';
 /// 「服务通知」钥匙在小程序桌面页头也用同一颗(2026-11-11 拍板,星河容器
 /// Header 不放通知按钮,入口收在宿主自己的页面头)。
 class RoundKey extends StatelessWidget {
-  const RoundKey({super.key, required this.icon, required this.tooltip, required this.onTap});
+  const RoundKey({
+    super.key,
+    this.icon,
+    this.iconWidget,
+    required this.tooltip,
+    required this.onTap,
+  }) : assert(icon != null || iconWidget != null);
 
-  final IconData icon;
+  final IconData? icon;
+
+  /// 自绘图标小件(如带斜杠的隐藏态钟面);给了就优先于 [icon]。
+  final Widget? iconWidget;
   final String tooltip;
   final VoidCallback onTap;
 
@@ -30,7 +39,10 @@ class RoundKey extends StatelessWidget {
             tier: GlassTier.pill,
             circle: true,
             onTap: onTap,
-            child: Center(child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            child: Center(
+              child: iconWidget ??
+                  Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
           ),
         ),
       ),

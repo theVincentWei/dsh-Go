@@ -30,6 +30,7 @@ import '../applet/hub_apps_group.dart'
     show HubInstalledApp, hubInstalledProvider;
 import '../applet/hub_icon_cache.dart' show hubIconCache;
 import '../common/round_key.dart' show RoundKey;
+import '../common/slashed_icon.dart' show SlashedIcon;
 import '../features/all_features_page.dart' show dshWebOpenerProvider;
 import '../features/feature_catalog.dart';
 import '../notify/notification_center.dart' show consumeMiniAppNotices;
@@ -258,16 +259,22 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
                   onTap: () => ref.read(hubEditingProvider.notifier).set(false),
                 ),
                 const SizedBox(width: 10),
-                // 最近使用显示/隐藏:隐藏态置灰(iOS 式 45%)。
-                Opacity(
-                  opacity: layout.smartSection().hidden ? 0.45 : 1.0,
-                  child: RoundKey(
-                    icon: Icons.history,
-                    tooltip: l10n.hubToggleRecents,
-                    onTap: () => ref
-                        .read(hubLayoutProvider.notifier)
-                        .setRecentsHidden(!layout.smartSection().hidden),
-                  ),
+                // 最近使用显示/隐藏:画杠式(用户拍板 mock)——可见裸
+                // history;隐藏 = 钟面 + 底色垫条 + 45° 细斜杠
+                // ([SlashedIcon],断开感而非叠加置灰)。
+                RoundKey(
+                  tooltip: l10n.hubToggleRecents,
+                  onTap: () => ref
+                      .read(hubLayoutProvider.notifier)
+                      .setRecentsHidden(!layout.smartSection().hidden),
+                  icon: Icons.history,
+                  iconWidget: layout.smartSection().hidden
+                      ? SlashedIcon(
+                          key: const ValueKey('hub-recents-slash'),
+                          icon: Icons.history,
+                          cutoutColor: Theme.of(context).colorScheme.surface,
+                        )
+                      : null,
                 ),
               ],
             ),
