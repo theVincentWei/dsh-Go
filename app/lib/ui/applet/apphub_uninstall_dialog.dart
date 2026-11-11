@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/app_uninstall.dart';
+import '../../state/auto_sync_state.dart' show AutoSyncRunner;
 import '../../state/sessions_state.dart' show currentSessionProvider;
 import '../../state/terminal_state.dart'
     show TerminalBackend, terminalBackendProvider;
@@ -75,6 +76,13 @@ Future<bool> runWholeUninstall({
     backend: backend,
     onInstalledInvalidated: invalidate,
   );
+
+  // 卸载豁免(「未装恒装」的配套,2026-11-12):不 purge = 用户只是不想在
+  // 本机看到它,记入静默同步豁免表,否则下一轮自动同步会把它装回来;purge
+  // = 服务端 bundle 已删,清掉豁免,以后重新上架同一 appId 恢复自动跟随。
+  unawaited(purge
+      ? AutoSyncRunner.notePurged(appId)
+      : AutoSyncRunner.noteUninstalled(appId));
 
   if (report.needsHostRetry && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

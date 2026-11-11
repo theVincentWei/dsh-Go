@@ -29,6 +29,17 @@ import '../notify/apphub_base.dart' show appHubBase;
 /// 用它认出「这条是升级告知」：没有 page，点击进小程序首页。
 const String kHostUpgradeTemplateId = 'system-upgrade';
 
+/// 首装完成告知的 template_id（§6.4 首装修订，2026-11-12，与服务端
+/// `hostInstallTemplateId` 对齐）：静默同步装好目录里的新小程序后宿主上报，
+/// 展示与点击行为和升级告知完全同款，只差文案说「装上了」。
+const String kHostInstallTemplateId = 'system-install';
+
+/// 这条通知是不是宿主事件告知（升级/首装，§3.5）：没有 page，点击进
+/// 小程序首页——装好/升好已生效，开门见新版。
+bool isHostEventNotice(MiniAppNotice notice) =>
+    notice.templateId == kHostUpgradeTemplateId ||
+    notice.templateId == kHostInstallTemplateId;
+
 @immutable
 class MiniAppNotice {
   const MiniAppNotice({

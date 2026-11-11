@@ -4877,7 +4877,7 @@
     }
   },
   "autoSyncTitle": "静默同步",
-  "autoSyncSummary": "autoSync 的应用在后台自动安装与升级,无需逐次确认",
+  "autoSyncSummary": "服务器上架的小程序自动装到本机并保持最新，无需逐次确认",
   "hubAppUnavailableOnMachine": "「{name}」在这台机器上不可用(后端未部署)",
   "@hubAppUnavailableOnMachine": {
     "placeholders": {
@@ -5465,6 +5465,26 @@
     }
   },
   "notifyUpdatePublicText": "小程序已更新",
+  "notifyInstallApplied": "「{app}」已装好 v{version}，在小程序桌面打开",
+  "@notifyInstallApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyInstallAppliedPlain": "「{app}」已装好，在小程序桌面打开",
+  "@notifyInstallAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyInstallPublicText": "小程序已安装",
   "performanceTitle": "性能",
   "performanceAuto": "自动",
   "performanceFull": "完整",

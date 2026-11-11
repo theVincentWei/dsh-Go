@@ -8040,7 +8040,7 @@ class L10nEn extends L10n {
   String get autoSyncTitle => 'Silent sync';
 
   @override
-  String get autoSyncSummary => 'autoSync apps install and update in the background without prompts';
+  String get autoSyncSummary => 'Mini programs on the server install and update automatically without prompts';
 
   @override
   String hubAppUnavailableOnMachine(String name) {
@@ -9062,6 +9062,19 @@ class L10nEn extends L10n {
 
   @override
   String get notifyUpdatePublicText => 'Mini program updated';
+
+  @override
+  String notifyInstallApplied(String app, String version) {
+    return '“$app” installed (v$version) — find it on the mini-app desktop';
+  }
+
+  @override
+  String notifyInstallAppliedPlain(String app) {
+    return '“$app” installed — find it on the mini-app desktop';
+  }
+
+  @override
+  String get notifyInstallPublicText => 'Mini program installed';
 
   @override
   String get performanceTitle => 'Performance';

@@ -198,7 +198,7 @@
   "hubDropHere": "Drop apps here",
   "hubNoMatch": "Nothing matches \"{query}\"",
   "autoSyncTitle": "Silent sync",
-  "autoSyncSummary": "autoSync apps install and update in the background without prompts",
+  "autoSyncSummary": "Mini programs on the server install and update automatically without prompts",
   "@hubNoMatch": {
     "placeholders": {
       "query": {

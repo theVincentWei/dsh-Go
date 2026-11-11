@@ -13961,7 +13961,7 @@ abstract class L10n {
   /// No description provided for @autoSyncSummary.
   ///
   /// In zh, this message translates to:
-  /// **'autoSync 的应用在后台自动安装与升级,无需逐次确认'**
+  /// **'服务器上架的小程序自动装到本机并保持最新，无需逐次确认'**
   String get autoSyncSummary;
 
   /// No description provided for @hubAppUnavailableOnMachine.
@@ -15799,6 +15799,24 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'小程序已更新'**
   String get notifyUpdatePublicText;
+
+  /// No description provided for @notifyInstallApplied.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已装好 v{version}，在小程序桌面打开'**
+  String notifyInstallApplied(String app, String version);
+
+  /// No description provided for @notifyInstallAppliedPlain.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已装好，在小程序桌面打开'**
+  String notifyInstallAppliedPlain(String app);
+
+  /// No description provided for @notifyInstallPublicText.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序已安装'**
+  String get notifyInstallPublicText;
 
   /// No description provided for @performanceTitle.
   ///

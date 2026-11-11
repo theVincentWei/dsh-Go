@@ -54,5 +54,25 @@
       }
     }
   },
-  "notifyUpdatePublicText": "小程序已更新"
+  "notifyUpdatePublicText": "小程序已更新",
+  "notifyInstallApplied": "「{app}」已装好 v{version}，在小程序桌面打开",
+  "@notifyInstallApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyInstallAppliedPlain": "「{app}」已装好，在小程序桌面打开",
+  "@notifyInstallAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyInstallPublicText": "小程序已安装"
 }

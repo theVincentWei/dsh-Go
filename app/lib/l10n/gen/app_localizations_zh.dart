@@ -7609,7 +7609,7 @@ class L10nZh extends L10n {
   String get autoSyncTitle => '静默同步';
 
   @override
-  String get autoSyncSummary => 'autoSync 的应用在后台自动安装与升级,无需逐次确认';
+  String get autoSyncSummary => '服务器上架的小程序自动装到本机并保持最新，无需逐次确认';
 
   @override
   String hubAppUnavailableOnMachine(String name) {
@@ -8605,6 +8605,19 @@ class L10nZh extends L10n {
 
   @override
   String get notifyUpdatePublicText => '小程序已更新';
+
+  @override
+  String notifyInstallApplied(String app, String version) {
+    return '「$app」已装好 v$version，在小程序桌面打开';
+  }
+
+  @override
+  String notifyInstallAppliedPlain(String app) {
+    return '「$app」已装好，在小程序桌面打开';
+  }
+
+  @override
+  String get notifyInstallPublicText => '小程序已安装';
 
   @override
   String get performanceTitle => '性能';

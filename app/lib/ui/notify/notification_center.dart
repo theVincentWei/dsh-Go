@@ -33,16 +33,16 @@ void consumeMiniAppNotices(WidgetRef ref, String appId) {
 }
 
 /// 点一条小程序通知：先回写已读，有 [MiniAppNotice.page] 就打开小程序页；
-/// 升级告知（§6.4 修订）没有 page，点了进小程序首页——升级已生效，开门见
-/// 新版；打开失败（或都没有）落到通知中心（契约 §5.3 点击跳转兜底）。
+/// 宿主事件告知（升级/首装，§6.4 修订+首装修订）没有 page，点了进小程序
+/// 首页——装好/升好已生效，开门见新版；打开失败（或都没有）落到通知中心
+/// （契约 §5.3 点击跳转兜底）。
 Future<void> openMiniAppNotice(BuildContext context, WidgetRef ref, MiniAppNotice notice) async {
   final AppHubNoticesController notices = ref.read(appHubNoticesProvider.notifier);
   notices.dismissBanner(notice);
   // 点击后回写已读是客户端职责（契约 §9.3）：不等它，也不让失败挡住跳转。
   unawaited(notices.markRead(<int>[notice.id]));
   final bool hasPage = notice.page != null && notice.page!.isNotEmpty;
-  final bool isUpgrade = notice.templateId == kHostUpgradeTemplateId;
-  if (hasPage || isUpgrade) {
+  if (hasPage || isHostEventNotice(notice)) {
     if (await _openMiniAppPage(ref, notice, home: !hasPage)) {
       // 打开成功 = 整个 app 的未读都消费掉（刚才那条已单独报过，幂等）。
       consumeMiniAppNotices(ref, notice.appId);
@@ -249,13 +249,14 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
     );
   }
 
-  /// 在通知中心里点一条：有 page 跳小程序页；升级告知（§6.4 修订）没有
-  /// page 也进小程序首页；都没有就只是读掉（不再往栈上叠一个通知中心）。
+  /// 在通知中心里点一条：有 page 跳小程序页；宿主事件告知（升级/首装，
+  /// §6.4）没有 page 也进小程序首页；都没有就只是读掉（不再往栈上叠一个
+  /// 通知中心）。
   Future<void> _openRow(BuildContext context, WidgetRef ref, MiniAppNotice notice) async {
     final AppHubNoticesController notices = ref.read(appHubNoticesProvider.notifier);
     notices.dismissBanner(notice);
     final bool hasPage = notice.page != null && notice.page!.isNotEmpty;
-    if (hasPage || notice.templateId == kHostUpgradeTemplateId) {
+    if (hasPage || isHostEventNotice(notice)) {
       await openMiniAppNotice(context, ref, notice);
       return;
     }

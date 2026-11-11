@@ -1,13 +1,20 @@
 /// 静默同步(万器扩展):链路建立 / 市场目录刷新 / 桌面注册者重推时跑——
 /// **已安装**的 app 检测到新版本直接静默升级(2026-11-11 起全自动免确认,
-/// 不再看 bundle.json 的 autoSync 标志);`autoSync: true` 额外享受「没装 →
-/// 静默装上桌面」。升级走原生 autoUpdate 旁路,容器不再弹「发现新版本」
-/// 确认(DiminaPlugin 'sync' 通道)。
+/// 不再看 bundle.json 的 autoSync 标志);**没装的也一律静默装上桌面**
+/// (2026-11-12 拍板「server 装了前端配套装」:目录里出现的新小程序直接
+/// 装,不再要求 bundle.json 标 autoSync,该字段就此退役)。升级走原生
+/// autoUpdate 旁路,容器不再弹「发现新版本」确认(DiminaPlugin 'sync'
+/// 通道)。装好/升好的告知由 UI 层编排(§6.4):升级完成走容器的 applied
+/// 事件,首装完成走 [AutoSyncRunner.installApplied]。
 ///
 /// 结构:
 ///   * [planAutoSync] 纯函数(可单测):目录 + 本机已装 → 动作列表;
 ///   * [AutoSyncRunner] 执行器:拉目录 → 逐 app 查已装 → 执行 → 汇报,
 ///     单飞锁 + 每 (app, 目标版本) 10 分钟冷却,失败下次触发重试;
+///   * **本机卸载豁免**(prefs `autosync.uninstalled-apps`):用户卸载(不
+///     purge)的小程序不再被静默装回——否则「未装恒装」会把卸载语义吃掉;
+///     手动从市场装回(执行器查到已装)或 purge 整包删除后豁免清除,重新
+///     上架/重装恢复正常跟随;
 ///   * [AutoSyncSettings]/[autoSyncSettingsProvider] 总开关,默认开(自用场景),
 ///     SharedPreferences 持久化('autosync.enabled')。
 ///
@@ -19,7 +26,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,8 +73,9 @@ class AutoSyncAction {
 ///
 ///   * 升级全自动(2026-11-11 拍板):**已安装**的 app 只要目录版本更高就
 ///     静默升级,不再看 autoSync 标志、不再弹容器确认;
-///   * `autoSync == true` 的目录行保留「未装 → 自动装上桌面」语义(缺省
-///     false = 只在市场出现,用户手动装);
+///   * 首装全自动(2026-11-12 拍板「server 装了前端配套装」):目录里没装的
+///     app 一律静默装上桌面——bundle.json 的 autoSync 字段就此退役(缺省
+///     曾经 false = 只在市场出现,用户手动装);
 ///   * 已装不落后 / 目录缺 versionCode → 跳过;
 ///   * [attempted] 记录 (appId → 上次尝试的目标版本):同目标本周期已试过就
 ///     跳过(执行器负责冷却过期清理),失败重试交给下一次触发;
@@ -77,11 +85,11 @@ List<AutoSyncAction> planAutoSync({
   required Map<String, Map<String, Object?>?> installed,
   required bool enabled,
   Map<String, int> attempted = const <String, int>{},
+  Set<String> excluded = const <String>{},
 }) {
   if (!enabled) return const <AutoSyncAction>[];
   final List<AutoSyncAction> actions = <AutoSyncAction>[];
   for (final Map<String, Object?> app in catalog) {
-    final bool autoSync = app['autoSync'] == true;
     final String appId = app['appId'] as String? ?? '';
     if (appId.isEmpty) continue;
     final int? marketVersion =
@@ -90,27 +98,21 @@ List<AutoSyncAction> planAutoSync({
     if (attempted[appId] == marketVersion) continue;
     final Map<String, Object?>? local = installed[appId];
     final bool isInstalled = local?['installed'] == true;
+    // 卸载豁免:用户明确卸掉(未 purge)的本机未装 app 不再自动装回;
+    // 已装 app 不受影响(升级是用户装过的延续)。
+    if (!isInstalled && excluded.contains(appId)) continue;
     if (isInstalled) {
       final int? localVersion = (local?['versionCode'] as num?)?.toInt();
       if (localVersion == null || localVersion >= marketVersion) continue;
-      actions.add(AutoSyncAction(
-        appId: appId,
-        name: app['name'] as String? ?? appId,
-        kind: AutoSyncActionKind.update,
-        targetVersionCode: marketVersion,
-        updateManifestUrl: '$appHubProxyBase/apps/$appId/manifest.json',
-        iconUrl: app['iconUrl'] as String?,
-      ));
-    } else if (autoSync) {
-      actions.add(AutoSyncAction(
-        appId: appId,
-        name: app['name'] as String? ?? appId,
-        kind: AutoSyncActionKind.install,
-        targetVersionCode: marketVersion,
-        updateManifestUrl: '$appHubProxyBase/apps/$appId/manifest.json',
-        iconUrl: app['iconUrl'] as String?,
-      ));
     }
+    actions.add(AutoSyncAction(
+      appId: appId,
+      name: app['name'] as String? ?? appId,
+      kind: isInstalled ? AutoSyncActionKind.update : AutoSyncActionKind.install,
+      targetVersionCode: marketVersion,
+      updateManifestUrl: '$appHubProxyBase/apps/$appId/manifest.json',
+      iconUrl: app['iconUrl'] as String?,
+    ));
   }
   return actions;
 }
@@ -146,6 +148,61 @@ class AutoSyncRunner {
   Future<void>? _inFlight;
   final Map<String, _Attempt> _attemptedAt = <String, _Attempt>{};
   DateTime _lastRunStart = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// 首装完成事件广播(§6.4 首装修订,2026-11-12):静默同步真正装上一个
+  /// 目录里的新小程序时发(UI 层订阅后落告知,与升级的容器 applied 事件
+  /// 同轨)。只在静默同步装上时发——用户手动从市场首装不发(人就在市场
+  /// 页,刚看着它装完,再告知一遍是噪音)。
+  static final StreamController<AutoSyncOutcome> _installApplied =
+      StreamController<AutoSyncOutcome>.broadcast();
+
+  static Stream<AutoSyncOutcome> get installApplied => _installApplied.stream;
+
+  /// 测试注入:直接向广播流发一条首装完成(widget 测试不走真网络/通道,
+  /// 仿 onUpdateEvent 用 handlePlatformMessage 注入的玩法)。
+  @visibleForTesting
+  static void debugEmitInstallApplied(AutoSyncOutcome outcome) =>
+      _installApplied.add(outcome);
+
+  /// 本机卸载豁免表(prefs `autosync.uninstalled-apps`),语义见 library 头
+  /// 注释:卸载(未 purge)→ 豁免不再自动装回;手动装回 / purge → 清除。
+  static const String _excludedKey = 'autosync.uninstalled-apps';
+
+  static Future<Set<String>> _loadExcluded() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      return (prefs.getStringList(_excludedKey) ?? const <String>[]).toSet();
+    } catch (_) {
+      // 没有 prefs 后端(测试外环境异常):不豁免,静默同步照常。
+      return const <String>{};
+    }
+  }
+
+  static Future<void> _saveExcluded(Set<String> excluded) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_excludedKey, excluded.toList()..sort());
+    } catch (_) {
+      // 持久化失败只影响下次冷启,本轮 plan 已经拿到内存态。
+    }
+  }
+
+  /// 用户卸载(未 purge)时记豁免:静默同步不再自动装回(卸载编排
+  /// runWholeUninstall 调,桌面钩子与市场详情页两个入口都会经过)。
+  static Future<void> noteUninstalled(String appId) async {
+    if (appId.isEmpty) return;
+    final Set<String> excluded = await _loadExcluded();
+    excluded.add(appId);
+    await _saveExcluded(excluded);
+  }
+
+  /// purge 整包删除后清豁免:服务端 bundle 已删,以后重新上架同一 appId
+  /// 应恢复自动跟随。
+  static Future<void> notePurged(String appId) async {
+    if (appId.isEmpty) return;
+    final Set<String> excluded = await _loadExcluded();
+    if (excluded.remove(appId)) await _saveExcluded(excluded);
+  }
 
   /// 同一目标版本的冷却窗:失败/网络抖动不会在每次目录刷新时重打。
   static const Duration attemptCooldown = Duration(minutes: 10);
@@ -207,6 +264,8 @@ class AutoSyncRunner {
     final Map<String, Map<String, Object?>?> installed =
         <String, Map<String, Object?>?>{};
     final Map<String, int> attempted = <String, int>{};
+    final Set<String> excluded = await _loadExcluded();
+    bool excludedDirty = false;
     for (final Map<String, Object?> app in catalog) {
       final String appId = app['appId'] as String? ?? '';
       if (appId.isEmpty) continue;
@@ -216,17 +275,24 @@ class AutoSyncRunner {
         attempted[appId] = marketVersion;
       }
       try {
-        installed[appId] = await DiminaHost.installed(appId);
+        final Map<String, Object?>? local = await DiminaHost.installed(appId);
+        installed[appId] = local;
+        // 查到已装 = 用户手动装回了(或从没卸干净):清豁免,恢复自动跟随。
+        if (local?['installed'] == true && excluded.remove(appId)) {
+          excludedDirty = true;
+        }
       } catch (_) {
         installed[appId] = null;
       }
     }
+    if (excludedDirty) unawaited(_saveExcluded(excluded));
 
     final List<AutoSyncAction> actions = planAutoSync(
       catalog: catalog,
       installed: installed,
       enabled: enabled,
       attempted: attempted,
+      excluded: excluded,
     );
     if (actions.isEmpty) return const <AutoSyncOutcome>[];
 
@@ -255,6 +321,15 @@ class AutoSyncRunner {
         debugPrint('[autoSync] $action → $outcome v$version');
         if (ok) {
           _attemptedAt.remove(action.appId); // 成功清冷却:下次目录对账无事可做
+          if (action.kind == AutoSyncActionKind.install) {
+            _installApplied.add(AutoSyncOutcome(
+              appId: action.appId,
+              kind: action.kind,
+              ok: true,
+              versionCode: version,
+              detail: outcome,
+            ));
+          }
         }
       } catch (error) {
         outcomes.add(AutoSyncOutcome(

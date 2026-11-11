@@ -1,12 +1,13 @@
-// 升级完成告知（契约 §6.4 修订，2026-11-12：升级告知也进收件箱）：
+// 装好/升好告知（契约 §6.4 修订 + 首装修订，2026-11-12：告知都进收件箱）：
 // 服务端落上（POST /api/v1/notices 200）→ 立即拉一轮，走既有投递管线——
-// 前台正式 Banner、未读收件箱一条记录（templateId=system-upgrade）；
-// 服务端没落上（不可达/拒绝）→ 回落瞬态告知：前台玻璃 Banner 数秒即收，
-// 后台走 NotifyChannel（kind=update），不进收件箱。
+// 前台正式 Banner、未读收件箱一条记录（升级 templateId=system-upgrade /
+// 首装 system-install）；服务端没落上（不可达/拒绝）→ 回落瞬态告知：前台
+// 玻璃 Banner 数秒即收，后台走 NotifyChannel（kind=update），不进收件箱。
 
 import 'package:dsh_app/notify/apphub_notices.dart' show AppHubNoticeService;
 import 'package:dsh_app/state/apphub_notices_state.dart';
 import 'package:dsh_app/notify/notify_channel.dart' show NotifySystemStatus;
+import 'package:dsh_app/state/auto_sync_state.dart';
 import 'package:dsh_app/state/notify_state.dart'
     show FlagController, appForegroundProvider, notifyChannelProvider, notifySystemStatusProvider;
 import 'package:dsh_app/ui/applet/dimina/dimina_host.dart';
@@ -76,20 +77,21 @@ void main() {
         .instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
     await DiminaHost.sync(appId: 'wxapp', name: '记账');
     // 默认注入「服务端没落上」：这组用例主打回落行为；要测进收件箱的用例
-    // 自己把 reportUpgrade 换成 true。测试完还原生产实现。
+    // 自己把 reportHostNotice 换成 true。测试完还原生产实现。
     final Future<bool> Function({
       required String appId,
       required String title,
       required String body,
       String? dedupeKey,
-    }) originalReport = AppHubNoticeService.reportUpgrade;
+      String? templateId,
+    }) originalReport = AppHubNoticeService.reportHostNotice;
     final Future<void> Function() originalPoll = AppHubNoticeService.pollNow;
-    AppHubNoticeService.reportUpgrade =
-        ({required String appId, required String title, required String body, String? dedupeKey}) async =>
+    AppHubNoticeService.reportHostNotice =
+        ({required String appId, required String title, required String body, String? dedupeKey, String? templateId}) async =>
             false;
     AppHubNoticeService.pollNow = () async {};
     addTearDown(() {
-      AppHubNoticeService.reportUpgrade = originalReport;
+      AppHubNoticeService.reportHostNotice = originalReport;
       AppHubNoticeService.pollNow = originalPoll;
     });
   });
@@ -129,9 +131,11 @@ void main() {
       body: '「记账」已升级至 v1.2.3',
     );
     String? capturedKey;
-    AppHubNoticeService.reportUpgrade =
-        ({required String appId, required String title, required String body, String? dedupeKey}) async {
+    String? capturedTemplate;
+    AppHubNoticeService.reportHostNotice =
+        ({required String appId, required String title, required String body, String? dedupeKey, String? templateId}) async {
           capturedKey = dedupeKey;
+          capturedTemplate = templateId;
           container.read(appHubNoticesProvider.notifier).ingest(<MiniAppNotice>[row], unread: 1);
           container.read(appHubNoticesProvider.notifier).showBanner(row);
           return true;
@@ -140,6 +144,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(capturedKey, 'upgrade-31', reason: 'dedupeKey 带版本，升级重试幂等');
+    expect(capturedTemplate, kHostUpgradeTemplateId, reason: '升级告知显式标 system-upgrade');
     expect(container.read(appHubNoticesProvider).unread, 1);
     expect(container.read(appHubNoticesProvider).notices.single.templateId, kHostUpgradeTemplateId);
     // 前台弹正式 Banner（title=应用名，不缀应用名后缀），系统通知没发。
@@ -181,6 +186,105 @@ void main() {
     await _applied(versionCode: 23);
     await tester.pumpAndSettle();
     await _applied(versionCode: 23);
+    await tester.pumpAndSettle();
+    expect(channel.shown, hasLength(1));
+  });
+
+  // ── 首装完成告知（§6.4 首装修订，2026-11-12「server 装了前端配套装」）──
+
+  void emitInstall({required int versionCode}) =>
+      AutoSyncRunner.debugEmitInstallApplied(AutoSyncOutcome(
+        appId: 'wxapp',
+        kind: AutoSyncActionKind.install,
+        ok: true,
+        versionCode: versionCode,
+        detail: 'installed',
+      ));
+
+  testWidgets('install 事件（前台，服务端没落上）：回落瞬态 Banner 且不进收件箱', (tester) async {
+    final channel = FakeNotifyChannel();
+    final container = await pumpHost(tester, <Override>[
+      appHubNoticesProvider.overrideWith(_EmptyNotices.new),
+      notifyChannelProvider.overrideWithValue(channel),
+    ]);
+    emitInstall(versionCode: 41);
+    await tester.pumpAndSettle();
+
+    expect(find.text('「记账」已装好 v41，在小程序桌面打开'), findsOneWidget);
+    expect(container.read(appHubNoticesProvider).notices, isEmpty, reason: '回落告知不进收件箱');
+    expect(channel.shown, isEmpty, reason: '前台只弹 Banner，不发系统通知');
+    await tester.pump(const Duration(seconds: 13));
+    await tester.pumpAndSettle();
+    expect(find.text('「记账」已装好 v41，在小程序桌面打开'), findsNothing);
+  });
+
+  testWidgets('install 事件（服务端落上）：进收件箱 templateId=system-install，点击语义同升级', (tester) async {
+    final channel = FakeNotifyChannel();
+    final container = await pumpHost(tester, <Override>[
+      appHubNoticesProvider.overrideWith(_EmptyNotices.new),
+      notifyChannelProvider.overrideWithValue(channel),
+    ]);
+    const MiniAppNotice row = MiniAppNotice(
+      id: 9,
+      appId: 'wxapp',
+      templateId: kHostInstallTemplateId,
+      title: '记账',
+      body: '「记账」已装好 v42，在小程序桌面打开',
+    );
+    String? capturedKey;
+    String? capturedTemplate;
+    AppHubNoticeService.reportHostNotice =
+        ({required String appId, required String title, required String body, String? dedupeKey, String? templateId}) async {
+          capturedKey = dedupeKey;
+          capturedTemplate = templateId;
+          container.read(appHubNoticesProvider.notifier).ingest(<MiniAppNotice>[row], unread: 1);
+          container.read(appHubNoticesProvider.notifier).showBanner(row);
+          return true;
+        };
+    emitInstall(versionCode: 42);
+    await tester.pumpAndSettle();
+
+    expect(capturedKey, 'install-42', reason: 'dedupeKey 带版本，重装重试幂等');
+    expect(capturedTemplate, kHostInstallTemplateId, reason: '首装告知标 system-install');
+    expect(container.read(appHubNoticesProvider).unread, 1);
+    expect(container.read(appHubNoticesProvider).notices.single.templateId, kHostInstallTemplateId);
+    expect(find.text('「记账」已装好 v42，在小程序桌面打开'), findsOneWidget);
+    expect(channel.shown, isEmpty);
+    await tester.pump(const Duration(seconds: 13));
+    await tester.pumpAndSettle();
+    expect(find.text('「记账」已装好 v42，在小程序桌面打开'), findsNothing);
+    expect(container.read(appHubNoticesProvider).notices, hasLength(1), reason: '收件箱记录保留');
+  });
+
+  testWidgets('install 事件（后台，服务端没落上）：回落系统通知、不进收件箱', (tester) async {
+    final channel = FakeNotifyChannel();
+    final container = await pumpHost(tester, <Override>[
+      appHubNoticesProvider.overrideWith(_EmptyNotices.new),
+      notifyChannelProvider.overrideWithValue(channel),
+      appForegroundProvider.overrideWith(() => FlagController(false)),
+    ]);
+    emitInstall(versionCode: 43);
+    await tester.pumpAndSettle();
+
+    expect(channel.shown, hasLength(1));
+    final post = channel.shown.single;
+    expect(post.kind, 'update');
+    expect(post.title, '记账');
+    expect(post.text, '「记账」已装好 v43，在小程序桌面打开');
+    expect(post.publicText, '小程序已安装');
+    expect(container.read(appHubNoticesProvider).notices, isEmpty);
+  });
+
+  testWidgets('同一个版本的 install 只说一次', (tester) async {
+    final channel = FakeNotifyChannel();
+    await pumpHost(tester, <Override>[
+      appHubNoticesProvider.overrideWith(_EmptyNotices.new),
+      notifyChannelProvider.overrideWithValue(channel),
+      appForegroundProvider.overrideWith(() => FlagController(false)),
+    ]);
+    emitInstall(versionCode: 44);
+    await tester.pumpAndSettle();
+    emitInstall(versionCode: 44);
     await tester.pumpAndSettle();
     expect(channel.shown, hasLength(1));
   });

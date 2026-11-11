@@ -353,7 +353,7 @@
   "hubDropHere": "拖应用到这里",
   "hubNoMatch": "没有找到「{query}」",
   "autoSyncTitle": "静默同步",
-  "autoSyncSummary": "autoSync 的应用在后台自动安装与升级,无需逐次确认",
+  "autoSyncSummary": "服务器上架的小程序自动装到本机并保持最新，无需逐次确认",
   "@hubNoMatch": {
     "placeholders": {
       "query": {

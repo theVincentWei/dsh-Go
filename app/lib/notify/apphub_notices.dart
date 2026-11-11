@@ -35,22 +35,25 @@ class AppHubNoticeService {
   /// ProviderScope exists ([start] runs before `runApp`).
   static ProviderContainer? _container;
 
-  /// 升级完成告知上报（契约 §6.4 修订，2026-11-12：升级告知也进收件箱）：
+  /// 装好/升好的宿主告知上报（契约 §6.4 修订 + 首装修订，2026-11-12）：
   /// POST `/api/v1/notices` 落一条宿主告知，返回 false = 服务端没落上
-  /// （不可达/拒绝），调用方回落瞬态告知。dedupeKey 让升级重试幂等。
-  /// 运行时接缝（widget 测试注入假实现，仿 hubIconCache.debugLoader）。
+  /// （不可达/拒绝），调用方回落瞬态告知。dedupeKey 让重试幂等；templateId
+  /// 缺省 = 升级告知（system-upgrade），首装告知显式传 system-install（服务
+  /// 端白名单校验）。运行时接缝（widget 测试注入假实现，仿 hubIconCache.debugLoader）。
   static Future<bool> Function({
     required String appId,
     required String title,
     required String body,
     String? dedupeKey,
-  }) reportUpgrade = _postUpgradeNotice;
+    String? templateId,
+  }) reportHostNotice = _postHostNotice;
 
-  static Future<bool> _postUpgradeNotice({
+  static Future<bool> _postHostNotice({
     required String appId,
     required String title,
     required String body,
     String? dedupeKey,
+    String? templateId,
   }) async {
     HttpClient? client;
     try {
@@ -63,6 +66,7 @@ class AppHubNoticeService {
         'title': title,
         'body': body,
         if (dedupeKey != null && dedupeKey.isNotEmpty) 'dedupeKey': dedupeKey,
+        if (templateId != null && templateId.isNotEmpty) 'templateId': templateId,
       }));
       final HttpClientResponse response =
           await request.close().timeout(const Duration(seconds: 8));

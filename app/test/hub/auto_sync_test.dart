@@ -45,7 +45,7 @@ void main() {
     expect(actions, isEmpty);
   });
 
-  test('升级全自动:非 autoSync 已装且落后 → 照样 update;未装不自动装', () {
+  test('升级全自动:非 autoSync 已装且落后 → 照样 update;已装不落后 → 跳过', () {
     final List<AutoSyncAction> actions = planAutoSync(
       catalog: <Map<String, Object?>>[
         catalogApp(appId: 'plain', versionCode: 5, autoSync: false),
@@ -61,16 +61,26 @@ void main() {
     expect(actions.single.targetVersionCode, 5);
   });
 
-  test('未装 + autoSync:false/缺字段 → 不自动装(只在市场出现)', () {
+  test('首装全自动(2026-11-12 拍板「server 装了前端配套装」):未装 → install,不看 autoSync', () {
     final List<AutoSyncAction> actions = planAutoSync(
       catalog: <Map<String, Object?>>[
         catalogApp(appId: 'plain', versionCode: 5, autoSync: false),
         catalogApp(appId: 'legacy', versionCode: 5),
+        catalogApp(appId: 'flagged', versionCode: 2, autoSync: true),
       ],
       installed: installedOf(),
       enabled: true,
     );
-    expect(actions, isEmpty);
+    // autoSync 字段退役:false/缺字段/true 一律静默装上桌面。
+    expect(actions, hasLength(3));
+    expect(
+      <String>[for (final AutoSyncAction action in actions) action.appId],
+      <String>['plain', 'legacy', 'flagged'],
+    );
+    expect(
+      <AutoSyncActionKind>[for (final AutoSyncAction action in actions) action.kind],
+      everyElement(AutoSyncActionKind.install),
+    );
   });
 
   test('没装的 autoSync 应用 → install 动作,manifest 指向固定端口反代', () {
@@ -146,6 +156,22 @@ void main() {
       installed: installedOf(versions: <String, int?>{'unknown': null}),
       enabled: true,
     );
+    expect(actions.single.kind, AutoSyncActionKind.install);
+  });
+
+  test('卸载豁免:豁免表里的未装 app 不再自动装回(卸载语义不被吃掉)', () {
+    final List<AutoSyncAction> actions = planAutoSync(
+      catalog: <Map<String, Object?>>[
+        catalogApp(appId: 'removed', versionCode: 5),
+        catalogApp(appId: 'kept', versionCode: 5),
+      ],
+      installed: installedOf(),
+      enabled: true,
+      excluded: const <String>{'removed'},
+    );
+    // removed 被用户卸载过(未 purge)→ 跳过;kept 照常 install。
+    expect(actions, hasLength(1));
+    expect(actions.single.appId, 'kept');
     expect(actions.single.kind, AutoSyncActionKind.install);
   });
 }

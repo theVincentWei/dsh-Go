@@ -54,5 +54,8 @@
       }
     }
   },
-  "notifyUpdatePublicText": "Mini program updated"
+  "notifyUpdatePublicText": "Mini program updated",
+  "notifyInstallApplied": "“{app}” installed (v{version}) — find it on the mini-app desktop",
+  "notifyInstallAppliedPlain": "“{app}” installed — find it on the mini-app desktop",
+  "notifyInstallPublicText": "Mini program installed"
 }

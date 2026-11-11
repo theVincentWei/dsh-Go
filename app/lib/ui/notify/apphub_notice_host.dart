@@ -19,6 +19,8 @@ import '../../l10n/l10n.dart';
 import '../../notify/apphub_notices.dart' show AppHubNoticeService;
 import '../../notify/notify_channel.dart' show NotifyPost;
 import '../../state/apphub_notices_state.dart';
+import '../../state/auto_sync_state.dart'
+    show AutoSyncOutcome, AutoSyncRunner;
 import '../../state/hosts_state.dart' show HostRef;
 import '../../state/notify_state.dart'
     show appForegroundProvider, notifyChannelProvider, notifySystemStatusProvider;
@@ -39,15 +41,24 @@ class AppHubNoticeHost extends ConsumerStatefulWidget {
 class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
   OverlayEntry? _entry;
   StreamSubscription<DiminaUpdateEvent>? _updates;
+  StreamSubscription<AutoSyncOutcome>? _installs;
 
   /// 已告知过的「升级完成」版本：同一个 app 的同一版本只说一次。
   static final Map<String, int> _appliedVersions = <String, int>{};
 
+  /// 已告知过的「首装完成」版本：静默同步卸了又装回同一版本时不再说一遍
+  /// （进程生命周期内有效；冷启后目录版本一致本来就不会再发 install 事件）。
+  static final Map<String, int> _installedVersions = <String, int>{};
+
   @override
   void initState() {
     super.initState();
-    // Bundle 静默升级完成 → 一条瞬态告知（契约 §6.4；不进未读收件箱）。
+    // Bundle 静默升级完成（容器 applied 事件）→ §6.4 告知（进收件箱，服务端
+    // 没落上回落瞬态告知）；静默同步首装完成 → §6.4 首装修订同款告知。
     _updates = DiminaHost.updateEvents.listen((event) => unawaited(_onUpdateEvent(event)));
+    _installs = AutoSyncRunner.installApplied.listen(
+      (outcome) => unawaited(_onAutoInstall(outcome)),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _entry = OverlayEntry(builder: (_) => const AppHubNoticeBannerLayer());
@@ -58,6 +69,7 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
   @override
   void dispose() {
     unawaited(_updates?.cancel());
+    unawaited(_installs?.cancel());
     _entry?.remove();
     _entry?.dispose();
     _entry = null;
@@ -75,20 +87,7 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     if (_appliedVersions[event.appId] == version) return;
     _appliedVersions[event.appId] = version;
     final ProviderContainer container = ProviderScope.containerOf(context, listen: false);
-    String appName = event.appId;
-    final Map<String, String>? cached = container.read(appHubAppNamesProvider).value;
-    if (cached != null) {
-      appName = cached[event.appId] ?? appName;
-    } else {
-      try {
-        final Map<String, String> names = await container
-            .read(appHubAppNamesProvider.future)
-            .timeout(const Duration(seconds: 3));
-        appName = names[event.appId] ?? appName;
-      } catch (_) {
-        // 市场目录不可达：用 appId 顶上，告知照发。
-      }
-    }
+    final String appName = await _resolveAppName(container, event.appId);
     if (!mounted) return;
     final String versionText = event.versionName.trim().isNotEmpty
         ? event.versionName.trim()
@@ -96,11 +95,83 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     final String message = versionText.isEmpty
         ? appL10n.notifyUpdateAppliedPlain(appName)
         : appL10n.notifyUpdateApplied(appName, versionText);
-    final bool reported = await AppHubNoticeService.reportUpgrade(
+    await _reportApplied(
+      container,
       appId: event.appId,
       title: appName,
-      body: message,
+      message: message,
+      // dedupeKey 认 versionCode(单调、幂等的正身),versionText 只是展示。
       dedupeKey: 'upgrade-${version > 0 ? version : (versionText.isEmpty ? 'latest' : versionText)}',
+      templateId: kHostUpgradeTemplateId,
+      publicText: appL10n.notifyUpdatePublicText,
+      systemKey: 'update-${event.appId}-${versionText.isEmpty ? 'latest' : versionText}',
+    );
+  }
+
+  /// 静默同步首装完成（§6.4 首装修订，2026-11-12「server 装了前端配套装」）：
+  /// 目录里新出现的小程序被静默装上桌面后告知一条——与升级告知同管线
+  /// （templateId=system-install，点击同样进小程序首页），只差文案说「装
+  /// 上了」。手动市场首装不经这里（runner 不发事件）：人就在市场页，刚看
+  /// 着它装完，再告知一遍是噪音。
+  Future<void> _onAutoInstall(AutoSyncOutcome outcome) async {
+    final int version = outcome.versionCode ?? 0;
+    if (version > 0 && _installedVersions[outcome.appId] == version) return;
+    if (version > 0) _installedVersions[outcome.appId] = version;
+    final ProviderContainer container = ProviderScope.containerOf(context, listen: false);
+    final String appName = await _resolveAppName(container, outcome.appId);
+    if (!mounted) return;
+    final String message = version > 0
+        ? appL10n.notifyInstallApplied(appName, '$version')
+        : appL10n.notifyInstallAppliedPlain(appName);
+    await _reportApplied(
+      container,
+      appId: outcome.appId,
+      title: appName,
+      message: message,
+      dedupeKey: 'install-${version > 0 ? version : 'latest'}',
+      templateId: kHostInstallTemplateId,
+      publicText: appL10n.notifyInstallPublicText,
+      systemKey: 'install-${outcome.appId}-${version > 0 ? version : 'latest'}',
+    );
+  }
+
+  /// 应用名：目录缓存优先，没拉过就等一次目录（拿不到用 appId 顶上，告知
+  /// 照发）。
+  Future<String> _resolveAppName(ProviderContainer container, String appId) async {
+    final Map<String, String>? cached = container.read(appHubAppNamesProvider).value;
+    if (cached != null) return cached[appId] ?? appId;
+    try {
+      final Map<String, String> names = await container
+          .read(appHubAppNamesProvider.future)
+          .timeout(const Duration(seconds: 3));
+      return names[appId] ?? appId;
+    } catch (_) {
+      // 市场目录不可达：用 appId 顶上，告知照发。
+      return appId;
+    }
+  }
+
+  /// 装好/升好的告知编排（§6.4，2026-11-12 起首装同轨）：先 POST 服务端落
+  /// 一条宿主告知，落上了立刻拉一轮（正式管线投递：前台正式 Banner / 后台
+  /// 系统通知 / 未读角标 / 点击进小程序首页，全部与正式通知同轨）。服务端
+  /// 没落上（不可达/拒绝）回落瞬态告知：前台玻璃 Banner 数秒即收、后台
+  /// kind=`update` 系统通知，不写收件箱。
+  Future<void> _reportApplied(
+    ProviderContainer container, {
+    required String appId,
+    required String title,
+    required String message,
+    required String dedupeKey,
+    required String templateId,
+    required String publicText,
+    required String systemKey,
+  }) async {
+    final bool reported = await AppHubNoticeService.reportHostNotice(
+      appId: appId,
+      title: title,
+      body: message,
+      dedupeKey: dedupeKey,
+      templateId: templateId,
     );
     if (reported) {
       unawaited(AppHubNoticeService.pollNow());
@@ -108,8 +179,8 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     }
     final MiniAppNotice notice = MiniAppNotice(
       id: -1,
-      appId: event.appId,
-      title: appName,
+      appId: appId,
+      title: title,
       body: message,
     );
     if (container.read(appForegroundProvider)) {
@@ -119,13 +190,13 @@ class _AppHubNoticeHostState extends ConsumerState<AppHubNoticeHost> {
     unawaited(
       container.read(notifyChannelProvider).tryShow(
         NotifyPost(
-          group: 'apphub|${event.appId}',
-          key: 'update-${event.appId}-${versionText.isEmpty ? 'latest' : versionText}',
+          group: 'apphub|$appId',
+          key: systemKey,
           attention: false,
-          title: appName,
+          title: title,
           text: message,
-          publicText: appL10n.notifyUpdatePublicText,
-          sessionId: event.appId,
+          publicText: publicText,
+          sessionId: appId,
           host: HostRef.local,
           kind: 'update',
           source: 'miniapp',
