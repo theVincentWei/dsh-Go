@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hub_desktop/hub_desktop.dart';
@@ -629,6 +630,70 @@ void main() {
     expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
     expect(layout.items['feature:jia']!.order, 0);
     expect(find.text('甲'), findsNWidgets(2)); // 镜像 + 真身都在
+  });
+
+  testWidgets('编辑态列间距取证(P5.1②):Flex 槽位恒等宽,视觉差=摇摆相位投影', (tester) async {
+    // 复刻用户实机截图的那一行:三颗 mini(两颗带名字点、全带卸载角标)
+    // + 一颗 feature 瓷贴。
+    const List<HubTile> row = <HubTile>[
+      HubTile(
+          key: 'mini:a',
+          name: 'GLM用量',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'mini:b',
+          name: '系统监视器',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          uninstallable: true),
+      HubTile(
+          key: 'mini:c',
+          name: '记账本',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'feature:market',
+          name: '应用市场',
+          icon: HubIcon.widget(Icon(Icons.circle))),
+    ];
+    await _pump(tester, tiles: () => row);
+    await tester.longPress(find.text('GLM用量').first);
+    await tester.pumpAndSettle();
+
+    // 布局真相:TileGrid 的行是 Flex,四个 Expanded 槽位必然等宽等距
+    // (parentData.offset 步进 = 槽宽 + spacing,逐格相等)。
+    // IconTile 的首个 RenderBox 不是 Flex 直接子,沿 parent 上溯到挂
+    // FlexParentData 的那层(= Row 的直接子,尺寸即槽位尺寸)。
+    RenderBox flexCell(int i) {
+      RenderBox cell = tester.renderObject<RenderBox>(find.byType(IconTile).at(i));
+      while (cell.parentData is! FlexParentData) {
+        cell = cell.parent! as RenderBox;
+      }
+      return cell;
+    }
+
+    double slotDx(int i) => (flexCell(i).parentData! as FlexParentData).offset.dx;
+
+    double slotWidth(int i) => flexCell(i).size.width;
+
+    final List<double> dxs = <double>[for (var i = 0; i < 4; i++) slotDx(i)];
+    final List<double> widths = <double>[for (var i = 0; i < 4; i++) slotWidth(i)];
+    // 槽宽逐格相等。
+    expect(widths[0], widths[1]);
+    expect(widths[1], widths[2]);
+    expect(widths[2], widths[3]);
+    // 槽位步进恒等(= 槽宽 + 16 间距),没有任何一格多出一档。
+    expect(dxs[1] - dxs[0], dxs[2] - dxs[1]);
+    expect(dxs[2] - dxs[1], dxs[3] - dxs[2]);
+
+    // 视觉(含摇摆 Transform)上的间隙:随各格相位角有 ±2px 级投影差,
+    // 这就是实机截图「记账本↔应用市场更宽」的来源——paint 层,非布局。
+    double paintLeft(int i) => tester.getTopLeft(find.byType(IconTile).at(i)).dx;
+    final List<double> paint = <double>[for (var i = 0; i < 4; i++) paintLeft(i)];
+    // ignore: avoid_print
+    print('DBG slots=$dxs widths=$widths paintLeft=$paint');
   });
 
   testWidgets('落库断言:拖拽后 prefs 里 v/sections/items/recent 全量正确', (tester) async {
