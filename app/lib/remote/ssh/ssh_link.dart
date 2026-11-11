@@ -125,7 +125,11 @@ class SshHostLink implements HostLink {
   /// False for "测试连接": report the first failure instead of retrying.
   final bool retryFirstOpen;
 
-  final _statuses = StreamController<HostLinkStatus>.broadcast(sync: true);
+  // 异步派发(默认):曾用 sync:true,_statuses.add 会在 RemoteConnectionController
+  // 的 provider build 期间同步打断 StreamProvider<HostLinkStatus>,riverpod debug
+  // 断言直接炸掉轮询/通知链路(仿真器冷启动必现)。异步派发把通知推迟到 microtask,
+  // _status 同步字段不受影响(retry() 等读的是它)。
+  final _statuses = StreamController<HostLinkStatus>.broadcast();
   final _clients = StreamController<DshClient>.broadcast();
   final _delay = InterruptibleDelay();
   StreamSubscription<void>? _kickSub;
