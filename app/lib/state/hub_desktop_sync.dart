@@ -74,6 +74,12 @@ class HubNewMinisController extends Notifier<Set<String>> {
   static const _seenKey = 'hub.seen-minis';
 
   bool _loaded = false;
+
+  /// prefs 后端缺失(单测环境/真实异常):不判定、不点亮、不写状态——
+  /// 点亮无法持久化,每次重启都会误亮;且必须静默跳过,否则 noteNew 对
+  /// const 初始集合 addAll 直接抛,整轮目录推送跟着中断。
+  bool _backendMissing = false;
+
   Set<String> _seen = const <String>{};
 
   @override
@@ -90,8 +96,8 @@ class HubNewMinisController extends Notifier<Set<String>> {
       _loaded = true;
       state = (prefs.getStringList(_newKey) ?? const <String>[]).toSet();
     } catch (_) {
-      // 没有 prefs 后端(测试外环境异常):不亮任何「新装点」,更新点照常。
       _loaded = true;
+      _backendMissing = true;
     }
   }
 
@@ -116,6 +122,7 @@ class HubNewMinisController extends Notifier<Set<String>> {
   /// 无新增不赋值 state(幂等,防与注册者的重推成环)。
   void noteNew(Iterable<String> keys) {
     if (!_loaded) return; // prefs 未就绪:不判定不点亮,就绪后的重推会补
+    if (_backendMissing) return; // prefs 后端缺失:静默跳过(不抛,不中断推送)
     final List<String> fresh = <String>[
       for (final String key in keys)
         if (!_seen.contains(key)) key,
