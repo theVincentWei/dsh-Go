@@ -7,6 +7,8 @@
 // 弹窗接线)留在 app/test/hub。字体由 flutter_test_config 统一加载;动画关闭时
 // 摇摆不转,可 pumpAndSettle。
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,10 +92,13 @@ void usePhoneSurface(WidgetTester tester) {
 }
 
 class _Harness extends StatelessWidget {
-  const _Harness({required this.container, required this.delegate});
+  const _Harness({required this.container, required this.delegate, this.scrollController});
 
   final ProviderContainer container;
   final HubDesktopDelegate delegate;
+
+  /// 边缘自动滚动测试用:注入滚动轴,断言 offset 增长。
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -110,7 +115,11 @@ class _Harness extends StatelessWidget {
         home: UncontrolledProviderScope(
           container: container,
           child: Scaffold(
-            body: HubDesktopView(delegate: delegate, strings: strings),
+            body: HubDesktopView(
+              delegate: delegate,
+              strings: strings,
+              controller: scrollController,
+            ),
           ),
         ),
       );
@@ -123,6 +132,7 @@ Future<ProviderContainer> _pump(
   Map<String, HubBadge> sectionBadges = const <String, HubBadge>{},
   HubUninstallHook? uninstallHook,
   _RecordingDelegate? delegate,
+  ScrollController? scrollController,
 }) async {
   final ProviderContainer container = ProviderContainer();
   addTearDown(container.dispose);
@@ -138,9 +148,25 @@ Future<ProviderContainer> _pump(
   badges.forEach(hub.setBadge);
   sectionBadges.forEach(hub.setSectionBadge);
   if (uninstallHook != null) hub.registerUninstallHook('mini:', uninstallHook);
-  await tester.pumpWidget(_Harness(container: container, delegate: d));
+  await tester.pumpWidget(
+    _Harness(container: container, delegate: d, scrollController: scrollController),
+  );
   await tester.pumpAndSettle();
   return container;
+}
+
+/// 从 [from] 拖到 [to]:过 150ms 起拖延迟后分步插值移动(喂 onDragUpdate
+/// 的裸指针路径),松手落库。
+Future<void> _drag(WidgetTester tester, Offset from, Offset to) async {
+  final TestGesture gesture = await tester.startGesture(from);
+  await tester.pump(const Duration(milliseconds: 300));
+  const int steps = 8;
+  for (var i = 1; i <= steps; i++) {
+    await gesture.moveTo(Offset.lerp(from, to, i / steps)!);
+    await tester.pump(const Duration(milliseconds: 30));
+  }
+  await gesture.up();
+  await tester.pumpAndSettle();
 }
 
 /// 滚到 [finder] 可见(惰性列表里没构建的部件,finder 是找不到的)。
@@ -150,9 +176,10 @@ Future<void> _reveal(WidgetTester tester, Finder finder) async {
   await tester.pump();
 }
 
-/// 进整理模式(宿主的「完成」按钮不在引擎面里,直接看组头菜单)。
+/// 进整理模式(宿主的「完成」按钮不在引擎面里,直接看组头菜单)。标签有
+/// 重名(如最近使用镜像)时取第一颗:常驻态每颗图标都挂「长按进整理」。
 Future<void> _enterEdit(WidgetTester tester, String anyTileLabel) async {
-  await tester.longPress(find.text(anyTileLabel));
+  await tester.longPress(find.text(anyTileLabel).first);
   await tester.pumpAndSettle();
   expect(find.byIcon(Icons.more_horiz), findsWidgets);
 }
@@ -371,5 +398,162 @@ void main() {
 
     // 「2」只出现在组A 头旁(图标格没有计数)。
     expect(find.text('2'), findsOneWidget);
+  });
+
+  testWidgets('组内前向挤位:甲拖到丙槽位,落位插丙后(逐位断言)', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    await _enterEdit(tester, '甲');
+
+    await _drag(tester, tester.getCenter(find.text('甲')), tester.getCenter(find.text('丙')));
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:jia']!.order, 2);
+    expect(layout.items['feature:yi']!.order, 0);
+    expect(layout.items['feature:bing']!.order, 1);
+  });
+
+  testWidgets('组内后向挤位:丙拖到甲槽位,落位插甲前(逐位断言)', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    await _enterEdit(tester, '甲');
+
+    await _drag(tester, tester.getCenter(find.text('丙')), tester.getCenter(find.text('甲')));
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:bing']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:bing']!.order, 0);
+    expect(layout.items['feature:jia']!.order, 1);
+    expect(layout.items['feature:yi']!.order, 2);
+  });
+
+  testWidgets('组头落点:甲拖到组B 头,追加到组尾(丁后)', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    await _enterEdit(tester, '甲');
+
+    await _drag(tester, tester.getCenter(find.text('甲')), tester.getCenter(find.text('组B')));
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组B');
+    expect(layout.items['feature:jia']!.order, 1); // 丁(0)后面
+    expect(layout.items['feature:ding']!.order, 0);
+    expect(layout.items['feature:yi']!.order, 0); // 组A 收紧
+    expect(layout.items['feature:bing']!.order, 1);
+  });
+
+  testWidgets('空组落点:新建空分组后把甲拖进它的拖放区', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    await _enterEdit(tester, '甲');
+    // 与分组菜单同一条路建一个空组(排默认组前,所以「拖到这里」第一条是它)。
+    container.read(hubLayoutProvider.notifier).createGroup('收藏');
+    await tester.pumpAndSettle();
+
+    await _drag(tester, tester.getCenter(find.text('甲')), tester.getCenter(find.text('拖到这里').first));
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    final String id =
+        layout.sections.firstWhere((HubSectionData s) => s.name == '收藏').id;
+    expect(layout.items['feature:jia']!.sectionId, id);
+    expect(layout.items['feature:jia']!.order, 0);
+    expect(layout.items['feature:yi']!.order, 0);
+    expect(layout.items['feature:bing']!.order, 1);
+  });
+
+  testWidgets('非法落点弹回:松手在搜索框上,布局不动', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    await _enterEdit(tester, '甲');
+
+    final Offset from = tester.getCenter(find.text('甲'));
+    final Offset to = tester.getTopLeft(find.byType(TextField)) + const Offset(20, 10);
+    await _drag(tester, from, to);
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:jia']!.order, 0); // 弹回:布局回到种子态
+    expect(layout.items['feature:yi']!.order, 1);
+    expect(layout.items['feature:bing']!.order, 2);
+    expect(layout.items['feature:ding']!.order, 0);
+  });
+
+  testWidgets('拖拽中接近下缘自动滚动:offset 增长', (tester) async {
+    final ScrollController scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    await _pump(tester, scrollController: scroll);
+    // 压矮视口,种子内容(搜索+组A+组B+默认组+新建分组)足够滚。
+    tester.view.physicalSize = const Size(390 * 2, 560 * 2);
+    await tester.pumpAndSettle();
+    await _enterEdit(tester, '甲');
+    expect(scroll.position.maxScrollExtent, greaterThan(0));
+
+    final TestGesture gesture = await tester.startGesture(tester.getCenter(find.text('甲')));
+    await tester.pump(const Duration(milliseconds: 300));
+    // 指针停在下缘 48px 带内,推时钟:自动滚动 Timer 驱动 animateTo。
+    await gesture.moveTo(const Offset(195, 560 - 20));
+    await tester.pump();
+    final double before = scroll.offset;
+    await tester.pump(const Duration(milliseconds: 400));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(scroll.offset, greaterThan(before));
+  });
+
+  testWidgets('最近使用镜像不可拖、不可接落,最近记录不动', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    container.read(hubLayoutProvider.notifier).touch('feature:jia');
+    await tester.pumpAndSettle();
+    await _enterEdit(tester, '甲');
+
+    // (a) 从镜像格(第一颗「甲」)起拖再移走:镜像没挂 Draggable,任何拖拽
+    // 都不发生;移到乙的槽位若可拖会换位——断言布局纹丝不动。
+    final Offset mirror = tester.getCenter(find.text('甲').first);
+    final TestGesture ghost = await tester.startGesture(mirror);
+    await tester.pump(const Duration(milliseconds: 300));
+    await ghost.moveBy(const Offset(40, 160)); // 落进组A「乙」槽位的方向
+    await tester.pump(const Duration(milliseconds: 60));
+    await ghost.up();
+    await tester.pumpAndSettle();
+
+    HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:jia']!.order, 0);
+
+    // (b) 把真身拖到镜像上方(最近使用区不在矩形表里,无落区):弹回。
+    final Offset aboveMirror = mirror - const Offset(0, 55);
+    await _drag(tester, tester.getCenter(find.text('甲').last), aboveMirror);
+
+    layout = container.read(hubLayoutProvider);
+    expect(layout.recent, <String>['feature:jia']);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:jia']!.order, 0);
+    expect(find.text('甲'), findsNWidgets(2)); // 镜像 + 真身都在
+  });
+
+  testWidgets('落库断言:拖拽后 prefs 里 v/sections/items/recent 全量正确', (tester) async {
+    final ProviderContainer container = await _pump(tester);
+    container.read(hubLayoutProvider.notifier).touch('feature:jia'); // recent 非空一起断
+    await tester.pumpAndSettle();
+    // 目录里有镜像格会让 find.text('甲') 双命中,直接从 provider 进整理态。
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+
+    await _drag(tester, tester.getCenter(find.text('甲').last), tester.getCenter(find.text('乙')));
+
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final Object? json = jsonDecode(prefs.getString(kHubLayoutPrefKey)!);
+    expect((json as Map<Object?, Object?>)['v'], 1);
+    final List<Object?> sections = json['sections'] as List<Object?>;
+    expect(
+      sections.map((Object? s) => (s as Map<Object?, Object?>)['id']),
+      <Object?>['recent', 'seed:组A', 'seed:组B', 'default'],
+    );
+    final Map<Object?, Object?> items = json['items'] as Map<Object?, Object?>;
+    expect(items['feature:jia'], <String, Object?>{'s': 'seed:组A', 'o': 1});
+    expect(items['feature:yi'], <String, Object?>{'s': 'seed:组A', 'o': 0});
+    expect(items['feature:bing'], <String, Object?>{'s': 'seed:组A', 'o': 2});
+    expect(items['feature:ding'], <String, Object?>{'s': 'seed:组B', 'o': 0}); // 别组不夹带
+    expect(json['recent'], <Object?>['feature:jia']);
+    // 布局态与存储一致(同一份数据的两面)。
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.order, 1);
   });
 }

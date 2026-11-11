@@ -7,9 +7,20 @@
 // 注入的 strings;滚动视口与 ScrollController 自持在包内(宿主可注入
 // controller)—— 这是后续拖拽边缘自动滚动的前提。
 //
-// 拖拽模型:按住 150ms 起拖,整张分组表在页面本地预演(_preview),落在
-// 哪个槽位就把被拖 key 插到目标 key 前(同组)或目标组该位置(跨组),分组
-// 头 / 空组落点 = 追加到组尾;松手才 assignSections 一把写回布局。
+// 拖拽模型(Android Launcher 手感):按住 150ms 起拖——
+// 1) 起拖记下基线分组表(_base,渲染几何)与同形的本地预演(_preview,落表
+//    计算);渲染恒按基线槽位几何,预演差异用每格 AnimatedSlide 视觉偏移
+//    表达(其他图标滑开让位),几何全程不 reflow。
+// 2) 起拖的 post-frame(每组组尾预留空槽行的 reflow 落定后)量一次「槽位
+//    矩形表」:组头 / 空组落区 / 每个槽位(含组尾预留槽)的内容坐标矩形,
+//    内容坐标相对内容锚,滚动不改它;拖拽期间恒定。
+// 3) 拖动中指针全局坐标换算回内容坐标,对矩形表取最近落区(整格命中,
+//    16px 格距死区被最近格吸收):槽位 = 占住基线槽位上那颗的位置(前向
+//    插目标后 / 后向插目标前,同一把尺子),组头 / 空组 / 预留槽 = 追加组尾。
+// 4) 边缘自动滚动:指针距视口上/下缘 <48px 时按距离比例匀速 animateTo
+//    (Timer 驱动,指针不动也滚);滚动只进换算不进表。
+// 5) 松手才 assignSections 一把写回布局;松手位置矩形表内没有落区(或表
+//    未就绪就松手)一律按非法落点弹回,不落库。
 library;
 
 import 'dart:async';
@@ -64,6 +75,17 @@ class _PreviewGroup {
   final List<String> keys;
 }
 
+/// 矩形表的一条落区:第 [g] 个非智能组里,[slot] < 组内格数是普通槽位,
+/// [slot] == 组内格数(组尾预留槽)或 -1(组头 / 空组落区)时语义是
+/// 「追加到组尾」。矩形是内容坐标(相对内容锚),滚动不变。
+class _HitRect {
+  const _HitRect({required this.rect, required this.g, required this.slot});
+
+  final Rect rect;
+  final int g;
+  final int slot;
+}
+
 /// 桌面画布。目录与角标读宿主经 [HubDesktopController] 喂进的注册表
 /// ([hubTilesProvider] / [hubBadgesProvider] / [hubSectionBadgesProvider],
 /// 有序:默认组未安置的按注册表序排);[controller] 可注入(宿主想共享
@@ -110,12 +132,36 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     duration: const Duration(milliseconds: 900),
   );
 
-  /// 非空表示正在拖:整张分组表以预演为准渲染。落手才写回布局。
+  /// 非空表示正在拖:落表计算在本地预演([_preview])上做,渲染恒按起拖
+  /// 时的基线([_base])槽位几何,落手才写回布局。
   List<_PreviewGroup>? _preview;
+
+  /// 起拖瞬间的基线分组表(渲染几何),拖拽期间恒定。
+  List<_PreviewGroup>? _base;
   String? _dragKey;
 
-  /// 本次拖拽是否结束在合法落点上(决定松手时落表还是弹回)。
-  bool _dropped = false;
+  /// 槽位矩形表:起拖的 post-frame(预留行 reflow 落定后)量一次,内容
+  /// 坐标,拖拽期间恒定;边缘自动滚动只进换算不进表。null = 未就绪:
+  /// 期间的指针移动只记坐标不算落点,自动滚动不启动,松手按非法弹回。
+  List<_HitRect>? _hits;
+  Size? _cellSize;
+
+  /// 最后已知指针全局坐标(自动滚动靠它驱动,没有移动事件时也在滚)。
+  Offset? _pointer;
+
+  /// 拖拽期间的边缘自动滚动循环(表就绪那一拍才起,松手即停)。
+  Timer? _scrollTimer;
+
+  /// 量矩形用的键:内容锚(顶部占位盒,内容坐标原点)、滚动视口。槽位 /
+  /// 组头 / 空组落区的键按需从 [_keyCache] 取(同一 id 恒同一把键):键的
+  /// 生杀只在 LongPressDraggable 的 child 内部翻转,LongPress 元素本体
+  /// 跨帧稳定 —— avatar 的回调闭包持有它的 State,本体一旦被重建换位,
+  /// 闭包里的 mounted 永远是 false,拖动更新就全哑了。
+  final GlobalKey _anchorKey = GlobalKey();
+  final GlobalKey _scrollKey = GlobalKey();
+  final Map<String, GlobalKey> _keyCache = <String, GlobalKey>{};
+
+  GlobalKey _keyFor(String id) => _keyCache.putIfAbsent(id, GlobalKey.new);
 
   /// build 时的目录快照,拖拽回调里用。
   Map<String, HubTile> _byKey = const <String, HubTile>{};
@@ -140,6 +186,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
 
   @override
   void dispose() {
+    _scrollTimer?.cancel();
     _wiggle.dispose();
     _search.dispose();
     _ownController?.dispose();
@@ -160,64 +207,184 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
 
   // ---------- 拖拽预演 ----------
 
+  /// 命中吸收半径:格与格 16px 的死区按最近格吸收,再远就不算落点。
+  static const double _hitSlop = 16;
+
+  /// 边缘自动滚动:距视口上/下缘 [kEdgeZone] 内触发,越近越快(线性),
+  /// 最快 [kMaxScrollSpeed] 逻辑像素/秒。
+  static const double kEdgeZone = 48;
+  static const double _maxScrollSpeed = 700;
+
   void _startDrag(String key) {
     if (!_editing) return;
     final HubLayout layout = ref.read(hubLayoutProvider);
     final List<HubResolvedSection> resolved =
         resolveHubLayout(layout, _catalogKeys);
+    final List<_PreviewGroup> base = <_PreviewGroup>[
+      for (final HubResolvedSection r in resolved)
+        if (!r.section.smart) _PreviewGroup(r.section.id, [...r.keys]),
+    ];
     setState(() {
-      _dropped = false;
       _dragKey = key;
-      _preview = <_PreviewGroup>[
-        for (final HubResolvedSection r in resolved)
-          if (!r.section.smart) _PreviewGroup(r.section.id, [...r.keys]),
+      // 基线与预演同源同形:渲染几何按基线(拖拽期间恒定),落表计算按
+      // 预演;两者的差就是每格视觉偏移(让位动画)。
+      _base = <_PreviewGroup>[
+        for (final _PreviewGroup g in base) _PreviewGroup(g.id, [...g.keys]),
       ];
+      _preview = base;
+      _hits = null;
+      _cellSize = null;
+      _pointer = null;
+    });
+    // 预留槽行要一帧才进几何:矩形表等 reflow 落定后再量(post-frame),
+    // 表就绪那一拍才允许计算落点与启动自动滚动。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _dragKey != null) _measureTable();
     });
   }
 
-  /// 拖到某图标上:被拖 key 占住目标槽位,其余图标让位(先摘出,再插到目标
-  /// 原索引;前向 = 插到目标后面,后向 = 插到目标前面,同一把尺子)。
-  void _moveOver(String targetKey) {
+  /// 量槽位矩形表:相对内容锚(顶部占位盒)的内容坐标,滚动不改它。
+  void _measureTable() {
+    final List<_PreviewGroup>? base = _base;
+    final RenderBox? anchor =
+        _anchorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (base == null || anchor == null || !anchor.hasSize) return;
+    final Offset origin = anchor.localToGlobal(Offset.zero);
+    Rect? contentRect(GlobalKey? key) {
+      final RenderBox? box = key?.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached || !box.hasSize) return null;
+      return (box.localToGlobal(Offset.zero) - origin) & box.size;
+    }
+
+    final List<_HitRect> hits = <_HitRect>[];
+    Size? cell;
+    for (var g = 0; g < base.length; g++) {
+      // 槽位先入表(含组尾预留槽):平局时优先选槽位而不是追加区。
+      // 格尺寸取自真格,空组的预留槽量出来也一致。
+      for (var i = 0; i <= base[g].keys.length; i++) {
+        final Rect? rect = contentRect(_keyFor('slot:$g:$i'));
+        if (rect == null) continue;
+        hits.add(_HitRect(rect: rect, g: g, slot: i));
+        if (i < base[g].keys.length) cell ??= rect.size;
+      }
+      // 组头 / 空组落区:语义都是追加到组尾。
+      final Rect? head = contentRect(_keyFor('head:${base[g].id}'));
+      if (head != null) hits.add(_HitRect(rect: head, g: g, slot: -1));
+      final Rect? zone = contentRect(_keyFor('zone:${base[g].id}'));
+      if (zone != null) hits.add(_HitRect(rect: zone, g: g, slot: -1));
+    }
+    if (hits.isEmpty) return;
+    setState(() {
+      _hits = hits;
+      _cellSize = cell;
+    });
+    _startAutoScroll();
+  }
+
+  /// 拖到基线槽位 (g, slot):被拖 key 直投到这个槽位(指针在哪个格,它就
+  /// 落哪个格,Launcher 手感),其余图标让位。预演已在该槽位时不动,防
+  /// onMove / 自动滚动风暴反复 setState。
+  void _moveToSlot(int g, int slot) {
     final List<_PreviewGroup>? preview = _preview;
     final String? drag = _dragKey;
-    if (preview == null || drag == null || drag == targetKey) return;
-    int srcG = -1, srcI = -1, tgtG = -1, tgtI = -1;
-    for (final (int g, _PreviewGroup group) in preview.indexed) {
-      final int si = group.keys.indexOf(drag);
-      if (si >= 0) {
-        srcG = g;
-        srcI = si;
-      }
-      final int ti = group.keys.indexOf(targetKey);
-      if (ti >= 0) {
-        tgtG = g;
-        tgtI = ti;
-      }
-    }
-    if (tgtG < 0 || srcG < 0) return;
+    if (preview == null || drag == null) return;
+    if (g < 0 || g >= preview.length || slot < 0) return;
+    final int srcG = preview.indexWhere((_PreviewGroup p) => p.keys.contains(drag));
+    if (srcG < 0) return;
+    final int srcI = srcG == g ? preview[g].keys.indexOf(drag) : -1;
+    final int landsAt = slot.clamp(0, preview[g].keys.length - (srcG == g ? 1 : 0));
+    if (srcG == g && srcI == landsAt) return;
     setState(() {
-      preview[srcG].keys.removeAt(srcI);
-      preview[tgtG].keys.insert(tgtI, drag);
+      preview[srcG].keys.remove(drag);
+      preview[g].keys.insert(landsAt, drag);
     });
   }
 
-  /// 拖到分组头 / 空组落点:追加到组尾(最近使用组不可落)。
+  /// 拖到分组头 / 空组 / 预留槽落点:追加到组尾(最近使用组不可落)。已在
+  /// 该组组尾时不动,同上防风暴。
   void _moveToGroupEnd(String sectionId) {
     final List<_PreviewGroup>? preview = _preview;
     final String? drag = _dragKey;
     if (preview == null || drag == null) return;
     final int at = preview.indexWhere((_PreviewGroup g) => g.id == sectionId);
     if (at < 0) return;
-    for (final _PreviewGroup group in preview) {
-      group.keys.remove(drag);
-    }
-    setState(() => preview[at].keys.add(drag));
+    final int srcG = preview.indexWhere((_PreviewGroup g) => g.keys.contains(drag));
+    if (srcG == at && preview[at].keys.isNotEmpty && preview[at].keys.last == drag) return;
+    setState(() {
+      for (final _PreviewGroup group in preview) {
+        group.keys.remove(drag);
+      }
+      preview[at].keys.add(drag);
+    });
   }
 
-  /// 松手:结束在合法落点上就整表落库,否则弹回(丢弃预演)。
+  /// 拖动中(LongPressDraggable.onDragUpdate 的裸指针全局坐标):记下指针,
+  /// 表就绪才算落点——未就绪只记不算,自动滚动也不起。不用 DragTarget
+  /// onMove 的 details.offset:那是 feedback 左上角(裸指针 − 起拖锚点),
+  /// 恰好会落在格顶边上、与组头矩形平局。
+  void _onDragUpdate(Offset global) {
+    _pointer = global;
+    if (_hits == null || _dragKey == null) return;
+    _applyHitUnderPointer();
+  }
+
+  /// 指针落点 → 矩形表最近落区(整格命中):槽位 = 被拖 key 直投该槽,
+  /// 组头 / 空组 / 预留槽 = 追加组尾。附近没有落区就保持上一个预演。
+  void _applyHitUnderPointer() {
+    final Offset? pointer = _pointer;
+    final _HitRect? hit = pointer == null ? null : _hitAt(pointer);
+    if (hit == null) return;
+    final List<_PreviewGroup>? base = _base;
+    if (base == null) return;
+    if (hit.slot >= 0 && hit.slot < base[hit.g].keys.length) {
+      _moveToSlot(hit.g, hit.slot);
+    } else {
+      _moveToGroupEnd(base[hit.g].id);
+    }
+  }
+
+  /// 全局坐标 → 矩形表最近落区;[pointer] 位置超出所有落区 [_hitSlop] 外
+  /// 返回 null(非法落点)。
+  _HitRect? _hitAt(Offset pointer) {
+    final List<_HitRect>? hits = _hits;
+    final RenderBox? anchor =
+        _anchorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (hits == null || anchor == null) return null;
+    final Offset p = pointer - anchor.localToGlobal(Offset.zero);
+    _HitRect? best;
+    double bestD = double.infinity;
+    for (final _HitRect h in hits) {
+      final double d = _distanceSq(p, h.rect);
+      // 严格更近才替换;恰好平局时槽位优先(表内槽位先入,追加区在后)。
+      if (d < bestD) {
+        bestD = d;
+        best = h;
+      }
+    }
+    if (best == null || bestD > _hitSlop * _hitSlop) return null;
+    return best;
+  }
+
+  static double _distanceSq(Offset p, Rect r) {
+    final double dx = p.dx.clamp(r.left, r.right).toDouble() - p.dx;
+    final double dy = p.dy.clamp(r.top, r.bottom).toDouble() - p.dy;
+    return dx * dx + dy * dy;
+  }
+
+  /// 松手:结束在合法落点上(松手位置矩形表内有落区)就整表落库,否则
+  /// 弹回(丢弃预演)。表未就绪就松手一律按非法落点弹回;落库 / 弹回时
+  /// 视觉偏移随预演一起清零(基线渲染恢复),不播反向动画。
   void _finishDrag({required bool assign}) {
+    _scrollTimer?.cancel();
+    _scrollTimer = null;
     final List<_PreviewGroup>? preview = _preview;
-    if (assign && preview != null && _editing) {
+    final Offset? pointer = _pointer;
+    final bool legal = switch ((_hits, pointer)) {
+      (null, _) => false, // 表未就绪:安全默认,弹回不落库
+      (_, null) => true, // 表就绪后原地松手:落回原位(预演 == 基线)
+      (_, final Offset p?) => _hitAt(p) != null,
+    };
+    if (assign && legal && preview != null && _editing) {
       ref.read(hubLayoutProvider.notifier).assignSections(<({String id, List<String> keys})>[
         for (final _PreviewGroup group in preview) (id: group.id, keys: [...group.keys]),
       ]);
@@ -225,10 +392,50 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     if (mounted) {
       setState(() {
         _preview = null;
+        _base = null;
         _dragKey = null;
-        _dropped = false;
+        _hits = null;
+        _cellSize = null;
+        _pointer = null;
       });
     }
+  }
+
+  // ---------- 边缘自动滚动 ----------
+
+  void _startAutoScroll() {
+    _scrollTimer?.cancel();
+    _scrollTimer = Timer.periodic(const Duration(milliseconds: 16), (_) => _tickDrag());
+  }
+
+  /// 滚动循环的一拍:指针停在边缘不动也要滚(指针事件不再来),滚完顺手
+  /// 用最后已知指针重算落点(手指不动、内容在动,目标会换)。
+  void _tickDrag() {
+    final Offset? pointer = _pointer;
+    if (pointer == null || _dragKey == null) return;
+    final RenderBox? box =
+        _scrollKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || !box.hasSize) return;
+    final Rect viewport = box.localToGlobal(Offset.zero) & box.size;
+    final double fromTop = pointer.dy - viewport.top;
+    final double fromBottom = viewport.bottom - pointer.dy;
+    double speed = 0;
+    if (fromTop >= 0 && fromTop < kEdgeZone) {
+      speed = -_maxScrollSpeed * (1 - fromTop / kEdgeZone);
+    } else if (fromBottom >= 0 && fromBottom < kEdgeZone) {
+      speed = _maxScrollSpeed * (1 - fromBottom / kEdgeZone);
+    }
+    if (speed != 0 && _scroll.hasClients) {
+      final ScrollPosition position = _scroll.positions.first;
+      if (position.hasContentDimensions && position.maxScrollExtent > 0) {
+        final double target =
+            (position.pixels + speed * 0.016).clamp(position.minScrollExtent, position.maxScrollExtent);
+        if (target != position.pixels) {
+          position.animateTo(target, duration: const Duration(milliseconds: 16), curve: Curves.linear);
+        }
+      }
+    }
+    _applyHitUnderPointer();
   }
 
   // ---------- 打开与卸载 ----------
@@ -397,6 +604,8 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   Widget _buildTile(
     HubTile tile, {
     required bool mirror,
+    int? group,
+    int? index,
   }) {
     final Widget core = IconTile(
       icon: _iconFor(tile),
@@ -439,15 +648,44 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     }
     if (mirror) return visual;
 
-    // 结构:LongPressDraggable 在外(管起拖),DragTarget 在内(管接落);
-    // builder 只渲染视觉件,绝不能把含 DragTarget 自身的变量塞回去(自引用)。
+    // 结构:LongPressDraggable 元素本体必须跨帧稳定 —— avatar 的回调闭包
+    // 持有它的 State,本体一旦因重建换位被拆掉,闭包里的 mounted 永远是
+    // false,拖动更新(onDragUpdate)就全哑了。所以偏移层(基线槽位 →
+    // 预演槽位的 AnimatedSlide,隐式动画让位;系统「移除动画」时瞬移)只
+    // 放在 child 里,起拖 / 落手只是 child 换内容,LongPress 本体不重建。
+    // 量矩形的 GlobalKey 挂在拖拽期渲染层上:框的布局位置就是基线槽位
+    // (平移只在绘制 / 命中层),矩形表量出来恒是基线几何。
     final String key = tile.key;
+    final int g = group ?? -1;
+    final int i = index ?? -1;
+    final bool draggingCell = g >= 0 && i >= 0 && _dragKey != null;
+    final Duration slideDuration = MediaQuery.of(context).disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 180);
+    final Offset slide = draggingCell ? _slideFor(g, i) : Offset.zero;
+    final GlobalKey? cellKey = draggingCell ? _keyFor('slot:$g:$i') : null;
+    Widget slideBox(Widget v, {required bool ghost}) {
+      if (!draggingCell) return v;
+      final Widget animated = AnimatedSlide(
+        duration: slideDuration,
+        curve: Curves.easeOutCubic,
+        offset: slide,
+        child: v,
+      );
+      return KeyedSubtree(
+        key: cellKey,
+        child: ghost ? Opacity(opacity: 0.25, child: animated) : animated,
+      );
+    }
+
     return LongPressDraggable<String>(
       data: key,
       delay: const Duration(milliseconds: 150),
       onDragStarted: () => _startDrag(key),
+      // 裸指针全局坐标(全拖拽期间唯一可靠的落点来源)。
+      onDragUpdate: (DragUpdateDetails details) => _onDragUpdate(details.globalPosition),
       onDragCompleted: () => _finishDrag(assign: true),
-      onDraggableCanceled: (Velocity _, Offset _) => _finishDrag(assign: _dropped),
+      onDraggableCanceled: (Velocity _, Offset _) => _finishDrag(assign: false),
       feedback: Material(
         type: MaterialType.transparency,
         child: Transform.scale(
@@ -460,13 +698,8 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
           ),
         ),
       ),
-      childWhenDragging: Opacity(opacity: 0.25, child: visual),
-      child: DragTarget<String>(
-        onWillAcceptWithDetails: (DragTargetDetails<String> _) => true,
-        onMove: (DragTargetDetails<String> details) => _moveOver(key),
-        onAcceptWithDetails: (DragTargetDetails<String> _) => _dropped = true,
-        builder: (BuildContext context, _, _) => visual,
-      ),
+      childWhenDragging: slideBox(visual, ghost: true),
+      child: slideBox(visual, ghost: false),
     );
   }
 
@@ -512,19 +745,73 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     return null;
   }
 
-  Widget _grid(List<String> keys, {required bool mirror}) => TileGrid(
-        columns: 4,
-        spacing: 16,
-        children: <Widget>[
-          for (final String key in keys)
-            if (_byKey[key] case final HubTile tile?)
-              _buildTile(tile, mirror: mirror),
-        ],
-      );
+  /// 一组格子。[group] 非空表示这是拖拽中的非智能组基线渲染:每格挂视觉
+  /// 偏移,组尾加一格隐形预留槽(只在拖拽进行中出现,起止各一次单行
+  /// reflow;矩形表量它,语义 = 追加到该组组尾)。
+  Widget _grid(List<String> keys, {required bool mirror, int? group}) {
+    final bool dragging = group != null && _dragKey != null;
+    final List<Widget> cells = <Widget>[
+      for (final (int i, String key) in keys.indexed)
+        if (_byKey[key] case final HubTile tile?)
+          _buildTile(tile, mirror: mirror, group: group, index: i),
+    ];
+    if (dragging) {
+      cells.add(KeyedSubtree(
+        key: _keyFor('slot:$group:${keys.length}'),
+        child: ExcludeSemantics(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0,
+              // 隐形 dummy 与真格同几何(46 图块 + 一行名),行高不被压扁。
+              child: IconTile(icon: const SizedBox.shrink(), label: '', onTap: () {}),
+            ),
+          ),
+        ),
+      ));
+    }
+    return TileGrid(columns: 4, spacing: 16, children: cells);
+  }
+
+  /// 基线槽 (g,i) 上的图标该滑到哪:这个 key 在预演里的槽位矩形 − 基线槽
+  /// 位矩形(内容坐标差),换算成 AnimatedSlide 的 child 尺寸比例。表未就
+  /// 绪(起拖第一帧)时全在原地。
+  Offset _slideFor(int g, int i) {
+    final List<_PreviewGroup>? base = _base;
+    final List<_PreviewGroup>? preview = _preview;
+    final List<_HitRect>? hits = _hits;
+    final Size? cell = _cellSize;
+    if (base == null || preview == null || hits == null || cell == null || cell.width <= 0 || cell.height <= 0) {
+      return Offset.zero;
+    }
+    if (g >= base.length || i >= base[g].keys.length) return Offset.zero;
+    final String key = base[g].keys[i];
+    int pg = -1, pi = -1;
+    for (final (int p, _PreviewGroup group) in preview.indexed) {
+      final int at = group.keys.indexOf(key);
+      if (at >= 0) {
+        pg = p;
+        pi = at;
+      }
+    }
+    if (pg < 0 || pg >= base.length || pi > base[pg].keys.length) return Offset.zero;
+    final Rect? from = _slotRect(hits, g, i);
+    final Rect? to = _slotRect(hits, pg, pi);
+    if (from == null || to == null) return Offset.zero;
+    final Offset delta = to.topLeft - from.topLeft;
+    return Offset(delta.dx / cell.width, delta.dy / cell.height);
+  }
+
+  Rect? _slotRect(List<_HitRect> hits, int g, int i) {
+    for (final _HitRect h in hits) {
+      if (h.g == g && h.slot == i) return h.rect;
+    }
+    return null;
+  }
 
   /// 分组头:常驻是老样式(宿主给该组 setSectionBadge 过就在名旁加胶丸);
-  /// 整理模式挂 ⋯ 菜单,且整条是「追加到组尾」落点。
-  Widget _header(HubSectionData section) {
+  /// 整理模式挂 ⋯ 菜单,且整条仍是「追加到组尾」落点(落点判定在矩形表,
+  /// [dragGroup] 非空时挂上量矩形的键)。
+  Widget _header(HubSectionData section, {int? dragGroup}) {
     final HubDesktopStrings strings = widget.strings;
     final String name = section.name.isEmpty ? strings.defaultGroup : section.name;
     if (!_editing) {
@@ -556,12 +843,9 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         ],
       ),
     );
-    return DragTarget<String>(
-      onWillAcceptWithDetails: (DragTargetDetails<String> _) => true,
-      onMove: (DragTargetDetails<String> _) => _moveToGroupEnd(section.id),
-      onAcceptWithDetails: (DragTargetDetails<String> _) => _dropped = true,
-      builder: (BuildContext context, _, _) => row,
-    );
+    final GlobalKey? key = dragGroup == null ? null : _keyFor('head:${section.id}');
+    if (key == null) return row;
+    return KeyedSubtree(key: key, child: row);
   }
 
   @override
@@ -583,7 +867,6 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     _catalogKeys = _byKey.keys.toList(growable: false);
 
     final List<HubResolvedSection> resolved = resolveHubLayout(layout, _catalogKeys);
-    final bool previewing = _preview != null;
 
     final List<Widget> children = <Widget>[
       Padding(
@@ -657,25 +940,30 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
           }
           continue;
         }
-        // 拖拽中显示预演的组内顺序,其余时候按布局。
-        final List<String> keys = previewing
-            ? (_preview!.firstWhere((_PreviewGroup g) => g.id == section.id).keys)
-            : r.keys;
+        // 拖拽中渲染基线顺序(几何恒定,预演差异用视觉偏移表达),其余
+        // 时候按布局。
+        final int dragGroup = _dragKey != null
+            ? (_base?.indexWhere((_PreviewGroup p) => p.id == section.id) ?? -1)
+            : -1;
+        final List<String> keys = dragGroup >= 0 ? _base![dragGroup].keys : r.keys;
         if (keys.isEmpty && !_editing) continue;
-        children.add(_header(section));
+        children.add(_header(section, dragGroup: dragGroup >= 0 ? dragGroup : null));
         if (keys.isEmpty) {
-          children.add(_dropZone(section.id));
+          children.add(_dropZone(section.id, dragGroup: dragGroup >= 0 ? dragGroup : null));
         } else {
-          children.add(_grid(keys, mirror: false));
+          children.add(_grid(keys, mirror: false, group: dragGroup >= 0 ? dragGroup : null));
         }
       }
       if (_editing) children.add(_newGroupButton());
     }
 
-    // 视口与滚动都在包内:内容首屏空出宿主壳的头部占位(HubPageInsets,
-    // 没有——比如独立跑测试——就只空系统安全区),滚上来时从 pinned 标题
-    // 底下经过、由宿主壳洗白;左右让出横屏的镜像侧缩进,宽窗口再收进阅读
-    // 列(720)居中 —— 与宿主壳 AppPage 的 sideFor 同一公式,底部收尾同款。
+    // 全视口唯一 DragTarget:只做接落信号(保松手必触发 onDragCompleted,
+    // 落点合法性由矩形表判定),不喂指针——onMove 的 offset 是 feedback
+    // 左上角不是指针,指针从 LongPressDraggable.onDragUpdate 来。滚动轴与
+    // 视口都在包内:内容首屏空出宿主壳的头部占位(HubPageInsets,没有——
+    // 比如独立跑测试——就只空系统安全区),滚上来时从 pinned 标题底下经过、
+    // 由宿主壳洗白;左右让出横屏的镜像侧缩进,宽窗口再收进阅读列(720)
+    // 居中 —— 与宿主壳 AppPage 的 sideFor 同一公式,底部收尾同款。
     final MediaQueryData media = MediaQuery.of(context);
     final EdgeInsets padding = media.padding;
     final double side = math.max(
@@ -686,17 +974,22 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       HubPageInsets(:final top, :final headerHeight) => (top, headerHeight),
       null => (padding.top, 0.0),
     };
-    return CustomScrollView(
-      controller: _scroll,
-      physics: HubMotion.scrollPhysics(context),
-      slivers: <Widget>[
-        SliverToBoxAdapter(child: SizedBox(height: top + header)),
-        SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: side),
-          sliver: SliverList.list(children: children),
-        ),
-        SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
-      ],
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (DragTargetDetails<String> _) => true,
+      builder: (BuildContext context, _, _) => CustomScrollView(
+        key: _scrollKey,
+        controller: _scroll,
+        physics: HubMotion.scrollPhysics(context),
+        slivers: <Widget>[
+          // 内容锚:矩形表的内容坐标原点(它在内容顶上,随内容一起滚)。
+          SliverToBoxAdapter(child: SizedBox(key: _anchorKey, height: top + header)),
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: side),
+            sliver: SliverList.list(children: children),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: padding.bottom + 32)),
+        ],
+      ),
     );
   }
 
@@ -719,23 +1012,21 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     );
   }
 
-  Widget _dropZone(String sectionId) {
+  Widget _dropZone(String sectionId, {int? dragGroup}) {
     final HubDesktopStrings strings = widget.strings;
-    return DragTarget<String>(
-      onWillAcceptWithDetails: (DragTargetDetails<String> _) => true,
-      onMove: (DragTargetDetails<String> _) => _moveToGroupEnd(sectionId),
-      onAcceptWithDetails: (DragTargetDetails<String> _) => _dropped = true,
-      builder: (BuildContext context, _, _) => Container(
-        margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-        height: 62,
-        decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).dividerColor, width: 1.4),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
-        child: Text(strings.dropHere, style: Theme.of(context).textTheme.bodySmall),
+    final Widget zone = Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      height: 62,
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor, width: 1.4),
+        borderRadius: BorderRadius.circular(12),
       ),
+      alignment: Alignment.center,
+      child: Text(strings.dropHere, style: Theme.of(context).textTheme.bodySmall),
     );
+    final GlobalKey? key = dragGroup == null ? null : _keyFor('zone:$sectionId');
+    if (key == null) return zone;
+    return KeyedSubtree(key: key, child: zone);
   }
 
   Widget _newGroupButton() {
