@@ -336,6 +336,76 @@ void main() {
     await tester.pump(const Duration(seconds: 70));
   });
 
+  testWidgets('编辑态锁外壳横切(P5.1③):横滑翻不动页,退出恢复', (tester) async {
+    // 与「系统返回先退整理」同一套 override(shell 全家桶 stub,防动态链)。
+    SharedPreferences.setMockInitialValues(<String, Object>{'home.tab': 1});
+    final ProviderContainer container = ProviderContainer(overrides: <Override>[
+      hubInstalledProvider.overrideWith(() => _FixedInstalled(const <HubInstalledApp>[])),
+      dsBotProvider.overrideWith(_StubDsBot.new),
+      dsBotInboxProvider.overrideWith(_StubInbox.new),
+      petMoodProvider.overrideWith2((PetScope scope) => _StubPetMood(scope)),
+      featureSectionsProvider.overrideWithValue(_twoGroups()),
+      localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
+      localRuntimeLogsProvider.overrideWithBuild((ref, notifier) => sampleLogs),
+      settingsProvider.overrideWith(() => FakeSettings(const AppSettings(loaded: true))),
+      sessionsProvider.overrideWith(() => FakeSessions(sampleSessions())),
+    ]);
+    addTearDown(container.dispose);
+    usePhoneSurface(tester);
+    container.read(hubDesktopSyncProvider);
+    await tester.pumpWidget(goldenApp(
+      brightness: Brightness.light,
+      home: UncontrolledProviderScope(
+        container: container,
+        child: HomeShell(chatBuilder: const SizedBox.expand()),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(find.text('搜索小程序'), findsOneWidget); // 在小程序 tab 上
+
+    // 外壳横切轴 = PageView 自身的水平 Scrollable(页内还有别的横向件,
+    // 取 PageView 直属的那颗)。物理切换会重建 ScrollPosition(与引擎
+    // E1 同款),所以每个阶段都实时取「当下」的 position。
+    final Finder pageScrollView = find
+        .descendant(
+          of: find.byType(PageView),
+          matching: find.byWidgetPredicate(
+            (Widget w) => w is Scrollable && w.axis == Axis.horizontal,
+          ),
+        )
+        .first;
+    expect(pageScrollView, findsOneWidget);
+    ScrollPosition hPosition() =>
+        tester.state<ScrollableState>(pageScrollView).position;
+    // home.tab=1:初始 offset 就在第 2 页(390)。
+    expect(hPosition().pixels, 390);
+
+    // 编辑态:横滑被物理锁死,翻不动页。
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+    final double lockedAt = hPosition().pixels;
+    await tester.fling(pageScrollView, const Offset(-400, 0), 3000);
+    await tester.pumpAndSettle();
+    expect(hPosition().pixels, lockedAt); // 横切锁死,仍在小程序 tab
+
+    // 退出整理:横滑恢复(翻页 offset 前进)。
+    container.read(hubEditingProvider.notifier).set(false);
+    await tester.pumpAndSettle();
+    final TestGesture swipe = await tester.startGesture(const Offset(300, 400));
+    for (var i = 0; i < 6; i++) {
+      await swipe.moveBy(const Offset(-50, 0));
+      await tester.pump(const Duration(milliseconds: 30));
+    }
+    await swipe.up();
+    await tester.pumpAndSettle();
+    expect(hPosition().pixels, greaterThan(390)); // 恢复:横滑翻到设置页
+
+    // 收尾:把 shell 挂着的长周期 timer 在假时钟里放完,避免 pending-
+    // timer 断言(与「返回键」测试同款收尾)。
+    await tester.pump(const Duration(seconds: 70));
+  });
+
   testWidgets('小程序有更新挂名字点(iOS 式),瓷贴角不再有 dot;新装未打开也亮', (tester) async {
     await _pump(tester, minis: <HubInstalledApp>[
       const HubInstalledApp(appId: 'wx1', name: '记账本', installedVersionCode: 2, marketVersionCode: 3),

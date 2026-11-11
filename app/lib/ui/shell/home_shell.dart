@@ -356,6 +356,12 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
                       child: PageView(
                         // 三页都保活(等同旧 IndexedStack 的常驻);底栏点按
                         // 与横滑手势都能翻页。
+                        // 小程序桌面整理模式锁横切(E1 同款思路):横滑翻页
+                        // 的手势轴与桌面拖拽/摇摆打架,且编辑中切走再切回
+                        // 容易误触;底栏点按仍可翻页(animateTo 程序驱动)。
+                        physics: (_tab == 1 && ref.watch(hubEditingProvider))
+                            ? const NeverScrollableScrollPhysics()
+                            : null,
                         controller: _tabPages,
                         onPageChanged: _onPageChanged,
                         children: [
