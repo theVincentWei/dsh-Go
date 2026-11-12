@@ -541,6 +541,8 @@ final _pages = <SettingsPageMeta>[
     group: _hosts,
     keywords: (l) => l.searchKwEngineParams,
     links: const ['engine-settings'],
+    // route-b: 引擎参数全家按本机引擎可用性显隐（无引擎连搜索都不出）。
+    condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
     SettingsPageId.subagent,

@@ -172,7 +172,9 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           title: l10n.hubGroupCapabilities,
           children: [
-            if (android || ios)
+            // 手机操控按能力显隐（用户拍板 2026-11-12：iOS 纯远程包彻底隐藏入口）。
+            // foundation 的 _buildIOS 能力保留在代码里，入口恢复时改回 `android || ios`。
+            if (android)
               SettingsTile(
                 icon: AppIcons.phoneControl,
                 tint: SettingsHues.abilities,
@@ -290,13 +292,15 @@ class SettingsScreen extends ConsumerWidget {
               value: ssh == 0 ? null : Text(l10n.hubValueHosts(ssh)),
               onTap: () => _push(context, const RemoteScreen()),
             ),
-            SettingsTile(
-              icon: AppIcons.configure,
-              tint: SettingsHues.hosts,
-              spot: SettingsIndex.entry(SettingsPageId.engineParams),
-              value: Text(hostName),
-              onTap: () => _push(context, const EngineSettingsHubPage()),
-            ),
+            // 引擎参数按能力显隐（同上拍板）：无本机引擎不出现（连置灰都不要）。
+            if (localEngine)
+              SettingsTile(
+                icon: AppIcons.configure,
+                tint: SettingsHues.hosts,
+                spot: SettingsIndex.entry(SettingsPageId.engineParams),
+                value: Text(hostName),
+                onTap: () => _push(context, const EngineSettingsHubPage()),
+              ),
           ],
         ),
         SettingsSection(

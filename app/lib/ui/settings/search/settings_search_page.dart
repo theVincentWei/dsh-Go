@@ -297,6 +297,15 @@ class _SpotResult extends ConsumerWidget {
     final reason =
         unavailableReason(ref, spot.condition, l10n) ??
         (spot.isEntry ? null : unavailableReason(ref, SettingsIndex.page(spot.page).condition, l10n));
+    // route-b（用户拍板 2026-11-12）: 通向不可用功能的入口直接隐藏，连置灰
+    // 都不要——本机引擎/本机主机类条件不满足时整条不出（其余条件保持
+    // foundation 的「置灰+原因」语义）。
+    if (reason != null) {
+      final failed = spot.condition ?? SettingsIndex.page(spot.page).condition;
+      if (failed == SpotCondition.localEngineOn || failed == SpotCondition.localHost) {
+        return const SizedBox.shrink();
+      }
+    }
     return ListPageRow(
       title: spot.title(l10n),
       titleNote: hit.synonym,

@@ -89,16 +89,20 @@ class _RuntimeChoiceViewState extends ConsumerState<RuntimeChoiceView> {
           message: l10n.localEnvChooseMessage,
         ),
         const SizedBox(height: 28),
-        RuntimeOptionCard(
-          key: const ValueKey('runtime-option-local'),
-          icon: AppIcons.thisPhone,
-          title: l10n.commonThisPhone,
-          detail: localDetail,
-          detailColor: localWarn ? colors.warning : null,
-          selected: selected == RuntimeOption.local,
-          onTap: available ? () => setState(() => _picked = RuntimeOption.local) : null,
-        ),
-        const SizedBox(height: RuntimeOptionCard.gap),
+        // 「本机」卡片按能力显隐（用户拍板 2026-11-12：纯远程包彻底隐藏，不置灰）——
+        // 本机运行环境可用时自然回归显示（引擎入包里程碑无需回改）。
+        if (available) ...[
+          RuntimeOptionCard(
+            key: const ValueKey('runtime-option-local'),
+            icon: AppIcons.thisPhone,
+            title: l10n.commonThisPhone,
+            detail: localDetail,
+            detailColor: localWarn ? colors.warning : null,
+            selected: selected == RuntimeOption.local,
+            onTap: () => setState(() => _picked = RuntimeOption.local),
+          ),
+          const SizedBox(height: RuntimeOptionCard.gap),
+        ],
         RuntimeOptionCard(
           key: const ValueKey('runtime-option-remote'),
           icon: AppIcons.computer,
