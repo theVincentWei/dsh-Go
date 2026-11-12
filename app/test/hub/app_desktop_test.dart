@@ -321,7 +321,7 @@ void main() {
       brightness: Brightness.light,
       home: UncontrolledProviderScope(
         container: container,
-        child: HomeShell(chatBuilder: (_) => const SizedBox.expand()),
+        child: HomeShell(chatBuilder: const SizedBox.expand()),
       ),
     ));
     await tester.pump(const Duration(milliseconds: 600));

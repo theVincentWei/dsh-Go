@@ -157,7 +157,7 @@ final _stops = <_Stop>[
   _Stop('conversation', () => const ChatScreen(), overrides: _conversation),
   _Stop('sheet', () => const ChatScreen(), overrides: _conversation, act: _sheet),
   _Stop('dialog', () => const ChatScreen(), overrides: _conversation, act: _dialog),
-  _Stop('drawer', () => HomeShell(chatBuilder: (_) => const _Backdrop(), initiallyOpen: true)),
+  _Stop('drawer', () => HomeShell(chatBuilder: const _Backdrop())),
   _Stop('settings', () => const SettingsScreen()),
   _Stop('push', () => const SettingsScreen(), act: _push),
   _Stop('remote', () => const RemoteScreen()),

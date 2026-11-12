@@ -48,6 +48,19 @@ void useWindow(WidgetTester tester, Size size, {double left = 0, double right = 
   addTearDown(tester.view.reset);
 }
 
+/// 底栏三连胶囊的一颗 tab 的图标（自定义件，没有 NavigationBar.selectedIndex
+/// 可读）：同名 Tooltip 也挂在快捷面板的快捷键上（图标 20），按 tab 的 22
+/// 尺寸取到底栏那一颗。图标颜色即选中态（选中 primary，未选中
+/// onSurfaceVariant）。
+Icon homeTabIcon(WidgetTester tester, String tooltip) => tester
+    .widgetList<Icon>(
+      find.descendant(
+        of: find.byTooltip(tooltip),
+        matching: find.byWidgetPredicate((w) => w is Icon && w.size == 22),
+      ),
+    )
+    .single;
+
 /// Fixed choices; toggles change them for the test's run only.
 class FixedLayoutPrefs extends LayoutPrefsController {
   FixedLayoutPrefs(this.initial);
@@ -158,14 +171,16 @@ List<Override> homeOverrides({
   alertSourceFactoryProvider.overrideWithValue((_) => FakeAlertSource()),
 ];
 
-/// The home screen with the real chat.
+/// The home screen (三 tab + 推入的聊天页) with the real chat as the pushed
+/// conversation page.
 Widget homeApp({
   Brightness brightness = Brightness.light,
   String? session = 's1',
   LayoutPrefs prefs = const LayoutPrefs(loaded: true),
   ChatState Function(String id)? chat,
 }) => testApp(
-  HomeShell(chatBuilder: (openDrawer) => ChatScreen(onOpenDrawer: openDrawer, backdrop: false)),
+  // 聊天页是推入路由：≡ 键随 onOpenDrawer 缺省而隐藏。
+  HomeShell(chatBuilder: ChatScreen(backdrop: false)),
   brightness: brightness,
   overrides: homeOverrides(session: session, prefs: prefs, chat: chat),
 );
