@@ -746,7 +746,7 @@ private final class NotifyChannel {
     case "openLiveSettings": openNotificationSettings(center, result: result)
     case "live": DshLiveActivityController.shared.handle(args, result)
     case "actionResult": result(nil)
-    case "liveStatus": liveStatus(result)
+    case "liveStatus": liveStatus(result: result)
     default: result(FlutterMethodNotImplemented)
     }
   }
