@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>DSH Go</string>
+	<string>万器</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>DSH Go</string>
+	<string>Wanqi</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -41,12 +41,12 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>DSH Go 分享码</string>
+			<string>万器分享码</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>io.github.ccch1mneyyy.dshapp.share-code</string>
+				<string>io.github.thevincentwei.wanqi.share-code</string>
 			</array>
 		</dict>
 	</array>
@@ -54,9 +54,9 @@
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>io.github.ccch1mneyyy.dshapp.share-code</string>
+			<string>io.github.thevincentwei.wanqi.share-code</string>
 			<key>UTTypeDescription</key>
-			<string>DSH Go 分享码</string>
+			<string>万器分享码</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.json</string>

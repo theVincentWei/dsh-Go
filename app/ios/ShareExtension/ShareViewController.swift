@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 /// (system_entry_host.dart). The intake link itself is swallowed by a
 /// handler registered there.
 class ShareViewController: UIViewController {
-  private static let appGroup = "group.io.github.ccch1mneyyy.dshapp"
+  private static let appGroup = "group.io.github.thevincentwei.wanqi"
   private static let maxFiles = 20
 
   override func viewDidLoad() {

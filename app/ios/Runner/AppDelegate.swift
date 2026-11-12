@@ -157,7 +157,7 @@ final class DshLinksBridge: NSObject {
 /// cleaned after a day.
 final class DshShareBridge: NSObject {
   static let shared = DshShareBridge()
-  private static let appGroup = "group.io.github.ccch1mneyyy.dshapp"
+  private static let appGroup = "group.io.github.thevincentwei.wanqi"
   private static let inboxName = "share-inbox"
   private static let keepInterval: TimeInterval = 24 * 3600
 
