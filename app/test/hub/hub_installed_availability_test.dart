@@ -7,7 +7,9 @@ library;
 import 'dart:convert';
 
 import 'package:dsh_app/ui/applet/hub_apps_group.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 HubInstalledApp mini({bool backendRequired = false, bool? backendRunning}) =>
     HubInstalledApp(
@@ -87,5 +89,38 @@ void main() {
     expect(c.marketVersionCode, isNull);
     expect(c.updateAvailable, isFalse);
     expect(c.availableOnCurrentMachine, isFalse);
+  });
+
+  test('clearRuntimeStates(2026-11-12 切主机):运行态判未知,依赖后端的立即置灰,纯离线照常;全未知幂等', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    HubInstalledController.fetcher = () async => const <HubInstalledApp>[
+          HubInstalledApp(
+            appId: 'wx-sys',
+            name: '系统监视器',
+            backendRequired: true,
+            backendRunning: true, // 上一台机器的「在跑」
+          ),
+          HubInstalledApp(appId: 'wx-off', name: '纯前端'),
+        ];
+    final ProviderContainer container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(hubInstalledProvider, (_, _) {});
+    await container.read(hubInstalledProvider.future);
+    expect(
+        container.read(hubInstalledProvider).value!.first.availableOnCurrentMachine, isTrue);
+
+    container.read(hubInstalledProvider.notifier).clearRuntimeStates();
+
+    final List<HubInstalledApp> stale = container.read(hubInstalledProvider).value!;
+    expect(stale, hasLength(2)); // 清单本体保留(离线常驻不塌目录)
+    expect(stale.first.backendRunning, isNull); // 运行态判未知
+    expect(stale.first.availableOnCurrentMachine, isFalse); // 宁可灰不可假亮
+    expect(stale.last.availableOnCurrentMachine, isTrue); // 纯离线照常可用
+
+    // 幂等:全是未知运行态时再调一轮,清单与判定不变。
+    container.read(hubInstalledProvider.notifier).clearRuntimeStates();
+    final List<HubInstalledApp> again = container.read(hubInstalledProvider).value!;
+    expect(again.map((HubInstalledApp a) => a.appId), <String>['wx-sys', 'wx-off']);
+    expect(again.first.availableOnCurrentMachine, isFalse);
   });
 }
