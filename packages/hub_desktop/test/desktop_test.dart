@@ -267,6 +267,59 @@ void main() {
     expect(position.pixels, 0);
   });
 
+  testWidgets('名字点零位移(P5.2):带点/无点瓷贴的文本中心都与格中心对齐', (tester) async {
+    // 复刻实机反馈:带名字点的 mini(有更新/新装)文本中心被尾部点+间距
+    // 挤左 4px,不带点的不动 → 一行里「有的左移有的不左移」。修复 = 名字
+    // 行加前导平衡位,文本回正中;编辑态(reduce/关动画)静态倾斜归零后
+    // 同样零位移。
+    const List<HubTile> row = <HubTile>[
+      HubTile(
+          key: 'mini:a',
+          name: 'GLM用量',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'mini:b',
+          name: '系统监视器',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          uninstallable: true),
+      HubTile(
+          key: 'mini:c',
+          name: '记账本',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+    ];
+    await _pump(tester, tiles: () => row);
+
+    double textCenterX(String name) => tester.getCenter(find.text(name)).dx;
+    double tileCenterX(String name) =>
+        tester.getCenter(find.widgetWithText(IconTile, name)).dx;
+
+    final double a = textCenterX('GLM用量');
+    final double b = textCenterX('系统监视器');
+    final double c = textCenterX('记账本');
+    final double chipA = tileCenterX('GLM用量');
+    final double chipB = tileCenterX('系统监视器');
+    final double chipC = tileCenterX('记账本');
+    // 逐格断言:名字中心 == 格中心(带点/无点都不得偏移)。
+    expect((a - chipA).abs(), lessThan(0.5));
+    expect((b - chipB).abs(), lessThan(0.5));
+    expect((c - chipC).abs(), lessThan(0.5));
+
+    // 编辑态:chip 与名字中心同样零位移(− 角标是 paint 覆盖,不动布局;
+    // reduce/关动画下静态倾斜归零)。
+    await tester.longPress(find.text('GLM用量').first);
+    await tester.pumpAndSettle();
+    expect(textCenterX('GLM用量'), a);
+    expect(textCenterX('系统监视器'), b);
+    expect(textCenterX('记账本'), c);
+    expect(tileCenterX('GLM用量'), chipA);
+    expect(tileCenterX('系统监视器'), chipB);
+    expect(tileCenterX('记账本'), chipC);
+  });
+
   testWidgets('搜索:平铺结果,分组头消失;无结果给提示', (tester) async {
     await _pump(tester);
 

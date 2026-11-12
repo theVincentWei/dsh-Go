@@ -587,10 +587,15 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         _ => null,
       };
 
-  /// 整理模式的摇摆 + 相位差。
+  /// 整理模式的摇摆 + 相位差(绕瓷贴自身中心旋转,不产生位移)。系统
+  /// 「移除动画」/减弱动态时不摆:P5.2 实测静态相位角会让瓷贴绘制边界
+  /// 偏移 ±2px 级(「有的左移有的不左移」的次级来源),直接归零。
   Widget _wiggleWrap(String key, Widget child) => AnimatedBuilder(
         animation: _wiggle,
         builder: (BuildContext context, Widget? child) {
+          if (MediaQuery.of(context).disableAnimations) {
+            return child!;
+          }
           final double phase = (key.hashCode % 8) / 8;
           final double v = (_wiggle.value + phase) % 1.0;
           return Transform.rotate(angle: math.sin(v * 2 * math.pi) * 0.04, child: child);
