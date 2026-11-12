@@ -159,7 +159,11 @@ struct PhoneRunnerCallContext: Sendable {
     guard !deniedBundleIDs.contains(app) else { throw PhoneRunnerObservationError.route }
     if input {
       guard let controllerBundleID, hasRoutingPolicy else { throw PhoneRunnerObservationError.invalid }
-      guard app != controllerBundleID else { throw PhoneRunnerObservationError.controller }
+      // route-b: 名义 controller 是 SpringBoard（QA 直驱模式，桌面兜底前台）时，
+      // 允许对当前前台应用派发输入——否则模拟器上无法自驱做 QA（真机的
+      // 「控制 App 不得驱动自身」策略对真实 controller 依旧成立）。
+      guard app != controllerBundleID || controllerBundleID == "com.apple.springboard"
+      else { throw PhoneRunnerObservationError.controller }
     }
   }
 }

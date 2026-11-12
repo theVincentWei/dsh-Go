@@ -32,8 +32,18 @@ final class PhoneRunnerUITests: XCTestCase {
     try server.start()
     PhoneRunnerDiagnostic.write("server start returned")
     serving = true
+    // route-b: 空转超过 60s 会被测试看门狗杀掉（unexpected exit）——每个周期
+    // 包一层 XCTActivity 喂进度；RunLoop 需要有调度源才会真正等待，故挂一个
+    // 20s 重复 Timer（主队列的 RPC job 照常在 run 循环里得到处理）。
+    var spin = 0
+    let keepalive = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { _ in }
+    RunLoop.main.add(keepalive, forMode: .default)
     while true {
-      RunLoop.main.run(mode: .default, before: Date(timeIntervalSinceNow: 60))
+      let n = spin
+      spin += 1
+      XCTContext.runActivity(named: "phone-runner keepalive \(n)") { _ in
+        RunLoop.main.run(mode: .default, before: Date(timeIntervalSinceNow: 25))
+      }
     }
   }
 
@@ -118,7 +128,10 @@ final class PhoneServer {
       return URL(fileURLWithPath: path, isDirectory: true)
     }
     guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.yinkuotech.dsh-wanqi") else {
-      throw CocoaError(.fileNoSuchFile)
+      // route-b: 未签名的模拟器测试拿不到 App Group——退回测试进程自己的容器
+      // （Mac 侧从设备数据卷直接读 <device>/data/Containers/.../<uuid>/phone-runner）。
+      return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+        .appendingPathComponent("phone-runner", isDirectory: true)
     }
     return group.appendingPathComponent("phone-runner", isDirectory: true)
   }
@@ -325,6 +338,7 @@ final class PhoneTools {
       case "tap_xy": result = try tapAt(params)
       case "type": result = try type(params)
       case "scroll": result = try scroll(params)
+      case "drag_xy": result = try dragXY(params)
       case "key": result = try key(params)
       default: throw ToolError("没有这个工具：\(method)")
       }
@@ -433,7 +447,10 @@ final class PhoneTools {
       guard let controller = context.controllerBundleID, context.hasRoutingPolicy else {
         throw PhoneRunnerObservationError.invalid
       }
-      if XCUIApplication(bundleIdentifier: controller).state == .runningForeground {
+      if XCUIApplication(bundleIdentifier: controller).state == .runningForeground,
+        // route-b: SpringBoard 名义 controller（QA 直驱模式）豁免——模拟器上
+        // 桌面永远「在前台」，按原样会拒发一切输入。
+        controller != "com.apple.springboard" {
         throw PhoneRunnerObservationError.controller
       }
     }
@@ -716,6 +733,32 @@ final class PhoneTools {
     try validateObservation(params["screen"] as? String, consume: true)
     _ = try inputApplication()
     touch(CGPoint(x: target.frame.midX, y: target.frame.midY), seconds: params["long"] as? Bool == true ? 1.0 : 0.05)
+    return try settled()
+  }
+
+  /// route-b: 原生长按拖拽（pressDown → 静置 hold → move → lift）——合成
+  /// 短 tap 触不发 Flutter 的 LongPress/LongPressDraggable，QA 驱动用。
+  /// params: {start:{x,y}, end:{x,y}, hold:1.1, move:0.8, screen:"sN"}
+  private func dragXY(_ params: [String: Any]) throws -> [String: Any] {
+    guard params["screen"] as? String == "s\(serial)",
+      let metrics = screenshotMetrics, metrics.serial == serial else {
+      throw ToolError("截图已经过期或没有图片。先用 screen(image:true) 重新看一遍。")
+    }
+    func point(_ key: String) throws -> CGPoint {
+      guard let pair = params[key] as? [String: Any],
+        let x = pair["x"] as? Double ?? (pair["x"] as? Int).map(Double.init),
+        let y = pair["y"] as? Double ?? (pair["y"] as? Int).map(Double.init) else {
+        throw ToolError("要给 \(key) 的 x 和 y。")
+      }
+      return CGPoint(x: CGFloat(x) / metrics.scale, y: CGFloat(y) / metrics.scale)
+    }
+    let start = try point("start")
+    let end = try point("end")
+    let hold = params["hold"] as? Double ?? 1.1
+    try validateObservation(params["screen"] as? String, consume: true)
+    _ = try inputApplication()
+    let ok = PhoneRunnerSupport.drag(from: start, to: end, seconds: hold)
+    guard ok else { throw ToolError("合成拖拽没有送达。") }
     return try settled()
   }
 
