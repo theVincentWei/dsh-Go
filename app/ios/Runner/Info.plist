@@ -46,7 +46,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>io.github.thevincentwei.wanqi.share-code</string>
+				<string>com.yinkuotech.wanqi.share-code</string>
 			</array>
 		</dict>
 	</array>
@@ -54,7 +54,7 @@
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>io.github.thevincentwei.wanqi.share-code</string>
+			<string>com.yinkuotech.wanqi.share-code</string>
 			<key>UTTypeDescription</key>
 			<string>万器分享码</string>
 			<key>UTTypeConformsTo</key>

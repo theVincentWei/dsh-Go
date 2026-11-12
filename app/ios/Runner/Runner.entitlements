@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.io.github.thevincentwei.wanqi</string>
+		<string>group.com.yinkuotech.wanqi</string>
 	</array>
 </dict>
 </plist>
