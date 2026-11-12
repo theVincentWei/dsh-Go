@@ -587,10 +587,15 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         _ => null,
       };
 
-  /// 整理模式的摇摆 + 相位差。
+  /// 整理模式的摇摆 + 相位差(绕瓷贴自身中心旋转,不产生位移)。系统
+  /// 「移除动画」/减弱动态时不摆:P5.2 实测静态相位角会让瓷贴绘制边界
+  /// 偏移 ±2px 级(「有的左移有的不左移」的次级来源),直接归零。
   Widget _wiggleWrap(String key, Widget child) => AnimatedBuilder(
         animation: _wiggle,
         builder: (BuildContext context, Widget? child) {
+          if (MediaQuery.of(context).disableAnimations) {
+            return child!;
+          }
           final double phase = (key.hashCode % 8) / 8;
           final double v = (_wiggle.value + phase) % 1.0;
           return Transform.rotate(angle: math.sin(v * 2 * math.pi) * 0.04, child: child);
@@ -626,13 +631,22 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     Widget visual = _wiggleWrap(tile.key, core);
     if (!mirror && _canUninstall(tile)) {
       final ColorScheme scheme = Theme.of(context).colorScheme;
+      // alignment center:Stack(loose)会把瓷贴收缩为「wiggle 子内容宽」
+      // 并按默认 topStart 靠左上放——芯片中心实左移 4.7px(P5.3 真机
+      // 「AppHub 图标左移」实锤根因,连列测试实测);居中对齐让瓷贴在槽
+      // 内居中,芯片中心回槽中心,零位移。角标同时收到芯片内(不外扩)。
+      // alignment center:Stack(loose)会把瓷贴收缩为「wiggle 子内容宽」
+      // 并按默认 topStart 靠左上放——芯片中心实左移 4.7px(P5.3 真机
+      // 「AppHub 图标左移」实锤根因,连列测试实测);居中对齐让瓷贴在槽
+      // 内居中,芯片中心回槽中心,零位移。角标同时收到芯片内(不外扩)。
       visual = Stack(
+        alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: <Widget>[
           visual,
           Positioned(
-            left: -2,
-            top: -2,
+            left: 2,
+            top: 2,
             child: GestureDetector(
               onTap: () => unawaited(_uninstall(tile)),
               child: Container(

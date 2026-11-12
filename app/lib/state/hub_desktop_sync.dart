@@ -188,7 +188,13 @@ final hubDesktopSyncProvider = Provider<void>((ref) {
 
   // 多机(2026-11-11):切主机 = 换了一台货架,市场目录与后端运行态全部
   // 重查——置灰(backendRunning)与清单(快照档案兜底)都随之重算。
-  ref.listen(activeHostProvider, (_, _) => ref.invalidate(hubInstalledProvider));
+  // (2026-11-12 补)只失效还不够:重查失败时错误态会保留旧值,旧值里的
+  // 运行态还是上一台机器的「在跑」→ 新机器上假亮。切走先把现有清单的
+  // 运行态判未知(依赖后端的立即置灰),重查失败就停在灰态。
+  ref.listen(activeHostProvider, (_, _) {
+    ref.read(hubInstalledProvider.notifier).clearRuntimeStates();
+    ref.invalidate(hubInstalledProvider);
+  });
   ref.listen(hubInstalledProvider, (_, _) => schedule());
   ref.listen(featureSectionsProvider, (_, _) => schedule());
   ref.listen(currentSessionProvider, (_, _) => schedule());

@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hub_desktop/hub_desktop.dart';
@@ -265,6 +266,85 @@ void main() {
     await tester.pumpAndSettle();
     expect(position.pixels, 0);
   });
+
+  testWidgets('名字点零位移(P5.2):带点/无点瓷贴的文本与芯片中心都与格中心对齐', (tester) async {
+    // 复刻实机反馈:带名字点的 mini(有更新/新装)文本中心被尾部点+间距
+    // 挤左 4px,不带点的不动 → 一行里「有的左移有的不左移」。修复 = 名字
+    // 行加前导平衡位,文本回正中;编辑态(reduce/关动画)静态倾斜归零后
+    // 同样零位移。− 卸载角标收进芯片内,不出芯片左上边界(角标外扩会让
+    // mini 观感左移,真机反馈同源)。
+    const List<HubTile> row = <HubTile>[
+      HubTile(
+          key: 'mini:a',
+          name: 'GLM用量',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'mini:b',
+          name: '系统监视器',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          uninstallable: true),
+      HubTile(
+          key: 'mini:c',
+          name: '记账本',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+    ];
+    await _pump(
+      tester,
+      tiles: () => row,
+      uninstallHook: (HubTile tile) async => true, // 角标渲染前置:钩子已注册
+    );
+
+    double textCenterX(String name) => tester.getCenter(find.text(name)).dx;
+
+    // 锚 = 芯片本体(46 方块)中心:IconTile 首个 RenderBox 在编辑态会换
+    // (Stack/角标包裹),render box 中心不稳;芯片由 Column 居中 + 槽宽
+    // 固定,中心跨态恒定。
+    double chipCenterX(String name) => tester
+        .getCenter(
+          find.descendant(
+            of: find.widgetWithText(IconTile, name),
+            matching: find.byWidgetPredicate(
+              (Widget w) => w is SizedBox && w.width == 46 && w.height == 46,
+            ),
+          ),
+        )
+        .dx;
+
+    final double a = textCenterX('GLM用量');
+    final double b = textCenterX('系统监视器');
+    final double c = textCenterX('记账本');
+    final double chipA = chipCenterX('GLM用量');
+    final double chipB = chipCenterX('系统监视器');
+    final double chipC = chipCenterX('记账本');
+    // 普通态逐格:名字中心 == 芯片中心 == 格中心(带点/无点都不得偏移)。
+    expect((a - chipA).abs(), lessThan(0.5));
+    expect((b - chipB).abs(), lessThan(0.5));
+    expect((c - chipC).abs(), lessThan(0.5));
+
+    // 编辑态:chip 与名字中心同样零位移(− 角标是 paint 覆盖,不动布局;
+    // reduce/关动画下静态倾斜归零)。
+    await tester.longPress(find.text('GLM用量').first);
+    await tester.pumpAndSettle();
+    expect(textCenterX('GLM用量'), a);
+    expect(textCenterX('系统监视器'), b);
+    expect(textCenterX('记账本'), c);
+    expect(chipCenterX('GLM用量'), chipA);
+    expect(chipCenterX('系统监视器'), chipB);
+    expect(chipCenterX('记账本'), chipC);
+
+    // − 卸载角标收在芯片内,不出芯片左上边界(P5.1 真机反馈:角标外扩
+    // 让 mini 观感左移;修复前 left/top 为 -2)。
+    for (final Positioned pd
+        in tester.widgetList<Positioned>(find.byType(Positioned))) {
+      expect(pd.left ?? 0, greaterThanOrEqualTo(0), reason: '角标 left 出界');
+      expect(pd.top ?? 0, greaterThanOrEqualTo(0), reason: '角标 top 出界');
+    }
+  });
+
 
   testWidgets('搜索:平铺结果,分组头消失;无结果给提示', (tester) async {
     await _pump(tester);
@@ -629,6 +709,70 @@ void main() {
     expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
     expect(layout.items['feature:jia']!.order, 0);
     expect(find.text('甲'), findsNWidgets(2)); // 镜像 + 真身都在
+  });
+
+  testWidgets('编辑态列间距取证(P5.1②):Flex 槽位恒等宽,视觉差=摇摆相位投影', (tester) async {
+    // 复刻用户实机截图的那一行:三颗 mini(两颗带名字点、全带卸载角标)
+    // + 一颗 feature 瓷贴。
+    const List<HubTile> row = <HubTile>[
+      HubTile(
+          key: 'mini:a',
+          name: 'GLM用量',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'mini:b',
+          name: '系统监视器',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          uninstallable: true),
+      HubTile(
+          key: 'mini:c',
+          name: '记账本',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'feature:market',
+          name: '应用市场',
+          icon: HubIcon.widget(Icon(Icons.circle))),
+    ];
+    await _pump(tester, tiles: () => row);
+    await tester.longPress(find.text('GLM用量').first);
+    await tester.pumpAndSettle();
+
+    // 布局真相:TileGrid 的行是 Flex,四个 Expanded 槽位必然等宽等距
+    // (parentData.offset 步进 = 槽宽 + spacing,逐格相等)。
+    // IconTile 的首个 RenderBox 不是 Flex 直接子,沿 parent 上溯到挂
+    // FlexParentData 的那层(= Row 的直接子,尺寸即槽位尺寸)。
+    RenderBox flexCell(int i) {
+      RenderBox cell = tester.renderObject<RenderBox>(find.byType(IconTile).at(i));
+      while (cell.parentData is! FlexParentData) {
+        cell = cell.parent! as RenderBox;
+      }
+      return cell;
+    }
+
+    double slotDx(int i) => (flexCell(i).parentData! as FlexParentData).offset.dx;
+
+    double slotWidth(int i) => flexCell(i).size.width;
+
+    final List<double> dxs = <double>[for (var i = 0; i < 4; i++) slotDx(i)];
+    final List<double> widths = <double>[for (var i = 0; i < 4; i++) slotWidth(i)];
+    // 槽宽逐格相等。
+    expect(widths[0], widths[1]);
+    expect(widths[1], widths[2]);
+    expect(widths[2], widths[3]);
+    // 槽位步进恒等(= 槽宽 + 16 间距),没有任何一格多出一档。
+    expect(dxs[1] - dxs[0], dxs[2] - dxs[1]);
+    expect(dxs[2] - dxs[1], dxs[3] - dxs[2]);
+
+    // 视觉(含摇摆 Transform)上的间隙:随各格相位角有 ±2px 级投影差,
+    // 这就是实机截图「记账本↔应用市场更宽」的来源——paint 层,非布局。
+    double paintLeft(int i) => tester.getTopLeft(find.byType(IconTile).at(i)).dx;
+    final List<double> paint = <double>[for (var i = 0; i < 4; i++) paintLeft(i)];
+    // ignore: avoid_print
+    print('DBG slots=$dxs widths=$widths paintLeft=$paint');
   });
 
   testWidgets('落库断言:拖拽后 prefs 里 v/sections/items/recent 全量正确', (tester) async {

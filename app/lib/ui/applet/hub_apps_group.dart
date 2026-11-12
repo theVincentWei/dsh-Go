@@ -286,6 +286,36 @@ class HubInstalledController extends AsyncNotifier<List<HubInstalledApp>> {
       // 拉取失败:保持现状(目录不塌);下次 invalidate 重试。
     }
   }
+
+  /// 切主机(2026-11-12):旧清单里的运行态是「上一台机器」的事实,切走
+  /// 即整体判未知——依赖后端的立即置灰(宁可灰不可假亮),清单本体保留
+  /// (离线常驻不塌目录)。调用方随后失效重查:新货架抓得到就回真值;
+  /// 抓不到(目标机没装万器/链路断)时错误态保留的兜底值也是这份灰态,
+  /// 不会再拿上一台机器的「在跑」假亮。
+  void clearRuntimeStates() {
+    final List<HubInstalledApp>? current = state.value;
+    if (current == null ||
+        !current.any((HubInstalledApp app) =>
+            app.backendRequired && app.backendRunning == true)) {
+      return; // 没有亮着的运行态(全未知/无后端依赖):幂等不动。
+    }
+    state = AsyncData<List<HubInstalledApp>>(<HubInstalledApp>[
+      for (final HubInstalledApp app in current)
+        if (app.backendRequired && app.backendRunning == true)
+          HubInstalledApp(
+            appId: app.appId,
+            name: app.name,
+            iconKey: app.iconKey,
+            iconUrl: app.iconUrl,
+            installedVersionCode: app.installedVersionCode,
+            marketVersionCode: app.marketVersionCode,
+            autoSync: app.autoSync,
+            backendRequired: app.backendRequired,
+          )
+        else
+          app,
+    ]);
+  }
 }
 
 final hubInstalledProvider = AsyncNotifierProvider.autoDispose<HubInstalledController, List<HubInstalledApp>>(
