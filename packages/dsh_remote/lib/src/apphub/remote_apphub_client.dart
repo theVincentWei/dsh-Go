@@ -103,7 +103,12 @@ final class RemoteAppHubClient {
     final transferId = body != null && body.length > appHubInlineBytes ? uuidV7() : null;
     final Object? bodyField;
     if (transferId != null) {
-      bodyField = {'kind': 'transfer', 'transferId': transferId};
+      bodyField = {
+        'kind': 'transfer',
+        'transferId': transferId,
+        'totalBytes': body!.length,
+        'totalChunks': (body.length + remoteTransferChunkBytes - 1) ~/ remoteTransferChunkBytes,
+      };
     } else if (body != null && body.isNotEmpty) {
       bodyField = {'kind': 'inline', 'data': base64Encode(body)};
     } else {
@@ -117,30 +122,20 @@ final class RemoteAppHubClient {
         'headers': {for (final entry in headers.entries) entry.key.toLowerCase(): entry.value},
       'body': bodyField,
     };
-    if (transferId == null) {
-      return _parseResponse(session, await session.rpc.call(appHubProxyRpc, params, timeout: _carrier.callTimeout));
-    }
-    // Large request bodies take the existing transfer write path: commit
-    // carries this exact params JSON and executes the request, mirroring how
-    // `_callTransferred` commits a whole `harness.remote.call` request.
-    final encoded = Uint8List.fromList(utf8.encode(jsonEncode(params)));
-    if (encoded.length > maxRemoteTransferBytes) {
-      throw const RemoteRpcException(
-        'PAYLOAD_TOO_LARGE',
-        'The AppHub request exceeds the 288 MiB transfer limit.',
-      );
-    }
-    return _callTransferred(session, encoded, transferId);
+    if (transferId != null) await _uploadBody(session, body!, transferId);
+    return _parseResponse(session, await session.rpc.call(appHubProxyRpc, params, timeout: _carrier.callTimeout));
   }
 
-  /// `_callTransferred` of `tunnel_carrier.dart`, mirrored for AppHub: same
-  /// open/chunk/commit flow, same per-chunk base64 uplink, same inline-or-
-  /// chunked commit result, same `finally` cleanup on the request's own
-  /// connection. The chunked branch streams the response value's UTF-8 JSON,
-  /// exactly like the existing carrier.
-  Future<AppHubHttpResponse> _callTransferred(RemoteHostSession session, Uint8List encoded, String transferId) async {
+  /// Large request bodies take the existing transfer write path, mirrored
+  /// from `_callTransferred` of `tunnel_carrier.dart`: same open/chunk/commit
+  /// parameter shapes, same 512 KiB canonical base64 chunks, same `finally`
+  /// cleanup on the request's own connection. The uploaded bytes are the raw
+  /// HTTP body; commit only confirms the resource, the main RPC's body
+  /// reference then consumes it (contract §2.1).
+  Future<void> _uploadBody(RemoteHostSession session, List<int> body, String transferId) async {
     final rpc = session.rpc;
     final perCall = _carrier.callTimeout;
+    final encoded = body is Uint8List ? body : Uint8List.fromList(body);
     final totalChunks = (encoded.length + remoteTransferChunkBytes - 1) ~/ remoteTransferChunkBytes;
     try {
       await rpc.call(
@@ -163,24 +158,7 @@ final class RemoteAppHubClient {
           timeout: perCall,
         );
       }
-      final committed = asMapOrEmpty(
-        await rpc.call('harness.remote.transfer.commit', {'transferId': transferId}, timeout: perCall),
-      );
-      if (committed['kind'] == 'inline') return await _parseResponse(session, committed['response']);
-      final totalBytes = asInt(committed['totalBytes']);
-      final responseChunks = asInt(committed['totalChunks']);
-      if (committed['kind'] != 'chunked' ||
-          committed['transferId'] != transferId ||
-          totalBytes == null ||
-          totalBytes <= 0 ||
-          totalBytes > maxRemoteTransferBytes ||
-          responseChunks != (totalBytes + remoteTransferChunkBytes - 1) ~/ remoteTransferChunkBytes) {
-        throw const DshProtocolException('Invalid AppHub transfer commit descriptor.');
-      }
-      final text = utf8.decode(await _readTransfer(session, committed['transferId']! as String, totalBytes));
-      final decoded = tryDecodeJson(text);
-      if (decoded == null) throw const DshProtocolException('The AppHub transfer is not JSON.');
-      return await _parseResponse(session, decoded);
+      await rpc.call('harness.remote.transfer.commit', {'transferId': transferId}, timeout: perCall);
     } finally {
       // An open timeout can follow allocation on the Host. Closing a missing
       // UUID is harmless; keep cleanup on this request's original connection.
@@ -245,10 +223,11 @@ final class RemoteAppHubClient {
       case 'transfer':
         final id = asString(body['transferId']);
         final totalBytes = asInt(body['totalBytes']);
+        final totalChunks = asInt(body['totalChunks']);
         if (id == null || totalBytes == null) {
           throw const DshProtocolException('Invalid AppHub transfer descriptor.');
         }
-        return _readTransfer(session, id, totalBytes);
+        return _readTransfer(session, id, totalBytes, totalChunks);
       default:
         throw const DshProtocolException('The Host returned an unknown AppHub body kind.');
     }
@@ -259,14 +238,15 @@ final class RemoteAppHubClient {
   /// `totalBytes`, `totalChunks=ceil(totalBytes/524288)`, UUID-shaped
   /// `transferId`, canonical base64, exact chunk lengths). Unlike the
   /// existing JSON streams this assembles raw HTTP body bytes (§2.2).
-  Future<Uint8List> _readTransfer(RemoteHostSession session, String transferId, int totalBytes) async {
+  Future<Uint8List> _readTransfer(RemoteHostSession session, String transferId, int totalBytes, int? descriptorChunks) async {
     final rpc = session.rpc;
     final perCall = _carrier.callTimeout;
     final responseChunks = (totalBytes + remoteTransferChunkBytes - 1) ~/ remoteTransferChunkBytes;
     try {
       if (!_transferIdPattern.hasMatch(transferId) ||
           totalBytes <= 0 ||
-          totalBytes > maxRemoteTransferBytes) {
+          totalBytes > maxRemoteTransferBytes ||
+          descriptorChunks != responseChunks) {
         throw const DshProtocolException('Invalid AppHub transfer descriptor.');
       }
       final out = BytesBuilder(copy: false);
