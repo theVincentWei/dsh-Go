@@ -117,7 +117,7 @@ final class PhoneServer {
     if let path = ProcessInfo.processInfo.environment["DSH_PHONE_RUNNER_DIR"] {
       return URL(fileURLWithPath: path, isDirectory: true)
     }
-    guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.io.github.ccch1mneyyy.dshgo") else {
+    guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.yinkuotech.dsh-wanqi") else {
       throw CocoaError(.fileNoSuchFile)
     }
     return group.appendingPathComponent("phone-runner", isDirectory: true)
