@@ -631,13 +631,22 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     Widget visual = _wiggleWrap(tile.key, core);
     if (!mirror && _canUninstall(tile)) {
       final ColorScheme scheme = Theme.of(context).colorScheme;
+      // alignment center:Stack(loose)会把瓷贴收缩为「wiggle 子内容宽」
+      // 并按默认 topStart 靠左上放——芯片中心实左移 4.7px(P5.3 真机
+      // 「AppHub 图标左移」实锤根因,连列测试实测);居中对齐让瓷贴在槽
+      // 内居中,芯片中心回槽中心,零位移。角标同时收到芯片内(不外扩)。
+      // alignment center:Stack(loose)会把瓷贴收缩为「wiggle 子内容宽」
+      // 并按默认 topStart 靠左上放——芯片中心实左移 4.7px(P5.3 真机
+      // 「AppHub 图标左移」实锤根因,连列测试实测);居中对齐让瓷贴在槽
+      // 内居中,芯片中心回槽中心,零位移。角标同时收到芯片内(不外扩)。
       visual = Stack(
+        alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: <Widget>[
           visual,
           Positioned(
-            left: -2,
-            top: -2,
+            left: 2,
+            top: 2,
             child: GestureDetector(
               onTap: () => unawaited(_uninstall(tile)),
               child: Container(

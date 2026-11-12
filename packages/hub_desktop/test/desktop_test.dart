@@ -267,11 +267,12 @@ void main() {
     expect(position.pixels, 0);
   });
 
-  testWidgets('名字点零位移(P5.2):带点/无点瓷贴的文本中心都与格中心对齐', (tester) async {
+  testWidgets('名字点零位移(P5.2):带点/无点瓷贴的文本与芯片中心都与格中心对齐', (tester) async {
     // 复刻实机反馈:带名字点的 mini(有更新/新装)文本中心被尾部点+间距
     // 挤左 4px,不带点的不动 → 一行里「有的左移有的不左移」。修复 = 名字
     // 行加前导平衡位,文本回正中;编辑态(reduce/关动画)静态倾斜归零后
-    // 同样零位移。
+    // 同样零位移。− 卸载角标收进芯片内,不出芯片左上边界(角标外扩会让
+    // mini 观感左移,真机反馈同源)。
     const List<HubTile> row = <HubTile>[
       HubTile(
           key: 'mini:a',
@@ -291,19 +292,35 @@ void main() {
           labelDot: true,
           uninstallable: true),
     ];
-    await _pump(tester, tiles: () => row);
+    await _pump(
+      tester,
+      tiles: () => row,
+      uninstallHook: (HubTile tile) async => true, // 角标渲染前置:钩子已注册
+    );
 
     double textCenterX(String name) => tester.getCenter(find.text(name)).dx;
-    double tileCenterX(String name) =>
-        tester.getCenter(find.widgetWithText(IconTile, name)).dx;
+
+    // 锚 = 芯片本体(46 方块)中心:IconTile 首个 RenderBox 在编辑态会换
+    // (Stack/角标包裹),render box 中心不稳;芯片由 Column 居中 + 槽宽
+    // 固定,中心跨态恒定。
+    double chipCenterX(String name) => tester
+        .getCenter(
+          find.descendant(
+            of: find.widgetWithText(IconTile, name),
+            matching: find.byWidgetPredicate(
+              (Widget w) => w is SizedBox && w.width == 46 && w.height == 46,
+            ),
+          ),
+        )
+        .dx;
 
     final double a = textCenterX('GLM用量');
     final double b = textCenterX('系统监视器');
     final double c = textCenterX('记账本');
-    final double chipA = tileCenterX('GLM用量');
-    final double chipB = tileCenterX('系统监视器');
-    final double chipC = tileCenterX('记账本');
-    // 逐格断言:名字中心 == 格中心(带点/无点都不得偏移)。
+    final double chipA = chipCenterX('GLM用量');
+    final double chipB = chipCenterX('系统监视器');
+    final double chipC = chipCenterX('记账本');
+    // 普通态逐格:名字中心 == 芯片中心 == 格中心(带点/无点都不得偏移)。
     expect((a - chipA).abs(), lessThan(0.5));
     expect((b - chipB).abs(), lessThan(0.5));
     expect((c - chipC).abs(), lessThan(0.5));
@@ -315,10 +332,19 @@ void main() {
     expect(textCenterX('GLM用量'), a);
     expect(textCenterX('系统监视器'), b);
     expect(textCenterX('记账本'), c);
-    expect(tileCenterX('GLM用量'), chipA);
-    expect(tileCenterX('系统监视器'), chipB);
-    expect(tileCenterX('记账本'), chipC);
+    expect(chipCenterX('GLM用量'), chipA);
+    expect(chipCenterX('系统监视器'), chipB);
+    expect(chipCenterX('记账本'), chipC);
+
+    // − 卸载角标收在芯片内,不出芯片左上边界(P5.1 真机反馈:角标外扩
+    // 让 mini 观感左移;修复前 left/top 为 -2)。
+    for (final Positioned pd
+        in tester.widgetList<Positioned>(find.byType(Positioned))) {
+      expect(pd.left ?? 0, greaterThanOrEqualTo(0), reason: '角标 left 出界');
+      expect(pd.top ?? 0, greaterThanOrEqualTo(0), reason: '角标 top 出界');
+    }
   });
+
 
   testWidgets('搜索:平铺结果,分组头消失;无结果给提示', (tester) async {
     await _pump(tester);
