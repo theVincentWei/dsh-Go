@@ -980,11 +980,11 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       builder: (BuildContext context, _, _) => CustomScrollView(
         key: _scrollKey,
         controller: _scroll,
-        // 整理模式锁掉用户滚动(E1):拖拽中的落点矩形表跟着滚就乱了,且
-        // 摇摆图标随手势漂移;物理只关手势驱动,position.animateTo 这类
-        // 程序驱动照常——拖拽贴上/下缘的边缘自动滚动(矩形表滚动补偿)
-        // 不受影响。退出整理恢复。
-        physics: _editing
+        // 整理模式:拖拽中的落点矩形表跟着用户滚动就乱了,拖拽期间锁掉
+        // (贴上/下缘的边缘自动滚动是程序驱动,不受影响);**没在拖图标时
+        // 保持可滚**——长桌面的整理要能滚到下面的组(用户拍板 2026-11-13:
+        // 编辑模式只能上下滚、左右不滚)。退出整理恢复普通物理。
+        physics: !_editing || _dragKey != null
             ? const NeverScrollableScrollPhysics()
             : HubMotion.scrollPhysics(context),
         slivers: <Widget>[
