@@ -678,6 +678,130 @@ void main() {
     expect(layout.items['feature:ding']!.order, 0);
   });
 
+  testWidgets('编辑态点图标不开程序(E5),退出整理恢复可开', (tester) async {
+    final _RecordingDelegate delegate = _RecordingDelegate();
+    final ProviderContainer container = await _pump(
+      tester,
+      tiles: () => <HubTile>[_tile('jia', '甲'), _tile('yi', '乙', enabled: false)],
+      delegate: delegate,
+    );
+
+    // 普通态:可开的打开,置灰的转交「本机不可用」提示。
+    await tester.tap(find.text('甲'));
+    await tester.pumpAndSettle();
+    expect(delegate.opened, <String>['feature:jia']);
+    await tester.tap(find.text('乙'));
+    await tester.pumpAndSettle();
+    expect(delegate.unavailableTapped, <String>['feature:yi']);
+
+    // 整理态:快速点按(未过起拖阈值)两路都不响应——瓷贴只管拖拽/卸载。
+    delegate.opened.clear();
+    delegate.unavailableTapped.clear();
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('甲'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('乙'));
+    await tester.pumpAndSettle();
+    expect(delegate.opened, isEmpty);
+    expect(delegate.unavailableTapped, isEmpty);
+
+    // 退出整理恢复打开。
+    container.read(hubEditingProvider.notifier).set(false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('甲'));
+    await tester.pumpAndSettle();
+    expect(delegate.opened, <String>['feature:jia']);
+  });
+
+  testWidgets('起拖不加行,拖入哪组哪组才出一行(E5)', (tester) async {
+    final ProviderContainer container = await _pump(
+      tester,
+      tiles: () => <HubTile>[
+        _tile('jia', '甲'),
+        _tile('yi', '乙'),
+        _tile('bing', '丙'),
+        _tile('ding', '丁'),
+        _tile('wu', '戊'),
+        _tile('ji', '己'),
+        _tile('geng', '庚'),
+        _tile('xin', '辛'),
+      ],
+    );
+    // 两个满行组:组尾再容一颗就得折行——旧实现起拖即给所有组渲染预留
+    // 槽行,满行组当场多出一行把下方内容顶下去(实机「一起拖就多一行」)。
+    container.read(hubLayoutProvider.notifier).assignSections(<({String id, List<String> keys})>[
+      (id: 'seed:组A', keys: <String>['feature:jia', 'feature:yi', 'feature:bing', 'feature:ding']),
+      (id: 'seed:组B', keys: <String>['feature:wu', 'feature:ji', 'feature:geng', 'feature:xin']),
+    ]);
+    await tester.pumpAndSettle();
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+
+    final Finder newGroup = find.text('新建分组');
+    final double before = tester.getTopLeft(newGroup).dy;
+    final double rowStep = tester.getSize(find.widgetWithText(IconTile, '丁')).height + 16;
+    final Offset from = tester.getCenter(find.text('甲'));
+    // 组头落点取组头行的右缘(组A 的合成组尾槽与组B 头在文本一带重叠,
+    // 平局按表序槽位优先会追加组A;右缘只命中组B 头)。
+    final Offset head = tester.getTopLeft(find.text('组B')) + const Offset(300, 5);
+
+    // 起拖(过 150ms 阈值,指针不动):整页零加行。
+    final TestGesture gesture = await tester.startGesture(from);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(); // 起拖的 post-frame 量表
+    expect(tester.getTopLeft(newGroup).dy, before);
+
+    // 移到组B 组头(跨组):组B 拖进一颗 → 只有它出一行,下方内容下移一行。
+    for (var i = 1; i <= 8; i++) {
+      await gesture.moveTo(Offset.lerp(from, head, i / 8)!);
+      await tester.pump(const Duration(milliseconds: 30));
+    }
+    expect(tester.getTopLeft(newGroup).dy, closeTo(before + rowStep, 0.5));
+
+    // 松手落库:甲追加到组B 组尾(丁、戊、己、庚、辛都各归其位)。
+    await gesture.up();
+    await tester.pumpAndSettle();
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组B');
+    expect(layout.items['feature:jia']!.order, 4);
+    expect(layout.items['feature:xin']!.order, 3);
+  });
+
+  testWidgets('预留槽不渲染也有落区:拖戊到满组A 尾格下一格,追加组尾', (tester) async {
+    final ProviderContainer container = await _pump(
+      tester,
+      tiles: () => <HubTile>[
+        _tile('jia', '甲'),
+        _tile('yi', '乙'),
+        _tile('bing', '丙'),
+        _tile('ding', '丁'),
+        _tile('wu', '戊'),
+      ],
+    );
+    container.read(hubLayoutProvider.notifier).assignSections(<({String id, List<String> keys})>[
+      (id: 'seed:组A', keys: <String>['feature:jia', 'feature:yi', 'feature:bing', 'feature:ding']),
+      (id: 'seed:组B', keys: <String>['feature:wu']),
+    ]);
+    await tester.pumpAndSettle();
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+
+    // 组A 满行,起拖那一刻预留槽不渲染;矩形表按网格几何合成「下一行
+    // 行首」的落区——指针停那儿命中追加语义,弹回路径之外不丢组尾落点。
+    final Rect ding = tester.getRect(find.widgetWithText(IconTile, '丁'));
+    final Offset tail = Offset(
+      ding.left - 3 * (ding.width + 16) + ding.width / 2,
+      ding.top + ding.height + 16 + ding.height / 2,
+    );
+    await _drag(tester, tester.getCenter(find.text('戊')), tail);
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:wu']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:wu']!.order, 4);
+    expect(layout.items['feature:ding']!.order, 3);
+  });
+
   testWidgets('拖拽中接近下缘自动滚动:offset 增长', (tester) async {
     final ScrollController scroll = ScrollController();
     addTearDown(scroll.dispose);

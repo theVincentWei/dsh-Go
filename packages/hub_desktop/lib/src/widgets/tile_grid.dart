@@ -62,7 +62,7 @@ class IconTile extends StatelessWidget {
     this.badge,
     this.chipColor,
     this.labelDot = false,
-    required this.onTap,
+    this.onTap,
     this.onDisabledTap,
     this.enabled = true,
   });
@@ -77,7 +77,9 @@ class IconTile extends StatelessWidget {
 
   /// 名字行尾小点(iOS 式);false 不占位。
   final bool labelDot;
-  final VoidCallback onTap;
+
+  /// 点按去向;null = 不响应(整理模式的瓷贴点了不开,见桌面画布 E5)。
+  final VoidCallback? onTap;
 
   /// [enabled] 为 false 时的点击去向(提示语义归宿主);null = 不响应。
   final VoidCallback? onDisabledTap;

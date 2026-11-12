@@ -10,10 +10,15 @@
 // 拖拽模型(Android Launcher 手感):按住 150ms 起拖——
 // 1) 起拖记下基线分组表(_base,渲染几何)与同形的本地预演(_preview,落表
 //    计算);渲染恒按基线槽位几何,预演差异用每格 AnimatedSlide 视觉偏移
-//    表达(其他图标滑开让位),几何全程不 reflow。
-// 2) 起拖的 post-frame(每组组尾预留空槽行的 reflow 落定后)量一次「槽位
-//    矩形表」:组头 / 空组落区 / 每个槽位(含组尾预留槽)的内容坐标矩形,
-//    内容坐标相对内容锚,滚动不改它;拖拽期间恒定。
+//    表达(其他图标滑开让位);几何只在组尾预留槽行增/收(拖入/拖出某组)
+//    时多一次单行 reflow,其余全程不动。
+// 2) 起拖的 post-frame(布局落定后)量一次「槽位矩形表」:组头 / 空组落
+//    区 / 每个槽位(含组尾预留槽)的内容坐标矩形,内容坐标相对内容锚,
+//    滚动不改它。预留槽行只在「预演里拖进了这一组」时真渲染(起拖瞬间
+//    预演与基线同形 → 全桌面不加行,消除「一起拖满行组就多出一行」的整
+//    页跳动;移到哪组哪组才出一行,Launcher 手感);表里没渲染的预留槽
+//    按网格几何合成,命中判定不因不渲染而丢。预演一变(版面可能加/收一
+//    行)就 post-frame 重测一次表。
 // 3) 拖动中指针全局坐标换算回内容坐标,对矩形表取最近落区(整格命中,
 //    16px 格距死区被最近格吸收):槽位 = 占住基线槽位上那颗的位置(前向
 //    插目标后 / 后向插目标前,同一把尺子),组头 / 空组 / 预留槽 = 追加组尾。
@@ -210,6 +215,10 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   /// 命中吸收半径:格与格 16px 的死区按最近格吸收,再远就不算落点。
   static const double _hitSlop = 16;
 
+  /// 桌面网格形状([_grid] 的 TileGrid 参数,合成预留槽矩形时用同一把尺)。
+  static const int _columns = 4;
+  static const double _gridSpacing = 16;
+
   /// 边缘自动滚动:距视口上/下缘 [kEdgeZone] 内触发,越近越快(线性),
   /// 最快 [kMaxScrollSpeed] 逻辑像素/秒。
   static const double kEdgeZone = 48;
@@ -260,9 +269,13 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     Size? cell;
     for (var g = 0; g < base.length; g++) {
       // 槽位先入表(含组尾预留槽):平局时优先选槽位而不是追加区。
-      // 格尺寸取自真格,空组的预留槽量出来也一致。
+      // 格尺寸取自真格。预留槽没渲染(起拖那一刻谁都没被拖入)时按网格
+      // 几何合成同一位置的矩形:命中判定不依赖预留行是否在版里。
       for (var i = 0; i <= base[g].keys.length; i++) {
-        final Rect? rect = contentRect(_keyFor('slot:$g:$i'));
+        Rect? rect = contentRect(_keyFor('slot:$g:$i'));
+        if (rect == null && i == base[g].keys.length && i > 0) {
+          rect = _synthTailRect(hits, g, i);
+        }
         if (rect == null) continue;
         hits.add(_HitRect(rect: rect, g: g, slot: i));
         if (i < base[g].keys.length) cell ??= rect.size;
@@ -279,6 +292,35 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       _cellSize = cell;
     });
     _startAutoScroll();
+  }
+
+  /// 拖拽中第 [g] 组组尾要不要真渲染预留槽行:仅当预演里这组成员数比基线
+  /// 多(有图标被拖进来)——起拖瞬间预演与基线同形,哪儿都不加行;移到
+  /// 哪组,哪组才出一行(Launcher 手感),移走 / 松手即收。
+  bool _needsReservedSlot(int g) {
+    final List<_PreviewGroup>? base = _base;
+    final List<_PreviewGroup>? preview = _preview;
+    if (base == null || preview == null) return false;
+    if (g < 0 || g >= base.length || g >= preview.length) return false;
+    return preview[g].keys.length > base[g].keys.length;
+  }
+
+  /// 合成组尾预留槽矩形(第 [g] 组的第 [slot] 格 == 组内第 slot-1 格的
+  /// 下一格):同行右移一格,行满折到下一行行首。与 [_grid] 的
+  /// TileGrid(columns: _columns, spacing: _gridSpacing)排布严格一致 ——
+  /// Expanded 槽位等宽、IntrinsicHeight 行等高,量真格即可外推。
+  Rect? _synthTailRect(List<_HitRect> hits, int g, int slot) {
+    _HitRect? last;
+    for (final _HitRect h in hits) {
+      if (h.g == g && h.slot == slot - 1) last = h;
+    }
+    if (last == null) return null;
+    final Rect r = last.rect;
+    final int col = (slot - 1) % _columns;
+    final double step = r.width + _gridSpacing;
+    final double dx = col < _columns - 1 ? step : -(_columns - 1) * step;
+    final double dy = col < _columns - 1 ? 0 : r.height + _gridSpacing;
+    return Rect.fromLTWH(r.left + dx, r.top + dy, r.width, r.height);
   }
 
   /// 拖到基线槽位 (g, slot):被拖 key 直投到这个槽位(指针在哪个格,它就
@@ -298,6 +340,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       preview[srcG].keys.remove(drag);
       preview[g].keys.insert(landsAt, drag);
     });
+    _remeasureAfterPreviewChange();
   }
 
   /// 拖到分组头 / 空组 / 预留槽落点:追加到组尾(最近使用组不可落)。已在
@@ -315,6 +358,16 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         group.keys.remove(drag);
       }
       preview[at].keys.add(drag);
+    });
+    _remeasureAfterPreviewChange();
+  }
+
+  /// 预演一变就 post-frame 重测矩形表:拖入某组会让它真出一行预留槽
+  /// (版面 reflow),拖走即收;矩形表的内容坐标必须跟上新版面,命中与
+  /// 滑移目标才不会指向旧位置。重测本身不触发 reflow,无循环风险。
+  void _remeasureAfterPreviewChange() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _dragKey != null) _measureTable();
     });
   }
 
@@ -616,9 +669,11 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       badge: _badgeFor(tile),
       chipColor: _chipColorFor(tile),
       labelDot: tile.labelDot,
-      onTap: () => _open(tile),
-      // 置灰瓷贴的点击也上报宿主(「本机不可用」类提示语义归宿主)。
-      onDisabledTap: () => widget.delegate.onUnavailableTap(tile),
+      // 编辑态点了不开(E5):整理模式里瓷贴只管拖拽 / 卸载,快速点按
+      // (未过起拖阈值)不得落到打开;置灰瓷贴的「本机不可用」提示同理
+      // 关掉,避免整理中弹提示。
+      onTap: _editing ? null : () => _open(tile),
+      onDisabledTap: _editing ? null : () => widget.delegate.onUnavailableTap(tile),
     );
 
     if (!_editing) {
@@ -760,8 +815,9 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   }
 
   /// 一组格子。[group] 非空表示这是拖拽中的非智能组基线渲染:每格挂视觉
-  /// 偏移,组尾加一格隐形预留槽(只在拖拽进行中出现,起止各一次单行
-  /// reflow;矩形表量它,语义 = 追加到该组组尾)。
+  /// 偏移;组尾的隐形预留槽只在「预演里拖进了这一组」时真渲染(见
+  /// [_needsReservedSlot] —— 起拖不加行,移到哪组哪组才出一行),矩形表
+  /// 里没渲染的预留槽由合成矩形兜底,语义 = 追加到该组组尾。
   Widget _grid(List<String> keys, {required bool mirror, int? group}) {
     final bool dragging = group != null && _dragKey != null;
     final List<Widget> cells = <Widget>[
@@ -769,7 +825,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         if (_byKey[key] case final HubTile tile?)
           _buildTile(tile, mirror: mirror, group: group, index: i),
     ];
-    if (dragging) {
+    if (dragging && _needsReservedSlot(group)) {
       cells.add(KeyedSubtree(
         key: _keyFor('slot:$group:${keys.length}'),
         child: ExcludeSemantics(
@@ -783,7 +839,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         ),
       ));
     }
-    return TileGrid(columns: 4, spacing: 16, children: cells);
+    return TileGrid(columns: _columns, spacing: _gridSpacing, children: cells);
   }
 
   /// 基线槽 (g,i) 上的图标该滑到哪:这个 key 在预演里的槽位矩形 − 基线槽
