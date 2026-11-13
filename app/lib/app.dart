@@ -14,6 +14,7 @@ import 'state/appearance_state.dart';
 import 'state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
 import 'state/locale_state.dart';
 import 'state/star_prompt.dart' show starPromptGateProvider, starPromptProvider;
+import 'ui/applet/dimina/float_ball.dart';
 import 'state/tile_style_state.dart';
 import 'ui/chat/dsh_ui/dsh_ui_model.dart' show DshUiAppAccent;
 import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
@@ -221,9 +222,11 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
                 fit: StackFit.expand,
                 children: [
                   if (Platform.operatingSystem == 'ohos')
-                    EasedKeyboardInset(child: MirroredSideInsets(child: child!))
+                    EasedKeyboardInset(child: MirroredSideInsets(child: DiminaFloatBall(child: child!)))
                   else
-                    MirroredSideInsets(child: child!),
+                    MirroredSideInsets(child: DiminaFloatBall(child: child!)),
+                  // 小程序浮窗单球(2026-11-12):⋯菜单「浮窗」收后台后贴边常驻,
+                  // 点击原地恢复;盖在所有路由之上、冷启动层之下。
                   const LaunchLayer(),
                 ],
               ),

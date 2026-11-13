@@ -14372,6 +14372,9 @@ class L10nEn extends L10n {
   String get remoteBootstrapStarting => 'Starting remote DSH…';
 
   @override
+  String get remoteWaitReady => 'Waiting for the remote DSH to become ready…';
+
+  @override
   String remoteErrCommandNotFound(String command) {
     return '“$command” not found on the host';
   }

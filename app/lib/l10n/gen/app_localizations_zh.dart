@@ -13708,6 +13708,9 @@ class L10nZh extends L10n {
   String get remoteBootstrapStarting => '正在远端启动 DSH…';
 
   @override
+  String get remoteWaitReady => '等远端 DSH 就绪…';
+
+  @override
   String remoteErrCommandNotFound(String command) {
     return '远端找不到「$command」';
   }

@@ -25274,6 +25274,12 @@ abstract class L10n {
   /// **'正在远端启动 DSH…'**
   String get remoteBootstrapStarting;
 
+  /// No description provided for @remoteWaitReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'等远端 DSH 就绪…'**
+  String get remoteWaitReady;
+
   /// No description provided for @remoteErrCommandNotFound.
   ///
   /// In zh, this message translates to:

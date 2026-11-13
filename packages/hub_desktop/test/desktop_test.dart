@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hub_desktop/hub_desktop.dart';
@@ -232,7 +233,7 @@ void main() {
     expect(tester.getCenter(ding), dingCenter);
   });
 
-  testWidgets('编辑态锁用户滚动(E1),程序驱动滚动不受物理限制', (tester) async {
+  testWidgets('编辑态空手可滚(E1 修订),拖拽进行中仍锁,程序驱动不受物理限制', (tester) async {
     // 注意:物理切换会让 Scrollable 重建 ScrollPosition(旧引用被 detach
     // + dispose,keepScrollOffset 保住像素位置),断言一律用「当下」的
     // position 再取,不跨阶段持引用。
@@ -249,22 +250,122 @@ void main() {
     expect(position.maxScrollExtent, greaterThan(0));
     expect(position.pixels, greaterThan(0));
 
-    // 编辑态:手势滚动被物理锁死,位置一像素不动。
+    // 编辑态(空手,没拖着图标):手势滚动照常(2026-11-13 用户拍板,
+    // 修订 E1 的「编辑态全锁」)。
     await tester.longPress(find.text('甲').first);
+    await tester.pumpAndSettle();
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+    final double beforeEditFling = position.pixels;
+    await tester.fling(find.byType(Scrollable).first, const Offset(0, -200), 3000);
+    await tester.pumpAndSettle();
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+    expect(position.pixels, greaterThan(beforeEditFling));
+
+    // 程序驱动(边缘自动滚动走的 position.animateTo)照常工作:滚回顶部,
+    // 顺带把「甲」带回视口供下一段拖拽用(上一段 fling 已把它滚出视口,
+    // SliverList 回收了离屏children)。不能 await——测试体在 FakeAsync 区,
+    // 真实时钟不走,动画永不结束;排后台用 pumpAndSettle 推时钟(引擎边缘
+    // 滚动测试同款做法)。
+    unawaited(position.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut));
+    await tester.pumpAndSettle();
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+    expect(position.pixels, 0);
+
+    // 拖拽进行中:手势仍锁——拖的那根手指已被 Draggable 占用,第二指
+    // 滚动会让摇摆图标随内容漂移、落点跟着换;程序驱动是边缘自动滚动
+    // 的前提(「拖拽中接近下缘自动滚动」一测覆盖)。
+    final TestGesture drag =
+        await tester.startGesture(tester.getCenter(find.text('甲').first));
+    await tester.pump(const Duration(milliseconds: 300)); // 过起拖延迟
     await tester.pumpAndSettle();
     position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
     final double lockedAt = position.pixels;
     await tester.fling(find.byType(Scrollable).first, const Offset(0, -200), 3000);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
     expect(position.pixels, lockedAt);
-
-    // 程序驱动(边缘自动滚动走的 position.animateTo)照常工作:回到顶部。
-    // 不能 await——测试体在 FakeAsync 区,真实时钟不走,动画永不结束;
-    // 排后台用 pumpAndSettle 推时钟(引擎边缘滚动测试同款做法)。
-    unawaited(position.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut));
+    await drag.up();
     await tester.pumpAndSettle();
-    expect(position.pixels, 0);
   });
+
+  testWidgets('名字点零位移(P5.2):带点/无点瓷贴的文本与芯片中心都与格中心对齐', (tester) async {
+    // 复刻实机反馈:带名字点的 mini(有更新/新装)文本中心被尾部点+间距
+    // 挤左 4px,不带点的不动 → 一行里「有的左移有的不左移」。修复 = 名字
+    // 行加前导平衡位,文本回正中;编辑态(reduce/关动画)静态倾斜归零后
+    // 同样零位移。− 卸载角标收进芯片内,不出芯片左上边界(角标外扩会让
+    // mini 观感左移,真机反馈同源)。
+    const List<HubTile> row = <HubTile>[
+      HubTile(
+          key: 'mini:a',
+          name: 'GLM用量',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'mini:b',
+          name: '系统监视器',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          uninstallable: true),
+      HubTile(
+          key: 'mini:c',
+          name: '记账本',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+    ];
+    await _pump(
+      tester,
+      tiles: () => row,
+      uninstallHook: (HubTile tile) async => true, // 角标渲染前置:钩子已注册
+    );
+
+    double textCenterX(String name) => tester.getCenter(find.text(name)).dx;
+
+    // 锚 = 芯片本体(46 方块)中心:IconTile 首个 RenderBox 在编辑态会换
+    // (Stack/角标包裹),render box 中心不稳;芯片由 Column 居中 + 槽宽
+    // 固定,中心跨态恒定。
+    double chipCenterX(String name) => tester
+        .getCenter(
+          find.descendant(
+            of: find.widgetWithText(IconTile, name),
+            matching: find.byWidgetPredicate(
+              (Widget w) => w is SizedBox && w.width == 46 && w.height == 46,
+            ),
+          ),
+        )
+        .dx;
+
+    final double a = textCenterX('GLM用量');
+    final double b = textCenterX('系统监视器');
+    final double c = textCenterX('记账本');
+    final double chipA = chipCenterX('GLM用量');
+    final double chipB = chipCenterX('系统监视器');
+    final double chipC = chipCenterX('记账本');
+    // 普通态逐格:名字中心 == 芯片中心 == 格中心(带点/无点都不得偏移)。
+    expect((a - chipA).abs(), lessThan(0.5));
+    expect((b - chipB).abs(), lessThan(0.5));
+    expect((c - chipC).abs(), lessThan(0.5));
+
+    // 编辑态:chip 与名字中心同样零位移(− 角标是 paint 覆盖,不动布局;
+    // reduce/关动画下静态倾斜归零)。
+    await tester.longPress(find.text('GLM用量').first);
+    await tester.pumpAndSettle();
+    expect(textCenterX('GLM用量'), a);
+    expect(textCenterX('系统监视器'), b);
+    expect(textCenterX('记账本'), c);
+    expect(chipCenterX('GLM用量'), chipA);
+    expect(chipCenterX('系统监视器'), chipB);
+    expect(chipCenterX('记账本'), chipC);
+
+    // − 卸载角标收在芯片内,不出芯片左上边界(P5.1 真机反馈:角标外扩
+    // 让 mini 观感左移;修复前 left/top 为 -2)。
+    for (final Positioned pd
+        in tester.widgetList<Positioned>(find.byType(Positioned))) {
+      expect(pd.left ?? 0, greaterThanOrEqualTo(0), reason: '角标 left 出界');
+      expect(pd.top ?? 0, greaterThanOrEqualTo(0), reason: '角标 top 出界');
+    }
+  });
+
 
   testWidgets('搜索:平铺结果,分组头消失;无结果给提示', (tester) async {
     await _pump(tester);
@@ -577,6 +678,130 @@ void main() {
     expect(layout.items['feature:ding']!.order, 0);
   });
 
+  testWidgets('编辑态点图标不开程序(E5),退出整理恢复可开', (tester) async {
+    final _RecordingDelegate delegate = _RecordingDelegate();
+    final ProviderContainer container = await _pump(
+      tester,
+      tiles: () => <HubTile>[_tile('jia', '甲'), _tile('yi', '乙', enabled: false)],
+      delegate: delegate,
+    );
+
+    // 普通态:可开的打开,置灰的转交「本机不可用」提示。
+    await tester.tap(find.text('甲'));
+    await tester.pumpAndSettle();
+    expect(delegate.opened, <String>['feature:jia']);
+    await tester.tap(find.text('乙'));
+    await tester.pumpAndSettle();
+    expect(delegate.unavailableTapped, <String>['feature:yi']);
+
+    // 整理态:快速点按(未过起拖阈值)两路都不响应——瓷贴只管拖拽/卸载。
+    delegate.opened.clear();
+    delegate.unavailableTapped.clear();
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('甲'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('乙'));
+    await tester.pumpAndSettle();
+    expect(delegate.opened, isEmpty);
+    expect(delegate.unavailableTapped, isEmpty);
+
+    // 退出整理恢复打开。
+    container.read(hubEditingProvider.notifier).set(false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('甲'));
+    await tester.pumpAndSettle();
+    expect(delegate.opened, <String>['feature:jia']);
+  });
+
+  testWidgets('起拖不加行,拖入哪组哪组才出一行(E5)', (tester) async {
+    final ProviderContainer container = await _pump(
+      tester,
+      tiles: () => <HubTile>[
+        _tile('jia', '甲'),
+        _tile('yi', '乙'),
+        _tile('bing', '丙'),
+        _tile('ding', '丁'),
+        _tile('wu', '戊'),
+        _tile('ji', '己'),
+        _tile('geng', '庚'),
+        _tile('xin', '辛'),
+      ],
+    );
+    // 两个满行组:组尾再容一颗就得折行——旧实现起拖即给所有组渲染预留
+    // 槽行,满行组当场多出一行把下方内容顶下去(实机「一起拖就多一行」)。
+    container.read(hubLayoutProvider.notifier).assignSections(<({String id, List<String> keys})>[
+      (id: 'seed:组A', keys: <String>['feature:jia', 'feature:yi', 'feature:bing', 'feature:ding']),
+      (id: 'seed:组B', keys: <String>['feature:wu', 'feature:ji', 'feature:geng', 'feature:xin']),
+    ]);
+    await tester.pumpAndSettle();
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+
+    final Finder newGroup = find.text('新建分组');
+    final double before = tester.getTopLeft(newGroup).dy;
+    final double rowStep = tester.getSize(find.widgetWithText(IconTile, '丁')).height + 16;
+    final Offset from = tester.getCenter(find.text('甲'));
+    // 组头落点取组头行的右缘(组A 的合成组尾槽与组B 头在文本一带重叠,
+    // 平局按表序槽位优先会追加组A;右缘只命中组B 头)。
+    final Offset head = tester.getTopLeft(find.text('组B')) + const Offset(300, 5);
+
+    // 起拖(过 150ms 阈值,指针不动):整页零加行。
+    final TestGesture gesture = await tester.startGesture(from);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(); // 起拖的 post-frame 量表
+    expect(tester.getTopLeft(newGroup).dy, before);
+
+    // 移到组B 组头(跨组):组B 拖进一颗 → 只有它出一行,下方内容下移一行。
+    for (var i = 1; i <= 8; i++) {
+      await gesture.moveTo(Offset.lerp(from, head, i / 8)!);
+      await tester.pump(const Duration(milliseconds: 30));
+    }
+    expect(tester.getTopLeft(newGroup).dy, closeTo(before + rowStep, 0.5));
+
+    // 松手落库:甲追加到组B 组尾(丁、戊、己、庚、辛都各归其位)。
+    await gesture.up();
+    await tester.pumpAndSettle();
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:jia']!.sectionId, 'seed:组B');
+    expect(layout.items['feature:jia']!.order, 4);
+    expect(layout.items['feature:xin']!.order, 3);
+  });
+
+  testWidgets('预留槽不渲染也有落区:拖戊到满组A 尾格下一格,追加组尾', (tester) async {
+    final ProviderContainer container = await _pump(
+      tester,
+      tiles: () => <HubTile>[
+        _tile('jia', '甲'),
+        _tile('yi', '乙'),
+        _tile('bing', '丙'),
+        _tile('ding', '丁'),
+        _tile('wu', '戊'),
+      ],
+    );
+    container.read(hubLayoutProvider.notifier).assignSections(<({String id, List<String> keys})>[
+      (id: 'seed:组A', keys: <String>['feature:jia', 'feature:yi', 'feature:bing', 'feature:ding']),
+      (id: 'seed:组B', keys: <String>['feature:wu']),
+    ]);
+    await tester.pumpAndSettle();
+    container.read(hubEditingProvider.notifier).set(true);
+    await tester.pumpAndSettle();
+
+    // 组A 满行,起拖那一刻预留槽不渲染;矩形表按网格几何合成「下一行
+    // 行首」的落区——指针停那儿命中追加语义,弹回路径之外不丢组尾落点。
+    final Rect ding = tester.getRect(find.widgetWithText(IconTile, '丁'));
+    final Offset tail = Offset(
+      ding.left - 3 * (ding.width + 16) + ding.width / 2,
+      ding.top + ding.height + 16 + ding.height / 2,
+    );
+    await _drag(tester, tester.getCenter(find.text('戊')), tail);
+
+    final HubLayout layout = container.read(hubLayoutProvider);
+    expect(layout.items['feature:wu']!.sectionId, 'seed:组A');
+    expect(layout.items['feature:wu']!.order, 4);
+    expect(layout.items['feature:ding']!.order, 3);
+  });
+
   testWidgets('拖拽中接近下缘自动滚动:offset 增长', (tester) async {
     final ScrollController scroll = ScrollController();
     addTearDown(scroll.dispose);
@@ -629,6 +854,70 @@ void main() {
     expect(layout.items['feature:jia']!.sectionId, 'seed:组A');
     expect(layout.items['feature:jia']!.order, 0);
     expect(find.text('甲'), findsNWidgets(2)); // 镜像 + 真身都在
+  });
+
+  testWidgets('编辑态列间距取证(P5.1②):Flex 槽位恒等宽,视觉差=摇摆相位投影', (tester) async {
+    // 复刻用户实机截图的那一行:三颗 mini(两颗带名字点、全带卸载角标)
+    // + 一颗 feature 瓷贴。
+    const List<HubTile> row = <HubTile>[
+      HubTile(
+          key: 'mini:a',
+          name: 'GLM用量',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'mini:b',
+          name: '系统监视器',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          uninstallable: true),
+      HubTile(
+          key: 'mini:c',
+          name: '记账本',
+          icon: HubIcon.widget(Icon(Icons.circle)),
+          labelDot: true,
+          uninstallable: true),
+      HubTile(
+          key: 'feature:market',
+          name: '应用市场',
+          icon: HubIcon.widget(Icon(Icons.circle))),
+    ];
+    await _pump(tester, tiles: () => row);
+    await tester.longPress(find.text('GLM用量').first);
+    await tester.pumpAndSettle();
+
+    // 布局真相:TileGrid 的行是 Flex,四个 Expanded 槽位必然等宽等距
+    // (parentData.offset 步进 = 槽宽 + spacing,逐格相等)。
+    // IconTile 的首个 RenderBox 不是 Flex 直接子,沿 parent 上溯到挂
+    // FlexParentData 的那层(= Row 的直接子,尺寸即槽位尺寸)。
+    RenderBox flexCell(int i) {
+      RenderBox cell = tester.renderObject<RenderBox>(find.byType(IconTile).at(i));
+      while (cell.parentData is! FlexParentData) {
+        cell = cell.parent! as RenderBox;
+      }
+      return cell;
+    }
+
+    double slotDx(int i) => (flexCell(i).parentData! as FlexParentData).offset.dx;
+
+    double slotWidth(int i) => flexCell(i).size.width;
+
+    final List<double> dxs = <double>[for (var i = 0; i < 4; i++) slotDx(i)];
+    final List<double> widths = <double>[for (var i = 0; i < 4; i++) slotWidth(i)];
+    // 槽宽逐格相等。
+    expect(widths[0], widths[1]);
+    expect(widths[1], widths[2]);
+    expect(widths[2], widths[3]);
+    // 槽位步进恒等(= 槽宽 + 16 间距),没有任何一格多出一档。
+    expect(dxs[1] - dxs[0], dxs[2] - dxs[1]);
+    expect(dxs[2] - dxs[1], dxs[3] - dxs[2]);
+
+    // 视觉(含摇摆 Transform)上的间隙:随各格相位角有 ±2px 级投影差,
+    // 这就是实机截图「记账本↔应用市场更宽」的来源——paint 层,非布局。
+    double paintLeft(int i) => tester.getTopLeft(find.byType(IconTile).at(i)).dx;
+    final List<double> paint = <double>[for (var i = 0; i < 4; i++) paintLeft(i)];
+    // ignore: avoid_print
+    print('DBG slots=$dxs widths=$widths paintLeft=$paint');
   });
 
   testWidgets('落库断言:拖拽后 prefs 里 v/sections/items/recent 全量正确', (tester) async {

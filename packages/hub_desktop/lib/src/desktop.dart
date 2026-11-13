@@ -10,10 +10,15 @@
 // 拖拽模型(Android Launcher 手感):按住 150ms 起拖——
 // 1) 起拖记下基线分组表(_base,渲染几何)与同形的本地预演(_preview,落表
 //    计算);渲染恒按基线槽位几何,预演差异用每格 AnimatedSlide 视觉偏移
-//    表达(其他图标滑开让位),几何全程不 reflow。
-// 2) 起拖的 post-frame(每组组尾预留空槽行的 reflow 落定后)量一次「槽位
-//    矩形表」:组头 / 空组落区 / 每个槽位(含组尾预留槽)的内容坐标矩形,
-//    内容坐标相对内容锚,滚动不改它;拖拽期间恒定。
+//    表达(其他图标滑开让位);几何只在组尾预留槽行增/收(拖入/拖出某组)
+//    时多一次单行 reflow,其余全程不动。
+// 2) 起拖的 post-frame(布局落定后)量一次「槽位矩形表」:组头 / 空组落
+//    区 / 每个槽位(含组尾预留槽)的内容坐标矩形,内容坐标相对内容锚,
+//    滚动不改它。预留槽行只在「预演里拖进了这一组」时真渲染(起拖瞬间
+//    预演与基线同形 → 全桌面不加行,消除「一起拖满行组就多出一行」的整
+//    页跳动;移到哪组哪组才出一行,Launcher 手感);表里没渲染的预留槽
+//    按网格几何合成,命中判定不因不渲染而丢。预演一变(版面可能加/收一
+//    行)就 post-frame 重测一次表。
 // 3) 拖动中指针全局坐标换算回内容坐标,对矩形表取最近落区(整格命中,
 //    16px 格距死区被最近格吸收):槽位 = 占住基线槽位上那颗的位置(前向
 //    插目标后 / 后向插目标前,同一把尺子),组头 / 空组 / 预留槽 = 追加组尾。
@@ -210,6 +215,10 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   /// 命中吸收半径:格与格 16px 的死区按最近格吸收,再远就不算落点。
   static const double _hitSlop = 16;
 
+  /// 桌面网格形状([_grid] 的 TileGrid 参数,合成预留槽矩形时用同一把尺)。
+  static const int _columns = 4;
+  static const double _gridSpacing = 16;
+
   /// 边缘自动滚动:距视口上/下缘 [kEdgeZone] 内触发,越近越快(线性),
   /// 最快 [kMaxScrollSpeed] 逻辑像素/秒。
   static const double kEdgeZone = 48;
@@ -260,9 +269,13 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     Size? cell;
     for (var g = 0; g < base.length; g++) {
       // 槽位先入表(含组尾预留槽):平局时优先选槽位而不是追加区。
-      // 格尺寸取自真格,空组的预留槽量出来也一致。
+      // 格尺寸取自真格。预留槽没渲染(起拖那一刻谁都没被拖入)时按网格
+      // 几何合成同一位置的矩形:命中判定不依赖预留行是否在版里。
       for (var i = 0; i <= base[g].keys.length; i++) {
-        final Rect? rect = contentRect(_keyFor('slot:$g:$i'));
+        Rect? rect = contentRect(_keyFor('slot:$g:$i'));
+        if (rect == null && i == base[g].keys.length && i > 0) {
+          rect = _synthTailRect(hits, g, i);
+        }
         if (rect == null) continue;
         hits.add(_HitRect(rect: rect, g: g, slot: i));
         if (i < base[g].keys.length) cell ??= rect.size;
@@ -279,6 +292,35 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       _cellSize = cell;
     });
     _startAutoScroll();
+  }
+
+  /// 拖拽中第 [g] 组组尾要不要真渲染预留槽行:仅当预演里这组成员数比基线
+  /// 多(有图标被拖进来)——起拖瞬间预演与基线同形,哪儿都不加行;移到
+  /// 哪组,哪组才出一行(Launcher 手感),移走 / 松手即收。
+  bool _needsReservedSlot(int g) {
+    final List<_PreviewGroup>? base = _base;
+    final List<_PreviewGroup>? preview = _preview;
+    if (base == null || preview == null) return false;
+    if (g < 0 || g >= base.length || g >= preview.length) return false;
+    return preview[g].keys.length > base[g].keys.length;
+  }
+
+  /// 合成组尾预留槽矩形(第 [g] 组的第 [slot] 格 == 组内第 slot-1 格的
+  /// 下一格):同行右移一格,行满折到下一行行首。与 [_grid] 的
+  /// TileGrid(columns: _columns, spacing: _gridSpacing)排布严格一致 ——
+  /// Expanded 槽位等宽、IntrinsicHeight 行等高,量真格即可外推。
+  Rect? _synthTailRect(List<_HitRect> hits, int g, int slot) {
+    _HitRect? last;
+    for (final _HitRect h in hits) {
+      if (h.g == g && h.slot == slot - 1) last = h;
+    }
+    if (last == null) return null;
+    final Rect r = last.rect;
+    final int col = (slot - 1) % _columns;
+    final double step = r.width + _gridSpacing;
+    final double dx = col < _columns - 1 ? step : -(_columns - 1) * step;
+    final double dy = col < _columns - 1 ? 0 : r.height + _gridSpacing;
+    return Rect.fromLTWH(r.left + dx, r.top + dy, r.width, r.height);
   }
 
   /// 拖到基线槽位 (g, slot):被拖 key 直投到这个槽位(指针在哪个格,它就
@@ -298,6 +340,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       preview[srcG].keys.remove(drag);
       preview[g].keys.insert(landsAt, drag);
     });
+    _remeasureAfterPreviewChange();
   }
 
   /// 拖到分组头 / 空组 / 预留槽落点:追加到组尾(最近使用组不可落)。已在
@@ -315,6 +358,16 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         group.keys.remove(drag);
       }
       preview[at].keys.add(drag);
+    });
+    _remeasureAfterPreviewChange();
+  }
+
+  /// 预演一变就 post-frame 重测矩形表:拖入某组会让它真出一行预留槽
+  /// (版面 reflow),拖走即收;矩形表的内容坐标必须跟上新版面,命中与
+  /// 滑移目标才不会指向旧位置。重测本身不触发 reflow,无循环风险。
+  void _remeasureAfterPreviewChange() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _dragKey != null) _measureTable();
     });
   }
 
@@ -587,10 +640,15 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         _ => null,
       };
 
-  /// 整理模式的摇摆 + 相位差。
+  /// 整理模式的摇摆 + 相位差(绕瓷贴自身中心旋转,不产生位移)。系统
+  /// 「移除动画」/减弱动态时不摆:P5.2 实测静态相位角会让瓷贴绘制边界
+  /// 偏移 ±2px 级(「有的左移有的不左移」的次级来源),直接归零。
   Widget _wiggleWrap(String key, Widget child) => AnimatedBuilder(
         animation: _wiggle,
         builder: (BuildContext context, Widget? child) {
+          if (MediaQuery.of(context).disableAnimations) {
+            return child!;
+          }
           final double phase = (key.hashCode % 8) / 8;
           final double v = (_wiggle.value + phase) % 1.0;
           return Transform.rotate(angle: math.sin(v * 2 * math.pi) * 0.04, child: child);
@@ -611,9 +669,11 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       badge: _badgeFor(tile),
       chipColor: _chipColorFor(tile),
       labelDot: tile.labelDot,
-      onTap: () => _open(tile),
-      // 置灰瓷贴的点击也上报宿主(「本机不可用」类提示语义归宿主)。
-      onDisabledTap: () => widget.delegate.onUnavailableTap(tile),
+      // 编辑态点了不开(E5):整理模式里瓷贴只管拖拽 / 卸载,快速点按
+      // (未过起拖阈值)不得落到打开;置灰瓷贴的「本机不可用」提示同理
+      // 关掉,避免整理中弹提示。
+      onTap: _editing ? null : () => _open(tile),
+      onDisabledTap: _editing ? null : () => widget.delegate.onUnavailableTap(tile),
     );
 
     if (!_editing) {
@@ -626,13 +686,22 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
     Widget visual = _wiggleWrap(tile.key, core);
     if (!mirror && _canUninstall(tile)) {
       final ColorScheme scheme = Theme.of(context).colorScheme;
+      // alignment center:Stack(loose)会把瓷贴收缩为「wiggle 子内容宽」
+      // 并按默认 topStart 靠左上放——芯片中心实左移 4.7px(P5.3 真机
+      // 「AppHub 图标左移」实锤根因,连列测试实测);居中对齐让瓷贴在槽
+      // 内居中,芯片中心回槽中心,零位移。角标同时收到芯片内(不外扩)。
+      // alignment center:Stack(loose)会把瓷贴收缩为「wiggle 子内容宽」
+      // 并按默认 topStart 靠左上放——芯片中心实左移 4.7px(P5.3 真机
+      // 「AppHub 图标左移」实锤根因,连列测试实测);居中对齐让瓷贴在槽
+      // 内居中,芯片中心回槽中心,零位移。角标同时收到芯片内(不外扩)。
       visual = Stack(
+        alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: <Widget>[
           visual,
           Positioned(
-            left: -2,
-            top: -2,
+            left: 2,
+            top: 2,
             child: GestureDetector(
               onTap: () => unawaited(_uninstall(tile)),
               child: Container(
@@ -746,8 +815,9 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
   }
 
   /// 一组格子。[group] 非空表示这是拖拽中的非智能组基线渲染:每格挂视觉
-  /// 偏移,组尾加一格隐形预留槽(只在拖拽进行中出现,起止各一次单行
-  /// reflow;矩形表量它,语义 = 追加到该组组尾)。
+  /// 偏移;组尾的隐形预留槽只在「预演里拖进了这一组」时真渲染(见
+  /// [_needsReservedSlot] —— 起拖不加行,移到哪组哪组才出一行),矩形表
+  /// 里没渲染的预留槽由合成矩形兜底,语义 = 追加到该组组尾。
   Widget _grid(List<String> keys, {required bool mirror, int? group}) {
     final bool dragging = group != null && _dragKey != null;
     final List<Widget> cells = <Widget>[
@@ -755,7 +825,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         if (_byKey[key] case final HubTile tile?)
           _buildTile(tile, mirror: mirror, group: group, index: i),
     ];
-    if (dragging) {
+    if (dragging && _needsReservedSlot(group)) {
       cells.add(KeyedSubtree(
         key: _keyFor('slot:$group:${keys.length}'),
         child: ExcludeSemantics(
@@ -769,7 +839,7 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
         ),
       ));
     }
-    return TileGrid(columns: 4, spacing: 16, children: cells);
+    return TileGrid(columns: _columns, spacing: _gridSpacing, children: cells);
   }
 
   /// 基线槽 (g,i) 上的图标该滑到哪:这个 key 在预演里的槽位矩形 − 基线槽
@@ -980,11 +1050,13 @@ class _HubDesktopViewState extends ConsumerState<HubDesktopView>
       builder: (BuildContext context, _, _) => CustomScrollView(
         key: _scrollKey,
         controller: _scroll,
-        // 整理模式:拖拽中的落点矩形表跟着用户滚动就乱了,拖拽期间锁掉
-        // (贴上/下缘的边缘自动滚动是程序驱动,不受影响);**没在拖图标时
-        // 保持可滚**——长桌面的整理要能滚到下面的组(用户拍板 2026-11-13:
-        // 编辑模式只能上下滚、左右不滚)。退出整理恢复普通物理。
-        physics: !_editing || _dragKey != null
+        // 滚动物理按「是否正拖着图标」切换(2026-11-13 用户拍板,修订
+        // E1:整理态空手滑动也要能滚,不然长桌面只能拖着图标贴边缘才
+        // 滚得动)。拖拽进行中仍锁手势:那根手指已被 LongPressDraggable
+        // 占用,第二指手势滚会让摇摆图标随内容漂移、落点跟着换;物理只
+        // 关手势驱动,position.animateTo 这类程序驱动照常——拖拽贴上/
+        // 下缘的边缘自动滚动(矩形表滚动补偿)不受影响。松手恢复。
+        physics: _dragKey != null
             ? const NeverScrollableScrollPhysics()
             : HubMotion.scrollPhysics(context),
         slivers: <Widget>[

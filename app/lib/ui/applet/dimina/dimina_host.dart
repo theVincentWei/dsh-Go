@@ -24,13 +24,29 @@ final class DiminaUpdateEvent {
     this.versionCode,
     this.versionName = '',
     this.message,
-  });
-
-  final String event;
+  });  final String event;
   final String appId;
   final int? versionCode;
   final String versionName;
   final String? message;
+}
+
+/// 浮窗链路事件(2026-11-12 单球拍板):容器单球浮窗的状态回传。
+/// floated=⋯菜单「浮窗」收后台成功(应显示浮窗球,带图标);
+/// foregrounded=小程序回到前台(收起浮窗球);
+/// destroyed=运行时销毁:真退出/超时回收/压力回收/宿主 close(收起浮窗球)。
+final class DiminaFloatEvent {
+  const DiminaFloatEvent({
+    required this.type,
+    required this.appId,
+    this.appName,
+    this.iconPng,
+  });
+
+  final String type;
+  final String appId;
+  final String? appName;
+  final Uint8List? iconPng;
 }
 
 final class DiminaHost {
@@ -45,6 +61,13 @@ final class DiminaHost {
   static final StreamController<DiminaUpdateEvent> _updateEvents =
       StreamController<DiminaUpdateEvent>.broadcast();
   static bool _nativeHandlerInstalled = false;
+
+  static final StreamController<DiminaFloatEvent> _floatEvents =
+      StreamController<DiminaFloatEvent>.broadcast();
+
+  /// 浮窗事件广播流(2026-11-12):floated=显示浮窗球;foregrounded/destroyed=收起。
+  /// 单球语义:再次 floated 直接顶替当前球。
+  static Stream<DiminaFloatEvent> get floatEvents => _floatEvents.stream;
 
   /// 升级链路事件广播流:市场页/Hub 订阅后按真实状态刷新,不必轮询。
   static Stream<DiminaUpdateEvent> get updateEvents => _updateEvents.stream;
@@ -86,6 +109,17 @@ final class DiminaHost {
                 '${entry.key}': '${entry.value}',
             },
           ));
+        case 'onDiminaEvent':
+          // 浮窗链路(2026-11-12):容器 floated/foregrounded/destroyed → 单球状态机。
+          if (call.arguments is Map) {
+            final Map args = call.arguments as Map;
+            _floatEvents.add(DiminaFloatEvent(
+              type: args['type'] as String? ?? '',
+              appId: args['appId'] as String? ?? '',
+              appName: args['appName'] as String?,
+              iconPng: args['iconPng'] is Uint8List ? args['iconPng'] as Uint8List : null,
+            ));
+          }
       }
       return null;
     });
