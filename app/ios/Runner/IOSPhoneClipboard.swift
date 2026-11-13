@@ -56,7 +56,7 @@ final class IOSPhoneClipboard {
     let id: UUID
     let focus: Focus
   }
-  private static let markerType = "com.yinkuotech.dsh-wanqi.phone-paste-lease"
+  private static let markerType = "com.yinkuotech.wanqi.phone-paste-lease"
   private static let textType = "public.utf8-plain-text"
   private final class Lease {
     let id = UUID()

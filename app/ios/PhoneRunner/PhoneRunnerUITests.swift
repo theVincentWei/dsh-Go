@@ -127,7 +127,7 @@ final class PhoneServer {
     if let path = ProcessInfo.processInfo.environment["DSH_PHONE_RUNNER_DIR"] {
       return URL(fileURLWithPath: path, isDirectory: true)
     }
-    guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.yinkuotech.dsh-wanqi") else {
+    guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.yinkuotech.wanqi") else {
       // route-b: 未签名的模拟器测试拿不到 App Group——退回测试进程自己的容器
       // （Mac 侧从设备数据卷直接读 <device>/data/Containers/.../<uuid>/phone-runner）。
       return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)

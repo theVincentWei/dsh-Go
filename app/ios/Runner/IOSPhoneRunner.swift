@@ -7,7 +7,7 @@ import UserNotifications
 /// uncertainty after any dispatch never authorizes switching routes or replay.
 @MainActor
 final class IOSPhoneRunner {
-  private static let group = "group.com.yinkuotech.dsh-wanqi"
+  private static let group = "group.com.yinkuotech.wanqi"
   private static let missing =
     "手机操控没有运行，所以这一步没有执行。请告诉用户：先在 Mac 上运行 tooling/ios/phone-runner.sh，让手机操控的测试进程跑起来，再重试。不要自动反复重试。"
   static let coreStopUnconfirmed =
