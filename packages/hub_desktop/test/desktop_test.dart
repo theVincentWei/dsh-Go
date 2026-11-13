@@ -233,7 +233,7 @@ void main() {
     expect(tester.getCenter(ding), dingCenter);
   });
 
-  testWidgets('编辑态锁用户滚动(E1),程序驱动滚动不受物理限制', (tester) async {
+  testWidgets('编辑态空手可滚(E1 修订),拖拽进行中仍锁,程序驱动不受物理限制', (tester) async {
     // 注意:物理切换会让 Scrollable 重建 ScrollPosition(旧引用被 detach
     // + dispose,keepScrollOffset 保住像素位置),断言一律用「当下」的
     // position 再取,不跨阶段持引用。
@@ -250,21 +250,42 @@ void main() {
     expect(position.maxScrollExtent, greaterThan(0));
     expect(position.pixels, greaterThan(0));
 
-    // 编辑态:手势滚动被物理锁死,位置一像素不动。
+    // 编辑态(空手,没拖着图标):手势滚动照常(2026-11-13 用户拍板,
+    // 修订 E1 的「编辑态全锁」)。
     await tester.longPress(find.text('甲').first);
+    await tester.pumpAndSettle();
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+    final double beforeEditFling = position.pixels;
+    await tester.fling(find.byType(Scrollable).first, const Offset(0, -200), 3000);
+    await tester.pumpAndSettle();
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+    expect(position.pixels, greaterThan(beforeEditFling));
+
+    // 程序驱动(边缘自动滚动走的 position.animateTo)照常工作:滚回顶部,
+    // 顺带把「甲」带回视口供下一段拖拽用(上一段 fling 已把它滚出视口,
+    // SliverList 回收了离屏children)。不能 await——测试体在 FakeAsync 区,
+    // 真实时钟不走,动画永不结束;排后台用 pumpAndSettle 推时钟(引擎边缘
+    // 滚动测试同款做法)。
+    unawaited(position.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut));
+    await tester.pumpAndSettle();
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+    expect(position.pixels, 0);
+
+    // 拖拽进行中:手势仍锁——拖的那根手指已被 Draggable 占用,第二指
+    // 滚动会让摇摆图标随内容漂移、落点跟着换;程序驱动是边缘自动滚动
+    // 的前提(「拖拽中接近下缘自动滚动」一测覆盖)。
+    final TestGesture drag =
+        await tester.startGesture(tester.getCenter(find.text('甲').first));
+    await tester.pump(const Duration(milliseconds: 300)); // 过起拖延迟
     await tester.pumpAndSettle();
     position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
     final double lockedAt = position.pixels;
     await tester.fling(find.byType(Scrollable).first, const Offset(0, -200), 3000);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
+    position = tester.state<ScrollableState>(find.byType(Scrollable).first).position;
     expect(position.pixels, lockedAt);
-
-    // 程序驱动(边缘自动滚动走的 position.animateTo)照常工作:回到顶部。
-    // 不能 await——测试体在 FakeAsync 区,真实时钟不走,动画永不结束;
-    // 排后台用 pumpAndSettle 推时钟(引擎边缘滚动测试同款做法)。
-    unawaited(position.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut));
+    await drag.up();
     await tester.pumpAndSettle();
-    expect(position.pixels, 0);
   });
 
   testWidgets('名字点零位移(P5.2):带点/无点瓷贴的文本与芯片中心都与格中心对齐', (tester) async {
