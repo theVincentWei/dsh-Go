@@ -8,6 +8,9 @@ import android.os.Looper
 import com.didi.dimina.Dimina
 import com.didi.dimina.MiniProgramUpdateListener
 import com.didi.dimina.bean.MiniProgram
+import com.didi.dimina.core.MiniApp
+import com.didi.dimina.core.MiniProgramLifecycleListener
+import com.didi.dimina.core.RetentionPolicy
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -73,6 +76,11 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
         // 同步主题覆写:否则菜单面板读 isCapsuleThemeDark() 拿到 null→浅色,
         // 而胶囊(init 配置)已是深色——两处不一致。
         Dimina.getInstance().updateCapsuleTheme(dark)
+        // 浮窗保活(2026-11-12 拍板 30 分钟):✕/根页返回改真退出后,后台活着的
+        // 只剩浮窗应用;最多 3 个,超 30 分钟运行时回收(下次冷启动,storage 不丢)。
+        MiniApp.getInstance().configureRetention(
+            RetentionPolicy(maxBackgroundApps = 3, backgroundTimeoutMs = 30L * 60 * 1000),
+        )
         // 宿主扩展通道:小程序 requestSubscribeMessage → 原生订阅面板(契约 §5.2/§5.3)。
         // 注册发生在 Dimina.init 之后(框架的扩展模块表此时才可用)。
         registerNotifyExtModule()
@@ -93,6 +101,36 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
 
             override fun onInstalled(appId: String, versionCode: Int, versionName: String) =
                 forwardUpdateEvent("installed", appId, versionCode, versionName, null)
+        })
+        // 浮窗链路(2026-11-12 单球拍板):⋯菜单「浮窗」收后台/回前台/运行时销毁
+        // 三个事件转发给 Dart 画浮窗球。回调已在主线程(MiniApp.notify* 内部 post
+        // main),这里再套 main.post 兜底;invokeMethod 失败(Dart 没挂 handler/
+        // 引擎销毁)静默——球状态由下一次事件校正。
+        Dimina.getInstance().setOnMiniProgramLifecycleListener(object : MiniProgramLifecycleListener {
+            private fun forward(type: String, appId: String, appName: String? = null, iconPng: ByteArray? = null) {
+                main.post {
+                    try {
+                        channel.invokeMethod(
+                            "onDiminaEvent",
+                            mapOf(
+                                "type" to type,
+                                "appId" to appId,
+                                "appName" to (appName ?: appId),
+                                "iconPng" to iconPng,
+                            ),
+                        )
+                    } catch (_: Throwable) {
+                        // Dart 侧未挂 handler 或引擎正在销毁:忽略。
+                    }
+                }
+            }
+
+            override fun onFloated(appId: String, appName: String, iconPng: ByteArray?) =
+                forward("floated", appId, appName, iconPng)
+
+            override fun onForegrounded(appId: String) = forward("foregrounded", appId)
+
+            override fun onRuntimeDestroyed(appId: String) = forward("destroyed", appId)
         })
     }
 
