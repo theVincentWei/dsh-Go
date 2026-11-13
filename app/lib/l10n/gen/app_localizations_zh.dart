@@ -10264,7 +10264,7 @@ class L10nZh extends L10n {
   String get phoneYoursSecrets => '密码和验证码';
 
   @override
-  String get phoneYoursOwnApp => '万器 自身';
+  String get phoneYoursOwnApp => '万器自身';
 
   @override
   String get phoneYoursDenyList => '应用名单里「不碰」的 App，默认含银行、支付类';
@@ -10288,7 +10288,7 @@ class L10nZh extends L10n {
   String get phoneUnlockSecretsHint => '填写密码、验证码和支付密码';
 
   @override
-  String get phoneUnlockOwnApp => '万器 自身';
+  String get phoneUnlockOwnApp => '万器自身';
 
   @override
   String get phoneUnlockOwnAppHint => '在 万器 里点按和输入';
@@ -10865,7 +10865,7 @@ class L10nZh extends L10n {
   String get pluginsFileWriteFailed => '没能写入文件';
 
   @override
-  String get pluginsProfileTitle => '万器 配置';
+  String get pluginsProfileTitle => '万器配置';
 
   @override
   String get pluginsGistTokenInvalid => 'GitHub 令牌无效或没有 Gist 权限';
@@ -11703,7 +11703,7 @@ class L10nZh extends L10n {
   String get pluginsShareOpenFailed => '没能打开这个分享码';
 
   @override
-  String get pluginsPluginShareTitle => '万器 插件';
+  String get pluginsPluginShareTitle => '万器插件';
 
   @override
   String get pluginsShareSheetOpenFailed => '没能打开分享';
@@ -13886,7 +13886,7 @@ class L10nZh extends L10n {
   String get askAiNoGuide => '这台主机没有 万器 使用说明，回答可能不准确';
 
   @override
-  String get askAiQuestionOverview => '万器 能做什么？我该从哪里开始？';
+  String get askAiQuestionOverview => '万器能做什么？我该从哪里开始？';
 
   @override
   String get askAiQuestionPhoneControl => '手机操控是怎么工作的？有什么风险？';
@@ -15299,7 +15299,7 @@ class L10nZh extends L10n {
   String get starSettingsTitle => '给 万器 点个 star';
 
   @override
-  String get stateDiagnosticsSubject => '万器 诊断包';
+  String get stateDiagnosticsSubject => '万器诊断包';
 
   @override
   String get stateStoragePermission => '没有存储权限，存不进「下载」';
