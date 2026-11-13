@@ -254,6 +254,10 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
         }
       },
       tunnel: ref.read(sshTunnelFactoryProvider)(),
+      // A cold remote DSH answers TCP before it answers HTTP; the test flow
+      // reports the first failure, so waiting here is the difference between
+      // 「登录」 hanging for two minutes and a green test.
+      waitReady: remoteDshReadyWait,
       retryFirstOpen: false,
     );
     _test = link;

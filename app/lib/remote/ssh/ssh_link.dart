@@ -36,6 +36,49 @@ typedef DshClientConnector = Future<DshClient> Function({
 Future<DshClient> _defaultConnector({required Uri baseUri, required String token, required String hostHeader}) =>
     DshClient.connect(baseUri: baseUri, token: token, hostHeader: hostHeader);
 
+/// Waits for the `dsh web` behind the tunnel to actually answer HTTP.
+typedef DshReadyWait = Future<void> Function(Uri baseUri, String hostHeader);
+
+/// The bootstrap reads a pid and a log line, and the tunnel probe only opens
+/// a TCP connection — none of that means the remote app is ready to answer
+/// requests. The first `login` GET would otherwise sit in that gap until the
+/// 120 s request timeout while the progress card stays on 「登录」 ("stuck at
+/// the last step"). Poll the health door first; `unauthorized` passes through,
+/// because a rejected token is exactly what the login step (and its
+/// restart-on-401 path) exists to handle.
+Future<void> waitForRemoteDshReady(
+  DshConnection connection, {
+  Duration budget = const Duration(seconds: 30),
+  Duration probeTimeout = const Duration(seconds: 5),
+  Duration interval = const Duration(milliseconds: 800),
+}) async {
+  final deadline = DateTime.now().add(budget);
+  while (true) {
+    final health = await connection.checkHealth(timeout: probeTimeout);
+    if (health != DshHealth.unreachable) return;
+    if (DateTime.now().isAfter(deadline)) {
+      throw HostLinkError(
+        HostLinkErrorKind.dshTimeout,
+        appL10n.remoteErrDshStartTimeout,
+        detail: 'GET / stayed unreachable for ${budget.inSeconds}s behind the tunnel',
+        retryable: true,
+      );
+    }
+    await Future<void>.delayed(interval);
+  }
+}
+
+/// Production ready-wait. Opt-in at the call sites so the many orchestration
+/// tests (fake connectors, no HTTP behind the tunnel) keep their step flow.
+Future<void> remoteDshReadyWait(Uri baseUri, String hostHeader) {
+  final connection = DshConnection(baseUri, hostHeader: hostHeader);
+  return waitForRemoteDshReady(connection).whenComplete(() => connection.close());
+}
+
+/// No-op for tests that inject a fake connector and have no HTTP behind the
+/// tunnel.
+Future<void> _noWaitReady(Uri baseUri, String hostHeader) async {}
+
 /// Trust-on-first-use check against the pinned fingerprint.
 enum HostKeyVerdict { trusted, unknown, mismatch }
 
@@ -67,6 +110,7 @@ class SshHostLink implements HostLink {
     SshTunnel? tunnel,
     SshTransportFactory? transportFactory,
     DshClientConnector? connectClient,
+    DshReadyWait? waitReady,
     Stream<void>? kicks,
     Backoff? backoff,
     this.remoteEnvironment = const {},
@@ -85,6 +129,7 @@ class SshHostLink implements HostLink {
                  )
                : IsolateSshTunnel()),
        _connectClient = connectClient ?? _defaultConnector,
+       _waitReady = waitReady ?? _noWaitReady,
        // 退避不封顶(null = 永远重试,间隔 30s 封顶):主机卡死/离线一旦超过
        // 原 8 次预算(约 2-4 分钟),链路就永久躺平,只能杀 App 重连——主机
        // 恢复后永远等不到。非重试错误(密码/主机钥匙)仍走 _fail 停下等人。
@@ -110,6 +155,7 @@ class SshHostLink implements HostLink {
   /// tests inject [LocalSshTunnel] with a fake transport factory.
   final SshTunnel _tunnel;
   final DshClientConnector _connectClient;
+  final DshReadyWait _waitReady;
   final Backoff _backoff;
 
   /// 本地绑死的 AppHub 转发口(默认 = kAppHubRemotePort):小程序硬编码
@@ -307,7 +353,10 @@ class SshHostLink implements HostLink {
       // loopback default base.
       unawaited(_ensureAppHubForward());
 
-      at(HostLinkStep.login);
+      at(HostLinkStep.login, detail: appL10n.remoteWaitReady);
+      // Port listening ≠ app ready: the health door must answer before the
+      // login GET, or that GET sits out the full request timeout.
+      await _waitReady(Uri(scheme: 'http', host: '127.0.0.1', port: _tunnel.localPort!), endpoint.authority);
       final client = await _ensureClient(endpoint, previous);
       _checkOpen();
       _emit(

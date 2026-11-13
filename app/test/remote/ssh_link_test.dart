@@ -44,6 +44,7 @@ void main() {
     Backoff? backoff,
     bool retryFirstOpen = true,
     StreamController<void>? kicks,
+    DshReadyWait? waitReady,
   }) {
     final l = SshHostLink(
       config: config,
@@ -52,6 +53,7 @@ void main() {
       pinHostKey: pin,
       transportFactory: server.connect,
       connectClient: connector.call,
+      waitReady: waitReady,
       backoff: backoff ?? quick(),
       retryFirstOpen: retryFirstOpen,
       kicks: kicks?.stream,
@@ -118,6 +120,73 @@ void main() {
     await l.open();
     expect(connector.calls, hasLength(2));
     expect(server.remote.launches, 1);
+  });
+
+  test('the login step waits for the remote DSH to answer first', () async {
+    final gate = Completer<void>();
+    var readyReturned = false;
+    final l = link(
+      waitReady: (_, __) async {
+        await gate.future;
+        readyReturned = true;
+      },
+    );
+    final opened = l.open();
+    // Nothing logs in through the tunnel while the ready-wait is parked.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(connector.calls, isEmpty);
+    gate.complete();
+    await opened;
+    expect(readyReturned, isTrue);
+    expect(connector.calls, hasLength(1));
+  });
+
+  test('a test connection (no retry) fails on a ready-wait timeout', () async {
+    final l = link(
+      retryFirstOpen: false,
+      waitReady: (_, __) => Future.error(const HostLinkError(HostLinkErrorKind.dshTimeout, 'never answered', retryable: true)),
+    );
+    await expectLater(l.open(), throwsA(isA<HostLinkError>()));
+    expect(l.status.phase, HostLinkPhase.failed);
+    expect(l.status.error?.kind, HostLinkErrorKind.dshTimeout);
+  });
+
+  test('waitForRemoteDshReady polls a dead door into dshTimeout', () async {
+    final dead = DshConnection(Uri.parse('http://127.0.0.1:1'));
+    addTearDown(dead.close);
+    await expectLater(
+      waitForRemoteDshReady(
+        dead,
+        budget: const Duration(milliseconds: 300),
+        probeTimeout: const Duration(milliseconds: 200),
+        interval: const Duration(milliseconds: 40),
+      ),
+      throwsA(isA<HostLinkError>()),
+    );
+  });
+
+  test('waitForRemoteDshReady passes an ok or answering door through at once', () async {
+    Future<int> serve(int status) async {
+      final http = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(http.close);
+      http.listen((request) async {
+        request.response.statusCode = status;
+        await request.response.close();
+      });
+      return http.port;
+    }
+
+    for (final status in [HttpStatus.ok, HttpStatus.unauthorized]) {
+      final port = await serve(status);
+      final connection = DshConnection(Uri.parse('http://127.0.0.1:$port'));
+      addTearDown(connection.close);
+      await waitForRemoteDshReady(
+        connection,
+        budget: const Duration(milliseconds: 300),
+        probeTimeout: const Duration(milliseconds: 200),
+        interval: const Duration(milliseconds: 40),
+      );
+    }
   });
 
   test('first connect walks every step and logs in through the tunnel', () async {

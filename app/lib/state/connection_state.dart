@@ -191,6 +191,9 @@ final sshLinkFactoryProvider = Provider<SshLinkFactory>(
       loadSecrets: () => hosts.loadSecrets(config.id),
       pinHostKey: (key) => hosts.pinHostKey(config.id, key),
       tunnel: ref.read(sshTunnelFactoryProvider)(),
+      // A cold remote DSH answers TCP before it answers HTTP; without this the
+      // first login GET sits out the full request timeout on 「登录」.
+      waitReady: remoteDshReadyWait,
       // No prompt here: a host becomes active only after its key was
       // confirmed in the UI (test connection / host sheet), so an unknown key
       // at this point fails closed.

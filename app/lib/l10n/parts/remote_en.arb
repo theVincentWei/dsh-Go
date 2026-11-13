@@ -37,6 +37,7 @@
   "remoteConnectionStopped": "Remote connection stopped",
   "remoteBootstrapReusePort": "Using running DSH (port {port})",
   "remoteBootstrapStarting": "Starting remote DSH…",
+  "remoteWaitReady": "Waiting for the remote DSH to become ready…",
   "remoteErrCommandNotFound": "“{command}” not found on the host",
   "remoteErrDshMissing": "dsh isn’t installed on the host. Install it and retry, or enter its full path as the start command.",
   "remoteStartCommandExample": "Example start command: ~/.nvm/versions/node/v22.0.0/bin/dsh web",

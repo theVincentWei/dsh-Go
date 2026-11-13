@@ -58,6 +58,7 @@
     }
   },
   "remoteBootstrapStarting": "正在远端启动 DSH…",
+  "remoteWaitReady": "等远端 DSH 就绪…",
   "remoteErrCommandNotFound": "远端找不到「{command}」",
   "@remoteErrCommandNotFound": {
     "placeholders": {
