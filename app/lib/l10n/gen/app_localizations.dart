@@ -5324,6 +5324,12 @@ abstract class L10n {
   /// **'鲸娘'**
   String get botsPetWhaleGirl;
 
+  /// No description provided for @botsPetPonkan.
+  ///
+  /// In zh, this message translates to:
+  /// **'匠匠'**
+  String get botsPetPonkan;
+
   /// No description provided for @botsPetNone.
   ///
   /// In zh, this message translates to:
@@ -6092,12 +6098,6 @@ abstract class L10n {
   /// **'知乎'**
   String get brandZhihu;
 
-  /// No description provided for @catalogCurrentChat.
-  ///
-  /// In zh, this message translates to:
-  /// **'当前对话'**
-  String get catalogCurrentChat;
-
   /// No description provided for @catalogChatDetails.
   ///
   /// In zh, this message translates to:
@@ -6170,18 +6170,6 @@ abstract class L10n {
   /// **'查看输出、停止'**
   String get catalogJobsSummary;
 
-  /// No description provided for @catalogPlanGoal.
-  ///
-  /// In zh, this message translates to:
-  /// **'计划与目标'**
-  String get catalogPlanGoal;
-
-  /// No description provided for @catalogPlanGoalSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'目标、计划与待办'**
-  String get catalogPlanGoalSummary;
-
   /// No description provided for @catalogSkills.
   ///
   /// In zh, this message translates to:
@@ -6193,30 +6181,6 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'在对话里用技能'**
   String get catalogSkillsSummary;
-
-  /// No description provided for @catalogSubagents.
-  ///
-  /// In zh, this message translates to:
-  /// **'子代理'**
-  String get catalogSubagents;
-
-  /// No description provided for @catalogSubagentsSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'谱系与状态，点开接着聊'**
-  String get catalogSubagentsSummary;
-
-  /// No description provided for @catalogReference.
-  ///
-  /// In zh, this message translates to:
-  /// **'引用文件和对话'**
-  String get catalogReference;
-
-  /// No description provided for @catalogReferenceSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'在输入框用 @ 引用'**
-  String get catalogReferenceSummary;
 
   /// No description provided for @catalogAutomationSection.
   ///
@@ -6739,6 +6703,234 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'写不进去：本机运行时还没装好'**
   String get diagnosticsForAiFailed;
+
+  /// No description provided for @catalogAppHubSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'AppHub 应用'**
+  String get catalogAppHubSection;
+
+  /// No description provided for @catalogAppHubMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用市场'**
+  String get catalogAppHubMarket;
+
+  /// No description provided for @catalogAppHubMarketSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序的安装与更新'**
+  String get catalogAppHubMarketSummary;
+
+  /// No description provided for @apphubSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索小程序'**
+  String get apphubSearchHint;
+
+  /// No description provided for @apphubTabApps.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用'**
+  String get apphubTabApps;
+
+  /// No description provided for @apphubTabInstalled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已安装'**
+  String get apphubTabInstalled;
+
+  /// No description provided for @apphubOpen.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开'**
+  String get apphubOpen;
+
+  /// No description provided for @apphubInstall.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装'**
+  String get apphubInstall;
+
+  /// No description provided for @apphubUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新'**
+  String get apphubUpdate;
+
+  /// No description provided for @apphubUninstall.
+  ///
+  /// In zh, this message translates to:
+  /// **'卸载'**
+  String get apphubUninstall;
+
+  /// No description provided for @apphubUninstallBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除手机上的小程序包与本地数据;引擎侧业务库保留。'**
+  String get apphubUninstallBody;
+
+  /// No description provided for @apphubUninstallWholeBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'将卸载此小程序并停止主机上的服务;主机数据将保留,重装即恢复。'**
+  String get apphubUninstallWholeBody;
+
+  /// No description provided for @apphubUninstallPurge.
+  ///
+  /// In zh, this message translates to:
+  /// **'同时清除主机数据(账本等不可恢复)'**
+  String get apphubUninstallPurge;
+
+  /// No description provided for @apphubUninstallHostFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'主机命令未成功,已仅卸载本机;主机后端可能仍在运行,可稍后重试。'**
+  String get apphubUninstallHostFailed;
+
+  /// No description provided for @apphubNoMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'AppHub 未连接'**
+  String get apphubNoMarket;
+
+  /// No description provided for @apphubEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无应用'**
+  String get apphubEmpty;
+
+  /// No description provided for @apphubGet.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取'**
+  String get apphubGet;
+
+  /// No description provided for @apphubKindMiniProgram.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序'**
+  String get apphubKindMiniProgram;
+
+  /// No description provided for @apphubMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get apphubMore;
+
+  /// No description provided for @apphubCollapse.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起'**
+  String get apphubCollapse;
+
+  /// No description provided for @apphubSectionAbout.
+  ///
+  /// In zh, this message translates to:
+  /// **'简介'**
+  String get apphubSectionAbout;
+
+  /// No description provided for @apphubSectionWhatsNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新功能'**
+  String get apphubSectionWhatsNew;
+
+  /// No description provided for @apphubSectionInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'信息'**
+  String get apphubSectionInfo;
+
+  /// No description provided for @apphubSectionPermissions.
+  ///
+  /// In zh, this message translates to:
+  /// **'权限与隐私'**
+  String get apphubSectionPermissions;
+
+  /// No description provided for @apphubSectionVersions.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本历史'**
+  String get apphubSectionVersions;
+
+  /// No description provided for @apphubVersionPrefix.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本'**
+  String get apphubVersionPrefix;
+
+  /// No description provided for @apphubPrivacyNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'不收集任何数据'**
+  String get apphubPrivacyNone;
+
+  /// No description provided for @apphubPrivacyNoneBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'开发者声明：此小程序不会收集你的任何数据。'**
+  String get apphubPrivacyNoneBody;
+
+  /// No description provided for @apphubPermissionDeclared.
+  ///
+  /// In zh, this message translates to:
+  /// **'已声明'**
+  String get apphubPermissionDeclared;
+
+  /// No description provided for @apphubPermissionDomains.
+  ///
+  /// In zh, this message translates to:
+  /// **'可访问域名'**
+  String get apphubPermissionDomains;
+
+  /// No description provided for @apphubPermissionSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'权限状态保存失败，请重试。'**
+  String get apphubPermissionSaveFailed;
+
+  /// No description provided for @apphubInfoCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'类别'**
+  String get apphubInfoCategory;
+
+  /// No description provided for @apphubInfoSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'大小'**
+  String get apphubInfoSize;
+
+  /// No description provided for @apphubInfoCompatibility.
+  ///
+  /// In zh, this message translates to:
+  /// **'兼容性'**
+  String get apphubInfoCompatibility;
+
+  /// No description provided for @apphubInfoVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本'**
+  String get apphubInfoVersion;
+
+  /// No description provided for @apphubInfoUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新日期'**
+  String get apphubInfoUpdated;
+
+  /// No description provided for @apphubInfoDeveloper.
+  ///
+  /// In zh, this message translates to:
+  /// **'开发者'**
+  String get apphubInfoDeveloper;
+
+  /// No description provided for @apphubInfoLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言'**
+  String get apphubInfoLanguage;
 
   /// No description provided for @chatBackgroundTaskNotice.
   ///
@@ -8624,6 +8816,36 @@ abstract class L10n {
   /// **'{name}，{description}'**
   String chatArtifactSemantics(String name, String description);
 
+  /// No description provided for @chatCurrentChat.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前会话'**
+  String get chatCurrentChat;
+
+  /// No description provided for @chatNowTools.
+  ///
+  /// In zh, this message translates to:
+  /// **'现在要用的'**
+  String get chatNowTools;
+
+  /// No description provided for @chatDownloadCenter.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载'**
+  String get chatDownloadCenter;
+
+  /// No description provided for @chatDownloadCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个下载任务'**
+  String chatDownloadCount(int count);
+
+  /// No description provided for @chatDownloadSheetHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击条目跳到对应会话 · 断线后从断点续传'**
+  String get chatDownloadSheetHint;
+
   /// No description provided for @commonCancel.
   ///
   /// In zh, this message translates to:
@@ -8659,6 +8881,18 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'设置'**
   String get commonSettings;
+
+  /// No description provided for @tabChats.
+  ///
+  /// In zh, this message translates to:
+  /// **'聊天'**
+  String get tabChats;
+
+  /// No description provided for @tabMiniApps.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序'**
+  String get tabMiniApps;
 
   /// No description provided for @commonBack.
   ///
@@ -15314,6 +15548,66 @@ abstract class L10n {
   /// **'对话'**
   String get fileChatFallback;
 
+  /// No description provided for @hostFilesLocations.
+  ///
+  /// In zh, this message translates to:
+  /// **'位置'**
+  String get hostFilesLocations;
+
+  /// No description provided for @hostFilesShowHidden.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示隐藏'**
+  String get hostFilesShowHidden;
+
+  /// No description provided for @hostFilesHideHidden.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭隐藏'**
+  String get hostFilesHideHidden;
+
+  /// No description provided for @hostFilesNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建'**
+  String get hostFilesNew;
+
+  /// No description provided for @hostFilesTypeFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹'**
+  String get hostFilesTypeFolder;
+
+  /// No description provided for @hostFilesTypeFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件'**
+  String get hostFilesTypeFile;
+
+  /// No description provided for @hostFilesNameFolderHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹名称'**
+  String get hostFilesNameFolderHint;
+
+  /// No description provided for @hostFilesNameFileHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件名（含扩展名）'**
+  String get hostFilesNameFileHint;
+
+  /// No description provided for @hostFilesFileNeedsEngine.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建文件需引擎升级后可用'**
+  String get hostFilesFileNeedsEngine;
+
+  /// No description provided for @hostFilesSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'浏览主机的目录'**
+  String get hostFilesSummary;
+
   /// No description provided for @fileUploadToHost.
   ///
   /// In zh, this message translates to:
@@ -16340,35 +16634,107 @@ abstract class L10n {
   /// **'开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。'**
   String get hubHardwareEnterSendsHint;
 
-  /// No description provided for @hubQuickPanel.
+  /// No description provided for @hubToggleRecents.
   ///
   /// In zh, this message translates to:
-  /// **'左滑快捷入口'**
-  String get hubQuickPanel;
+  /// **'显示/隐藏最近使用'**
+  String get hubToggleRecents;
 
-  /// No description provided for @hubQuickPanelSwipe.
+  /// No description provided for @hubRecentGroup.
   ///
   /// In zh, this message translates to:
-  /// **'左滑打开'**
-  String get hubQuickPanelSwipe;
+  /// **'最近使用'**
+  String get hubRecentGroup;
 
-  /// No description provided for @hubQuickPanelSwipeHint.
+  /// No description provided for @hubEditing.
   ///
   /// In zh, this message translates to:
-  /// **'在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。'**
-  String get hubQuickPanelSwipeHint;
+  /// **'整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理'**
+  String get hubEditing;
 
-  /// No description provided for @hubQuickPanelItems.
+  /// No description provided for @hubDefaultGroup.
   ///
   /// In zh, this message translates to:
-  /// **'显示的入口'**
-  String get hubQuickPanelItems;
+  /// **'应用'**
+  String get hubDefaultGroup;
 
-  /// No description provided for @hubQuickPanelItemsNone.
+  /// No description provided for @hubConversationTools.
   ///
   /// In zh, this message translates to:
-  /// **'没有选择，左滑不会打开'**
-  String get hubQuickPanelItemsNone;
+  /// **'本对话'**
+  String get hubConversationTools;
+
+  /// No description provided for @hubNewGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建分组'**
+  String get hubNewGroup;
+
+  /// No description provided for @hubGroupName.
+  ///
+  /// In zh, this message translates to:
+  /// **'分组名称'**
+  String get hubGroupName;
+
+  /// No description provided for @hubRename.
+  ///
+  /// In zh, this message translates to:
+  /// **'重命名'**
+  String get hubRename;
+
+  /// No description provided for @hubMoveUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'上移'**
+  String get hubMoveUp;
+
+  /// No description provided for @hubMoveDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'下移'**
+  String get hubMoveDown;
+
+  /// No description provided for @hubDeleteGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除分组'**
+  String get hubDeleteGroup;
+
+  /// No description provided for @hubDeleteGroupBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{group}」里的应用会移回「应用」组，应用本身不受影响。'**
+  String hubDeleteGroupBody(String group);
+
+  /// No description provided for @hubDropHere.
+  ///
+  /// In zh, this message translates to:
+  /// **'拖应用到这里'**
+  String get hubDropHere;
+
+  /// No description provided for @hubNoMatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到「{query}」'**
+  String hubNoMatch(String query);
+
+  /// No description provided for @autoSyncTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'静默同步'**
+  String get autoSyncTitle;
+
+  /// No description provided for @autoSyncSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器上架的小程序自动装到本机并保持最新，无需逐次确认'**
+  String get autoSyncSummary;
+
+  /// No description provided for @hubAppUnavailableOnMachine.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{name}」在这台机器上不可用(后端未部署)'**
+  String hubAppUnavailableOnMachine(String name);
 
   /// No description provided for @launchScreenTitle.
   ///
@@ -16903,6 +17269,12 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'安装后即可登录'**
   String get localEnvSignInInstallFirst;
+
+  /// No description provided for @localEnvGateBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。'**
+  String get localEnvGateBody;
 
   /// No description provided for @marketSectionOfficial.
   ///
@@ -18313,6 +18685,132 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'更换'**
   String get nearbyChange;
+
+  /// No description provided for @notifyCenterTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务通知'**
+  String get notifyCenterTitle;
+
+  /// No description provided for @notifyCenterEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序的通知会出现在这里'**
+  String get notifyCenterEmpty;
+
+  /// No description provided for @notifyCenterMarkAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部已读'**
+  String get notifyCenterMarkAll;
+
+  /// No description provided for @notifyCenterGroupCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条'**
+  String notifyCenterGroupCount(int count);
+
+  /// No description provided for @notifyCenterUnread.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条未读'**
+  String notifyCenterUnread(int count);
+
+  /// No description provided for @notifyCenterLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'连不上 AppHub，先看看已收到的通知'**
+  String get notifyCenterLoadFailed;
+
+  /// No description provided for @notifyCenterOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序页打不开，已留在通知中心'**
+  String get notifyCenterOpenFailed;
+
+  /// No description provided for @notifyCenterDismiss.
+  ///
+  /// In zh, this message translates to:
+  /// **'划掉'**
+  String get notifyCenterDismiss;
+
+  /// No description provided for @notifyCenterOpenMiniApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开小程序'**
+  String get notifyCenterOpenMiniApp;
+
+  /// No description provided for @notifySubscribePanelTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'订阅通知'**
+  String get notifySubscribePanelTitle;
+
+  /// No description provided for @notifySubscribePanelBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」想在你操作后给你发通知。可以只订阅一次，发完就结束。'**
+  String notifySubscribePanelBody(String app);
+
+  /// No description provided for @notifySubscribePanelMainSwitch.
+  ///
+  /// In zh, this message translates to:
+  /// **'接收通知'**
+  String get notifySubscribePanelMainSwitch;
+
+  /// No description provided for @notifySubscribeAccept.
+  ///
+  /// In zh, this message translates to:
+  /// **'允许'**
+  String get notifySubscribeAccept;
+
+  /// No description provided for @notifySubscribeReject.
+  ///
+  /// In zh, this message translates to:
+  /// **'拒绝'**
+  String get notifySubscribeReject;
+
+  /// No description provided for @notifySubscribeNoTemplates.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可订阅的模板'**
+  String get notifySubscribeNoTemplates;
+
+  /// No description provided for @notifyUpdateApplied.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已升级至 v{version}'**
+  String notifyUpdateApplied(String app, String version);
+
+  /// No description provided for @notifyUpdateAppliedPlain.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已升级，下次打开生效'**
+  String notifyUpdateAppliedPlain(String app);
+
+  /// No description provided for @notifyUpdatePublicText.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序已更新'**
+  String get notifyUpdatePublicText;
+
+  /// No description provided for @notifyInstallApplied.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已装好 v{version}，在小程序桌面打开'**
+  String notifyInstallApplied(String app, String version);
+
+  /// No description provided for @notifyInstallAppliedPlain.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{app}」已装好，在小程序桌面打开'**
+  String notifyInstallAppliedPlain(String app);
+
+  /// No description provided for @notifyInstallPublicText.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序已安装'**
+  String get notifyInstallPublicText;
 
   /// No description provided for @performanceTitle.
   ///
@@ -26216,6 +26714,12 @@ abstract class L10n {
   /// **'正在远端启动 DSH…'**
   String get remoteBootstrapStarting;
 
+  /// No description provided for @remoteWaitReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'等远端 DSH 就绪…'**
+  String get remoteWaitReady;
+
   /// No description provided for @remoteErrCommandNotFound.
   ///
   /// In zh, this message translates to:
@@ -27704,6 +28208,60 @@ abstract class L10n {
   /// **'基本信息'**
   String get remoteHostBasicInfo;
 
+  /// No description provided for @remoteHostIcon.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备图标'**
+  String get remoteHostIcon;
+
+  /// No description provided for @remoteHostIconHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'标在主机列表和切换器上，纯外观，随时可改'**
+  String get remoteHostIconHelp;
+
+  /// No description provided for @remoteHostIconDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认'**
+  String get remoteHostIconDefault;
+
+  /// No description provided for @remoteHostIconMacMini.
+  ///
+  /// In zh, this message translates to:
+  /// **'Mac mini'**
+  String get remoteHostIconMacMini;
+
+  /// No description provided for @remoteHostIconDesktop.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示器'**
+  String get remoteHostIconDesktop;
+
+  /// No description provided for @remoteHostIconDesktopTower.
+  ///
+  /// In zh, this message translates to:
+  /// **'台式机'**
+  String get remoteHostIconDesktopTower;
+
+  /// No description provided for @remoteHostIconTower.
+  ///
+  /// In zh, this message translates to:
+  /// **'机箱'**
+  String get remoteHostIconTower;
+
+  /// No description provided for @remoteHostIconLaptop.
+  ///
+  /// In zh, this message translates to:
+  /// **'笔记本'**
+  String get remoteHostIconLaptop;
+
+  /// No description provided for @remoteHostIconNas.
+  ///
+  /// In zh, this message translates to:
+  /// **'NAS'**
+  String get remoteHostIconNas;
+
   /// No description provided for @remoteHostNameHint.
   ///
   /// In zh, this message translates to:
@@ -29096,6 +29654,12 @@ abstract class L10n {
   /// **'怎么连接自己的电脑或服务器？和用本机有什么不同？'**
   String get askAiQuestionRemote;
 
+  /// No description provided for @askAiQuestionMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？'**
+  String get askAiQuestionMarket;
+
   /// No description provided for @phoneRuntimeUpgradeBase.
   ///
   /// In zh, this message translates to:
@@ -29840,11 +30404,11 @@ abstract class L10n {
   /// **'统计,使用统计,匿名,隐私,数据,改进,遥测,分析'**
   String get searchKwUsageStats;
 
-  /// No description provided for @searchKwQuickPanel.
+  /// No description provided for @searchNeedsLocalEngineOn.
   ///
   /// In zh, this message translates to:
-  /// **'左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口'**
-  String get searchKwQuickPanel;
+  /// **'启用本机引擎后可用'**
+  String get searchNeedsLocalEngineOn;
 
   /// No description provided for @selfUpdateTransport.
   ///
@@ -30443,7 +31007,7 @@ abstract class L10n {
   /// No description provided for @shellWelcomeMessage.
   ///
   /// In zh, this message translates to:
-  /// **'把 DeepSeek 智能体\n装进口袋'**
+  /// **'万事交给万器'**
   String get shellWelcomeMessage;
 
   /// No description provided for @shellGetStarted.
@@ -30457,6 +31021,12 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'搜索对话'**
   String get shellSearchChats;
+
+  /// No description provided for @chatListTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'会话'**
+  String get chatListTitle;
 
   /// No description provided for @shellCollapseChatList.
   ///
@@ -30985,6 +31555,12 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'当前主机：{name}，{view}。切换主机'**
   String shellCurrentHostLabel(String name, String view);
+
+  /// No description provided for @shellDeviceLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'机器'**
+  String get shellDeviceLabel;
 
   /// No description provided for @shellChatGone.
   ///
@@ -31808,18 +32384,6 @@ abstract class L10n {
   /// **'这段对话还没有插件面板'**
   String get shellPanelNoPlugins;
 
-  /// No description provided for @shellQuickPanel.
-  ///
-  /// In zh, this message translates to:
-  /// **'快捷入口'**
-  String get shellQuickPanel;
-
-  /// No description provided for @shellQuickPanelHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'在「{path}」里调整'**
-  String shellQuickPanelHint(String path);
-
   /// No description provided for @speechReadAloud.
   ///
   /// In zh, this message translates to:
@@ -32389,6 +32953,18 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'显示起始页的聊天建议'**
   String get hubChatSuggestionsHint;
+
+  /// No description provided for @hubQuickPanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'左滑快捷入口'**
+  String get hubQuickPanel;
+
+  /// No description provided for @searchKwQuickPanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口'**
+  String get searchKwQuickPanel;
 
   /// No description provided for @searchKwChatSuggestions.
   ///

@@ -2872,6 +2872,9 @@ class L10nZh extends L10n {
   String get botsPetWhaleGirl => '鲸娘';
 
   @override
+  String get botsPetPonkan => '匠匠';
+
+  @override
   String get botsPetNone => '不显示';
 
   @override
@@ -3310,9 +3313,6 @@ class L10nZh extends L10n {
   String get brandZhihu => '知乎';
 
   @override
-  String get catalogCurrentChat => '当前对话';
-
-  @override
   String get catalogChatDetails => '对话详情';
 
   @override
@@ -3349,28 +3349,10 @@ class L10nZh extends L10n {
   String get catalogJobsSummary => '查看输出、停止';
 
   @override
-  String get catalogPlanGoal => '计划与目标';
-
-  @override
-  String get catalogPlanGoalSummary => '目标、计划与待办';
-
-  @override
   String get catalogSkills => '技能';
 
   @override
   String get catalogSkillsSummary => '在对话里用技能';
-
-  @override
-  String get catalogSubagents => '子代理';
-
-  @override
-  String get catalogSubagentsSummary => '谱系与状态，点开接着聊';
-
-  @override
-  String get catalogReference => '引用文件和对话';
-
-  @override
-  String get catalogReferenceSummary => '在输入框用 @ 引用';
 
   @override
   String get catalogAutomationSection => '自动化';
@@ -3638,6 +3620,120 @@ class L10nZh extends L10n {
 
   @override
   String get diagnosticsForAiFailed => '写不进去：本机运行时还没装好';
+
+  @override
+  String get catalogAppHubSection => 'AppHub 应用';
+
+  @override
+  String get catalogAppHubMarket => '应用市场';
+
+  @override
+  String get catalogAppHubMarketSummary => '小程序的安装与更新';
+
+  @override
+  String get apphubSearchHint => '搜索小程序';
+
+  @override
+  String get apphubTabApps => '应用';
+
+  @override
+  String get apphubTabInstalled => '已安装';
+
+  @override
+  String get apphubOpen => '打开';
+
+  @override
+  String get apphubInstall => '安装';
+
+  @override
+  String get apphubUpdate => '更新';
+
+  @override
+  String get apphubUninstall => '卸载';
+
+  @override
+  String get apphubUninstallBody => '删除手机上的小程序包与本地数据;引擎侧业务库保留。';
+
+  @override
+  String get apphubUninstallWholeBody => '将卸载此小程序并停止主机上的服务;主机数据将保留,重装即恢复。';
+
+  @override
+  String get apphubUninstallPurge => '同时清除主机数据(账本等不可恢复)';
+
+  @override
+  String get apphubUninstallHostFailed => '主机命令未成功,已仅卸载本机;主机后端可能仍在运行,可稍后重试。';
+
+  @override
+  String get apphubNoMarket => 'AppHub 未连接';
+
+  @override
+  String get apphubEmpty => '暂无应用';
+
+  @override
+  String get apphubGet => '获取';
+
+  @override
+  String get apphubKindMiniProgram => '小程序';
+
+  @override
+  String get apphubMore => '更多';
+
+  @override
+  String get apphubCollapse => '收起';
+
+  @override
+  String get apphubSectionAbout => '简介';
+
+  @override
+  String get apphubSectionWhatsNew => '新功能';
+
+  @override
+  String get apphubSectionInfo => '信息';
+
+  @override
+  String get apphubSectionPermissions => '权限与隐私';
+
+  @override
+  String get apphubSectionVersions => '版本历史';
+
+  @override
+  String get apphubVersionPrefix => '版本';
+
+  @override
+  String get apphubPrivacyNone => '不收集任何数据';
+
+  @override
+  String get apphubPrivacyNoneBody => '开发者声明：此小程序不会收集你的任何数据。';
+
+  @override
+  String get apphubPermissionDeclared => '已声明';
+
+  @override
+  String get apphubPermissionDomains => '可访问域名';
+
+  @override
+  String get apphubPermissionSaveFailed => '权限状态保存失败，请重试。';
+
+  @override
+  String get apphubInfoCategory => '类别';
+
+  @override
+  String get apphubInfoSize => '大小';
+
+  @override
+  String get apphubInfoCompatibility => '兼容性';
+
+  @override
+  String get apphubInfoVersion => '版本';
+
+  @override
+  String get apphubInfoUpdated => '更新日期';
+
+  @override
+  String get apphubInfoDeveloper => '开发者';
+
+  @override
+  String get apphubInfoLanguage => '语言';
 
   @override
   String get chatBackgroundTaskNotice => '后台任务通知';
@@ -4696,6 +4792,23 @@ class L10nZh extends L10n {
   }
 
   @override
+  String get chatCurrentChat => '当前会话';
+
+  @override
+  String get chatNowTools => '现在要用的';
+
+  @override
+  String get chatDownloadCenter => '下载';
+
+  @override
+  String chatDownloadCount(int count) {
+    return '$count 个下载任务';
+  }
+
+  @override
+  String get chatDownloadSheetHint => '点击条目跳到对应会话 · 断线后从断点续传';
+
+  @override
   String get commonCancel => '取消';
 
   @override
@@ -4712,6 +4825,12 @@ class L10nZh extends L10n {
 
   @override
   String get commonSettings => '设置';
+
+  @override
+  String get tabChats => '聊天';
+
+  @override
+  String get tabMiniApps => '小程序';
 
   @override
   String get commonBack => '返回';
@@ -8300,6 +8419,36 @@ class L10nZh extends L10n {
   String get fileChatFallback => '对话';
 
   @override
+  String get hostFilesLocations => '位置';
+
+  @override
+  String get hostFilesShowHidden => '显示隐藏';
+
+  @override
+  String get hostFilesHideHidden => '关闭隐藏';
+
+  @override
+  String get hostFilesNew => '新建';
+
+  @override
+  String get hostFilesTypeFolder => '文件夹';
+
+  @override
+  String get hostFilesTypeFile => '文件';
+
+  @override
+  String get hostFilesNameFolderHint => '文件夹名称';
+
+  @override
+  String get hostFilesNameFileHint => '文件名（含扩展名）';
+
+  @override
+  String get hostFilesFileNeedsEngine => '新建文件需引擎升级后可用';
+
+  @override
+  String get hostFilesSummary => '浏览主机的目录';
+
+  @override
   String get fileUploadToHost => '传文件到电脑';
 
   @override
@@ -8861,19 +9010,61 @@ class L10nZh extends L10n {
   String get hubHardwareEnterSendsHint => '开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。';
 
   @override
-  String get hubQuickPanel => '左滑快捷入口';
+  String get hubToggleRecents => '显示/隐藏最近使用';
 
   @override
-  String get hubQuickPanelSwipe => '左滑打开';
+  String get hubRecentGroup => '最近使用';
 
   @override
-  String get hubQuickPanelSwipeHint => '在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。';
+  String get hubEditing => '整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理';
 
   @override
-  String get hubQuickPanelItems => '显示的入口';
+  String get hubDefaultGroup => '应用';
 
   @override
-  String get hubQuickPanelItemsNone => '没有选择，左滑不会打开';
+  String get hubConversationTools => '本对话';
+
+  @override
+  String get hubNewGroup => '新建分组';
+
+  @override
+  String get hubGroupName => '分组名称';
+
+  @override
+  String get hubRename => '重命名';
+
+  @override
+  String get hubMoveUp => '上移';
+
+  @override
+  String get hubMoveDown => '下移';
+
+  @override
+  String get hubDeleteGroup => '删除分组';
+
+  @override
+  String hubDeleteGroupBody(String group) {
+    return '「$group」里的应用会移回「应用」组，应用本身不受影响。';
+  }
+
+  @override
+  String get hubDropHere => '拖应用到这里';
+
+  @override
+  String hubNoMatch(String query) {
+    return '没有找到「$query」';
+  }
+
+  @override
+  String get autoSyncTitle => '静默同步';
+
+  @override
+  String get autoSyncSummary => '服务器上架的小程序自动装到本机并保持最新，无需逐次确认';
+
+  @override
+  String hubAppUnavailableOnMachine(String name) {
+    return '「$name」在这台机器上不可用(后端未部署)';
+  }
 
   @override
   String get launchScreenTitle => '启动画面';
@@ -9156,6 +9347,9 @@ class L10nZh extends L10n {
 
   @override
   String get localEnvSignInInstallFirst => '安装后即可登录';
+
+  @override
+  String get localEnvGateBody => '这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。';
 
   @override
   String get marketSectionOfficial => '官方';
@@ -9917,6 +10111,83 @@ class L10nZh extends L10n {
 
   @override
   String get nearbyChange => '更换';
+
+  @override
+  String get notifyCenterTitle => '服务通知';
+
+  @override
+  String get notifyCenterEmpty => '小程序的通知会出现在这里';
+
+  @override
+  String get notifyCenterMarkAll => '全部已读';
+
+  @override
+  String notifyCenterGroupCount(int count) {
+    return '$count 条';
+  }
+
+  @override
+  String notifyCenterUnread(int count) {
+    return '$count 条未读';
+  }
+
+  @override
+  String get notifyCenterLoadFailed => '连不上 AppHub，先看看已收到的通知';
+
+  @override
+  String get notifyCenterOpenFailed => '小程序页打不开，已留在通知中心';
+
+  @override
+  String get notifyCenterDismiss => '划掉';
+
+  @override
+  String get notifyCenterOpenMiniApp => '打开小程序';
+
+  @override
+  String get notifySubscribePanelTitle => '订阅通知';
+
+  @override
+  String notifySubscribePanelBody(String app) {
+    return '「$app」想在你操作后给你发通知。可以只订阅一次，发完就结束。';
+  }
+
+  @override
+  String get notifySubscribePanelMainSwitch => '接收通知';
+
+  @override
+  String get notifySubscribeAccept => '允许';
+
+  @override
+  String get notifySubscribeReject => '拒绝';
+
+  @override
+  String get notifySubscribeNoTemplates => '没有可订阅的模板';
+
+  @override
+  String notifyUpdateApplied(String app, String version) {
+    return '「$app」已升级至 v$version';
+  }
+
+  @override
+  String notifyUpdateAppliedPlain(String app) {
+    return '「$app」已升级，下次打开生效';
+  }
+
+  @override
+  String get notifyUpdatePublicText => '小程序已更新';
+
+  @override
+  String notifyInstallApplied(String app, String version) {
+    return '「$app」已装好 v$version，在小程序桌面打开';
+  }
+
+  @override
+  String notifyInstallAppliedPlain(String app) {
+    return '「$app」已装好，在小程序桌面打开';
+  }
+
+  @override
+  String get notifyInstallPublicText => '小程序已安装';
 
   @override
   String get performanceTitle => '性能';
@@ -14314,6 +14585,9 @@ class L10nZh extends L10n {
   String get remoteBootstrapStarting => '正在远端启动 DSH…';
 
   @override
+  String get remoteWaitReady => '等远端 DSH 就绪…';
+
+  @override
   String remoteErrCommandNotFound(String command) {
     return '远端找不到「$command」';
   }
@@ -15158,6 +15432,33 @@ class L10nZh extends L10n {
   String get remoteHostBasicInfo => '基本信息';
 
   @override
+  String get remoteHostIcon => '设备图标';
+
+  @override
+  String get remoteHostIconHelp => '标在主机列表和切换器上，纯外观，随时可改';
+
+  @override
+  String get remoteHostIconDefault => '默认';
+
+  @override
+  String get remoteHostIconMacMini => 'Mac mini';
+
+  @override
+  String get remoteHostIconDesktop => '显示器';
+
+  @override
+  String get remoteHostIconDesktopTower => '台式机';
+
+  @override
+  String get remoteHostIconTower => '机箱';
+
+  @override
+  String get remoteHostIconLaptop => '笔记本';
+
+  @override
+  String get remoteHostIconNas => 'NAS';
+
+  @override
   String get remoteHostNameHint => '比如：电脑、家里的 Mac';
 
   @override
@@ -15922,6 +16223,9 @@ class L10nZh extends L10n {
   String get askAiQuestionRemote => '怎么连接自己的电脑或服务器？和用本机有什么不同？';
 
   @override
+  String get askAiQuestionMarket => '应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？';
+
+  @override
   String get phoneRuntimeUpgradeBase => '新引擎与现有 Linux 环境不能确认兼容，更新已停止。原环境和已装工具没有删除。请先完整备份，再联系维护者迁移；不要直接重置或卸载 App。';
 
   @override
@@ -16300,7 +16604,7 @@ class L10nZh extends L10n {
   String get searchKwUsageStats => '统计,使用统计,匿名,隐私,数据,改进,遥测,分析';
 
   @override
-  String get searchKwQuickPanel => '左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口';
+  String get searchNeedsLocalEngineOn => '启用本机引擎后可用';
 
   @override
   String get selfUpdateTransport => '安装路线';
@@ -16626,13 +16930,16 @@ class L10nZh extends L10n {
   String get shellEngineLogs => '引擎日志';
 
   @override
-  String get shellWelcomeMessage => '把 DeepSeek 智能体\n装进口袋';
+  String get shellWelcomeMessage => '万事交给万器';
 
   @override
   String get shellGetStarted => '开始';
 
   @override
   String get shellSearchChats => '搜索对话';
+
+  @override
+  String get chatListTitle => '会话';
 
   @override
   String get shellCollapseChatList => '收起对话列表';
@@ -16937,6 +17244,9 @@ class L10nZh extends L10n {
   String shellCurrentHostLabel(String name, String view) {
     return '当前主机：$name，$view。切换主机';
   }
+
+  @override
+  String get shellDeviceLabel => '机器';
 
   @override
   String get shellChatGone => '这个对话已不在了';
@@ -17390,14 +17700,6 @@ class L10nZh extends L10n {
   String get shellPanelNoPlugins => '这段对话还没有插件面板';
 
   @override
-  String get shellQuickPanel => '快捷入口';
-
-  @override
-  String shellQuickPanelHint(String path) {
-    return '在「$path」里调整';
-  }
-
-  @override
   String get speechReadAloud => '朗读';
 
   @override
@@ -17696,6 +17998,12 @@ class L10nZh extends L10n {
 
   @override
   String get hubChatSuggestionsHint => '显示起始页的聊天建议';
+
+  @override
+  String get hubQuickPanel => '左滑快捷入口';
+
+  @override
+  String get searchKwQuickPanel => '左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口';
 
   @override
   String get searchKwChatSuggestions => '起始页,空白页,新对话,聊天建议,建议卡片';

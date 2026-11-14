@@ -3045,6 +3045,9 @@ class L10nEn extends L10n {
   String get botsPetWhaleGirl => 'Whale girl';
 
   @override
+  String get botsPetPonkan => 'Jiangjiang';
+
+  @override
   String get botsPetNone => 'None';
 
   @override
@@ -3486,9 +3489,6 @@ class L10nEn extends L10n {
   String get brandZhihu => 'Zhihu';
 
   @override
-  String get catalogCurrentChat => 'Current chat';
-
-  @override
   String get catalogChatDetails => 'Chat details';
 
   @override
@@ -3525,28 +3525,10 @@ class L10nEn extends L10n {
   String get catalogJobsSummary => 'View output or stop jobs';
 
   @override
-  String get catalogPlanGoal => 'Plan and goal';
-
-  @override
-  String get catalogPlanGoalSummary => 'Goals, plans and to-dos';
-
-  @override
   String get catalogSkills => 'Skills';
 
   @override
   String get catalogSkillsSummary => 'Use skills in chats';
-
-  @override
-  String get catalogSubagents => 'Subagents';
-
-  @override
-  String get catalogSubagentsSummary => 'Lineage and status; tap to chat';
-
-  @override
-  String get catalogReference => 'Reference files and chats';
-
-  @override
-  String get catalogReferenceSummary => 'Use @ in the composer';
 
   @override
   String get catalogAutomationSection => 'Automation';
@@ -3821,6 +3803,122 @@ class L10nEn extends L10n {
 
   @override
   String get diagnosticsForAiFailed => 'Not written: the local runtime is not installed';
+
+  @override
+  String get catalogAppHubSection => 'AppHub apps';
+
+  @override
+  String get catalogAppHubMarket => 'App market';
+
+  @override
+  String get catalogAppHubMarketSummary => 'Install and update mini programs';
+
+  @override
+  String get apphubSearchHint => 'Search mini programs';
+
+  @override
+  String get apphubTabApps => 'Apps';
+
+  @override
+  String get apphubTabInstalled => 'Installed';
+
+  @override
+  String get apphubOpen => 'Open';
+
+  @override
+  String get apphubInstall => 'Install';
+
+  @override
+  String get apphubUpdate => 'Update';
+
+  @override
+  String get apphubUninstall => 'Uninstall';
+
+  @override
+  String get apphubUninstallBody => 'Removes the on-device package and local data; the engine-side database is kept.';
+
+  @override
+  String get apphubUninstallWholeBody =>
+      'This removes the mini program and stops its service on the host; host data is kept and restored on reinstall.';
+
+  @override
+  String get apphubUninstallPurge => 'Also wipe host data (ledgers etc. cannot be recovered)';
+
+  @override
+  String get apphubUninstallHostFailed =>
+      'Host command did not succeed; uninstalled locally only. The host backend may still be running — retry later.';
+
+  @override
+  String get apphubNoMarket => 'AppHub unreachable';
+
+  @override
+  String get apphubEmpty => 'No apps yet';
+
+  @override
+  String get apphubGet => 'Get';
+
+  @override
+  String get apphubKindMiniProgram => 'Mini program';
+
+  @override
+  String get apphubMore => 'More';
+
+  @override
+  String get apphubCollapse => 'Less';
+
+  @override
+  String get apphubSectionAbout => 'Description';
+
+  @override
+  String get apphubSectionWhatsNew => 'What\'s New';
+
+  @override
+  String get apphubSectionInfo => 'Information';
+
+  @override
+  String get apphubSectionPermissions => 'Permissions & Privacy';
+
+  @override
+  String get apphubSectionVersions => 'Version History';
+
+  @override
+  String get apphubVersionPrefix => 'Version';
+
+  @override
+  String get apphubPrivacyNone => 'No Data Collected';
+
+  @override
+  String get apphubPrivacyNoneBody => 'The developer says this mini program does not collect any of your data.';
+
+  @override
+  String get apphubPermissionDeclared => 'Declared';
+
+  @override
+  String get apphubPermissionDomains => 'Allowed Domains';
+
+  @override
+  String get apphubPermissionSaveFailed => 'Couldn\'t update the permission. Try again.';
+
+  @override
+  String get apphubInfoCategory => 'Category';
+
+  @override
+  String get apphubInfoSize => 'Size';
+
+  @override
+  String get apphubInfoCompatibility => 'Compatibility';
+
+  @override
+  String get apphubInfoVersion => 'Version';
+
+  @override
+  String get apphubInfoUpdated => 'Updated';
+
+  @override
+  String get apphubInfoDeveloper => 'Developer';
+
+  @override
+  String get apphubInfoLanguage => 'Language';
 
   @override
   String get chatBackgroundTaskNotice => 'Background task notice';
@@ -4998,6 +5096,23 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get chatCurrentChat => 'Current chat';
+
+  @override
+  String get chatNowTools => 'For right now';
+
+  @override
+  String get chatDownloadCenter => 'Downloads';
+
+  @override
+  String chatDownloadCount(int count) {
+    return '$count download tasks';
+  }
+
+  @override
+  String get chatDownloadSheetHint => 'Tap an entry to open its chat · resumes from the breakpoint';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -5014,6 +5129,12 @@ class L10nEn extends L10n {
 
   @override
   String get commonSettings => 'Settings';
+
+  @override
+  String get tabChats => 'Chats';
+
+  @override
+  String get tabMiniApps => 'Mini apps';
 
   @override
   String get commonBack => 'Back';
@@ -8754,6 +8875,36 @@ class L10nEn extends L10n {
   String get fileChatFallback => 'chat';
 
   @override
+  String get hostFilesLocations => 'Locations';
+
+  @override
+  String get hostFilesShowHidden => 'Show hidden';
+
+  @override
+  String get hostFilesHideHidden => 'Hide hidden';
+
+  @override
+  String get hostFilesNew => 'New';
+
+  @override
+  String get hostFilesTypeFolder => 'Folder';
+
+  @override
+  String get hostFilesTypeFile => 'File';
+
+  @override
+  String get hostFilesNameFolderHint => 'Folder name';
+
+  @override
+  String get hostFilesNameFileHint => 'File name (with extension)';
+
+  @override
+  String get hostFilesFileNeedsEngine => 'Creating files needs a newer engine';
+
+  @override
+  String get hostFilesSummary => 'Browse the host\'s folders';
+
+  @override
   String get fileUploadToHost => 'Send files to the computer';
 
   @override
@@ -9352,20 +9503,61 @@ class L10nEn extends L10n {
       'When on, Shift+Enter inserts a new line. The on-screen keyboard keeps newlines; Ctrl/⌘+Enter always sends.';
 
   @override
-  String get hubQuickPanel => 'Swipe-left shortcuts';
+  String get hubToggleRecents => 'Show or hide recently used';
 
   @override
-  String get hubQuickPanelSwipe => 'Open with a left swipe';
+  String get hubRecentGroup => 'Recently used';
 
   @override
-  String get hubQuickPanelSwipeHint =>
-      'Swipe right to left over the chat. Code blocks, tables and other content that scrolls sideways aren’t affected.';
+  String get hubEditing => 'Editing: drag icons to move them across groups; tap ⋯ by a group\'s name to manage it';
 
   @override
-  String get hubQuickPanelItems => 'What it lists';
+  String get hubDefaultGroup => 'Apps';
 
   @override
-  String get hubQuickPanelItemsNone => 'Nothing chosen: a left swipe won\'t open it';
+  String get hubConversationTools => 'This chat';
+
+  @override
+  String get hubNewGroup => 'New group';
+
+  @override
+  String get hubGroupName => 'Group name';
+
+  @override
+  String get hubRename => 'Rename';
+
+  @override
+  String get hubMoveUp => 'Move up';
+
+  @override
+  String get hubMoveDown => 'Move down';
+
+  @override
+  String get hubDeleteGroup => 'Delete group';
+
+  @override
+  String hubDeleteGroupBody(String group) {
+    return 'Apps in \"$group\" move back to the Apps group; the apps themselves are untouched.';
+  }
+
+  @override
+  String get hubDropHere => 'Drop apps here';
+
+  @override
+  String hubNoMatch(String query) {
+    return 'Nothing matches \"$query\"';
+  }
+
+  @override
+  String get autoSyncTitle => 'Silent sync';
+
+  @override
+  String get autoSyncSummary => 'Mini programs on the server install and update automatically without prompts';
+
+  @override
+  String hubAppUnavailableOnMachine(String name) {
+    return '\"$name\" is unavailable on this machine (backend not deployed)';
+  }
 
   @override
   String get launchScreenTitle => 'Launch screen';
@@ -9659,6 +9851,10 @@ class L10nEn extends L10n {
 
   @override
   String get localEnvSignInInstallFirst => 'Install it to sign in';
+
+  @override
+  String get localEnvGateBody =>
+      'This phone doesn\'t run DSH locally, so these settings aren\'t available. To enable them, install the runtime under Remote hosts.';
 
   @override
   String get marketSectionOfficial => 'Official';
@@ -10441,6 +10637,83 @@ class L10nEn extends L10n {
 
   @override
   String get nearbyChange => 'Change';
+
+  @override
+  String get notifyCenterTitle => 'Service messages';
+
+  @override
+  String get notifyCenterEmpty => 'Mini program messages will show up here';
+
+  @override
+  String get notifyCenterMarkAll => 'Mark all read';
+
+  @override
+  String notifyCenterGroupCount(int count) {
+    return '$count';
+  }
+
+  @override
+  String notifyCenterUnread(int count) {
+    return '$count unread';
+  }
+
+  @override
+  String get notifyCenterLoadFailed => 'Can\'t reach AppHub — showing what already arrived';
+
+  @override
+  String get notifyCenterOpenFailed => 'Couldn\'t open that mini program page; it\'s still in the notification center';
+
+  @override
+  String get notifyCenterDismiss => 'Dismiss';
+
+  @override
+  String get notifyCenterOpenMiniApp => 'Open mini program';
+
+  @override
+  String get notifySubscribePanelTitle => 'Subscribe to notifications';
+
+  @override
+  String notifySubscribePanelBody(String app) {
+    return '“$app” would like to send you notifications after you act. One-time subscriptions end after one message.';
+  }
+
+  @override
+  String get notifySubscribePanelMainSwitch => 'Receive notifications';
+
+  @override
+  String get notifySubscribeAccept => 'Allow';
+
+  @override
+  String get notifySubscribeReject => 'Reject';
+
+  @override
+  String get notifySubscribeNoTemplates => 'No templates to subscribe to';
+
+  @override
+  String notifyUpdateApplied(String app, String version) {
+    return '“$app” updated to v$version';
+  }
+
+  @override
+  String notifyUpdateAppliedPlain(String app) {
+    return '“$app” updated; it takes effect next launch';
+  }
+
+  @override
+  String get notifyUpdatePublicText => 'Mini program updated';
+
+  @override
+  String notifyInstallApplied(String app, String version) {
+    return '“$app” installed (v$version) — find it on the mini-app desktop';
+  }
+
+  @override
+  String notifyInstallAppliedPlain(String app) {
+    return '“$app” installed — find it on the mini-app desktop';
+  }
+
+  @override
+  String get notifyInstallPublicText => 'Mini program installed';
 
   @override
   String get performanceTitle => 'Performance';
@@ -15036,6 +15309,9 @@ class L10nEn extends L10n {
   String get remoteBootstrapStarting => 'Starting remote DSH…';
 
   @override
+  String get remoteWaitReady => 'Waiting for the remote DSH to become ready…';
+
+  @override
   String remoteErrCommandNotFound(String command) {
     return '“$command” not found on the host';
   }
@@ -15917,6 +16193,33 @@ class L10nEn extends L10n {
   String get remoteHostBasicInfo => 'Basic information';
 
   @override
+  String get remoteHostIcon => 'Device icon';
+
+  @override
+  String get remoteHostIconHelp => 'Shown on host lists and the switcher. Cosmetic; change any time.';
+
+  @override
+  String get remoteHostIconDefault => 'Default';
+
+  @override
+  String get remoteHostIconMacMini => 'Mac mini';
+
+  @override
+  String get remoteHostIconDesktop => 'Monitor';
+
+  @override
+  String get remoteHostIconDesktopTower => 'Desktop';
+
+  @override
+  String get remoteHostIconTower => 'Tower';
+
+  @override
+  String get remoteHostIconLaptop => 'Laptop';
+
+  @override
+  String get remoteHostIconNas => 'NAS';
+
+  @override
   String get remoteHostNameHint => 'For example: computer, home Mac';
 
   @override
@@ -16759,6 +17062,10 @@ class L10nEn extends L10n {
       'How do I connect my own computer or server, and how is that different from this phone?';
 
   @override
+  String get askAiQuestionMarket =>
+      'The App market is unreachable or empty — how do I set up its backend (the wanqi service) and the plugins it needs on the host?';
+
+  @override
   String get phoneRuntimeUpgradeBase =>
       'The new engine cannot be confirmed compatible with your Linux environment, so the update stopped. Your environment and installed tools were not deleted. Make a full backup and contact the maintainer for migration; do not reset or uninstall the app.';
 
@@ -17145,7 +17452,7 @@ class L10nEn extends L10n {
   String get searchKwUsageStats => 'statistics,stats,usage data,analytics,telemetry,anonymous,privacy,data';
 
   @override
-  String get searchKwQuickPanel => 'swipe,left swipe,shortcuts,gesture,quick panel,quick access';
+  String get searchNeedsLocalEngineOn => 'Available while this phone runs the engine';
 
   @override
   String get selfUpdateTransport => 'Installation route';
@@ -17515,13 +17822,16 @@ class L10nEn extends L10n {
   String get shellEngineLogs => 'Engine logs';
 
   @override
-  String get shellWelcomeMessage => 'The DeepSeek agent,\nin your pocket';
+  String get shellWelcomeMessage => 'Leave it all to Wanqi';
 
   @override
   String get shellGetStarted => 'Start';
 
   @override
   String get shellSearchChats => 'Search chats';
+
+  @override
+  String get chatListTitle => 'Chats';
 
   @override
   String get shellCollapseChatList => 'Collapse chat list';
@@ -17859,6 +18169,9 @@ class L10nEn extends L10n {
   String shellCurrentHostLabel(String name, String view) {
     return 'Current host: $name, $view. Switch host';
   }
+
+  @override
+  String get shellDeviceLabel => 'Device';
 
   @override
   String get shellChatGone => 'This chat is gone';
@@ -18357,14 +18670,6 @@ class L10nEn extends L10n {
   String get shellPanelNoPlugins => 'No plugin panels for this chat yet';
 
   @override
-  String get shellQuickPanel => 'Shortcuts';
-
-  @override
-  String shellQuickPanelHint(String path) {
-    return 'Change these in $path';
-  }
-
-  @override
   String get speechReadAloud => 'Read aloud';
 
   @override
@@ -18675,6 +18980,12 @@ class L10nEn extends L10n {
 
   @override
   String get hubChatSuggestionsHint => 'Show chat suggestions on the start page';
+
+  @override
+  String get hubQuickPanel => 'Swipe-left shortcuts';
+
+  @override
+  String get searchKwQuickPanel => 'swipe,left swipe,shortcuts,gesture,quick panel,quick access';
 
   @override
   String get searchKwChatSuggestions => 'start page,empty page,new chat,chat suggestions,suggestion cards';

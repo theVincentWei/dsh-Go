@@ -2126,7 +2126,6 @@
   "brandOppoOs": "OPPO / 一加 / realme（ColorOS）",
   "brandSamsungOs": "三星（One UI）",
   "brandZhihu": "知乎",
-  "catalogCurrentChat": "当前对话",
   "catalogChatDetails": "对话详情",
   "catalogChatDetailsSummary": "轨迹、改动与进度",
   "catalogArtifacts": "产出的文件",
@@ -2139,14 +2138,8 @@
   "catalogExportSummary": "打包成 ZIP",
   "catalogJobs": "后台任务",
   "catalogJobsSummary": "查看输出、停止",
-  "catalogPlanGoal": "计划与目标",
-  "catalogPlanGoalSummary": "目标、计划与待办",
   "catalogSkills": "技能",
   "catalogSkillsSummary": "在对话里用技能",
-  "catalogSubagents": "子代理",
-  "catalogSubagentsSummary": "谱系与状态，点开接着聊",
-  "catalogReference": "引用文件和对话",
-  "catalogReferenceSummary": "在输入框用 @ 引用",
   "catalogAutomationSection": "自动化",
   "catalogSchedules": "自动化任务",
   "catalogSchedulesSummary": "定时与周期任务",
@@ -5592,11 +5585,6 @@
       }
     }
   },
-  "hubQuickPanel": "左滑快捷入口",
-  "hubQuickPanelSwipe": "左滑打开",
-  "hubQuickPanelSwipeHint": "在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。",
-  "hubQuickPanelItems": "显示的入口",
-  "hubQuickPanelItemsNone": "没有选择，左滑不会打开",
   "launchScreenTitle": "启动画面",
   "launchDefault": "默认",
   "launchCustom": "自定义",
@@ -10108,7 +10096,6 @@
   "searchKwPluginsMarket": "插件市场,安装插件,市场,获取插件",
   "searchKwUsageStats": "统计,使用统计,匿名,隐私,数据,改进,遥测,分析",
   "searchNeedsLocalEngineOn": "启用本机引擎后可用",
-  "searchKwQuickPanel": "左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口",
   "selfUpdateTransport": "安装路线",
   "selfUpdateSystem": "正常安装（默认）",
   "selfUpdateShizuku": "Shizuku",
@@ -10835,15 +10822,6 @@
   "shellPanelHost": "主机",
   "shellPanelOpenFull": "打开完整页面",
   "shellPanelNoPlugins": "这段对话还没有插件面板",
-  "shellQuickPanel": "快捷入口",
-  "shellQuickPanelHint": "在「{path}」里调整",
-  "@shellQuickPanelHint": {
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  },
   "speechReadAloud": "朗读",
   "speechReadAloudStop": "停止朗读",
   "speechReadSection": "朗读",
@@ -10968,6 +10946,8 @@
   "hubStartPage": "起始页",
   "hubChatSuggestions": "聊天建议",
   "hubChatSuggestionsHint": "显示起始页的聊天建议",
+  "hubQuickPanel": "左滑快捷入口",
+  "searchKwQuickPanel": "左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口",
   "searchKwChatSuggestions": "起始页,空白页,新对话,聊天建议,建议卡片",
   "phoneStartupFailureStopping": "启动失败，正在停止",
   "phoneStartupFailureStoppingDetail": "启动失败，正在停止。{reason}",

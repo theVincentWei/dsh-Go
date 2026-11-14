@@ -2,5 +2,7 @@
   "hubStartPage": "Start page",
   "hubChatSuggestions": "Chat suggestions",
   "hubChatSuggestionsHint": "Show chat suggestions on the start page",
+  "hubQuickPanel": "Swipe-left shortcuts",
+  "searchKwQuickPanel": "swipe,left swipe,shortcuts,gesture,quick panel,quick access",
   "searchKwChatSuggestions": "start page,empty page,new chat,chat suggestions,suggestion cards"
 }
