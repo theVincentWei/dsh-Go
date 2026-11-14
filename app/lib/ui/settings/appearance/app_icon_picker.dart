@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/l10n.dart';
 import '../../../state/app_icon_state.dart';
 import '../../common/pressable.dart';
-import '../../shell/brand_glyph.g.dart';
 import '../../theme/theme.dart';
 import '../../common/brief_notice.dart';
 
