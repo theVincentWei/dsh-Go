@@ -22,6 +22,7 @@ class AutoSyncSettingsTile extends ConsumerWidget {
     final AutoSyncSettings settings = ref.watch(autoSyncProvider);
     if (!settings.loaded) return const SizedBox.shrink();
     return SettingsSwitchTile(
+      spot: Spots.autoSync,
       icon: AppIcons.swap,
       title: l10n.autoSyncTitle,
       subtitle: l10n.autoSyncSummary,

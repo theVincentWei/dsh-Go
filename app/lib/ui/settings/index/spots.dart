@@ -607,6 +607,12 @@ abstract final class Spots {
     title: (l) => l.localeTitle,
     keywords: (l) => l.searchKwLanguage,
   );
+  static final autoSync = SettingSpot(
+    'auto-sync',
+    page: SettingsPageId.hub,
+    group: _general,
+    title: (l) => l.autoSyncTitle,
+  );
   static final askAi = SettingSpot(
     'ask-ai',
     page: SettingsPageId.hub,
@@ -1105,6 +1111,7 @@ final _rows = <SettingSpot>[
   Spots.chatTextSize,
   Spots.foldTurns,
   Spots.language,
+  Spots.autoSync,
   Spots.askAi,
   Spots.community,
   Spots.addProvider,

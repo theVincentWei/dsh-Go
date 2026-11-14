@@ -62,10 +62,6 @@ final Map<SettingsPageId, List<String Function(L10n)>> _unlisted = {
   ],
   SettingsPageId.pets: [(l) => l.botsPetShowNow, (l) => l.botsPetSwitchDisabled, (l) => l.botsPetHiddenToday],
   SettingsPageId.remote: [(l) => l.remoteWebConsole],
-  // 合并树新增(设置 → 通用 → 静默同步):AutoSyncSettingsTile 尚未接入
-  // Spots/SettingsIndex(设置搜索暂不可达,待拍板是否补挂点),先按
-  // 「有意不进索引」处理。
-  SettingsPageId.hub: [(l) => l.autoSyncTitle],
 };
 
 /// Entries whose row shows the thing itself rather than the page's name
