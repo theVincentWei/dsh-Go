@@ -230,6 +230,19 @@ class DartSshTransport implements SshTransport, RemoteBootstrapShell {
       // dartssh2 uses a null reason for EOF and authentication deadlines, and a
       // peer can report the loss itself (RFC 4253 reason 10).
       // The link owns cancellation; explicit peer refusals stay terminal below.
+      if (reason == null && e.message == 'Authentication timed out') {
+        // dartssh2 的 authTimeout 预算走完:凭据在预算内没能通过——密码不会
+        // 自己变对,按认证失败终态。真机实录(键盘交互服务器反复索要同一
+        // 密码)曾把它归为 unreachable/retryable,叠加上「退避不封顶」就成
+        // 了无提示的无限静默重试,卡片永远停在「校验主机指纹」。
+        // 真网络中断在 auth 阶段会带 SSHSocketError / SSHDisconnectError(10)
+        // 或无 reason 的 EOF,走下面的分支继续可重试。
+        return HostLinkError(
+          HostLinkErrorKind.authFailed,
+          params.auth == SshAuthMethod.password ? appL10n.remoteErrUsernamePassword : appL10n.remoteErrPrivateKeyRejected,
+          detail: '$e',
+        );
+      }
       if (reason == null ||
           reason is SSHSocketError ||
           (reason is SSHDisconnectError && reason.reasonCode == _disconnectConnectionLost)) {
