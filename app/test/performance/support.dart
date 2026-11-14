@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:dsh_app/performance/performance_state.dart';
 import 'package:dsh_app/ui_config/ui_config.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_test/flutter_test.dart';
 
 PerformanceSnapshot snapshot(DeviceTier tier, {bool hot = false, int sequence = 1}) => PerformanceSnapshot(
   sequence: sequence,
@@ -28,3 +30,21 @@ class FakePerformanceChannel extends PerformanceChannel {
 /// events, which a widget test has no plugin for. Nothing here reads ui.json:
 /// no source, as for a host that can't be read now.
 final Override noUiJson = uiConfigSourceBuilderProvider.overrideWithValue((ref, host) => null);
+
+/// The merged tree's root assembly (DshApp keeps hubDesktopSync alive) reaches
+/// featureSections → seatPlan → seatInventory → activeConnection, which
+/// activates the connectivity and runtime EventChannels. Widget tests have no
+/// plugin for them: activation throws MissingPluginException and every
+/// `takeException() == null` assertion (and the goldens) fail. Mock `listen`
+/// like test/hub/hub_desktop_sync_test.dart does (适配合并树).
+void quietSeamChannels() {
+  for (final String channel in <String>[
+    'dev.fluttercommunity.plus/connectivity_status',
+    'dsh/runtime/events',
+  ]) {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      MethodChannel(channel),
+      (MethodCall call) async => null,
+    );
+  }
+}

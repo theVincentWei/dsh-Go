@@ -17,6 +17,7 @@ class _Language extends AppLanguageController {
 }
 
 void main() {
+  setUp(quietSeamChannels);
   for (final brightness in Brightness.values) {
     for (final language in [AppLanguage.zh, AppLanguage.en]) {
       testWidgets('performance ${brightness.name} ${language.name}', (tester) async {
