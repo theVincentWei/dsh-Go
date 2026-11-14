@@ -364,10 +364,11 @@ class _Scenario {
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         builder: (context, child) => MirroredSideInsets(child: child!),
-        home: const FilePreviewPage(sessionId: _session, path: _path),
+        home: const _Pushed(child: FilePreviewPage(sessionId: _session, path: _path)),
       ),
     ));
     await _pumps(tester);
+    await tester.pumpAndSettle(); // 推入转场走完,后续点按不再被指针门禁吞掉
     page = tester.element(find.byType(ArtifactPreviewPage));
     _watchScope(a.wire.links.single);
     expect(a.wire.calls, hasLength(1));
@@ -677,4 +678,28 @@ void main() {
       timeout: const Timeout(Duration(seconds: 30)),
     );
   }
+}
+
+/// 适配合并树:预览页的 actions 条(分享/更多)只在被推入的路由挂载
+/// (首路由是紧凑大标题头部),生产里预览页总是被推入。
+class _Pushed extends StatefulWidget {
+  const _Pushed({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Pushed> createState() => _PushedState();
+}
+
+class _PushedState extends State<_Pushed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => widget.child)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }
