@@ -20,6 +20,7 @@ import 'pet_sprite.dart';
 Map<String, String> get petNames => {
   'deepy-whale': appL10n.botsPetDeepy,
   'whale-girl': appL10n.botsPetWhaleGirl,
+  'ponkan-cat': appL10n.botsPetPonkan,
   noPetId: appL10n.botsPetNone,
 };
 

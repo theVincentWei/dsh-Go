@@ -1,0 +1,71 @@
+{
+  "canvas": { "w": 32, "h": 34 },
+  "scale": 2,
+  "baseIdle": "idle",
+  "oneShot": ["waking", "react-left", "react-right", "react-tickle", "react-drag", "bonus-love"],
+  "animations": {
+    "idle": { "durs": [600, 600, 600, 600] },
+    "thinking": { "durs": [500, 500, 500, 500] },
+    "notification": { "durs": [400, 400] },
+    "idle-look": { "durs": [500, 500, 500, 500] },
+    "idle-stretch": { "durs": [520, 520, 520] },
+    "bonus-love": { "durs": [220, 220, 220, 260] },
+    "waking": { "durs": [250, 250, 250] },
+    "roam-hop": { "durs": [130, 130, 130, 130] },
+    "carrying": { "durs": [180, 180, 180, 180] },
+    "happy": { "durs": [180, 180, 180] },
+    "compacting": { "durs": [110, 110, 110] },
+    "error": { "durs": [140, 140, 140] },
+    "pawing": { "durs": [150, 150, 150, 150] },
+    "sleeping": { "durs": [800, 800, 800, 800] },
+    "react-left": { "durs": [200, 200] },
+    "react-right": { "durs": [200, 200] },
+    "react-tickle": { "durs": [140, 140, 140] },
+    "react-drag": { "durs": [220, 220] }
+  },
+  "states": {
+    "idle": ["idle"],
+    "thinking": ["thinking"],
+    "working": ["pawing"],
+    "juggling": ["pawing"],
+    "error": ["error"],
+    "attention": ["happy"],
+    "notification": ["notification"],
+    "sweeping": ["compacting"],
+    "carrying": ["carrying"],
+    "sleeping": ["sleeping"],
+    "waking": ["waking"],
+    "roam": ["roam-hop"]
+  },
+  "tiers": {
+    "working": [{ "min": 1, "anim": "pawing" }],
+    "juggling": [{ "min": 1, "anim": "pawing" }]
+  },
+  "reactions": {
+    "tapLeft": "react-left",
+    "tapRight": "react-right",
+    "tickle": "react-tickle",
+    "drag": "react-drag"
+  },
+  "timings": {
+    "minDisplay": {
+      "attention": 4200, "error": 3000, "sweeping": 5000, "notification": 3000,
+      "carrying": 3000, "working": 1000, "thinking": 1000
+    },
+    "autoReturn": {
+      "attention": 4200, "error": 3000, "sweeping": 300000, "carrying": 3000
+    },
+    "wakeMs": 750
+  },
+  "idlePool": {
+    "anims": [
+      { "anim": "idle-look", "ms": 4000, "weight": 1 },
+      { "anim": "idle-stretch", "ms": 3120, "weight": 1 }
+    ]
+  },
+  "bonus": {
+    "attention": { "anims": ["bonus-love"], "chance": 0.2 }
+  },
+  "roam": { "anim": "roam-hop", "faces": "right" },
+  "sleep": { "afterMs": 60000 }
+}

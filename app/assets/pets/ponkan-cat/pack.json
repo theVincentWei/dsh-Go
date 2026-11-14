@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "id": "ponkan-cat",
+  "name": "匠匠",
+  "author": "dsh-go 用户提供参考图",
+  "license": "用户提供的参考图，随 dsh-go 使用",
+  "source": "用户提供的七动作像素猫参考图，经 piskel-cli 切成序列帧",
+  "pixelArt": true,
+  "scale": 2,
+  "canvas": {"w": 32, "h": 34},
+  "anchor": {"x": 15, "baseline": 32},
+  "contentBox": {"x": 4, "y": 8, "w": 23, "h": 24},
+  "hitBoxes": {
+    "default": {"x": 4, "y": 8, "w": 23, "h": 24},
+    "wide": {"x": 0, "y": 5, "w": 32, "h": 28},
+    "sleeping": {"x": 5, "y": 16, "w": 22, "h": 16},
+    "byAnim": {},
+    "wideAnims": ["pawing", "bonus-love", "compacting", "carrying", "roam-hop", "react-left", "react-right"],
+    "sleepingAnims": ["sleeping"]
+  },
+  "animations": {
+    "idle": {
+      "sheet": "idle.png",
+      "frameW": 46,
+      "frameH": 52,
+      "cols": 2,
+      "box": {"x": 4, "y": 8, "w": 23, "h": 26},
+      "loop": true,
+      "ms": 2400,
+      "frames": [{"i": 0, "ms": 600}, {"i": 0, "ms": 600}, {"i": 0, "ms": 600}, {"i": 1, "ms": 600}]
+    },
+    "idle-look": {
+      "sheet": "idle-look.png",
+      "frameW": 48,
+      "frameH": 50,
+      "cols": 3,
+      "box": {"x": 4, "y": 9, "w": 24, "h": 25},
+      "loop": true,
+      "ms": 2000,
+      "frames": [{"i": 0, "ms": 500}, {"i": 1, "ms": 500}, {"i": 0, "ms": 500}, {"i": 2, "ms": 500}]
+    },
+    "idle-stretch": {
+      "sheet": "idle-stretch.png",
+      "frameW": 50,
+      "frameH": 52,
+      "cols": 3,
+      "box": {"x": 3, "y": 8, "w": 25, "h": 26},
+      "loop": true,
+      "ms": 1560,
+      "frames": [{"i": 0, "ms": 520}, {"i": 1, "ms": 520}, {"i": 2, "ms": 520}]
+    },
+    "thinking": {
+      "sheet": "thinking.png",
+      "frameW": 52,
+      "frameH": 64,
+      "cols": 2,
+      "box": {"x": 4, "y": 2, "w": 26, "h": 32},
+      "loop": true,
+      "ms": 2000,
+      "frames": [{"i": 0, "ms": 500}, {"i": 1, "ms": 500}, {"i": 0, "ms": 500}, {"i": 1, "ms": 500}]
+    },
+    "pawing": {
+      "sheet": "pawing.png",
+      "frameW": 56,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 2, "y": 11, "w": 28, "h": 23},
+      "loop": true,
+      "ms": 600,
+      "frames": [{"i": 0, "ms": 150}, {"i": 1, "ms": 150}, {"i": 0, "ms": 150}, {"i": 1, "ms": 150}]
+    },
+    "error": {
+      "sheet": "error.png",
+      "frameW": 44,
+      "frameH": 50,
+      "cols": 3,
+      "box": {"x": 5, "y": 9, "w": 22, "h": 25},
+      "loop": true,
+      "ms": 420,
+      "frames": [{"i": 0, "ms": 140}, {"i": 1, "ms": 140}, {"i": 2, "ms": 140}]
+    },
+    "happy": {
+      "sheet": "happy.png",
+      "frameW": 50,
+      "frameH": 54,
+      "cols": 2,
+      "box": {"x": 3, "y": 7, "w": 25, "h": 27},
+      "loop": true,
+      "ms": 540,
+      "frames": [{"i": 0, "ms": 180}, {"i": 1, "ms": 180}, {"i": 0, "ms": 180}]
+    },
+    "bonus-love": {
+      "sheet": "bonus-love.png",
+      "frameW": 48,
+      "frameH": 64,
+      "cols": 4,
+      "box": {"x": 3, "y": 2, "w": 24, "h": 32},
+      "loop": false,
+      "ms": 920,
+      "frames": [{"i": 0, "ms": 220}, {"i": 1, "ms": 220}, {"i": 2, "ms": 220}, {"i": 3, "ms": 260}]
+    },
+    "notification": {
+      "sheet": "notification.png",
+      "frameW": 46,
+      "frameH": 64,
+      "cols": 2,
+      "box": {"x": 4, "y": 2, "w": 23, "h": 32},
+      "loop": true,
+      "ms": 800,
+      "frames": [{"i": 0, "ms": 400}, {"i": 1, "ms": 400}]
+    },
+    "compacting": {
+      "sheet": "compacting.png",
+      "frameW": 56,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 2, "y": 11, "w": 28, "h": 23},
+      "loop": true,
+      "ms": 330,
+      "frames": [{"i": 0, "ms": 110}, {"i": 1, "ms": 110}, {"i": 0, "ms": 110}]
+    },
+    "carrying": {
+      "sheet": "carrying.png",
+      "frameW": 64,
+      "frameH": 48,
+      "cols": 2,
+      "box": {"x": 0, "y": 10, "w": 32, "h": 24},
+      "loop": true,
+      "ms": 720,
+      "frames": [{"i": 0, "ms": 180}, {"i": 1, "ms": 180}, {"i": 0, "ms": 180}, {"i": 1, "ms": 180}]
+    },
+    "sleeping": {
+      "sheet": "sleeping.png",
+      "frameW": 44,
+      "frameH": 36,
+      "cols": 2,
+      "box": {"x": 5, "y": 16, "w": 22, "h": 18},
+      "loop": true,
+      "ms": 3200,
+      "frames": [{"i": 0, "ms": 800}, {"i": 0, "ms": 800}, {"i": 0, "ms": 800}, {"i": 1, "ms": 800}]
+    },
+    "waking": {
+      "sheet": "waking.png",
+      "frameW": 46,
+      "frameH": 50,
+      "cols": 2,
+      "box": {"x": 4, "y": 9, "w": 23, "h": 25},
+      "loop": false,
+      "ms": 750,
+      "frames": [{"i": 0, "ms": 250}, {"i": 1, "ms": 250}, {"i": 1, "ms": 250}]
+    },
+    "roam-hop": {
+      "sheet": "roam-hop.png",
+      "frameW": 64,
+      "frameH": 50,
+      "cols": 2,
+      "box": {"x": 0, "y": 9, "w": 32, "h": 25},
+      "loop": true,
+      "ms": 520,
+      "frames": [{"i": 0, "ms": 130}, {"i": 1, "ms": 130}, {"i": 0, "ms": 130}, {"i": 0, "ms": 130}]
+    },
+    "react-left": {
+      "sheet": "react-left.png",
+      "frameW": 56,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 2, "y": 11, "w": 28, "h": 23},
+      "loop": false,
+      "ms": 400,
+      "frames": [{"i": 0, "ms": 200}, {"i": 1, "ms": 200}]
+    },
+    "react-right": {
+      "sheet": "react-right.png",
+      "frameW": 58,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 1, "y": 11, "w": 29, "h": 23},
+      "loop": false,
+      "ms": 400,
+      "frames": [{"i": 0, "ms": 200}, {"i": 1, "ms": 200}]
+    },
+    "react-tickle": {
+      "sheet": "react-tickle.png",
+      "frameW": 50,
+      "frameH": 52,
+      "cols": 2,
+      "box": {"x": 3, "y": 8, "w": 25, "h": 26},
+      "loop": false,
+      "ms": 420,
+      "frames": [{"i": 0, "ms": 140}, {"i": 1, "ms": 140}, {"i": 0, "ms": 140}]
+    },
+    "react-drag": {
+      "sheet": "react-drag.png",
+      "frameW": 52,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 3, "y": 6, "w": 26, "h": 23},
+      "loop": false,
+      "ms": 440,
+      "frames": [{"i": 0, "ms": 220}, {"i": 1, "ms": 220}]
+    }
+  },
+  "idlePool": {
+    "everyMs": {"mean": 120000, "min": 45000, "max": 300000},
+    "anims": [
+      {"anim": "idle-look", "ms": 4000, "weight": 1},
+      {"anim": "idle-stretch", "ms": 3120, "weight": 1}
+    ]
+  },
+  "states": {
+    "idle": ["idle"],
+    "thinking": ["thinking"],
+    "working": ["pawing"],
+    "juggling": ["pawing"],
+    "error": ["error"],
+    "attention": ["happy"],
+    "notification": ["notification"],
+    "sweeping": ["compacting"],
+    "carrying": ["carrying"],
+    "sleeping": ["sleeping"],
+    "waking": ["waking"],
+    "roam": ["roam-hop"]
+  },
+  "bonus": {"attention": {"anims": ["bonus-love"], "chance": 0.2}},
+  "tiers": {"working": [{"min": 1, "anim": "pawing"}], "juggling": [{"min": 1, "anim": "pawing"}]},
+  "timings": {
+    "minDisplay": {
+      "attention": 4200,
+      "error": 3000,
+      "sweeping": 5000,
+      "notification": 3000,
+      "carrying": 3000,
+      "working": 1000,
+      "thinking": 1000
+    },
+    "autoReturn": {"attention": 4200, "error": 3000, "sweeping": 300000, "carrying": 3000},
+    "wakeMs": 750
+  },
+  "reactions": {
+    "tapLeft": "react-left",
+    "tapRight": "react-right",
+    "tickle": "react-tickle",
+    "drag": "react-drag"
+  },
+  "roam": {"anim": "roam-hop", "faces": "right"},
+  "sleep": {"afterMs": 60000}
+}

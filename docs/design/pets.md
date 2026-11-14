@@ -317,6 +317,12 @@ app/assets/pets/<id>/<anim>.png     # 序列帧图，默认单行横条；帧多
 | 彩蛋 | 无 | smile-hearts、thumbs-up |
 | 包体积 | 约 422 KB | 约 57 KB |
 
+第三个内置包「匠匠」（`ponkan-cat`，约 31 KB，18 段 / 58 帧）不是从主题包导入的，
+素材来源是 `tool/pet_src/ponkan-cat/` 的 `spec.json` + 等宽序列帧：`make_pet_pack.py` 的
+`strips` 加载器直接读它们，帧时长与状态映射都写在 spec 里，不用从一个网页里反解。
+它的画布 32×34（scale 2），底部 4 行是 alpha 56 的接触阴影带——低于 `OPAQUE`，
+所以 baseline / 命中框仍落在脚线 32，做法与 Deepy 的 22 % 阴影一致。
+
 ### 3.5 第二期：Codex Pet 导入映射
 
 Codex Pet 的图集是 8 列 × 9 行，每格 192×208。也有 11 行的 v2 版本，多出来的两行忽略。导入时按下表转成我们的 pack，`pixelArt: false`。
