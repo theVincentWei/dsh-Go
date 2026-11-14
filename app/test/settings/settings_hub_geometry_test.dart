@@ -73,7 +73,15 @@ void main() {
     for (final tile in tester.widgetList<SettingsTile>(find.byType(SettingsTile))) {
       final title = tile.title ?? tile.spot!.title(appL10n);
       final row = find.ancestor(of: find.text(title), matching: find.byType(ConstrainedBox)).first;
-      expect(tester.getSize(row).height, SettingsMetrics.rowHeight, reason: title);
+      // 适配合并树: 通用组加了带副标题的「静默同步」行;双行行高按内容
+      // 再涨(390 宽下副标题折行,70),断「不低于双行基线」。
+      expect(
+        tester.getSize(row).height,
+        tile.subtitle == null
+            ? SettingsMetrics.rowHeight
+            : greaterThanOrEqualTo(SettingsMetrics.rowHeightTwoLine),
+        reason: title,
+      );
       expect(
         tester.getRect(find.text(title)).left,
         moreOrLessEquals(16 + SettingsMetrics.textStart, epsilon: _tol),
