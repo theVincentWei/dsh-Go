@@ -83,7 +83,7 @@ Future<(_Host, ProviderContainer, BuildContext)> _start(WidgetTester tester) asy
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
       overrides: workspaceOverrides(host, current: 's1', prefs: const WorkspacePrefs(loaded: true)),
     ),
   );

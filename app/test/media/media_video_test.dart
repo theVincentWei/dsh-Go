@@ -29,6 +29,7 @@ class _Files extends ArtifactFiles {
     Artifact artifact, {
     void Function(double?)? onProgress,
     int maxBytes = maxRemoteArtifactBytes,
+    String? taskLabel,
   }) async {
     reads++;
     onProgress?.call(0.5);

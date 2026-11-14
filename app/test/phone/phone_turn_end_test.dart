@@ -200,7 +200,7 @@ void main() {
         'taskId': 1, 'sessionId': 's1', 'host': HostRef.local.encode(), 'reopen': true,
         'runId': 'epoch:1', 'generation': 3,
       });
-      expect(container.read(chatRevealProvider)?.sessionId, 's1');
+      expect(container.read(chatScrollRevealProvider)?.sessionId, 's1');
       native.push(exactStatus(ended: true));
       await settle();
       expect(native.callsOf('finishTask'), hasLength(1));
@@ -240,7 +240,7 @@ void main() {
       await settle();
       expect(finishArgs()['sessionId'], 's1');
       expect(finishArgs()['reopen'], isFalse);
-      expect(container.read(chatRevealProvider), isNull);
+      expect(container.read(chatScrollRevealProvider), isNull);
     });
 
     test('the phone turn ending closes the overlay and brings the app back to that conversation', () async {

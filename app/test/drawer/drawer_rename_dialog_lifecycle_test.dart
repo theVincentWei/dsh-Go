@@ -52,7 +52,7 @@ Future<(_RenameHost, ModalRoute<Object?>)> _openRename(WidgetTester tester, {boo
       overrides: workspaceOverrides(host, prefs: const WorkspacePrefs(loaded: true), current: 's1'),
       home: AppMotionScope(
         fluid: fluid,
-        child: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+        child: HomeShell(chatBuilder: const SizedBox.expand()),
       ),
     ),
   );
