@@ -2000,37 +2000,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                 // The `@` word at the caret wins over a "/" line.
                                 final live = connected && !readOnly;
                                 final mention = live && _mentions.isOpen;
-                                final content = live && !mention
-                                    ? PaletteContent.of(
-                                        commands,
-                                        _input.text,
-                                        caret: _input.selection.isCollapsed ? _input.selection.extentOffset : -1,
-                                      )
-                                    : null;
+                                final content = live && !mention ? _slashContent(commands) : null;
                                 // The pet steps aside while a panel is up.
-                                return PetCover(
-                                  active: mention || content != null,
-                                  child: AnimatedSwitcher(
-                                    duration: AppMotion.of(context, AppMotion.quick),
-                                    switchInCurve: AppMotion.enter,
-                                    switchOutCurve: AppMotion.exit,
-                                    transitionBuilder: (child, animation) => FadeTransition(
-                                      opacity: animation,
-                                      child: ScaleTransition(
-                                        alignment: Alignment.bottomCenter,
-                                        scale: Tween(begin: 0.96, end: 1.0).animate(animation),
-                                        child: child,
+                                return PopScope<Object?>(
+                                  canPop: content == null,
+                                  onPopInvokedWithResult: (didPop, _) {
+                                    if (!didPop) _dismissSlashPalette();
+                                  },
+                                  child: PetCover(
+                                    active: mention || content != null,
+                                    child: AnimatedSwitcher(
+                                      duration: AppMotion.of(context, AppMotion.quick),
+                                      switchInCurve: AppMotion.enter,
+                                      switchOutCurve: AppMotion.exit,
+                                      transitionBuilder: (child, animation) => FadeTransition(
+                                        opacity: animation,
+                                        child: ScaleTransition(
+                                          alignment: Alignment.bottomCenter,
+                                          scale: Tween(begin: 0.96, end: 1.0).animate(animation),
+                                          child: child,
+                                        ),
                                       ),
+                                      child: mention
+                                          ? MentionPicker(key: const ValueKey('mention'), controller: _mentions)
+                                          : content == null
+                                          ? const SizedBox(key: ValueKey('none'), width: double.infinity)
+                                          : TextFieldTapRegion(
+                                              key: ValueKey(content is PaletteHint),
+                                              groupId: _composerGroup,
+                                              onTapOutside: (_) => _dismissSlashPalette(),
+                                              child: SlashPalette(content: content, onPick: _pick),
+                                            ),
                                     ),
-                                    child: mention
-                                        ? MentionPicker(key: const ValueKey('mention'), controller: _mentions)
-                                        : content == null
-                                        ? const SizedBox(key: ValueKey('none'), width: double.infinity)
-                                        : SlashPalette(
-                                            key: ValueKey(content is PaletteHint),
-                                            content: content,
-                                            onPick: _pick,
-                                          ),
                                   ),
                                 );
                               },
@@ -2066,9 +2067,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                             ? Padding(
                                                 padding: const EdgeInsets.only(bottom: 8),
                                                 child: ErrorBanner(
+                                                  maxLines: null,
                                                   info: !(chat?.streamLost ?? false),
                                                   message: chat?.streamLost ?? false
-                                                      ? l10n.stateChatSyncInterrupted
+                                                      ? chat?.syncError ?? l10n.stateChatSyncInterrupted
                                                       : l10n.stateChatSynchronizing,
                                                   action: chat?.resyncing ?? false
                                                       ? null
@@ -2189,6 +2191,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                           strip: false,
                                         ),
                                       ),
+                                    if (_preparedPhoneSkill case final prepared?)
+                                      Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(l10n.phoneSkillReplayReview),
+                                              SelectableText(prepared.text),
+                                              Row(
+                                                children: [
+                                                  TextButton(
+                                                    onPressed: _phoneSkillSending
+                                                        ? null
+                                                        : () => setState(_dropPreparedPhoneSkill),
+                                                    child: Text(l10n.commonClose),
+                                                  ),
+                                                  FilledButton(
+                                                    onPressed: _phoneSkillSending || readOnly || !connected
+                                                        ? null
+                                                        : _sendPhoneSkill,
+                                                    child: Text(l10n.phoneSkillReplayQueue),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     if (readOnly)
                                       const ReadOnlyBar()
                                     else
@@ -2197,6 +2229,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                           settingsProvider.select((s) => s.hardwareEnterSends),
                                         ),
                                         controller: _input,
+                                        groupId: _composerGroup,
                                         // The page's context: Scaffold drops the keyboard inset below.
                                         maxLines: Composer.linesFor(context),
                                         focusNode: _focus,
@@ -2209,6 +2242,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                         // already say an approval waits: the hint
                                         // stays the plain one.
                                         waiting: approval != null || question != null,
+                                        modeLabel: question == null
+                                            ? null
+                                            : answerInComposer
+                                            ? l10n.chatAnswerMode
+                                            : l10n.chatMessageMode,
                                         waitHint: approval != null
                                             ? null
                                             : chat?.singleQuestion ?? false
