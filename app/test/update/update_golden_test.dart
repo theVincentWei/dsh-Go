@@ -377,7 +377,7 @@ void main() {
     });
   });
 
-  testWidgets('设置 marks 关于 DSH Go; the rows are on that page', (tester) async {
+  testWidgets('设置 marks 关于万器; the rows are on that page', (tester) async {
     usePhoneSurface(tester);
     await tester.pumpWidget(
       goldenApp(
@@ -390,9 +390,9 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.widgetWithText(UpdateBadge, '有新版本'), findsOneWidget);
-    await tester.ensureVisible(find.text('关于 DSH Go'));
+    await tester.ensureVisible(find.text('关于万器'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('关于 DSH Go'));
+    await tester.tap(find.text('关于万器'));
     await tester.pumpAndSettle();
     expect(find.byType(AboutPage), findsOneWidget);
     expect(find.byType(AppUpdateTiles), findsOneWidget);

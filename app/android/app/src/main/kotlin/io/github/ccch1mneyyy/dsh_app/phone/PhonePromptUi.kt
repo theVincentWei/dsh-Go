@@ -38,7 +38,7 @@ internal object PhonePromptUi {
 
     /** The card's title: a handoff behind a hard rule names the rule (「密码和验证码需要你来输入」). */
     fun title(ctx: Context, content: PromptContent): String =
-        content.cause?.let { "DSH Go · " + handoffCause(ctx, it) } ?: title(ctx, content.kind)
+        content.cause?.let { "万器 · " + handoffCause(ctx, it) } ?: title(ctx, content.kind)
 
     fun handoffCause(ctx: Context, cause: HandoffCause): String = AppStrings.get(ctx, when (cause) {
         HandoffCause.SECRET -> R.string.overlay_handoff_secret

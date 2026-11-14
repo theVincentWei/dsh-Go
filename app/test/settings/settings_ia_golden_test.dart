@@ -1,6 +1,6 @@
 // Goldens of the regrouped settings (docs/design/settings-ia.md §4.2–4.3):
 // the whole hub on a tall phone, with values in its rows, and the pages it
-// gained — 个性化, 界面, 隐私与分享, 关于 DSH Go — light and dark.
+// gained — 个性化, 界面, 隐私与分享, 关于万器 — light and dark.
 //
 //   flutter test --update-goldens test/settings/settings_ia_golden_test.dart
 

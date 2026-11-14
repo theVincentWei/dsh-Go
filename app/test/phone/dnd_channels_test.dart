@@ -297,8 +297,8 @@ void main() {
 
     await open(tester, 'Sui');
     expect(find.text('Sui 接口可用'), findsNothing);
-    expect(find.text('授权给 DSH Go'), findsOneWidget);
-    await tester.tap(find.text('授权给 DSH Go'));
+    expect(find.text('授权给万器'), findsOneWidget);
+    await tester.tap(find.text('授权给万器'));
     await tester.pumpAndSettle();
     expect(h.native!.callsOf('requestShizukuPermission').single.arguments, {'provider': 'sui'});
     expect(h.native!.callsOf('setBackgroundMode'), isEmpty);
@@ -310,7 +310,7 @@ void main() {
     expect(find.text('Sui'), findsNothing);
     await open(tester, 'Sui');
     expect(find.textContaining('没有检测到 Sui'), findsOneWidget);
-    expect(find.text('授权给 DSH Go'), findsNothing);
+    expect(find.text('授权给万器'), findsNothing);
     await open(tester, 'Shizuku');
     expect(find.text('打开 Shizuku 官网'), findsOneWidget);
   });

@@ -104,7 +104,7 @@
       }
     }
   },
-  "plugslotsIssueNeedsApp": "Needs DSH Go {version} or later",
+  "plugslotsIssueNeedsApp": "Needs Wanqi {version} or later",
   "@plugslotsIssueNeedsApp": {
     "placeholders": {
       "version": {

@@ -345,7 +345,7 @@ void main() {
     await pump(tester, catalog([WorkshopItemState(entry: cat, unavailable: 'workshop_min_app')]));
     await tester.tap(find.text('小猫'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('需要 DSH Go'), findsOneWidget);
+    expect(find.textContaining('需要万器'), findsOneWidget);
     expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, '获取').last).onPressed, isNull);
   });
 

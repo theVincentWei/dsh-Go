@@ -1,6 +1,6 @@
 // 设置 → 手机操控 → 悬浮条 (lib/ui/phone/phone_control_screen.dart): 闲置时不透明度
 // (30–100 %, 70 % by default, sent to the native side on every step so a showing
-// pill follows), 闲置时自动收起 (off by default) and 完成后返回 DSH Go, shown
+// pill follows), 闲置时自动收起 (off by default) and 完成后返回万器, shown
 // once phone control is on.
 
 import 'dart:ui' show Tristate;
@@ -23,7 +23,7 @@ import 'support.dart';
 const _group = '悬浮条';
 const _opacity = '闲置时不透明度';
 const _auto = '闲置时自动收起';
-const _return = '完成后返回 DSH Go';
+const _return = '完成后返回万器';
 
 Finder _row(String title) => find.ancestor(of: find.text(title), matching: find.byType(ListPageRow)).first;
 
@@ -121,7 +121,7 @@ void main() {
       expect(h.native!.overlay['autoCollapse'], isFalse);
     });
 
-    testWidgets('完成后返回 DSH Go: toggled and kept in the app', (tester) async {
+    testWidgets('完成后返回万器: toggled and kept in the app', (tester) async {
       await pumpPhone(tester, const PhoneControlScreen(), native: FakePhoneNative(status: phoneStatus()));
       await openPhoneFold(tester, 'phone-more-options');
       await _reveal(tester);

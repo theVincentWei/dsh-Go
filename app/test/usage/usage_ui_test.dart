@@ -1,5 +1,5 @@
 // Where the person is told and can say no: first run's welcome page (over
-// 「开始」) and 设置 › 隐私与分享 › 改进 DSH Go. Measured, not eyeballed: the
+// 「开始」) and 设置 › 隐私与分享 › 改进万器. Measured, not eyeballed: the
 // welcome row's text starts 16 in from the button's left edge and the switch
 // track ends 16 in from its right, both centred on the row, the row as far
 // from either screen edge; at 320 dp with large text in both languages

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="phone_prompt_approval_title">DSH Go · Approval</string>
-    <string name="phone_prompt_review_title">DSH Go · Review needed</string>
-    <string name="phone_prompt_native_title">DSH Go · Phone control</string>
-    <string name="phone_prompt_handoff_title">DSH Go · Your turn</string>
+    <string name="phone_prompt_approval_title">Wanqi · Approval</string>
+    <string name="phone_prompt_review_title">Wanqi · Review needed</string>
+    <string name="phone_prompt_native_title">Wanqi · Phone control</string>
+    <string name="phone_prompt_handoff_title">Wanqi · Your turn</string>
     <string name="phone_prompt_allow_once">Allow once</string>
     <string name="phone_prompt_allow_app">Allow this app for this task</string>
     <string name="phone_prompt_allow_task">Allow for this task</string>
@@ -14,6 +14,6 @@
     <string name="phone_prompt_continue">Continue</string>
     <string name="phone_prompt_remaining">%1$d s remaining · no response will not allow an action</string>
     <string name="phone_prompt_result_channel">Phone control results</string>
-    <string name="phone_prompt_result_title">DSH Go · Task complete</string>
+    <string name="phone_prompt_result_title">Wanqi · Task complete</string>
     <string name="phone_prompt_result_text">View results</string>
 </resources>

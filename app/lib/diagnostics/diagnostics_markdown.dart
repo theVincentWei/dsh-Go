@@ -22,7 +22,7 @@ const diagnosticsMarkdownBytes = 16 * 1024;
 /// [redactDiagnostics] on the way out. The UTF-8 budget includes the notice.
 String diagnosticsMarkdown(DiagnosticsSnapshot s, {int maxBytes = diagnosticsMarkdownBytes}) {
   final b = StringBuffer()
-    ..writeln('# DSH Go 本机诊断')
+    ..writeln('# 万器 本机诊断')
     ..writeln()
     ..writeln('> App 写在引擎里的环境快照，给排查问题用；已脱敏。生成时间：${_time(s.at)}。')
     ..writeln();
@@ -69,7 +69,9 @@ void _systemIme(StringBuffer b, DiagnosticsSnapshot s) {
     final recent = evidence.events.reversed.take(diagnosticsSystemImeEvents).toList().reversed;
     b.writeln('- Most recent ${recent.length} events (ZIP contains the full bounded capture):');
     for (final event in recent) {
-      b.writeln('  - ${event.timestamp} ${event.event} fromUser=${event.fromUser} reason=${event.reason} origin=${event.origin}');
+      b.writeln(
+        '  - ${event.timestamp} ${event.event} fromUser=${event.fromUser} reason=${event.reason} origin=${event.origin}',
+      );
     }
   }
   b.writeln();
@@ -202,14 +204,30 @@ void _backgroundInputProbe(StringBuffer b, Object? raw) {
   }
   if (raw['observed'] != true || result != 'failure') return;
   const stages = {
-    'precondition', 'ui_dispatch', 'presentation_create', 'presentation_configure',
-    'presentation_show', 'activity_start', 'activity_ready_wait',
-    'view_layout_wait', 'frame_commit_wait', 'target_validate',
-    'input_send', 'receipt_wait', 'cleanup',
+    'precondition',
+    'ui_dispatch',
+    'presentation_create',
+    'presentation_configure',
+    'presentation_show',
+    'activity_start',
+    'activity_ready_wait',
+    'view_layout_wait',
+    'frame_commit_wait',
+    'target_validate',
+    'input_send',
+    'receipt_wait',
+    'cleanup',
   };
   const types = {
-    'none', 'SecurityException', 'IllegalStateException', 'IllegalArgumentException',
-    'InvalidDisplayException', 'BadTokenException', 'TimeoutException', 'InterruptedException', 'OtherException',
+    'none',
+    'SecurityException',
+    'IllegalStateException',
+    'IllegalArgumentException',
+    'InvalidDisplayException',
+    'BadTokenException',
+    'TimeoutException',
+    'InterruptedException',
+    'OtherException',
   };
   final stage = raw['stage'];
   final type = raw['exceptionType'];

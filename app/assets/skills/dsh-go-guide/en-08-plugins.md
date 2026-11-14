@@ -60,9 +60,9 @@ The first time a plugin reads your draft, clipboard or a reply, it asks first. I
 
 The native UI needs the dsh-go bridge on the host: this phone's engine has it built in, remote hosts usually don't, and it never shows over DSH Remote.
 
-## DSH Go market
+## Wanqi market
 
-The market offers Official, Adapted for DSH Go and All sections. When an official index lists a package, its checked, pinned version takes precedence over other listings of the same name. Details include risk flags, native features, minimum app version, screenshots and localized descriptions. Risk flags describe capabilities rather than a guarantee of safety. Medium- and high-risk installations ask for confirmation.
+The market offers Official, Adapted for Wanqi and All sections. When an official index lists a package, its checked, pinned version takes precedence over other listings of the same name. Details include risk flags, native features, minimum app version, screenshots and localized descriptions. Risk flags describe capabilities rather than a guarantee of safety. Medium- and high-risk installations ask for confirmation.
 
 Before installation or an update, the app compares the declared digest with npm registry metadata. An unavailable or mismatching digest stops the operation before removing an old version. This does not verify the bytes eventually downloaded by the host; that requires host protocol support. Changing host or connection invalidates pending consent. Withdrawn installed versions show a warning.
 

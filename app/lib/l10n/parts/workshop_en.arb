@@ -40,7 +40,7 @@
   "workshopAbout": "About",
   "workshopNoDescription": "The author didn't write a description.",
   "workshopSource": "Source",
-  "workshopMinApp": "Needs DSH Go {version} or later.",
+  "workshopMinApp": "Needs Wanqi {version} or later.",
   "@workshopMinApp": {
     "placeholders": {
       "version": {

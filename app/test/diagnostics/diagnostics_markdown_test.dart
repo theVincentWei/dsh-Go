@@ -56,7 +56,7 @@ void main() {
 
   test('the report has the sections a support skill needs', () {
     final text = diagnosticsMarkdown(snapshot());
-    expect(text, contains('# DSH Go 本机诊断'));
+    expect(text, contains('# 万器 本机诊断'));
     expect(text, contains('## 环境'));
     expect(text, contains('vivo'));
     expect(text, contains('V2405A'));
