@@ -2,6 +2,8 @@
 // (未就绪 / safe mode / remote host), permission rows with fixes, the test read,
 // a running task, the recent log and live status events.
 
+import 'dart:async';
+
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/state/compose_inbox.dart';
 import 'package:dsh_app/state/hosts_state.dart';
@@ -105,7 +107,9 @@ void main() {
             ?.text;
 
     testWidgets('the bar key asks how phone control works', (tester) async {
-      await pumpPhone(tester, const PhoneControlScreen());
+      // 适配合并树:「问 AI」键在 AppPage 的 actions 条里,该条只在被推入的
+      // 路由挂载;生产里手机操控页总是被推入。
+      await pumpPhone(tester, const _Pushed(child: PhoneControlScreen()));
       await tester.tap(find.byTooltip('问 AI'));
       await tester.pumpAndSettle();
       expect(queued(tester), question);
@@ -712,4 +716,27 @@ void main() {
       expect(find.byType(PhoneDndPage), findsOneWidget);
     });
   });
+}
+
+/// 适配合并树:把页面推入二级路由,让 AppPage 的 actions 条挂载。
+class _Pushed extends StatefulWidget {
+  const _Pushed({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Pushed> createState() => _PushedState();
+}
+
+class _PushedState extends State<_Pushed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => widget.child)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }

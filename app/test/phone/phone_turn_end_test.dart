@@ -371,7 +371,10 @@ void main() {
       await make();
       native.onFinish = () {
         // What the app coming up does: foreground, on that conversation.
+        // 适配合并树(三 tab):「在看」还要聊天页是当前路由
+        // (chatPageOnScreenProvider),生产里由 ChatScreen 上报。
         container.read(appForegroundProvider.notifier).set(true);
+        container.read(chatPageOnScreenProvider.notifier).set(true);
         container.read(currentSessionProvider.notifier).select('s1');
       };
       await endTurn();
