@@ -48,12 +48,8 @@ class InterfacePage extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final tableTint = ref.watch(tableTintProvider);
     final engine = ref.watch(engineSettingsProvider).value;
-<<<<<<< HEAD
-    final quickPanel = ref.watch(quickPanelProvider);
     final startup = ref.watch(appModeProvider.select((s) => s.startup));
-=======
     final localEngine = ref.watch(localEngineAvailableProvider);
->>>>>>> loc-main
     return AppPage.list(
       title: l10n.hubSettingsInterface,
       children: [

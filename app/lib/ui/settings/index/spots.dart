@@ -824,7 +824,6 @@ abstract final class Spots {
     title: (l) => l.hubHardwareEnterSends,
     keywords: (l) => l.hubHardwareEnterSendsHint,
   );
-<<<<<<< HEAD
   static final chatSuggestions = SettingSpot(
     'chat-suggestions',
     page: SettingsPageId.interface,
@@ -837,8 +836,6 @@ abstract final class Spots {
     title: (l) => l.hubQuickPanel,
     keywords: (l) => l.searchKwQuickPanel,
   );
-=======
->>>>>>> loc-main
   static final tableTint = SettingSpot(
     'table-tint',
     page: SettingsPageId.interface,
@@ -1138,11 +1135,8 @@ final _rows = <SettingSpot>[
   Spots.petOverlayFraming,
   Spots.uiMode,
   Spots.hardwareEnterSends,
-<<<<<<< HEAD
   Spots.chatSuggestions,
   Spots.quickPanel,
-=======
->>>>>>> loc-main
   Spots.tableTint,
   Spots.webApp,
   Spots.openWeb,

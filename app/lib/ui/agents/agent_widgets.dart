@@ -8,7 +8,6 @@ import '../../l10n/l10n.dart';
 import '../../state/agents_state.dart';
 import '../chat/run_info.dart' show formatSpan;
 import '../chat/widgets/live_clock.dart';
-import '../common/avatar_gallery.dart';
 import '../common/fade_in.dart';
 import '../common/list_page_row.dart';
 import '../common/overview_card.dart' show OverviewChevron;
@@ -23,15 +22,8 @@ StatusTone agentTone(AgentRunState state) => switch (state) {
   AgentRunState.idle => StatusTone.idle,
 };
 
-<<<<<<< HEAD
 /// 智能体的头像:按名字固定一只 Libraries.dev 小机器人(形状、颜色跟主题色),
 /// 运行中会跳动干活,其余时候是一帧静止画面。「+3」这种余数仍是一个圆里写字。
-=======
-/// 智能体的头像:pixel-art 像素小人图库(构建期由 tool/session_avatars 烘焙,
-/// 见 common/avatar_gallery.dart),FNV-1a(名字)选槽 —— 同一名字永远同一张
-/// 脸,垫在由名字哈希出的 identity 色盘上(圆是"人"的语言,和工具的方块区分
-/// 开);资产缺失时回退名字的首字。
->>>>>>> loc-main
 class AgentAvatar extends StatelessWidget {
   const AgentAvatar(this.name, {super.key, this.size = 28, this.ring, this.working = false});
 
@@ -84,17 +76,19 @@ class _LetterAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = DshColors.of(context);
-    final tint = DshColors.identityIndex(name, colors.identity.length);
+    final dark = theme.brightness == Brightness.dark;
+    final fill = dark
+        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.12), theme.colorScheme.surface)
+        : Color.alphaBlend(theme.colorScheme.onSurface.withValues(alpha: 0.07), theme.colorScheme.surface);
     return ExcludeSemantics(
       child: Container(
         width: size,
         height: size,
+        alignment: Alignment.center,
         decoration: ShapeDecoration(
-          color: colors.identity[tint],
+          color: fill,
           shape: CircleBorder(side: ring == null ? BorderSide.none : BorderSide(color: ring!, width: 2)),
         ),
-<<<<<<< HEAD
         child: Text(
           text,
           textScaler: TextScaler.noScaling,
@@ -103,27 +97,6 @@ class _LetterAvatar extends StatelessWidget {
             height: 1,
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurfaceVariant,
-=======
-        padding: EdgeInsets.all(size * 0.06),
-        child: ClipOval(
-          child: Image.asset(
-            agentAvatarGallery.assetFor(agentAvatarGallery.slotFor(name)),
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.none, // 像素画要保留硬边
-            gaplessPlayback: true,
-            errorBuilder: (context, _, _) => Center(
-              child: Text(
-                letterOf(name),
-                textScaler: TextScaler.noScaling,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontSize: size * 0.42,
-                  height: 1,
-                  fontWeight: FontWeight.w600,
-                  color: colors.onIdentity[tint],
-                ),
-              ),
-            ),
->>>>>>> loc-main
           ),
         ),
       ),

@@ -15,11 +15,8 @@ import '../../state/agents_state.dart' show hostSessionsProvider;
 import '../../state/composer_insert.dart';
 import '../../state/workspaces_state.dart';
 import '../engine_settings/field_sheets.dart' show SheetActions;
-<<<<<<< HEAD
 import 'phone_skill_use.dart';
-=======
 import '../shell/reveal_conversation.dart';
->>>>>>> loc-main
 
 /// Which composer gets the skill.
 enum SkillUse {

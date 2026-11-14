@@ -20,11 +20,7 @@
 // onboarding they are held, natively and in the bridges.
 
 import 'dart:async';
-<<<<<<< HEAD
 import 'dart:io';
-=======
-import 'dart:io' show Platform;
->>>>>>> loc-main
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';

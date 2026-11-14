@@ -17,11 +17,7 @@ import 'bots_state.dart';
 import 'chat_reveal.dart';
 import 'chat_reveal_state.dart';
 import 'connection_state.dart';
-<<<<<<< HEAD
 import 'hosts_state.dart';
-=======
-import 'hosts_state.dart' show activeHostProvider;
->>>>>>> loc-main
 import 'notify_state.dart' show appForegroundProvider, notifyChannelProvider;
 import 'phone_state.dart';
 import 'sessions_state.dart' show currentSessionProvider;
@@ -293,7 +289,7 @@ class PhoneTurnEndController extends Notifier<void> {
         !identical(client?.mux.generation, generation)) {
       return;
     }
-    if (result.opened && result.launched && !bot) ref.read(chatRevealProvider.notifier).reveal(session);
+    if (result.opened && result.launched && !bot) ref.read(chatScrollRevealProvider.notifier).reveal(session);
     if (result.closed && reopen && !result.opened && !result.notified && !bot && !ref.read(appForegroundProvider)) {
       await ref.read(notifyChannelProvider).tryShow(
         NotifyPost(group: notifyGroup(HostRef.local, session), key: 'phone-$id', attention: true,
