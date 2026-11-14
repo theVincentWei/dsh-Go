@@ -154,6 +154,10 @@ void main() {
           overrides: [
             ..._harness(parentId).overrides,
             ...agentsOverrides(idle),
+            // 适配合并树(三 tab):与 _overrides 同源——聊天页的首帧
+            // 「正在看」置位会被 Riverpod build 相位守卫拦下,测试里
+            // 直接以在屏值起步。
+            chatPageOnScreenProvider.overrideWith(() => FlagController(true)),
             workspaceSourceProvider.overrideWith((ref, id) => null),
             workspaceRootProvider.overrideWith((ref, id) => null),
           ],
