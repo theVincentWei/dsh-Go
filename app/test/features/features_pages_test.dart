@@ -14,6 +14,7 @@ import 'package:dsh_app/ui/remote/remote_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
 import 'package:dsh_app/ui/chat/current_chat_page.dart';
 import 'package:dsh_app/ui/chat/widgets/plus_panel.dart';
+import 'package:dsh_app/state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
 import 'package:dsh_app/ui/applet/hub_apps_group.dart' show HubInstalledApp, HubInstalledController, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
@@ -211,6 +212,9 @@ Future<void> _pump(
 }) async {
   usePhoneView(tester);
   await tester.pumpWidget(testApp(page, brightness: brightness, overrides: overrides ?? _fixed()));
+  // 适配合并树(万器 AppHub):激活 keep-alive 注册者(生产在 DshApp 根装配
+  // watch 一次),目录经它整批同步进引擎注册表,桌面画布才有得画。
+  ProviderScope.containerOf(tester.element(find.byType(Navigator).first)).read(hubDesktopSyncProvider);
   await pumpFrames(tester, 6);
 }
 

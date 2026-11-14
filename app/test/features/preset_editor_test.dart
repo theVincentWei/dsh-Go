@@ -203,7 +203,9 @@ void main() {
     );
     expect(text, contains('            prefix: "你是代码审查员，只读不改。"'));
     expect(find.byType(PresetEditorPage), findsNothing, reason: 'back to the chat');
-    final container = ProviderScope.containerOf(tester.element(find.byType(AgentPresetsPage)));
+    // 适配合并树:创建完成后回首页再进聊天,预设页已从栈上弹出,
+    // container 从 MaterialApp 元素取(同一 ProviderScope)。
+    final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
     expect(container.read(currentSessionProvider), 'new-1');
   });
 
