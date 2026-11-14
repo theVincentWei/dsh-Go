@@ -196,6 +196,10 @@ class _HttpLists {
 }
 
 List<Override> _overrides(DshClient client) => [
+  // 适配合并树:networkKicks 的 connectivity 平台事件流在真实 binding 下
+  // listen/cancel 抛 MissingPluginException 打进用例 zone;测试里给空流,
+  // 语义即「测试期间无网络变化」。
+  networkKicksProvider.overrideWithValue(const Stream<void>.empty()),
   activeHostProvider.overrideWith(FixedHost.new),
   switchConnectionProvider.overrideWith(() => SwitchConnection(HostConnection(client: client, isLocal: true))),
   activeConnectionProvider.overrideWith((ref) => ref.watch(switchConnectionProvider)),
