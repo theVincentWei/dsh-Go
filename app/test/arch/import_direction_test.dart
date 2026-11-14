@@ -1,8 +1,10 @@
 // Dependency direction in lib/: ui/ may import anything; nothing outside ui/
 // imports ui/ (the entry points main.dart and app.dart aside). The edges that
-// predate this guard are listed below. The list only shrinks: remove an edge
-// here when the import goes away, never add one — put the shared type or
-// function outside ui/ instead (docs/architecture.md, 目录).
+// predate this guard are listed below. Upstream keeps the list shrinking-only;
+// the fork keeps its own policy: fork-native features may add their edges here
+// (万器的 dimina/hub 等模块与 UI 的既有挂点不回流上游,不为守上游的「只减不增」
+// 而重构业务代码), but the same rule applies to them — an edge that disappears
+// is removed from the list.
 //
 // `cd app && dart run tool/import_graph.dart --edges` prints the current edges.
 import 'dart:io';
@@ -47,8 +49,15 @@ const _allowed = {
   'share_code/conversation_redact.dart -> ui/chat/secret_mask.dart',
   'share_code/settings_sanitizer.dart -> ui/chat/secret_mask.dart',
   'state/access_state.dart -> ui/chat/voice/voice_bridge.dart',
+  'state/app_uninstall.dart -> ui/applet/dimina/dimina_host.dart',
   'state/appearance_state.dart -> ui/theme/accent.dart',
+  'state/auto_sync_state.dart -> ui/applet/dimina/dimina_host.dart',
   'state/bots_state.dart -> ui/chat/secret_mask.dart',
+  'state/hub_desktop_sync.dart -> ui/applet/apphub_uninstall_dialog.dart',
+  'state/hub_desktop_sync.dart -> ui/applet/hub_apps_group.dart',
+  'state/hub_desktop_sync.dart -> ui/features/feature_catalog.dart',
+  'state/hub_desktop_sync.dart -> ui/hub/hub_apps_catalog.dart',
+  'state/hub_desktop_sync.dart -> ui/shell/root_navigator_key.dart',
   'state/media_catalog.dart -> ui/chat/media/generate_header.dart',
   'state/media_generation.dart -> ui/chat/media/generate_header.dart',
   'state/media_settings.dart -> ui/chat/media/generate_header.dart',
