@@ -515,4 +515,10 @@ abstract final class AppIcons {
   static const qq = DshGlyphs.usersThreeFill;
   static const telegram = DshGlyphs.paperPlaneRight;
   static const discord = DshGlyphs.headset;
+
+  /// 应用详情的权限面板(wx scope 一行一枚):复用既有字形,不为单一
+  /// scope 造字(bluetooth 字形缺失,见 apphub_app_detail_page 的保留行)。
+  static const contacts = DshGlyphs.identificationBadge;
+  static const location = DshGlyphs.mapTrifold;
+  static const storage = DshGlyphs.hardDrives;
 }

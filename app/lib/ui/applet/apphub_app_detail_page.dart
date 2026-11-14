@@ -20,6 +20,7 @@ import '../../notify/apphub_base.dart' show appHubBase;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import '../notify/notification_center.dart' show consumeMiniAppNotices;
+import '../theme/app_icons.dart';
 import 'apphub_uninstall_dialog.dart' show showAndRunAppUninstall;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
@@ -166,18 +167,20 @@ class _HubAppVersion {
 /// 权限 key → 展示图标(线性风格,与自带应用一致)。key=wx 口径 scope 串
 /// (契约 §4 映射表);旧数据的简称 key 一并兼容。
 IconData _permissionIcon(String key) => switch (key) {
-      'scope.record' || 'record' || 'microphone' => Icons.mic_none_outlined,
-      'scope.notification' || 'notifications' => Icons.notifications_none_outlined,
-      'scope.contacts' => Icons.contacts_outlined,
-      'scope.camera' || 'camera' => Icons.photo_camera_outlined,
-      'scope.writePhotosAlbum' => Icons.photo_outlined,
+      'scope.record' || 'record' || 'microphone' => AppIcons.voice,
+      'scope.notification' || 'notifications' => AppIcons.notifications,
+      'scope.contacts' => AppIcons.contacts,
+      'scope.camera' || 'camera' => AppIcons.camera,
+      'scope.writePhotosAlbum' => AppIcons.image,
+      // DshGlyphs 暂缺 bluetooth 字形(iconfont 生成管线环境已不在,不为单一
+      // 图标重建):唯一保留的 Icons.*,app_icons_test 豁免表里登记在案。
       'scope.bluetooth' => Icons.bluetooth_outlined,
-      'scope.clipboard' => Icons.content_paste_outlined,
-      'scope.userLocation' || 'location' => Icons.location_on_outlined,
-      'network' || 'network.external' => Icons.public_outlined,
-      'storage' => Icons.save_outlined,
-      'audio' => Icons.music_note_outlined,
-      _ => Icons.extension_outlined,
+      'scope.clipboard' => AppIcons.paste,
+      'scope.userLocation' || 'location' => AppIcons.location,
+      'network' || 'network.external' => AppIcons.web,
+      'storage' => AppIcons.storage,
+      'audio' => AppIcons.audio,
+      _ => AppIcons.plugin,
     };
 
 class ApphubAppDetailPage extends ConsumerStatefulWidget {
@@ -394,7 +397,7 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage>
         title: Text(widget.app.name),
         actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(AppIcons.delete),
             tooltip: l10n.apphubUninstall,
             onPressed: () => unawaited(_uninstall()),
           ),
@@ -495,7 +498,7 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage>
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(22),
                   ),
-                  child: Icon(Icons.apps_outlined, size: 40),
+                  child: Icon(AppIcons.openWith, size: 40),
                 ),
         ),
         const SizedBox(width: 14),
@@ -708,7 +711,7 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage>
                     color: const Color(0xFF3E9E5B),
                     borderRadius: BorderRadius.circular(9),
                   ),
-                  child: const Icon(Icons.shield_outlined, color: Colors.white, size: 19),
+                  child: const Icon(AppIcons.permissions, color: Colors.white, size: 19),
                 ),
                 const SizedBox(width: 11),
                 Expanded(
@@ -799,7 +802,7 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _permissionLeading(theme, Icons.public_outlined),
+          _permissionLeading(theme, AppIcons.web),
           const SizedBox(width: 11),
           Expanded(
             child: Column(
@@ -973,7 +976,7 @@ class _ShotImage extends StatelessWidget {
             final Uint8List? bytes = snapshot.data;
             if (bytes == null) {
               return Center(
-                child: Icon(Icons.image_outlined, size: 28, color: theme.colorScheme.outline),
+                child: Icon(AppIcons.image, size: 28, color: theme.colorScheme.outline),
               );
             }
             return Image.memory(bytes, fit: BoxFit.cover, alignment: Alignment.topCenter,

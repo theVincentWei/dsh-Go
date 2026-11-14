@@ -36,6 +36,7 @@ import '../features/feature_catalog.dart';
 import '../notify/notification_center.dart' show consumeMiniAppNotices;
 import '../notify/service_notices_key.dart' show ServiceNoticesKey;
 import '../shell/page_frame.dart' show AppPage, PageBodyInsets;
+import '../theme/app_icons.dart';
 import '../theme/theme.dart' show DshColors, DshSurfaces, GlassStyle;
 import 'hub_apps_catalog.dart';
 
@@ -254,7 +255,7 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
             child: Row(
               children: <Widget>[
                 RoundKey(
-                  icon: Icons.check,
+                  icon: AppIcons.done,
                   tooltip: l10n.commonDone,
                   onTap: () => ref.read(hubEditingProvider.notifier).set(false),
                 ),
@@ -267,11 +268,11 @@ class _HubDesktopPageState extends ConsumerState<HubDesktopPage> {
                   onTap: () => ref
                       .read(hubLayoutProvider.notifier)
                       .setRecentsHidden(!layout.smartSection().hidden),
-                  icon: Icons.history,
+                  icon: AppIcons.history,
                   iconWidget: layout.smartSection().hidden
                       ? SlashedIcon(
                           key: const ValueKey('hub-recents-slash'),
-                          icon: Icons.history,
+                          icon: AppIcons.history,
                         )
                       : null,
                 ),
