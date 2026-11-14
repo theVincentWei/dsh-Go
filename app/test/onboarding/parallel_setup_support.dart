@@ -168,7 +168,7 @@ Future<GateRig> pumpGate(
   return GateRig(fake, account, ProviderScope.containerOf(tester.element(find.byType(RootGate))), starts);
 }
 
-/// 外观's 继续, then 跳过 on 想让 DSH Go 帮你做哪些事: on to what comes next.
+/// 外观's 继续, then 跳过 on 想让 万器 帮你做哪些事: on to what comes next.
 Future<void> pastAppearance(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(FilledButton, '继续'));
   await frames(tester);
