@@ -699,7 +699,9 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
 
   void _armRoam() {
     _roamTimer?.cancel();
-    _roamTimer = Timer(PetMetrics.roamEvery.draw(PetLayer.random.nextDouble()), _roam);
+    final pack = _pack;
+    final every = pack?.roamEvery ?? PetMetrics.roamEvery;
+    _roamTimer = Timer(every.draw(PetLayer.random.nextDouble()), _roam);
   }
 
   /// Plays one idle extra (weighted pick, for its ms), then back to idle.
@@ -754,11 +756,13 @@ class PetLayerState extends ConsumerState<PetLayer> with TickerProviderStateMixi
     final home = ref.read(petPrefsProvider).position;
     final from = _roamed ?? home;
     final r = PetLayer.random;
+    final spanMin = pack.roamWalkMin;
+    final spanMax = pack.roamWalkMax;
     final to = _roamed != null
         ? home
         : (from +
                   (r.nextBool() ? 1 : -1) *
-                      (PetMetrics.walkMin + r.nextDouble() * (PetMetrics.walkMax - PetMetrics.walkMin)))
+                      (spanMin + r.nextDouble() * (spanMax - spanMin)))
               .clamp(0.0, 1.0);
     // Not into an area it keeps out of, not past the perch's ends.
     final (lo, hi) = _range(spot);

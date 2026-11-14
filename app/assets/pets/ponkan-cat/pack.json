@@ -23,11 +23,11 @@
       "sheet": "idle.png",
       "frameW": 46,
       "frameH": 52,
-      "cols": 2,
+      "cols": 3,
       "box": {"x": 4, "y": 8, "w": 23, "h": 26},
       "loop": true,
-      "ms": 2400,
-      "frames": [{"i": 0, "ms": 600}, {"i": 0, "ms": 600}, {"i": 0, "ms": 600}, {"i": 1, "ms": 600}]
+      "ms": 3750,
+      "frames": [{"i": 0, "ms": 400}, {"i": 0, "ms": 400}, {"i": 0, "ms": 400}, {"i": 0, "ms": 400}, {"i": 1, "ms": 150}, {"i": 0, "ms": 400}, {"i": 0, "ms": 400}, {"i": 2, "ms": 400}, {"i": 2, "ms": 400}, {"i": 2, "ms": 400}]
     },
     "idle-look": {
       "sheet": "idle-look.png",
@@ -242,6 +242,11 @@
     "tickle": "react-tickle",
     "drag": "react-drag"
   },
-  "roam": {"anim": "roam-hop", "faces": "right"},
+  "roam": {
+    "anim": "roam-hop",
+    "faces": "right",
+    "everyMs": {"mean": 4000, "min": 2500, "max": 9000},
+    "span": [0.35, 0.8]
+  },
   "sleep": {"afterMs": 60000}
 }
