@@ -12,19 +12,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../state/app_mode_state.dart';
 import '../../state/engine_settings_state.dart';
-import '../../state/quick_panel_state.dart';
 import '../../state/settings_state.dart';
 import '../../state/table_tint_state.dart';
 import '../../state/ui_mode_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../engine_settings/namespace_copy.dart';
 import '../modes/mode_switch.dart';
 import '../engine_settings/schema_form.dart';
 import '../shell/page_frame.dart';
-import '../shell/quick_panel.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../web/local_web_screen.dart';
-import 'quick_panel_items_sheet.dart';
 import 'settings_widgets.dart';
 
 SchemaFieldSpec _field(String ns, String key) => SchemaFieldSpec(ns, [key], copy: copyOf(ns, [key]));
@@ -50,8 +48,12 @@ class InterfacePage extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final tableTint = ref.watch(tableTintProvider);
     final engine = ref.watch(engineSettingsProvider).value;
+<<<<<<< HEAD
     final quickPanel = ref.watch(quickPanelProvider);
     final startup = ref.watch(appModeProvider.select((s) => s.startup));
+=======
+    final localEngine = ref.watch(localEngineAvailableProvider);
+>>>>>>> loc-main
     return AppPage.list(
       title: l10n.hubSettingsInterface,
       children: [
@@ -103,13 +105,15 @@ class InterfacePage extends ConsumerWidget {
           title: l10n.commonWeb,
           spot: Spots.webApp,
           children: [
-            SettingsTile(
-              spot: Spots.openWeb,
-              // In 网页模式 the web app is the home underneath.
-              onTap: () => mode == UiMode.web
-                  ? Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst)
-                  : Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalWebScreen())),
-            ),
+            // The web app lives on this phone's engine: gone without it.
+            if (localEngine)
+              SettingsTile(
+                spot: Spots.openWeb,
+                // In 网页模式 the web app is the home underneath.
+                onTap: () => mode == UiMode.web
+                    ? Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst)
+                    : Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalWebScreen())),
+              ),
             SettingsSwitchTile(
               spot: Spots.webPhoneLayout,
               subtitle: l10n.hubSettingsWebPhoneLayoutHint,
@@ -126,27 +130,6 @@ class InterfacePage extends ConsumerWidget {
               subtitle: l10n.hubHardwareEnterSendsHint,
               value: settings.hardwareEnterSends,
               onChanged: (v) => unawaited(ref.read(settingsProvider.notifier).setHardwareEnterSends(v)),
-            ),
-          ],
-        ),
-        SettingsSection(
-          title: l10n.hubQuickPanel,
-          spot: Spots.quickPanel,
-          children: [
-            SettingsSwitchTile(
-              key: const ValueKey('quick-panel-swipe'),
-              title: l10n.hubQuickPanelSwipe,
-              subtitle: l10n.hubQuickPanelSwipeHint,
-              value: quickPanel.swipe,
-              onChanged: (v) => unawaited(ref.read(quickPanelProvider.notifier).setSwipe(v)),
-            ),
-            SettingsTile(
-              key: const ValueKey('quick-panel-items'),
-              title: l10n.hubQuickPanelItems,
-              subtitle: quickPanel.items.isEmpty
-                  ? l10n.hubQuickPanelItemsNone
-                  : quickPanel.items.map((d) => d.label(l10n)).join(l10n.shellListSeparator),
-              onTap: () => unawaited(showQuickPanelItems(context)),
             ),
           ],
         ),

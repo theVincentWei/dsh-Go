@@ -150,7 +150,7 @@ class _HandleSheet extends ConsumerWidget {
               ),
               SettingsTile(
                 key: const ValueKey('web-handle-host'),
-                icon: hostKindIcon(host.kind),
+                icon: watchHostIcon(ref, host),
                 tinted: false,
                 title: context.l10n.webSwitchHost,
                 value: Text(name),

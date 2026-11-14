@@ -9,16 +9,16 @@ import 'package:dsh_app/state/features_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/common/app_sheet.dart';
+import 'package:dsh_app/ui/common/sheet_title_bar.dart';
 import 'package:dsh_app/ui/remote/remote_screen.dart';
-import 'package:dsh_app/ui/settings/search/settings_search_page.dart';
-import 'package:dsh_app/ui/settings/settings_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
+import 'package:dsh_app/ui/chat/current_chat_page.dart';
+import 'package:dsh_app/ui/chat/widgets/plus_panel.dart';
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
 import 'package:dsh_app/ui/features/permission_page.dart';
 import 'package:dsh_app/ui/features/schedules_page.dart';
 import 'package:dsh_app/ui/features/skills_page.dart';
-import 'package:dsh_app/ui/terminal/terminal_page.dart';
 import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:dsh_app/ui/web/web_target.dart';
 import 'package:dsh_client/dsh_client.dart';
@@ -29,6 +29,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../chat/support/harness.dart';
 import '../plugins/support/fake_plugin_host.dart';
+import '../phone/support.dart';
 import '../shell/golden_harness.dart' show FakeRuntime, runningStatus;
 
 final _now = DateTime(2026, 10, 24, 15, 20);
@@ -215,35 +216,23 @@ void main() {
         const AllFeaturesPage(),
         overrides: [..._fixed(), dshWebOpenerProvider.overrideWithValue((context, ref, target) => opened.add(target))],
       );
-      // The overview card names the conversation the tiles act on.
-      expect(find.text('当前打开的对话'), findsOneWidget);
-      expect(find.text('修复登录按钮重复提交'), findsOneWidget);
 
-      // Native terminal keeps its conversation; no redundant web fallback.
-      await _reveal(tester, find.text('终端'));
-      final terminal = find.ancestor(of: find.text('终端'), matching: find.byType(FeatureTileFor));
-      final terminalPage = tester.widget<FeatureTileFor>(terminal).item.native!('s1');
-      expect(terminalPage, isA<TerminalPage>());
-      expect((terminalPage as TerminalPage).sessionId, 's1');
-      expect(find.descendant(of: terminal, matching: find.byTooltip('在网页版打开')), findsNothing);
-
-      // The row opens the native automation page, without a web fallback.
+      // The tile opens the native automation page, without a web fallback.
       await _reveal(tester, find.text('自动化任务'));
       await tester.tap(find.text('自动化任务'));
       await tester.pumpAndSettle();
       expect(find.byType(SchedulesPage), findsOneWidget);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
-      final row = find.ancestor(of: find.text('自动化任务'), matching: find.byType(FeatureTileFor));
-      expect(find.descendant(of: row, matching: find.byTooltip('在网页版打开')), findsNothing);
-      expect(tester.widget<FeatureTileFor>(row).item.native!('s1'), isA<SchedulesPage>());
-      expect(opened, isEmpty);
 
-      // Settings shortcuts open the same pages as 设置.
+      // 远程主机 opens its native screen; settings live in 设置.
       await _reveal(tester, find.text('远程主机'));
-      final remote = find.ancestor(of: find.text('远程主机'), matching: find.byType(FeatureTileFor));
-      expect(tester.widget<FeatureTileFor>(remote).item.native!(null), isA<RemoteScreen>());
-      expect(find.text('Agent 循环'), findsNothing, reason: 'settings live in 设置');
+      await tester.tap(find.text('远程主机'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RemoteScreen), findsOneWidget);
+      expect(find.text('Agent 循环'), findsNothing);
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
       expect(opened, isEmpty);
 
       // Web-only: 网页版 itself.
@@ -251,86 +240,6 @@ void main() {
       await tester.tap(find.text('网页版'));
       await pumpFrames(tester);
       expect(opened.last, const DshWebTarget());
-    });
-
-    testWidgets('settings shortcuts last, then all-settings spanning the grid', (tester) async {
-      await _pump(tester, const AllFeaturesPage());
-      await _reveal(tester, find.text('全部设置'));
-      Rect card(String title) =>
-          tester.getRect(find.ancestor(of: find.text(title), matching: find.byType(FeatureTileFor)).first);
-      final all = tester.getRect(find.ancestor(of: find.text('全部设置'), matching: find.byType(GlassSurface)).first);
-      expect(all.left, card('模型').left);
-      expect(all.right, card('权限').right);
-      expect(all.left, card('手机操控').left);
-      expect(all.right, card('远程主机').right);
-      expect(all.top - card('远程主机').bottom, 12, reason: 'the grid\'s own gap');
-      final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
-      expect(all.left, 16);
-      expect(width - all.right, 16);
-
-      // Search over the settings hub: back lands on the hub.
-      await tester.tap(find.text('全部设置'));
-      await pumpFrames(tester, 6);
-      expect(find.byType(SettingsSearchPage), findsOneWidget);
-      expect(find.byType(SettingsScreen, skipOffstage: false), findsOneWidget);
-    });
-
-    testWidgets('引用 goes back to the chat, where @ lives', (tester) async {
-      usePhoneView(tester);
-      await tester.pumpWidget(
-        testApp(
-          Builder(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AllFeaturesPage())),
-                  child: const Text('聊天'),
-                ),
-              ),
-            ),
-          ),
-          overrides: _fixed(),
-        ),
-      );
-      await tester.tap(find.text('聊天'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AllFeaturesPage), findsOneWidget);
-      await _reveal(tester, find.text('引用文件和对话'));
-      await tester.tap(find.text('引用文件和对话'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AllFeaturesPage), findsNothing);
-      expect(find.text('聊天'), findsOneWidget);
-    });
-
-    testWidgets('conversation items are disabled without a conversation', (tester) async {
-      final opened = <DshWebTarget>[];
-      await _pump(
-        tester,
-        const AllFeaturesPage(),
-        overrides: [
-          ..._fixed(current: null),
-          dshWebOpenerProvider.overrideWithValue((context, ref, target) => opened.add(target)),
-        ],
-      );
-      expect(find.text('还没打开对话'), findsOneWidget);
-      expect(find.text('先打开一个对话'), findsWidgets);
-      Future<void> tapItem(String title) async {
-        await tester.ensureVisible(find.text(title));
-        await pumpFrames(tester);
-        await tester.tap(find.text(title));
-      }
-
-      await tapItem('后台任务');
-      await tapItem('终端');
-      await pumpFrames(tester);
-      expect(find.byType(JobsPage), findsNothing);
-      expect(opened, isEmpty);
-      // Not bound to a conversation: still opens (the web home here).
-      await _reveal(tester, find.text('网页版'));
-      await tester.tap(find.text('网页版'));
-      await pumpFrames(tester);
-      expect(opened.single, const DshWebTarget());
     });
   });
 
@@ -539,6 +448,80 @@ void main() {
       expect(carrier.argsOf('job/kill').single, {
         'request': {'sessionId': 's1', 'jobId': 'job-1'},
       });
+    });
+
+    testWidgets('当前对话页:工具 7 行 + 设置卡', (tester) async {
+      carrier.handlers['session/projections'] = (_) => {
+        'kind': 'sequenced',
+        'asOfSeq': 3,
+        'values': {
+          'permissions': {'currentValue': 'read-only'},
+        },
+      };
+      carrier.handlers['commands/execute'] = (_) => {
+        'commandId': 'c1',
+        'result': {'kind': 'success', 'text': 'ok'},
+      };
+      await _pump(tester, const CurrentChatPage(sessionId: 's1'), overrides: live());
+      expect(find.text('现在要用的'), findsOneWidget);
+      for (final title in ['产出的文件', '文件', '终端', '导出对话日志', '后台任务', '技能', '对话详情']) {
+        expect(find.text(title), findsOneWidget, reason: title);
+      }
+      expect(find.text('本对话'), findsOneWidget);
+      expect(find.text('手机操控'), findsOneWidget);
+    });
+
+    testWidgets('当前对话页:权限进真路由(页面自己的头),返回回上一级', (tester) async {
+      carrier.handlers['permissionPresets/catalog'] = (_) => {
+        'options': [
+          {'value': 'read-only', 'name': 'read-only'},
+          {'value': 'workspace-write', 'name': 'workspace-write'},
+        ],
+        'defaultPreset': 'workspace-write',
+      };
+      carrier.handlers['session/projections'] = (_) => {
+        'kind': 'sequenced',
+        'asOfSeq': 3,
+        'values': {
+          'permissions': {'currentValue': 'read-only'},
+        },
+      };
+      await _pump(tester, const CurrentChatPage(sessionId: 's1'), overrides: live());
+      await _reveal(tester, find.text('权限'));
+      await tester.tap(find.text('权限'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SessionPermissionPage), findsOneWidget);
+      // 真路由:不再是当前对话页里的页内换页。
+      expect(ModalRoute.of(tester.element(find.byType(SessionPermissionPage)))!.isFirst, isFalse);
+      // 头只有页面自己的:弹层标题行不再画;大标题(滚上去后换栏标题)照常交接。
+      expect(find.byType(SheetTitleBar), findsNothing);
+      expect(find.text('本对话的权限'), findsWidgets);
+      // 返回手势/返回键:回上一级,当前对话页不退出。
+      expect(tester.binding.handlePopRoute(), completion(isTrue));
+      await tester.pumpAndSettle();
+      expect(find.byType(SessionPermissionPage), findsNothing);
+      expect(find.text('本对话'), findsOneWidget);
+    });
+
+    testWidgets('当前对话页:确认方式进真路由,选完留在本页,返回回上一级', (tester) async {
+      final native = FakePhoneNative(status: phoneStatus(enabled: true))..install();
+      await _pump(tester, const CurrentChatPage(sessionId: 's1'), overrides: live());
+      await tester.pumpAndSettle();
+      await _reveal(tester, find.text('确认方式'));
+      await tester.tap(find.text('确认方式'));
+      await tester.pumpAndSettle();
+      // 根上的行 + 新页的大标题:头只有页面自己的,弹层标题行不再画。
+      expect(find.text('确认方式'), findsNWidgets(2));
+      expect(find.byType(SheetTitleBar), findsNothing);
+      await tester.tap(find.text('本任务免确认'));
+      await tester.pumpAndSettle();
+      // 页面宿主里选完不弹走:留在本页,勾选就在眼前(弹层里才选完即回)。
+      expect(find.text('本任务免确认'), findsWidgets);
+      expect((native.callsOf('setPolicies').single.arguments as Map)['confirmMode'], 'task');
+      expect(tester.binding.handlePopRoute(), completion(isTrue));
+      await tester.pumpAndSettle();
+      expect(find.text('确认方式'), findsOneWidget);
+      expect(find.text('本对话'), findsOneWidget);
     });
   });
 

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/artifacts.dart';
+import '../../state/browser_source.dart';
 import '../chat/artifact_preview.dart';
 import '../files/workspace_browser.dart';
 import 'session_artifacts.dart';
@@ -38,7 +39,7 @@ class _WorkspaceFilesTabState extends ConsumerState<WorkspaceFilesTab> with Auto
   Widget build(BuildContext context) {
     super.build(context);
     return WorkspaceBrowser(
-      sessionId: widget.sessionId,
+      source: SessionWorkspaceBrowserSource(widget.sessionId),
       // Delivered and generated files (possibly outside the workspace): on top at the root.
       header: (rel) => [
         if (rel.isEmpty) SliverToBoxAdapter(child: SessionArtifactsSection(sessionId: widget.sessionId)),

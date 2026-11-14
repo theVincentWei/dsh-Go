@@ -62,7 +62,7 @@ case "$flavor" in
   all) flavors=(arm64 x64) ;;
   *) die "flavor is arm64, x64 or all: $flavor" ;;
 esac
-for arg in "${extra[@]}"; do
+for arg in ${extra[@]+"${extra[@]}"}; do
   case "$arg" in
     # The selected mode also controls the runtime preflight below.
     --build-number* | --build-name* | --flavor* | --target-platform* | \
@@ -72,6 +72,15 @@ for arg in "${extra[@]}"; do
     --split-per-abi) die "--split-per-abi adds an ABI offset to versionCode; flavors already split by ABI" ;;
   esac
 done
+
+# Toolchain: use what's on PATH; the gitignored tooling/env.sh is the fallback.
+# Sourced before anything runs python3: build_number.py needs 3.10+, and a
+# bare PATH (scripts, CI) only has the system 3.9 until env.sh is loaded.
+if ! command -v flutter >/dev/null 2>&1; then
+  [[ -f $ROOT/tooling/env.sh ]] && source "$ROOT/tooling/env.sh"
+  command -v flutter >/dev/null 2>&1 || die "flutter is not on PATH"
+fi
+command -v python3 >/dev/null 2>&1 || die "python3 is not on PATH"
 
 # Version name: pubspec's `version:` without the `+N` placeholder.
 if [[ -z $name ]]; then
@@ -115,7 +124,7 @@ for f in "${flavors[@]}"; do
     --build-name "$name" --build-number "$code" "--dart-define=DSH_APP_VERSION=$name+$code")
   [[ -n $target ]] && cmd+=(-t "$target")
   ((beta)) && cmd+=("--dart-define-from-file=$beta_json")
-  cmd+=("${extra[@]}")
+  cmd+=(${extra[@]+"${extra[@]}"})
   commands+=("$(printf '%q ' "${cmd[@]}")")
 done
 
@@ -137,6 +146,35 @@ if ! command -v flutter >/dev/null 2>&1; then
   [[ -f $ROOT/tooling/env.sh ]] && source "$ROOT/tooling/env.sh"
   command -v flutter >/dev/null 2>&1 || die "flutter is not on PATH"
 fi
+
+# Signing: every local build signs with the debug keystore, so debug and
+# release share one key and the full package name com.yinkuotech.wanqi —
+# that is what lets any build install over the installed one and keep its
+# data (build.gradle.kts only falls back to the .debug/.local applicationId
+# suffix when app/android/key.properties is missing). An existing
+# key.properties with a live storeFile is respected, never overwritten.
+ensure_signing() {
+  local props="$APP/android/key.properties"
+  if [[ -f $props ]]; then
+    local f
+    f=$(sed -n 's/^storeFile=//p' "$props" | head -n1)
+    f=${f/#\~/$HOME}
+    [[ -n $f && -f $f ]] && return 0
+    echo "build-apk: $props has no usable storeFile; rewriting it" >&2
+  fi
+  local ks=${DSH_DEBUG_KEYSTORE:-$HOME/.android/debug.keystore}
+  if [[ ! -f $ks ]]; then
+    command -v keytool >/dev/null 2>&1 || die "no keystore at $ks and no keytool to create one"
+    mkdir -p "$(dirname "$ks")"
+    keytool -genkeypair -keystore "$ks" -storepass android -keypass android \
+      -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+      -dname 'CN=Android Debug,O=Android,C=US' >/dev/null 2>&1 || die "keytool failed to create $ks"
+  fi
+  mkdir -p "$(dirname "$props")"
+  (umask 077; printf 'storeFile=%s\nstorePassword=android\nkeyAlias=androiddebugkey\nkeyPassword=android\n' "$ks" >"$props")
+  echo "build-apk: signing with the debug keystore ($ks); package name stays com.yinkuotech.wanqi"
+}
+ensure_signing
 
 stop_daemon() {
   ((keep_daemon)) && return 0

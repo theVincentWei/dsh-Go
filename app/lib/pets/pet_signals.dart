@@ -16,8 +16,10 @@ import '../notify/chat_alerts.dart';
 import '../performance/performance_state.dart';
 import '../state/chat_state.dart';
 import '../state/connection_state.dart';
+import '../state/download_tasks.dart';
 import '../state/hosts_state.dart';
-import '../state/notify_state.dart' show FlagController, appForegroundProvider, chatOnScreenProvider;
+import '../state/notify_state.dart'
+    show FlagController, appForegroundProvider, chatOnScreenProvider, chatPageOnScreenProvider;
 import '../state/run_pulse.dart';
 import '../state/session_attention_state.dart';
 import '../ui/chat/run_info.dart';
@@ -236,13 +238,14 @@ final petAskedProvider = NotifierProvider<PetAskedController, Set<PetTarget>>(Pe
 /// The chat page's pet is drawn and visible (set by its layer).
 final petLayerShownProvider = NotifierProvider<FlagController, bool>(() => FlagController(false));
 
-/// The pet speaks for the app in front: its layer shows on the chat page,
-/// the chat is the current route, and quiet mode is off. Alerts for other
-/// conversations then go to its bubble instead of the glass banner.
+/// The pet speaks for the app in front: its layer shows, the page that hosts
+/// it is the current route (the conversation page itself, or the home under
+/// the sessions list), and quiet mode is off. Alerts for other conversations
+/// then go to its bubble instead of the glass banner.
 final petOnScreenProvider = Provider<bool>(
   (ref) =>
       ref.watch(petLayerShownProvider) &&
-      ref.watch(chatOnScreenProvider) &&
+      (ref.watch(chatPageOnScreenProvider) || ref.watch(chatOnScreenProvider)) &&
       ref.watch(appForegroundProvider) &&
       !ref.watch(petPrefsProvider.select((p) => p.quiet)),
 );
@@ -552,12 +555,16 @@ final petPendingProvider = Provider<List<PetPending>>((ref) {
 /// All level signals.
 final petSignalsProvider = Provider<PetSignals>((ref) {
   final focus = ref.watch(petFocusProvider);
+  final downloads = ref.watch(downloadTasksProvider);
   return PetSignals(
     focus: focus,
-    viewed: focus != null && ref.watch(appForegroundProvider) && ref.watch(chatOnScreenProvider),
+    viewed: focus != null && ref.watch(appForegroundProvider) && ref.watch(chatPageOnScreenProvider),
     runs: ref.watch(petRunsProvider),
     pending: ref.watch(petPendingProvider),
     lastInteraction: ref.watch(petInteractionProvider),
+    // 有下载在跑:宠物进入「搬东西」状态(优先级低于需要你处理的事件,
+    // 下载完成/失败会以 notification 闪现插队)。
+    carrying: downloads.isNotEmpty,
     quiet: ref.watch(petPrefsProvider.select((p) => p.quiet)),
   );
 });

@@ -9,6 +9,7 @@ import '../../state/settings_state.dart';
 import '../chat/balance_widgets.dart' show BalanceSettingsLine;
 import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
+import '../common/local_engine_gate.dart';
 import '../common/overview_card.dart';
 import '../onboarding/api_key_page.dart';
 import '../settings/settings_widgets.dart';
@@ -113,6 +114,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.engineAccountTitle, child: _page(context));
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     final state = ref.watch(accountProvider);
     return AppPage.list(

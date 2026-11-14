@@ -58,5 +58,6 @@
   "localEnvUninstallFailed": "没能卸载，再试一次",
   "localEnvPhoneNeedsRuntime": "安装本机运行环境后可用",
   "localEnvSignInNeedsRuntime": "需要本机运行环境",
-  "localEnvSignInInstallFirst": "安装后即可登录"
+  "localEnvSignInInstallFirst": "安装后即可登录",
+  "localEnvGateBody": "这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。"
 }

@@ -1,7 +1,7 @@
 // The in-app half of notifications: a glass banner over every page when
 // something happens in a conversation the person isn't looking at, plus the
-// glue that tells the alert controller whether the app and the chat are on
-// screen and routes notification taps.
+// glue that tells the alert controller whether the app is foreground and the
+// home route is current, and routes notification taps.
 
 import 'dart:async';
 
@@ -16,11 +16,13 @@ import '../bots/bot_alerts.dart';
 import '../common/discard_guard.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
+import 'notification_center.dart' show openMiniAppNoticeTap;
 
 /// Put it once inside the home route (the home shell does). It keeps the
-/// alert controller alive, feeds it the app lifecycle and whether the chat is
-/// the current route, routes notification taps, and shows the banner in the
-/// root overlay so it also appears over settings and other pages.
+/// alert controller alive, feeds it the app lifecycle and whether the home
+/// route is current (a page pushed over the shell covers the list), routes
+/// notification taps, and shows the banner in the root overlay so it also
+/// appears over settings and other pages.
 class ChatAlertHost extends ConsumerStatefulWidget {
   const ChatAlertHost({super.key, this.child, this.onReveal});
 
@@ -57,7 +59,7 @@ class _ChatAlertHostState extends ConsumerState<ChatAlertHost> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Rebuilt by the route whenever something is pushed over the chat or popped.
+    // Rebuilt by the route whenever a page is pushed over the shell or popped.
     final current = ModalRoute.of(context)?.isCurrent ?? true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(chatOnScreenProvider.notifier).set(current);
@@ -85,12 +87,23 @@ class _ChatAlertHostState extends ConsumerState<ChatAlertHost> {
   }
 
   Future<void> _onTap(NotifyTap tap) async {
+    // 升级完成告知（瞬态，kind=`update`）：原生点击意图已经把 app 带回前台，
+    // 这里不跳页、也不做「离开未保存表单」确认——它只是过场信息。
+    if (tap.kind == 'update') return;
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
-    widget.onReveal?.call(false);
+    // 小程序通知（AppHub）：不进会话流（契约 §6.2），点开走小程序页/通知中心。
+    // 原生点击意图把通知 id 放在 eventId（见 notify/apphub_notices.dart）。
+    if (tap.kind == 'miniapp') {
+      await openMiniAppNoticeTap(context, ref, appId: tap.sessionId, notifyId: tap.eventId);
+      return;
+    }
     // A Bot or group chat notification opens that chat.
     if (openDsBotTap(context, tap)) return;
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+    // Select first, then reveal: the shell pushes the conversation over the
+    // tabs only when its session is already the current one.
     ref.read(chatAlertsProvider.notifier).open(tap.host, tap.sessionId);
+    widget.onReveal?.call(false);
   }
 
   @override
@@ -153,8 +166,10 @@ class _AlertBannerLayerState extends ConsumerState<AlertBannerLayer> {
     final alerts = ref.read(chatAlertsProvider.notifier);
     alerts.dismissBanner(alert);
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
-    widget.onOpened?.call();
+    // Select first, then reveal (see _onTap): the shell needs the session
+    // current before it pushes the conversation over the tabs.
     alerts.open(alert.host, alert.sessionId);
+    widget.onOpened?.call();
   }
 
   @override
@@ -259,6 +274,12 @@ class AlertBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
+    // The banner floats over ANY page, so legibility beats transparency: fill
+    // it with the matte material (chrome's fallbackFill, near-opaque) so the
+    // TopFade band behind a scrolled header can't split it into a milky upper
+    // half and a see-through lower half. The Gaussian blur itself stays on.
+    final surfaces = DshSurfaces.of(context);
+    final bannerGlass = surfaces.chrome.copyWith(fill: surfaces.chrome.fallbackFill);
     final (icon, bg, fg) = switch (alert.kind) {
       AlertKind.done => (AppIcons.done, colors.successContainer, colors.onSuccessContainer),
       AlertKind.failed => (AppIcons.error, colors.dangerContainer, colors.onDangerContainer),
@@ -276,6 +297,7 @@ class AlertBanner extends StatelessWidget {
       excludeSemantics: true,
       child: GlassSurface(
         tier: GlassTier.chrome,
+        style: bannerGlass,
         borderRadius: AppShape.radiusLg,
         onTap: onTap,
         child: Padding(

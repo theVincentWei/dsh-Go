@@ -1,13 +1,15 @@
-// Goldens of the native workspaces (light + dark): the drawer showing one
+// Goldens of the native workspaces (light + dark): the 聊天 tab showing one
 // workspace with a pinned conversation, the switcher sheet, the folder
 // picker's sheet and browser page, the management page (full and empty) and
 // a workspace's sheet. Regenerate with
 //   flutter test --update-goldens test/workspace/workspace_golden_test.dart
+//
+// TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上重录（drawer_workspace →
+// chat_tab_workspace，workspace_sheet 的背景也从抽屉换成了列表 tab）。
 
 import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/workspace/directory_picker.dart';
-import 'package:dsh_app/ui/workspace/workspace_switcher.dart';
 import 'package:dsh_app/ui/workspace/workspaces_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,10 +46,10 @@ Future<void> _open(WidgetTester tester) async {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  // The drawer on dsh-app: the switcher, a pinned conversation, then days.
+  // The 聊天 tab on dsh-app: the title row, a pinned conversation, then days.
   goldenBoth(
-    'drawer_workspace',
-    () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+    'chat_tab_workspace',
+    () => HomeShell(chatBuilder: const SizedBox.expand()),
     overrides: () {
       final host = sampleWorkspaceHost()..pinned = ['s4'];
       return workspaceOverrides(host);
@@ -57,11 +59,11 @@ void main() {
 
   goldenBoth(
     'workspace_sheet',
-    () => HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+    () => HomeShell(chatBuilder: const SizedBox.expand()),
     overrides: () => workspaceOverrides(sampleWorkspaceHost()),
     before: (tester) async {
       await _settle(tester);
-      await tester.tap(find.descendant(of: find.byType(WorkspaceSwitcher), matching: find.byType(InkWell)));
+      await tester.tap(find.byTooltip('工作区')); // 标题行的「工作区」圆键。
       await _settle(tester);
     },
   );

@@ -338,15 +338,30 @@ ThemeData _build(
       showDragHandle: true,
     ),
 
-    snackBarTheme: SnackBarThemeData(
-      elevation: 0,
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: scheme.inverseSurface,
-      contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.onInverseSurface),
-      actionTextColor: scheme.inversePrimary,
-      insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      shape: AppShape.card,
-    ),
+    // SnackBar:浅色主题用 M3 反色深胶囊(在浅雾底上最清楚,2026-11-09 真机拍板);
+    // 深色主题不再用反色的近白条——夜里浮出一条白杠太扎眼(2026-11-10 真机
+    // 反馈)。同向也不是半透灰:用 chrome 那套烟灰的近实色兜底填充(见
+    // surfaces.dart 的"可读性优先"约定),但把 3% 的 alpha 去掉——它浮在底栏
+    // 上方,留着 alpha 底栏的图标会隐隐透出来,看着就是"像透明"。
+    snackBarTheme: isDark
+        ? SnackBarThemeData(
+            elevation: 0,
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: surfaces.chrome.fallbackFill.withValues(alpha: 1),
+            contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.onSurface),
+            actionTextColor: scheme.primary,
+            insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            shape: AppShape.outlined(surfaces.chrome.hairline, width: 0.5),
+          )
+        : SnackBarThemeData(
+            elevation: 0,
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: scheme.inverseSurface,
+            contentTextStyle: textTheme.bodyMedium?.copyWith(color: scheme.onInverseSurface),
+            actionTextColor: scheme.inversePrimary,
+            insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            shape: AppShape.card,
+          ),
 
     dividerTheme: DividerThemeData(color: hairline, thickness: 0.5, space: 1),
 

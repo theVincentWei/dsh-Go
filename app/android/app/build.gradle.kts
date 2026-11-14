@@ -45,7 +45,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.github.ccch1mneyyy.dsh_app"
+        applicationId = "com.yinkuotech.wanqi"
         // java.nio.file (symlinks while unpacking the rootfs) needs API 26.
         minSdk = 26
         // Target 28 like Termux, so the API 29+ exec restriction on app-private
@@ -123,13 +123,27 @@ android {
             // tooling/dev-run.sh installs debug over the release build on a phone, data
             // kept: Android only allows that with the same key.
             if (hasWholeReleaseKey) signingConfig = signingConfigs.getByName("release")
+            // 没有发布签名的机器（无法覆盖安装正式版）给 debug 包独立包名，
+            // 与已装的正式版并存，互不覆盖。
+            if (keyProps.isEmpty) applicationIdSuffix = ".debug"
         }
         release {
             // Use the release key when configured; local builds without key.properties fall back to debug.
             signingConfig = signingConfigs.getByName(if (keyProps.isEmpty) "debug" else "release")
+            // 没有发布签名的机器上的 release 构建同样换独立包名（.local）：
+            // 与已装正式版、.debug 包并存，互不覆盖。
+            if (keyProps.isEmpty) applicationIdSuffix = ".local"
             // Ours on top of Flutter's: phone control's privileged process and
             // its TLS libraries are reached by class name (see the file).
             proguardFiles("proguard-rules.pro")
+        }
+        getByName("profile") {
+            // 本机 profile 构建（性能排查用）与本地 release 同等待遇：独立包名
+            // + debug key，不冒充已装的正式版。
+            if (keyProps.isEmpty) {
+                applicationIdSuffix = ".local"
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 }
@@ -170,4 +184,9 @@ dependencies {
     // pulls in (bcprov-jdk15to18:1.81); adding jdk18on next to it duplicates every class.
     implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
     implementation("androidx.webkit:webkit:1.15.0") // Apache-2.0: web islands' force dark (webview_flutter's own version)
+
+    // Dimina(星河)小程序容器 — AppHub M0 POC (feat/apphub-dimina). Pinned JitPack
+    // tag (never latest.release in real builds); JitPack repo already configured
+    // in the root build.gradle.kts for libadb-android.
+    implementation("com.github.didi.dimina:dimina:1.8.1")
 }

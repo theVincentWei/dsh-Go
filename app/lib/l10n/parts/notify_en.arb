@@ -1,0 +1,61 @@
+{
+  "notifyCenterTitle": "Service messages",
+  "notifyCenterEmpty": "Mini program messages will show up here",
+  "notifyCenterMarkAll": "Mark all read",
+  "notifyCenterGroupCount": "{count}",
+  "@notifyCenterGroupCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifyCenterUnread": "{count} unread",
+  "@notifyCenterUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifyCenterLoadFailed": "Can't reach AppHub — showing what already arrived",
+  "notifyCenterOpenFailed": "Couldn't open that mini program page; it's still in the notification center",
+  "notifyCenterDismiss": "Dismiss",
+  "notifyCenterOpenMiniApp": "Open mini program",
+  "notifySubscribePanelTitle": "Subscribe to notifications",
+  "notifySubscribePanelBody": "“{app}” would like to send you notifications after you act. One-time subscriptions end after one message.",
+  "@notifySubscribePanelBody": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifySubscribePanelMainSwitch": "Receive notifications",
+  "notifySubscribeAccept": "Allow",
+  "notifySubscribeReject": "Reject",
+  "notifySubscribeNoTemplates": "No templates to subscribe to",
+  "notifyUpdateApplied": "“{app}” updated to v{version}",
+  "@notifyUpdateApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdateAppliedPlain": "“{app}” updated; it takes effect next launch",
+  "@notifyUpdateAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdatePublicText": "Mini program updated",
+  "notifyInstallApplied": "“{app}” installed (v{version}) — find it on the mini-app desktop",
+  "notifyInstallAppliedPlain": "“{app}” installed — find it on the mini-app desktop",
+  "notifyInstallPublicText": "Mini program installed"
+}

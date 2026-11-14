@@ -319,5 +319,17 @@
   "chatGoalStateSemantics": "Goal, {objective}, {state}",
   "chatTodoItemSemantics": "{content}, {state}",
   "chatMentionSemantics": "{kind}: {label}",
-  "chatArtifactSemantics": "{name}, {description}"
+  "chatArtifactSemantics": "{name}, {description}",
+  "chatCurrentChat": "Current chat",
+  "chatNowTools": "For right now",
+  "chatDownloadCenter": "Downloads",
+  "chatDownloadCount": "{count} download tasks",
+  "@chatDownloadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatDownloadSheetHint": "Tap an entry to open its chat · resumes from the breakpoint"
 }

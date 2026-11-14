@@ -22,3 +22,9 @@
 -dontwarn org.bouncycastle.**
 -keep class org.conscrypt.** { *; }
 -keep class io.github.muntashirakon.adb.** { *; }
+
+# Dimina 容器的 MiniProgram 以 Parcelable extra 跨进程传给 DiminaActivity;
+# Android 的 Bundle 惰性解包 + 任务记录会把 parcel 缓存到下一次读取,跨构建
+# 版本时旧 parcel 里的混淆类名在新 dex 无对应 → BadParcelableException 在
+# onCreate 炸掉整个宿主进程。bean 类保持原名原成员,parcel 永远可解。
+-keep class com.didi.dimina.bean.** { *; }

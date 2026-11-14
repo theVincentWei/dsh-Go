@@ -98,6 +98,9 @@ class PetPack {
     this.reactions = const {},
     this.roamAnim,
     this.roamFacing = PetFacing.front,
+    this.roamEvery = const PetEvery(),
+    this.roamWalkMin = 0.08,
+    this.roamWalkMax = 0.2,
     this.sleepAfter = const Duration(seconds: 60),
     this.wakeMs,
     this.hitBoxes = const {},
@@ -161,6 +164,15 @@ class PetPack {
   /// Which way the art looks: walking the other way mirrors it; front-facing
   /// art never mirrors.
   final PetFacing roamFacing;
+
+  /// How often a walk starts. Same shape as [idleEvery]; a pack that should pace
+  /// back and forth sets `roam.everyMs`, others keep the calm default.
+  final PetEvery roamEvery;
+
+  /// How far one walk goes, as a share of the perch. A pack that should cross the
+  /// chat window sets `roam.span: [min, max]`.
+  final double roamWalkMin;
+  final double roamWalkMax;
   final Duration sleepAfter;
 
   /// How long waking lasts; one pass of its animation when absent.
@@ -373,6 +385,13 @@ class PetPack {
       roamAnim: roam['anim'] == null ? null : known(roam['anim'], 'roam'),
       // An explicit `flip: false` keeps front-facing art unmirrored.
       roamFacing: roam['flip'] == false ? PetFacing.front : PetFacing.values.asNameMap()[faces] ?? PetFacing.front,
+      roamEvery: PetEvery(
+        mean: (_num(_map(roam['everyMs'])['mean']) ?? 120000).round(),
+        min: (_num(_map(roam['everyMs'])['min']) ?? 45000).round(),
+        max: (_num(_map(roam['everyMs'])['max']) ?? 300000).round(),
+      ),
+      roamWalkMin: (_num(_list(roam['span']).firstOrNull) ?? 0.08).clamp(0.0, 1.0),
+      roamWalkMax: (_num(_list(roam['span']).elementAtOrNull(1)) ?? 0.2).clamp(0.0, 1.0),
       sleepAfter: Duration(milliseconds: (_num(sleep['afterMs']) ?? 60000).round()),
       wakeMs: _num(timings['wakeMs'])?.round(),
       hitBoxes: hitBoxes,

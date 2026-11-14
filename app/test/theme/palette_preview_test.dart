@@ -111,7 +111,8 @@ void main() {
     final screens = <String, Widget Function()>{
       '聊天': () => const ChatScreen(),
       '设置': () => const SettingsScreen(),
-      '抽屉': () => const HomeShell(chatBuilder: _behindBuilder, initiallyOpen: true),
+      // 抽屉删除后，第三块取聊天 tab 的会话列表页。
+      '聊天列表': () => const HomeShell(chatBuilder: _Behind()),
     };
     final shots = <(AppAccent, Brightness, String), ui.Image>{};
     for (final accent in AppAccent.presets) {
@@ -163,8 +164,6 @@ void main() {
     });
   });
 }
-
-Widget _behindBuilder(VoidCallback openDrawer) => const _Behind();
 
 /// Rows = palettes, columns = screens (light, then dark).
 Future<void> _sheet(

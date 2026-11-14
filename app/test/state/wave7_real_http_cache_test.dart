@@ -27,7 +27,7 @@ import 'package:dsh_app/ui/chat/model_sheet.dart';
 import 'package:dsh_app/ui/common/segmented_pill.dart';
 import 'package:dsh_app/ui/plugins/plugins_screen.dart';
 import 'package:dsh_app/ui/providers/providers_page.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -324,7 +324,7 @@ void main() {
         _ => Scaffold(
           body: SizedBox(
             width: 390,
-            child: SessionsDrawer(onClose: () => clicked++, onOpen: (_) {}),
+            child: SessionListPage(onOpenChat: () => clicked++, onDestination: (_) {}),
           ),
         ),
       };

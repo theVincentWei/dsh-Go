@@ -38,6 +38,7 @@ import '../../common/sheet_title_bar.dart';
 import '../../features/feature_format.dart';
 import '../../features/permission_page.dart' show confirmPermission, writePermissionDefault;
 import '../../phone/phone_control_screen.dart' show PhoneConfirmModeText;
+import '../../shell/page_frame.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 
@@ -121,6 +122,24 @@ Future<void> showPermissionSheet(BuildContext context, String sessionId) {
   );
 }
 
+/// 「本对话」「手机操控」卡片行推入的二级内容(权限、确认方式)怎么开:
+/// 弹层里(＋ 面板)有 [SheetNavigator],照旧页内换页,内容自带弹层的标题行;
+/// 整页里(当前对话页)没有,推一条真路由,内容包进 [AppPage] —— 头用页面
+/// 自己的(大标题 + 玻璃返回键),弹层标题行不再画,返回手势弹回上一级,
+/// 不把整页退出。
+void openSubPage(BuildContext context, {required String title, required WidgetBuilder page}) {
+  final sheet = SheetNavigator.maybeOf(context);
+  if (sheet != null) {
+    sheet.push(page);
+    return;
+  }
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (route) => AppPage.list(title: title, children: [page(route)]),
+    ),
+  );
+}
+
 class _PlusRoot extends ConsumerWidget {
   const _PlusRoot({required this.files, required this.generate, required this.call, required this.sessionId});
 
@@ -158,8 +177,8 @@ class _PlusRoot extends ConsumerWidget {
           ),
         ),
         const _PluginTools(),
-        if (sessionId != null) ...[const SizedBox(height: 16), _ThisChatCard(sessionId: sessionId)],
-        if (phoneOn) ...[const SizedBox(height: 24), const _PhoneCard()],
+        if (sessionId != null) ...[const SizedBox(height: 16), ThisChatCard(sessionId: sessionId)],
+        if (phoneOn) ...[const SizedBox(height: 24), const PhoneConfirmCard()],
         const SizedBox(height: 20),
       ],
     );
@@ -251,17 +270,19 @@ class PlusTile extends StatelessWidget {
   }
 }
 
-/// 本对话: the preset (opens its page) and plan mode.
-class _ThisChatCard extends ConsumerStatefulWidget {
-  const _ThisChatCard({required this.sessionId});
+/// 本对话: the preset (opens its page) and plan mode. Shared with the
+/// settings hub's 「当前会话」 sheet, which hosts the same two rows (and the
+/// phone one below) for the conversation that is open.
+class ThisChatCard extends ConsumerStatefulWidget {
+  const ThisChatCard({super.key, required this.sessionId});
 
   final String sessionId;
 
   @override
-  ConsumerState<_ThisChatCard> createState() => _ThisChatCardState();
+  ConsumerState<ThisChatCard> createState() => _ThisChatCardState();
 }
 
-class _ThisChatCardState extends ConsumerState<_ThisChatCard> {
+class _ThisChatCardState extends ConsumerState<ThisChatCard> {
   /// Asked for and not yet in the log (a switch mid-turn lands at the next
   /// step); null follows the log.
   bool? _plan;
@@ -298,7 +319,11 @@ class _ThisChatCardState extends ConsumerState<_ThisChatCard> {
             final preset? => permissionName(preset),
             null => null,
           },
-          onTap: () => SheetNavigator.of(context).push((_) => SessionPermissionPage(sessionId: widget.sessionId)),
+          onTap: () => openSubPage(
+            context,
+            title: l10n.nearbyPermissionTitle,
+            page: (_) => SessionPermissionPage(sessionId: widget.sessionId),
+          ),
         ),
         MergeSemantics(
           child: ListPageRow(
@@ -313,8 +338,8 @@ class _ThisChatCardState extends ConsumerState<_ThisChatCard> {
 }
 
 /// 手机操控: how phone actions are confirmed.
-class _PhoneCard extends ConsumerWidget {
-  const _PhoneCard();
+class PhoneConfirmCard extends ConsumerWidget {
+  const PhoneConfirmCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -327,7 +352,9 @@ class _PhoneCard extends ConsumerWidget {
         ListPageRow(
           title: l10n.phoneConfirmTitle,
           value: mode?.label,
-          onTap: mode == null ? null : () => SheetNavigator.of(context).push((_) => const _ConfirmModePage()),
+          onTap: mode == null
+              ? null
+              : () => openSubPage(context, title: l10n.phoneConfirmTitle, page: (_) => const _ConfirmModePage()),
         ),
       ],
     );
@@ -459,10 +486,13 @@ class _SessionPermissionPageState extends ConsumerState<SessionPermissionPage> {
         ],
       );
     }
+    // 弹层里带弹层自己的标题行;整页里(当前对话页推的真路由)头归 AppPage,
+    // 这里不再画,免得两个头摞在一起。
+    final inSheet = SheetNavigator.maybeOf(context) != null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [SheetTitleBar(l10n.nearbyPermissionTitle), body, const SizedBox(height: 16)],
+      children: [?inSheet ? SheetTitleBar(l10n.nearbyPermissionTitle) : null, body, const SizedBox(height: 16)],
     );
   }
 }
@@ -473,7 +503,7 @@ class _ConfirmModePage extends ConsumerWidget {
 
   Future<void> _pick(BuildContext context, WidgetRef ref, PhoneConfirmMode next, PhoneConfirmMode? current) async {
     if (next == current) return;
-    final sheet = SheetNavigator.of(context);
+    final sheet = SheetNavigator.maybeOf(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     final failed = context.l10n.phoneConfirmSaveFailed;
     if (next == PhoneConfirmMode.always) {
@@ -485,18 +515,21 @@ class _ConfirmModePage extends ConsumerWidget {
       messenger?.showSnackBar(SnackBar(content: Text(failed)));
       return;
     }
-    if (sheet.mounted && sheet.canPop) sheet.pop();
+    // 弹层里选完是 pop;整页里(当前对话页)留着,打勾的选项就在眼前。
+    if (sheet != null && sheet.mounted && sheet.canPop) sheet.pop();
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final current = ref.watch(phoneProvider.select((s) => s.policies?.confirmMode));
+    // 同权限页:弹层里带标题行;整页里头归 AppPage。
+    final inSheet = SheetNavigator.maybeOf(context) != null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SheetTitleBar(l10n.phoneConfirmTitle),
+        ?inSheet ? SheetTitleBar(l10n.phoneConfirmTitle) : null,
         SheetGroup(
           children: [
             for (final mode in PhoneConfirmMode.values)

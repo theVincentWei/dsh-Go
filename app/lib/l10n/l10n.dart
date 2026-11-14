@@ -41,6 +41,13 @@ abstract final class AppLocale {
     _l10n = lookupL10n(next);
   }
 
+  /// Switches [appL10n] by language code, for worker isolates: they share
+  /// this static through the spawn snapshot but cannot touch dart:ui, so
+  /// they address the two supported locales by code instead of by [Locale].
+  static void useLanguageCode(String languageCode) {
+    use(languageCode == 'en' ? en : zhCN);
+  }
+
   /// Chinese for any Chinese system language, English for everything else.
   static Locale resolve(Locale? chosen, List<Locale>? system) {
     if (chosen != null) return chosen.languageCode == 'en' ? en : zhCN;

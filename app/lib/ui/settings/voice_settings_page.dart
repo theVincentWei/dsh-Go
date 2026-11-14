@@ -7,6 +7,7 @@ import '../../companion/companion_voice_source.dart';
 import '../../l10n/l10n.dart';
 import '../../speech/speech_settings.dart';
 import '../../state/streaming_asr_model_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../state/voice_model_state.dart';
 import '../../state/voice_settings.dart';
 import '../common/app_dialog.dart';
@@ -124,6 +125,7 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
     final selected = ref.watch(voiceSettingsProvider);
     final call = ref.watch(callSettingsProvider);
     final calls = ref.read(callSettingsProvider.notifier);
+    final localEngine = ref.watch(localEngineAvailableProvider);
     return AppPage.list(
       title: l10n.voiceSettingsTitle,
       children: [
@@ -170,11 +172,14 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
           ],
         ),
         if (selected == VoiceMode.cloud) const _CloudAsrForm(),
-        SettingsSection(
-          title: l10n.voiceModelSection,
-          footer: Text(l10n.voiceModelFooter),
-          children: const [VoiceModelCard()],
-        ),
+        // The SenseVoice model lives on this phone's engine: gone without it.
+        // 引擎模式 stays above — a remote engine can provide the voice model.
+        if (localEngine)
+          SettingsSection(
+            title: l10n.voiceModelSection,
+            footer: Text(l10n.voiceModelFooter),
+            children: const [VoiceModelCard()],
+          ),
         SettingsSection(
           title: l10n.speechLiveSection,
           footer: Text(l10n.speechLiveFooter),

@@ -25,6 +25,7 @@ import 'bot_sheets.dart';
 import 'duplicate_bot_row.dart';
 import 'memory_card.dart';
 import 'working_folder_sheet.dart';
+import '../shell/reveal_conversation.dart' show chatRouteName;
 
 class BotDetailsPage extends ConsumerWidget {
   const BotDetailsPage({super.key, required this.botId});
@@ -65,7 +66,7 @@ class BotDetailsPage extends ConsumerWidget {
     await _update(context, ref, scope, (api) => api.deleteBot(bot.id));
     // Removal is expected after success; only connection identity may govern navigation.
     if (context.mounted && scope.connected(context, ref) && ref.read(dsBotProvider).team?.bot(bot.id) == null) {
-      navigator.popUntil((route) => route.isFirst);
+      navigator.popUntil((route) => route.isFirst || route.settings.name == chatRouteName);
     }
   }
 

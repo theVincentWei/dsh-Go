@@ -105,7 +105,12 @@ void main() {
         includeParentEnvironment: false,
       );
       expect(installed.exitCode, 0, reason: '${installed.stderr}');
-      expect((jsonDecode(installed.stdout as String) as Map)['file'], '${home.path}/dsh-go/ui.json');
+      // The script derives the default file from its module's real path
+      // (macOS /var → /private/var): compare real paths.
+      expect(
+        (jsonDecode(installed.stdout as String) as Map)['file'],
+        '${home.resolveSymbolicLinksSync()}/dsh-go/ui.json',
+      );
 
       final viaEnv = await run(['--json'], env: {'DSH_HOME': home.path});
       expect((jsonDecode(viaEnv.stdout as String) as Map)['applied'], 1);

@@ -75,7 +75,7 @@ Widget _header({double scale = 1, bool top = true}) => Builder(
       trailing: ModelChip(selection: testCatalog.defaultSelection, onSelected: (_) {}, grouped: true),
       onOpenDrawer: () {},
       onTitleTap: () {},
-      onNewChat: () {},
+      onOpenSettings: () {},
     ),
   ),
 );

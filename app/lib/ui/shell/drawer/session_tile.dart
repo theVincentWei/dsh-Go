@@ -1,27 +1,42 @@
-// The drawer's conversation row and section label.
+// 会话列表的行与分组标签:与设置/技能等页同一套「分组卡片 + 行列表」解剖
+// —— 行自身不带卡片底,同一分组的相邻行拼成一张圆角卡(见
+// [SessionGroupPos])。度量不靠口头约定:行高、图形槽、左右内边距与标题
+// 字号全部来自 [RowAnatomy](common/row_anatomy.dart),与设置行、通用列表行
+// 同源,想漂移也漂不了。行首是自动区分的头像:DiceBear 图库表情 + 由会话
+// ID 哈希出的身份色圆盘,每个会话固定而互不相同。
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../state/session_attention_state.dart';
+import '../../common/avatar_gallery.dart';
+import '../../common/row_anatomy.dart';
 import '../../common/status_dot.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
-import '../sessions_drawer.dart' show sessionSelectionColor;
+import '../session_list_page.dart' show sessionSelectionColor;
 
-/// One conversation row: 44 high, the highlight on the 10 line, the title on
-/// the 20 line (plus [indent] inside a folder). At the end, one marker at
-/// most: what it waits for (待确认 / 待回答), a breathing dot while it works,
-/// or a quiet dot when it moved on since it was last seen. In multi-select a
-/// check slides in before the title.
+/// 分组里一颗行的位置:分组卡的圆角只出现在两端。
+enum SessionGroupPos { single, first, middle, last }
+
+/// 一条会话行:左 32 头像槽(身份色圆盘 + 标题首字符),标题(可带置顶
+/// 别针)与一行副标题,右端最多一件事:它等的回复(待确认/待回答)、运行中
+/// 的呼吸点、未读点 —— 或者,没人占角时的时间。多选时最左滑入勾选圈,选中
+/// 行铺软色底。放在分组卡里([groupPosition] 决定哪端圆角),见 drawer_list。
 class SessionTile extends StatelessWidget {
   const SessionTile({
     super.key,
+    required this.sessionId,
     required this.title,
     required this.running,
-    required this.current,
+    required this.groupPosition,
     required this.onTap,
     required this.onLongPress,
+    this.subtitle,
+    this.subtitlePending = false,
+    this.timeText,
     this.pending,
     this.unread = false,
     this.pinned = false,
@@ -30,35 +45,71 @@ class SessionTile extends StatelessWidget {
     this.selected = false,
   });
 
+  /// 头像的稳定种子:同一会话永远同一表情与颜色。
+  final String sessionId;
   final String title;
   final bool running;
 
-  /// The open conversation (soft fill; ignored while selecting).
-  final bool current;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
+  /// 一行副标题(最近消息/工作目录);null 只有一行,行高 52。
+  final String? subtitle;
+
+  /// 副标题待定:当前版本还没读到(补读在途)——占位三点,行高锁定两行;
+  /// 优先于 [subtitle] 显示,读完即换成最新消息或 cwd。
+  final bool subtitlePending;
+
+  /// The right end's text (today HH:mm, else M-D) — shown only when nothing
+  /// else claims the corner: a marker always wins.
+  final String? timeText;
   final PendingKind? pending;
   final bool unread;
 
-  /// Shown as a small pin (inside folders; elsewhere 置顶 says it).
+  /// Shown as a small pin before the title (inside folders; elsewhere 置顶
+  /// says it).
   final bool pinned;
 
-  /// Content inset from the 20 line (folder members: [folderIndent]).
+  /// Content inset from the card's edge (folder members: [folderIndent]).
   final double indent;
+  final SessionGroupPos groupPosition;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool selecting;
   final bool selected;
 
-  static const height = 44.0;
+  /// 两行行的最小高;无副标题 [heightSingle]。全部来自共享行解剖
+  /// (RowAnatomy),与设置行同源。
+  static const height = RowAnatomy.rowHeightTwoLines;
+  static const heightSingle = RowAnatomy.rowHeight;
 
-  /// A folder's glyph (20) plus its gap (10): members' titles line up with
-  /// the folder's name.
+  /// 分组卡离列表左右边 16,行内容离卡边 16 —— 与设置行同一份常量。
+  static const marginH = RowAnatomy.insetH;
+  static const innerH = RowAnatomy.insetH;
+
+  /// 分组之间的空隙(每组尾行下方)。
+  static const groupGap = 16.0;
+
+  /// 头像圆盘直径与到标题的间距。头像(36)比列表行图标槽
+  /// ([RowAnatomy.glyphSlot] 32,给 20px 线形图标的)大一号——会话行首
+  /// 是头像不是图标,故意不共用这个 token。
+  static const avatarSize = 36.0;
+  static const avatarGap = RowAnatomy.glyphGap;
+
+  /// 文件夹成员的缩进;多选勾选槽宽。
   static const folderIndent = 30.0;
-
-  /// Width of the check slot while selecting (a 20 circle and a 10 gap).
   static const checkSlot = 30.0;
 
-  /// Size of the quiet markers at the end of the row.
+  /// 圆点标记直径。
   static const dot = 7.0;
+
+  /// The title Text's key: tests collect the conversation titles (and not
+  /// the subtitle or the time) through it.
+  static const titleKey = ValueKey<String>('session-title');
+
+  BorderRadius get _radius => switch (groupPosition) {
+    SessionGroupPos.single => BorderRadius.circular(AppShape.lg),
+    SessionGroupPos.first => const BorderRadius.vertical(top: Radius.circular(AppShape.lg)),
+    SessionGroupPos.last => const BorderRadius.vertical(bottom: Radius.circular(AppShape.lg)),
+    SessionGroupPos.middle => BorderRadius.zero,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -66,9 +117,10 @@ class SessionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
-    final shape = Squircle.border(AppShape.md);
-    final highlighted = selecting ? selected : current;
-    final Widget? marker = switch ((pending, running, unread)) {
+    // 多选时选中行的软色底;平时谁都不亮 —— 首页列表上聊天页总是全屏盖在
+    // 上面,「当前会话」高亮没有信息量。
+    final highlighted = selecting && selected;
+    final marker = switch ((pending, running, unread)) {
       (final PendingKind kind, _, _) => Text(
         kind.label,
         key: const ValueKey('pending'),
@@ -85,6 +137,9 @@ class SessionTile extends StatelessWidget {
       if (pending == null && !running && unread) l10n.shellUnread,
       if (pinned) l10n.shellPinned,
     ].join(l10n.shellSemanticsSeparator);
+    // 占位也算两行:加载期间行高锁定,读完不跳变。
+    final two = subtitlePending || (subtitle?.isNotEmpty ?? false);
+    final groupGlass = DshSurfaces.of(context).glass(GlassTier.card);
     return Semantics(
       selected: highlighted,
       checked: selecting ? selected : null,
@@ -93,65 +148,255 @@ class SessionTile extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       excludeSemantics: true,
-      child: Material(
-        type: MaterialType.transparency,
+      child: Padding(
+        // 分组间距:首行上方 4,尾行下方 [groupGap];组内的行相互贴住。
+        padding: EdgeInsets.fromLTRB(
+          marginH,
+          groupPosition == SessionGroupPos.first || groupPosition == SessionGroupPos.single ? 4 : 0,
+          marginH,
+          groupPosition == SessionGroupPos.last || groupPosition == SessionGroupPos.single ? groupGap : 0,
+        ),
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
-          customBorder: shape,
-          // Ink (not a container's decoration), so the splash draws over the
-          // fill; the fill fades in and out.
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(end: highlighted ? 1 : 0),
-            duration: AppMotion.of(context, AppMotion.quick),
-            curve: AppMotion.std,
-            builder: (context, t, child) {
-              final fill = sessionSelectionColor(context);
-              return Ink(
-                decoration: ShapeDecoration(
-                  color: fill.withValues(alpha: fill.a * t),
-                  shape: shape,
-                ),
-                height: height,
-                padding: EdgeInsets.only(left: 10 + indent, right: 10),
-                child: child,
-              );
-            },
-            child: Row(
+          child: CustomPaint(
+            // 组卡的外缘高光:与设置卡同一副描边(hairline + 顶部渐隐的 rim),
+            // 逐行画、按组位裁掉组内接缝,相邻行的描边在同一 x 上接续,看
+            // 起来仍是一整张卡。模糊不加:列表坐在壳层自己的玻璃底上,叠糊
+            // 会出条带(GlassIconButton 文档里同一条规则)。
+            foregroundPainter: _GroupEdgePainter(pos: groupPosition, style: groupGlass, borderRadius: _radius),
+            child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: two ? height : heightSingle),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: highlighted ? 1 : 0),
+              duration: AppMotion.of(context, AppMotion.quick),
+              curve: AppMotion.std,
+              builder: (context, t, child) {
+                return Ink(
+                  decoration: ShapeDecoration(
+                    color: Color.lerp(DshSurfaces.of(context).glass(GlassTier.card).fill, sessionSelectionColor(context), t),
+                    shape: RoundedSuperellipseBorder(borderRadius: _radius),
+                  ),
+                  padding: EdgeInsets.fromLTRB(innerH + indent, 6, innerH, 6),
+                  child: child,
+                );
+              },
+              child: Row(
               children: [
                 _CheckSlot(selecting: selecting, selected: selected),
+                _SessionAvatar(sessionId: sessionId, title: title),
+                const SizedBox(width: avatarGap),
                 Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontSize: 15,
-                      height: 1.4,
-                      color: scheme.onSurface,
-                      fontWeight: current && !selecting ? FontWeight.w600 : FontWeight.w400,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          if (pinned) ...[
+                            Icon(AppIcons.pinActive, size: 14, color: colors.textTertiary),
+                            const SizedBox(width: 4),
+                          ],
+                          Expanded(
+                            child: Text(
+                              title,
+                              key: SessionTile.titleKey,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: RowAnatomy.titleStyle(context, color: scheme.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (two) ...[
+                        const SizedBox(height: 2),
+                        if (subtitlePending)
+                          const _SubtitleDots(key: ValueKey('subtitle-dots'))
+                        else
+                          Text(
+                            subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(color: colors.textTertiary),
+                          ),
+                      ],
+                    ],
                   ),
                 ),
-                if (pinned) ...[
-                  const SizedBox(width: 8),
-                  Icon(AppIcons.pinActive, size: 14, color: colors.textTertiary),
-                ],
                 AnimatedSwitcher(
                   duration: AppMotion.of(context, AppMotion.quick),
                   layoutBuilder: (current, previous) =>
                       Stack(alignment: Alignment.centerRight, children: [...previous, ?current]),
-                  child: marker == null
-                      ? const SizedBox.shrink(key: ValueKey('none'))
-                      : Padding(key: marker.key, padding: const EdgeInsets.only(left: 10), child: marker),
+                  child: switch ((marker, timeText)) {
+                    (final marker?, _) => Padding(
+                      key: marker.key,
+                      padding: const EdgeInsets.only(left: 10),
+                      child: marker,
+                    ),
+                    (null, final time?) => Padding(
+                      key: const ValueKey('time'),
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Text(
+                        time,
+                        // Same small tabular tertiary text a settings row's
+                        // meta uses — the shared anatomy covers the row's
+                        // right end too.
+                        style: AppType.tabular(theme.textTheme.bodySmall!.copyWith(color: colors.textTertiary)),
+                      ),
+                    ),
+                    _ => const SizedBox.shrink(key: ValueKey('none')),
+                  },
                 ),
-              ],
+                ],
+              ),
+            ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// 会话头像:DiceBear「Critters」小怪兽(构建期图库,tool/session_avatars 生成的
+/// 100 槽 96px PNG)落在圆盘槽里;槽位与底色都由 FNV-1a(会话 id)选出 —— 不依赖
+/// 引擎与网络、不随改名漂移,同一会话永远同一只小怪兽;图库图缺失时回退标题
+/// 首字符(空标题回退「·」)。
+class _SessionAvatar extends StatelessWidget {
+  const _SessionAvatar({required this.sessionId, required this.title});
+
+  final String sessionId;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = DshColors.of(context);
+    final tint = DshColors.identityIndex(sessionId, colors.identity.length);
+    final initial = title.runes.isEmpty
+        ? '·'
+        : String.fromCharCodes([title.runes.first]).toUpperCase();
+    return DecoratedBox(
+      key: const ValueKey('session-avatar'),
+      decoration: ShapeDecoration(color: colors.identity[tint], shape: const CircleBorder()),
+      child: SizedBox.square(
+        dimension: SessionTile.avatarSize,
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: ClipOval(
+            child: Image.asset(
+              SessionAvatarGallery.assetFor(SessionAvatarGallery.slotFor(sessionId)),
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.medium,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stack) => Center(
+                child: Text(
+                  initial,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onIdentity[tint],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 副标题加载占位:三个错峰脉动的小点(系统减弱动效时静帧)。行高由
+/// SessionTile 的两行锁定,读完落到最新消息或 cwd,占位即消失。
+class _SubtitleDots extends StatefulWidget {
+  const _SubtitleDots({super.key});
+
+  @override
+  State<_SubtitleDots> createState() => _SubtitleDotsState();
+}
+
+class _SubtitleDotsState extends State<_SubtitleDots> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// 0..1 相位 → 0.25..1 的透明度(前 1/4 升到峰值,55% 前回落,其余保持)。
+  double _pulse(double phase) {
+    final p = phase % 1;
+    if (p < 0.25) return 0.25 + 0.75 * (p / 0.25);
+    if (p < 0.55) return 1 - 0.75 * ((p - 0.25) / 0.30);
+    return 0.25;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = DshColors.of(context).textTertiary;
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [for (var i = 0; i < 3; i++) _dot(color, 0.35, i < 2 ? 5.0 : 0)],
+      );
+    }
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        double opacity(int i) => _pulse((_controller.value * 2.4 - i * 0.2) / 2.4);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < 3; i++)
+              Transform.translate(
+                offset: Offset(0, -2 * (opacity(i) - 0.25) / 0.75),
+                child: _dot(color, opacity(i), i < 2 ? 5.0 : 0),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _dot(Color color, double opacity, double margin) {
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: 6,
+        height: 6,
+        margin: EdgeInsets.only(right: margin),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    );
+  }
+}
+
+/// 会话图库门面:选槽/预热机制在 common/avatar_gallery.dart 的
+/// [AvatarGallery],这里只绑定 critters 资产目录,并保留原有静态 API
+/// (drawer 内外的调用方与 test/drawer/session_avatar_test.dart 都在用)。
+class SessionAvatarGallery {
+  SessionAvatarGallery._();
+
+  static final AvatarGallery _gallery = AvatarGallery(
+    count: 100,
+    assetFor: (slot) => 'assets/session_avatars/avatar_${slot.toString().padLeft(2, '0')}.png',
+  );
+
+  static int get count => _gallery.count;
+
+  static int slotFor(String sessionId) => _gallery.slotFor(sessionId);
+
+  static String assetFor(int slot) => _gallery.assetFor(slot);
+
+  static Future<void> precacheAll(BuildContext context) => _gallery.precacheAll(context);
 }
 
 class _UnreadDot extends StatelessWidget {
@@ -167,9 +412,9 @@ class _UnreadDot extends StatelessWidget {
   );
 }
 
-/// The check that slides in before the title while selecting: a 20 ring,
+/// The check that slides in before the avatar while selecting: a 20 ring,
 /// filled with ink and a tick once chosen (ink, not the brand colour — the
-/// drawer keeps one primary element).
+/// list keeps one primary element).
 class _CheckSlot extends StatelessWidget {
   const _CheckSlot({required this.selecting, required this.selected});
 
@@ -185,13 +430,17 @@ class _CheckSlot extends StatelessWidget {
       curve: AppMotion.std,
       builder: (context, t, child) {
         if (t == 0) return const SizedBox.shrink();
+        // Height 20: the row bounds the slot's width only — the check circle
+        // keeps its own 20 against the unbounded height of the card's row.
         return SizedBox(
           width: SessionTile.checkSlot * t,
+          height: 20,
           child: ClipRect(
             child: OverflowBox(
               alignment: Alignment.centerLeft,
               minWidth: SessionTile.checkSlot,
               maxWidth: SessionTile.checkSlot,
+              maxHeight: 20,
               child: Opacity(opacity: t, child: child),
             ),
           ),
@@ -225,7 +474,8 @@ class _CheckSlot extends StatelessWidget {
   }
 }
 
-/// A section label in the drawer list: small, faint, on the 20 line.
+/// A section label above a group card: small, faint, on the card's 16 edge
+/// plus 8, like the settings sections' titles.
 class DrawerEyebrow extends StatelessWidget {
   const DrawerEyebrow(this.text, {super.key});
 
@@ -234,11 +484,68 @@ class DrawerEyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 16, 10, 6),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 6),
       child: Semantics(
         header: true,
         child: Text(text, style: AppType.eyebrow(color: DshColors.of(context).textTertiary)),
       ),
     );
   }
+}
+
+/// 组卡的外缘描边:设置卡(GlassSurface)的那副高光 —— 一圈发丝线,加上
+/// 顶部往下的渐变 rim —— 但逐行画,并按 [SessionGroupPos] 裁掉组内的接缝
+/// 边:middle 行只留左右两条,相邻行的描边在同一 x 上接续,一整张卡的
+/// 轮廓不受行虚拟化影响。模糊不在这里做:列表坐在壳层自己的玻璃底上,叠
+/// 糊会出条带(GlassIconButton 文档里同一条规则)。
+class _GroupEdgePainter extends CustomPainter {
+  _GroupEdgePainter({required this.pos, required this.style, required this.borderRadius});
+
+  final SessionGroupPos pos;
+  final GlassStyle style;
+  final BorderRadiusGeometry borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    final width = math.max(style.hairlineWidth, 0.5);
+    final path = RoundedSuperellipseBorder(borderRadius: borderRadius).getOuterPath(rect.deflate(width / 2));
+    canvas.save();
+    // 裁掉与相邻行相对的接缝条(描边画在缩进 width/2 的路径上,笔画外沿
+    // 恰到行缘):first 裁底、middle 裁上下、last 裁顶,side 在同一 x 接续。
+    final clip = switch (pos) {
+      SessionGroupPos.single => null,
+      SessionGroupPos.first => Rect.fromLTWH(0, 0, size.width, size.height - width),
+      SessionGroupPos.middle => Rect.fromLTWH(0, width, size.width, size.height - width * 2),
+      SessionGroupPos.last => Rect.fromLTWH(0, width, size.width, size.height - width),
+    };
+    if (clip != null) canvas.clipRect(clip);
+    if (style.hairline.a > 0) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..color = style.hairline,
+      );
+    }
+    if (style.rim.a > 0) {
+      final highlight = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(width, 0.8)
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [style.rim, style.rim.withValues(alpha: 0)],
+          stops: const [0, 0.45],
+        ).createShader(rect);
+      canvas.drawPath(path, highlight);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_GroupEdgePainter old) =>
+      old.pos != pos || old.style != style || old.borderRadius != borderRadius;
 }

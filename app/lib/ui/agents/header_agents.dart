@@ -3,7 +3,7 @@
 // Agent Teams action).
 //
 // Each piece reads the current conversation itself, so the header only places
-// them: [HeaderLeadSlot] swaps the drawer key for a breadcrumb back to the
+// them: [HeaderLeadSlot] swaps the drawer key for a plain back key to the
 // parent in a subagent conversation, [HeaderTitleText] names a child by its
 // task, and [HeaderTrailingSlot] adds the agents capsule before the model chip
 // (a child has no model chip: its model belongs to its parent's routing).
@@ -16,6 +16,7 @@ import '../../state/agents_state.dart';
 import '../../state/sessions_state.dart';
 import '../common/fluid_bits.dart';
 import '../common/status_dot.dart';
+import '../shell/page_frame.dart' show GlassIconButton;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'lineage_sheet.dart';
@@ -28,7 +29,7 @@ final _currentAgentsProvider = Provider.autoDispose<(String, HeaderAgents)?>((re
   return (sessionId, ref.watch(headerAgentsProvider(sessionId)));
 });
 
-/// The left key: [menu] (the drawer), or 「‹ 上级对话」 in a subagent
+/// The left key: [menu] (the drawer), or the plain back key in a subagent
 /// conversation.
 class HeaderLeadSlot extends ConsumerWidget {
   const HeaderLeadSlot({super.key, required this.menu});
@@ -89,51 +90,19 @@ class HeaderTrailingSlot extends ConsumerWidget {
   }
 }
 
-/// 「‹ 上级对话标题」:回到派出这个子代理的对话。
+/// 子代理对话的返回键:与二级页面左上同一枚玻璃圆钮(44 圆、22 回箭头),
+/// 原位切回派出这个子代理的对话 —— 不压路由,系统返回手势走同一条路。
 class HeaderBackKey extends ConsumerWidget {
   const HeaderBackKey({super.key, required this.parent});
 
   final SubagentParent parent;
 
-  static const height = 44.0;
-  static const padding = 12.0;
-  static const maxWidth = 132.0;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    return Semantics(
-      button: true,
-      label: l10n.botsBackToParent(parent.parentTitle),
-      excludeSemantics: true,
-      child: GlassSurface(
-        tier: GlassTier.chrome,
-        stadium: true,
-        grouped: true,
-        onTap: () => selectConversation(ref, parent.address.parentSessionId),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: height, minWidth: height, maxWidth: maxWidth),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: padding),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(AppIcons.back, size: 20, color: theme.colorScheme.onSurface),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    parent.parentTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return GlassIconButton(
+      icon: AppIcons.back,
+      tooltip: context.l10n.botsBackToParent(parent.parentTitle),
+      onPressed: () => selectConversation(ref, parent.address.parentSessionId),
     );
   }
 }

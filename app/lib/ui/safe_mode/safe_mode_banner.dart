@@ -106,7 +106,7 @@ class SafeModeBanner extends ConsumerWidget {
                           if (status.phase == RuntimePhase.running)
                             TextButton(
                               style: buttonStyle,
-                              onPressed: onRepair ?? () => SafeModeActions.requestRepair(context, popToRoot: false),
+                              onPressed: onRepair ?? () => SafeModeActions.requestRepair(context, popToChat: false),
                               child: Text(l10n.phoneSafeRepair),
                             ),
                           if (status.phase != RuntimePhase.starting && status.phase != RuntimePhase.stopping)

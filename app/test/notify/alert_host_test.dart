@@ -3,6 +3,7 @@
 
 import 'package:dsh_app/runtime/runtime_state.dart';
 import 'package:dsh_app/state/bots_state.dart';
+import 'package:dsh_app/state/chat_reveal_state.dart';
 import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/notify_state.dart';
@@ -12,7 +13,6 @@ import 'package:dsh_app/state/workspaces_state.dart';
 import 'package:dsh_app/ui/common/discard_guard.dart';
 import 'package:dsh_app/ui/notify/chat_alert_host.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -63,14 +63,15 @@ void main() {
     WidgetTester tester, {
     NotifySystemStatus? system,
     Widget? page,
-    bool drawer = false,
+    bool chatOpen = false,
   }) async {
     if (system != null) channel.system = system;
     final conn = fakeHostConnection();
     await tester.pumpWidget(
       testApp(
-        drawer
-            ? HomeShell(initiallyOpen: true, chatBuilder: (_) => const SizedBox.expand())
+        chatOpen
+            // 会话被打开时 shell 推入的全屏聊天页替身，用文字断言它在最前。
+            ? HomeShell(chatBuilder: const Scaffold(body: Center(child: Text('聊天页替身'))))
             : Scaffold(
                 body: Builder(
                   builder: (context) => Column(
@@ -123,6 +124,15 @@ void main() {
     expect(container.read(chatOnScreenProvider), isTrue);
   });
 
+  testWidgets('the reveal request opens the conversation over the tabs', (tester) async {
+    await pumpHome(tester, chatOpen: true);
+    expect(find.text('聊天页替身'), findsNothing);
+    final container = ProviderScope.containerOf(tester.element(find.byType(HomeShell)));
+    container.read(chatRevealProvider.notifier).request();
+    await tester.pumpAndSettle();
+    expect(find.text('聊天页替身'), findsOneWidget);
+  });
+
   testWidgets('a notification tap pops back to the chat and opens the session', (tester) async {
     final container = await pumpHome(tester);
     await openPage(tester);
@@ -131,6 +141,16 @@ void main() {
     expect(find.text('设置页'), findsNothing);
     expect(container.read(currentSessionProvider), 's2');
     expect(container.read(activeHostProvider), HostRef.local);
+  });
+
+  testWidgets('升级完成告知的点击只把 app 带回前台，不开会话', (tester) async {
+    final container = await pumpHome(tester);
+    await openPage(tester);
+    channel.tapController.add(const NotifyTap(host: HostRef.local, sessionId: 'wxapp', kind: 'update'));
+    await tester.pumpAndSettle();
+    // 不跳页、不弹「离开未保存表单」、不路由会话(契约 §6.4)。
+    expect(find.text('设置页'), findsOneWidget);
+    expect(container.read(currentSessionProvider), isNull);
   });
 
   testWidgets('the banner shows over a pushed page and opens its conversation', (tester) async {
@@ -233,47 +253,39 @@ void main() {
     expect(container.read(currentSessionProvider), 's1');
   });
 
-  bool drawerVisible(WidgetTester tester) => tester
-      .widget<Visibility>(
-        find
-            .ancestor(
-              of: find.byType(SessionsDrawer, skipOffstage: false),
-              matching: find.byType(Visibility, skipOffstage: false),
-            )
-            .first,
-      )
-      .visible;
+  /// 抽屉删除后「会话被打开」的唯一可见信号：shell 推入了聊天页替身。
+  bool chatOpen(WidgetTester tester) => find.text('聊天页替身').evaluate().isNotEmpty;
 
-  testWidgets('横幅打开对话后动画关闭抽屉', (tester) async {
-    final container = await pumpHome(tester, drawer: true);
-    expect(drawerVisible(tester), isTrue);
+  testWidgets('横幅打开对话后推入聊天页', (tester) async {
+    final container = await pumpHome(tester, chatOpen: true);
+    expect(chatOpen(tester), isFalse);
     source.emit(approval('e1', 's1'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('修复登录按钮'));
     await tester.pumpAndSettle();
-    expect(drawerVisible(tester), isFalse);
+    expect(chatOpen(tester), isTrue);
     expect(container.read(currentSessionProvider), 's1');
   });
 
-  testWidgets('系统通知直接收起抽屉，不播动画', (tester) async {
-    final container = await pumpHome(tester, drawer: true);
+  testWidgets('系统通知直接推入聊天页', (tester) async {
+    final container = await pumpHome(tester, chatOpen: true);
     channel.tapController.add(const NotifyTap(host: HostRef.local, sessionId: 's2', kind: 'done'));
-    // The handler resumes after its (empty) discard check, then one frame.
-    await tester.pump();
-    await tester.pump();
-    expect(drawerVisible(tester), isFalse);
+    // The handler runs across a few microtask hops (discard check → select →
+    // reveal), so let the push land before asserting.
+    await tester.pumpAndSettle();
+    expect(chatOpen(tester), isTrue);
     expect(container.read(currentSessionProvider), 's2');
   });
 
-  testWidgets('切换主机和归档当前对话不关闭抽屉', (tester) async {
-    final container = await pumpHome(tester, drawer: true);
+  testWidgets('切换主机和归档当前对话不推入聊天页', (tester) async {
+    final container = await pumpHome(tester, chatOpen: true);
     container.read(activeHostProvider.notifier).select(const HostRef.ssh('lab'));
     await tester.pumpAndSettle();
-    expect(drawerVisible(tester), isTrue);
+    expect(chatOpen(tester), isFalse);
     container.read(currentSessionProvider.notifier).select('s1');
     await container.read(sessionsProvider.notifier).archive('s1');
     await tester.pumpAndSettle();
-    expect(drawerVisible(tester), isTrue);
+    expect(chatOpen(tester), isFalse);
   });
 
   testWidgets('横幅读屏提供点按和关闭动作', (tester) async {

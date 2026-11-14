@@ -5,7 +5,6 @@ import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/session_deletion_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspaces_state.dart';
-import 'package:dsh_app/ui/shell/drawer/drawer_filter_bar.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/session_search_page.dart';
 import 'package:dsh_client/dsh_client.dart';
@@ -59,7 +58,7 @@ Future<(DrawerHost, ProviderContainer)> _openArchive(
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+      home: HomeShell(chatBuilder: const SizedBox.expand()),
       overrides: [
         ...workspaceOverrides(host, prefs: const WorkspacePrefs(loaded: true), current: null),
         if (backend != null) sessionDeletionBackendProvider.overrideWithValue(backend),
@@ -70,18 +69,11 @@ Future<(DrawerHost, ProviderContainer)> _openArchive(
   final container = ProviderScope.containerOf(tester.element(find.byType(HomeShell)));
   addTearDown(container.read(activeConnectionProvider).value!.client.close);
   expect(container.read(sessionsProvider).value, isEmpty);
-  expect(find.byType(DrawerViewButton), findsOneWidget);
-  if (archivedOnly) {
-    await tester.tap(find.byType(DrawerViewButton));
-    await settle(tester);
-    await tester.tap(find.text('已归档'));
-    await settle(tester);
-  } else {
-    await tester.tap(find.bySemanticsLabel('搜索对话'));
-    await settle(tester);
-    await tester.enterText(find.byType(TextField), '归档');
-    await settle(tester);
-  }
+  // 视图选项已并入标题行的「对话列表」圆钮（原 DrawerViewButton）。
+  await tester.tap(find.byTooltip('对话列表'));
+  await settle(tester);
+  await tester.tap(find.text('已归档'));
+  await settle(tester);
   expect(find.byType(SessionSearchPage), findsOneWidget);
   expect(find.byType(SearchResultTile), findsOneWidget);
   return (host, container);
@@ -108,7 +100,7 @@ Future<void> _askDelete(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('all-archived drawer remains browsable and restores before opening', (tester) async {
+  testWidgets('all-archived list tab remains browsable and restores before opening', (tester) async {
     final (host, container) = await _openArchive(tester);
     await tester.tap(find.byType(SearchResultTile));
     await settle(tester);

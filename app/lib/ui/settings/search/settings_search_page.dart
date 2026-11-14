@@ -14,6 +14,7 @@ import '../../../performance/performance_state.dart';
 import '../../../state/ask_ai.dart' show askAiAvailableProvider;
 import '../../../state/engine_settings_state.dart';
 import '../../../state/hosts_state.dart';
+import '../../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../../../state/phone_state.dart';
 import '../../../state/plugin_config/plugin_config_state.dart';
 import '../../../state/plugins_state.dart';
@@ -67,6 +68,7 @@ String? unavailableReason(WidgetRef ref, SpotCondition? condition, L10n l10n) {
   final met = switch (condition) {
     null => true,
     SpotCondition.localHost => ref.watch(activeHostProvider).isLocal,
+    SpotCondition.localEngineOn => ref.watch(localEngineAvailableProvider),
     SpotCondition.phoneControlOn => ref.watch(phoneProvider.select((s) => !s.loaded || s.status.enabled)),
     SpotCondition.nativeUi => ref.watch(askAiAvailableProvider),
     SpotCondition.openChat => ref.watch(currentSessionProvider) != null,
@@ -151,6 +153,18 @@ class _SettingsSearchPageState extends ConsumerState<SettingsSearchPage> {
     }
   }
 
+  /// Whether [hit] is one of the local-engine entries a phone without the
+  /// engine doesn't list at all — not even as unavailable: the entry itself,
+  /// or a row on a page the engine gate keeps off this phone.
+  bool _withoutLocalEngine(SearchHit hit) {
+    final spot = hit.spot;
+    if (spot == null) return false;
+    if (ref.watch(localEngineAvailableProvider)) return false;
+    final page = spot.isEntry ? spot.opens! : spot.page;
+    return spot.condition == SpotCondition.localEngineOn ||
+        SettingsIndex.page(page).condition == SpotCondition.localEngineOn;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -164,7 +178,7 @@ class _SettingsSearchPageState extends ConsumerState<SettingsSearchPage> {
             features: ref.watch(featureSectionsProvider),
             zh: _zh,
             en: _en,
-          );
+          ).where((hit) => !_withoutLocalEngine(hit)).toList();
     final session = ref.watch(currentSessionProvider);
     return AppPage(
       title: l10n.searchSettingsHint,
@@ -222,6 +236,7 @@ class _SettingsSearchPageState extends ConsumerState<SettingsSearchPage> {
   List<Widget> _idle(BuildContext context) {
     final l10n = context.l10n;
     final recent = ref.watch(recentSearchesProvider);
+    final localEngine = ref.watch(localEngineAvailableProvider);
     return [
       Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
@@ -234,7 +249,8 @@ class _SettingsSearchPageState extends ConsumerState<SettingsSearchPage> {
           runSpacing: 8,
           children: [
             for (final word in SettingsSearchPage.suggestions(l10n))
-              CapsuleChoiceChip(label: word, selected: false, onSelected: () => _fill(word)),
+              if (localEngine || word != l10n.searchSuggestBackground)
+                CapsuleChoiceChip(label: word, selected: false, onSelected: () => _fill(word)),
           ],
         ),
       ),

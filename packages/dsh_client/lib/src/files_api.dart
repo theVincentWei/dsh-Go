@@ -20,6 +20,7 @@ import 'dart:typed_data';
 import 'carrier.dart';
 import 'errors.dart';
 import 'json.dart';
+import 'perf_probe.dart';
 import 'session_api.dart';
 
 /// One regular file as the Host sees it (`workspaceFiles/stat`).
@@ -79,19 +80,26 @@ extension DshFilesApi on DshClient {
   /// Each chunk is consumed before reporting progress or requesting the next
   /// window. An asynchronous [onChunk] is awaited; its failure stops the read.
   ///
+  /// [offset] resumes a read from a previously fetched prefix (a persisted
+  /// `.part` of the same file version): windows are requested from there and
+  /// [onProgress] reports absolute bytes. A resumed read never falls back to
+  /// the whole-file route.
+  ///
   /// [maxBytes] refuses larger files up front (`workspace-file/too-large`)
-  /// when the size is known. [onProgress] gets (received, total?).
-  /// Failures are [DshRemoteException]s with `workspace-file/*` codes
-  /// (`not-found`, `not-allowed`, `too-large`, `unsupported`), or the
-  /// carrier's transport errors. A changed non-empty window version fails locally
-  /// with `workspace-file/changed` before delivering that window. Missing versions
-  /// remain compatible; this check does not provide an atomic file snapshot.
+  /// when the size is known. [onProgress] gets (received, total?) with
+  /// received counted from zero. Failures are [DshRemoteException]s with
+  /// `workspace-file/*` codes (`not-found`, `not-allowed`, `too-large`,
+  /// `unsupported`), or the carrier's transport errors. A changed non-empty
+  /// window version fails locally with `workspace-file/changed` before
+  /// delivering that window. Missing versions remain compatible; this check
+  /// does not provide an atomic file snapshot.
   Future<int> readFile(
     String sessionId,
     String path, {
     required FutureOr<void> Function(Uint8List chunk) onChunk,
     void Function(int received, int? total)? onProgress,
     int? maxBytes,
+    int offset = 0,
   }) async {
     final stat = await statFile(sessionId, path);
     final total = stat.bytes;
@@ -101,11 +109,11 @@ extension DshFilesApi on DshClient {
         'limit': maxBytes,
       });
     }
-    onProgress?.call(0, total);
+    onProgress?.call(offset, total);
     if (!supportsEndpoint('workspaceFiles/readBytes')) {
       throw DshRemoteException('workspace-file/unsupported', 'this connection cannot read file bytes', {'path': path});
     }
-    var delivered = 0;
+    var delivered = offset;
     Future<void> sink(Uint8List chunk) async {
       delivered += chunk.length;
       await onChunk(chunk);
@@ -120,10 +128,12 @@ extension DshFilesApi on DshClient {
         maxBytes,
         total,
         stat.version.isEmpty ? null : stat.version,
+        startOffset: offset,
       );
     } on DshProtocolException {
       // An HTTP answer this client cannot decode: the plain file route, if
-      // nothing has been handed out yet.
+      // nothing has been handed out yet. A resumed read has always handed out
+      // its prefix, so it never falls back to a whole-file refetch.
       final carrier = this.carrier;
       if (carrier is! DshHttpCarrier || delivered > 0) rethrow;
       final bytes = await _readWhole(carrier, stat.absolutePath.isEmpty ? path : stat.absolutePath, path, maxBytes);
@@ -163,9 +173,10 @@ extension DshFilesApi on DshClient {
     void Function(int received, int? total)? onProgress,
     int? maxBytes,
     int? total,
-    String? expectedVersion,
-  ) async {
-    var offset = 0;
+    String? expectedVersion, {
+    int startOffset = 0,
+  }) async {
+    var offset = startOffset;
     while (true) {
       final value = asMapOrEmpty(
         await rpc.call('workspaceFiles/readBytes', {
@@ -231,7 +242,16 @@ extension DshFilesApi on DshClient {
 /// tunnel, a JSON byte array from a test double.
 Uint8List _bytesOf(Object? data) {
   if (data is Uint8List) return data;
-  if (data is String) return base64Decode(data);
+  if (data is String) {
+    if (perfProbe) {
+      final stopwatch = Stopwatch()..start();
+      final bytes = base64Decode(data);
+      stopwatch.stop();
+      ClientPerfProbe.noteBase64(stopwatch.elapsedMicroseconds, data.length);
+      return bytes;
+    }
+    return base64Decode(data);
+  }
   if (data is List) return Uint8List.fromList([for (final b in data) asInt(b) ?? 0]);
   return Uint8List(0);
 }

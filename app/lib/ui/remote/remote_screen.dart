@@ -7,14 +7,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../remote/relay/relay_backend.dart';
 import '../../runtime/local_footprint.dart';
+import '../../runtime/local_runtime_supported.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/app_info.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
+import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../common/app_dialog.dart';
 import '../common/ask_ai.dart';
 import '../common/overview_card.dart';
 import '../common/status_chip.dart';
+import '../onboarding/local_install.dart' show openLocalInstall;
 import '../settings/settings_widgets.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -130,6 +133,22 @@ class RemoteScreen extends ConsumerWidget {
             ),
           ],
         ),
+        // The one way back onto 本机 after first run picked a remote host or
+        // the runtime was uninstalled: the same install page the host
+        // switcher opens (its controller clears the decline first thing, so
+        // every local entry returns). iOS has no runtime to install.
+        if (localRuntimeSupported && !ref.watch(localEngineAvailableProvider))
+          SettingsSection(
+            children: [
+              SettingsTile(
+                icon: hostKindIcon(HostKind.local),
+                tinted: false,
+                title: l10n.localEnvInstallTitle,
+                subtitle: l10n.localEnvInstallMessage,
+                onTap: () => unawaited(openLocalInstall(context, useWhenDone: true)),
+              ),
+            ],
+          ),
         SettingsSection(
           title: l10n.remoteOtherMethods,
           children: [
@@ -186,10 +205,14 @@ class _ActiveCard extends ConsumerWidget {
         (error?.kind == HostLinkErrorKind.hostKeyMismatch || error?.kind == HostLinkErrorKind.hostKeyUnverified);
     void reconnect() => ref.read(remoteConnectionProvider(active).notifier).retry();
     final failed = status.phase == HostLinkPhase.failed && error != null;
-    // No runtime on this phone: 本机 is nowhere to go back to.
-    final canGoLocal = ref.watch(localRuntimeProvider.select((s) => !s.status.runtimeMissing));
+    // No runtime on this phone, or the engine was declined (first run went
+    // to a remote host): 本机 is nowhere to go back to.
+    final canGoLocal =
+        localRuntimeSupported &&
+        ref.watch(localEngineAvailableProvider) &&
+        ref.watch(localRuntimeProvider.select((s) => !s.status.runtimeMissing));
     return OverviewCard(
-      leading: OverviewGlyph(hostKindIcon(active.kind), tint: hostKindTint(active.kind)),
+      leading: OverviewGlyph(watchHostIcon(ref, active), tint: hostKindTint(active.kind)),
       title: Text(l10n.remoteActiveHost(name)),
       subtitle: InkWell(
         onTap: active.kind == HostKind.relay && status.isConnected
@@ -371,7 +394,7 @@ class _SshRow extends ConsumerWidget {
       selected: active,
       inMutuallyExclusiveGroup: true,
       child: SettingsTile(
-        icon: hostKindIcon(HostKind.ssh),
+        icon: sshDeviceIcon(config.icon) ?? hostKindIcon(HostKind.ssh),
         tinted: false,
         title: config.name,
         subtitle: config.address,

@@ -33,6 +33,7 @@ export 'src/features_api.dart';
 export 'src/files_api.dart';
 export 'src/media_meta.dart';
 export 'src/goals_api.dart';
+export 'src/host_files_api.dart';
 export 'src/messages_api.dart';
 export 'src/models.dart';
 export 'src/mux.dart';

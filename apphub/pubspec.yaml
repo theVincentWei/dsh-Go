@@ -1,0 +1,22 @@
+name: apphub
+description: >-
+  AppHub — mini-program market, route gateway and AI gateway for the DSH
+  ecosystem. M1: market endpoints, publish gate, reverse-proxy gateway,
+  observation log sink, MariaDB metadata, apphubctl CLI.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  args: ^2.5.0
+  archive: ^3.6.1
+  crypto: ^3.0.3
+  http: ^1.2.2
+  mysql1: ^0.22.0
+  path: ^1.9.0
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  dsh_client:
+    path: ../packages/dsh_client

@@ -14,6 +14,7 @@ import '../common/list_page_row.dart';
 import '../features/feature_kit.dart';
 import '../features/feature_widgets.dart';
 import '../shell/page_frame.dart';
+import '../shell/reveal_conversation.dart';
 import '../theme/app_icons.dart';
 import 'workspace_actions.dart';
 import 'workspace_format.dart';
@@ -76,7 +77,7 @@ class WorkspacesPage extends ConsumerWidget {
                           w,
                           onNewConversation: () {
                             startConversationIn(ref, w.workspaceId);
-                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            revealConversation(context);
                           },
                         ),
                       ),

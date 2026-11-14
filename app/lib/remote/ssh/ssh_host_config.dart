@@ -7,6 +7,10 @@ enum SshAuthMethod { password, privateKey }
 /// Whether the app owns the remote DSH process or only opens a tunnel to it.
 enum SshDshMode { managed, attachOnly }
 
+/// What a host physically is, for its row's device glyph (「设备图标」).
+/// Cosmetic: picking one never changes the connection or its pinned key.
+enum SshHostDevice { macMini, desktop, desktopTower, computerTower, laptop, hardDrives }
+
 /// The remote `dsh web` launch command used when none is configured.
 const defaultDshLaunchCommand = 'dsh web';
 
@@ -24,6 +28,7 @@ class SshHostConfig {
     this.remotePort = 3080,
     this.compression = true,
     this.workingDirectory,
+    this.icon,
     this.hostKeyType,
     this.hostKeyFingerprint,
   });
@@ -53,6 +58,10 @@ class SshHostConfig {
   /// starts). `~/…` is expanded on the remote. Null: DSH's own default.
   final String? workingDirectory;
 
+  /// The device glyph for host rows (「设备图标」). Null keeps the default
+  /// terminal glyph — what hosts saved before the picker show.
+  final SshHostDevice? icon;
+
   /// Pinned host key (trust on first use), e.g. `ssh-ed25519` and the
   /// OpenSSH `SHA256:…` fingerprint. Null until the person accepts it.
   final String? hostKeyType;
@@ -80,6 +89,7 @@ class SshHostConfig {
     int? remotePort,
     bool? compression,
     String? Function()? workingDirectory,
+    SshHostDevice? Function()? icon,
     String? Function()? hostKeyType,
     String? Function()? hostKeyFingerprint,
   }) {
@@ -96,6 +106,7 @@ class SshHostConfig {
       remotePort: remotePort ?? this.remotePort,
       compression: compression ?? this.compression,
       workingDirectory: workingDirectory != null ? workingDirectory() : this.workingDirectory,
+      icon: icon != null ? icon() : this.icon,
       hostKeyType: hostKeyType != null ? hostKeyType() : (moved ? null : this.hostKeyType),
       hostKeyFingerprint: hostKeyFingerprint != null ? hostKeyFingerprint() : (moved ? null : this.hostKeyFingerprint),
     );
@@ -113,6 +124,7 @@ class SshHostConfig {
     'remotePort': remotePort,
     'compression': compression,
     if (workingDirectory != null) 'workingDirectory': workingDirectory,
+    if (icon != null) 'icon': icon!.name,
     if (hostKeyType != null) 'hostKeyType': hostKeyType,
     if (hostKeyFingerprint != null) 'hostKeyFingerprint': hostKeyFingerprint,
   };
@@ -131,6 +143,7 @@ class SshHostConfig {
     if (raw['dshMode'] == 'attachOnly' && (remotePort is! int || remotePort < 1 || remotePort > 65535)) {
       return null;
     }
+    final device = SshHostDevice.values.asNameMap()[raw['icon']];
     return SshHostConfig(
       id: id,
       name: name is String && name.trim().isNotEmpty ? name : host,
@@ -143,6 +156,7 @@ class SshHostConfig {
       dshMode: raw['dshMode'] == 'attachOnly' ? SshDshMode.attachOnly : SshDshMode.managed,
       remotePort: remotePort is int && remotePort > 0 && remotePort < 65536 ? remotePort : 3080,
       compression: raw['compression'] is bool ? raw['compression'] as bool : true,
+      icon: device,
       hostKeyType: raw['hostKeyType'] as String?,
       hostKeyFingerprint: raw['hostKeyFingerprint'] as String?,
     );
@@ -168,13 +182,27 @@ class SshHostConfig {
       other.remotePort == remotePort &&
       other.compression == compression &&
       other.workingDirectory == workingDirectory &&
+      other.icon == icon &&
       other.hostKeyType == hostKeyType &&
       other.hostKeyFingerprint == hostKeyFingerprint;
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, host, port, user, auth, launchCommand, dshMode, remotePort, compression,
-          workingDirectory, hostKeyType, hostKeyFingerprint);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    host,
+    port,
+    user,
+    auth,
+    launchCommand,
+    dshMode,
+    remotePort,
+    compression,
+    workingDirectory,
+    icon,
+    hostKeyType,
+    hostKeyFingerprint,
+  );
 }
 
 /// The secret material for one SSH host, loaded from the [SecretStore].

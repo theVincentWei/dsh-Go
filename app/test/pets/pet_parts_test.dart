@@ -281,10 +281,11 @@ void main() {
       image!.dispose();
     });
 
-    testWidgets('three choices with names, the source line, size and quiet mode', (tester) async {
+    testWidgets('four choices with names, the source line, size and quiet mode', (tester) async {
       await page(tester);
       expect(find.text('Deepy 小鲸鱼'), findsOneWidget);
       expect(find.text('鲸娘'), findsOneWidget);
+      expect(find.text('匠匠'), findsOneWidget);
       expect(find.text('不显示'), findsOneWidget);
       expect(find.textContaining('来自 DSH-TUI'), findsOneWidget);
       expect(find.text('大小'), findsOneWidget);
@@ -311,7 +312,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(c.read(petPrefsProvider).packId, noPetId);
       expect(find.text('安静模式'), findsNothing);
-      expect(find.byType(PetPreview), findsNWidgets(3));
+      expect(find.byType(PetPreview), findsNWidgets(4));
     });
   });
 }

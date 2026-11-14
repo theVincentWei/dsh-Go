@@ -376,13 +376,22 @@ void main() {
     expect(find.text('每条消息最多 9 个附件'), findsOneWidget);
   });
 
-  testWidgets('new conversation header action clears the selection', (tester) async {
+  testWidgets('the header\'s 设置 key shows for an open conversation (no tap: it opens the settings hub)', (
+    tester,
+  ) async {
     await pumpScreen(tester, ChatHarness(session: 's1'));
-    expect(find.byKey(const ValueKey('chat-new-chat')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('chat-new-chat')));
-    await pumpFrames(tester);
-    expect(containerOf(tester).read(currentSessionProvider), isNull);
-    expect(find.byKey(const ValueKey('chat-new-chat')), findsNothing);
+    expect(find.byKey(const ValueKey('chat-settings')), findsOneWidget);
+    expect(find.byTooltip('设置'), findsOneWidget);
+    // It is the settings key (the ⓘ that opens 当前对话, d3462b83), not the
+    // old 新对话 one.
+    expect(
+      find.descendant(of: find.byKey(const ValueKey('chat-settings')), matching: find.byIcon(AppIcons.info)),
+      findsOneWidget,
+    );
+    expect(find.byIcon(AppIcons.newChat), findsNothing);
+    // An open conversation keeps the model at the composer's foot (打字时的
+    // ComposerModelPill); the bar's own chip is new-chat only (2026-11-09 拍板).
+    expect(find.byKey(const ValueKey('header-model')), findsNothing);
   });
 
   testWidgets('while a reply generates, auto-approve sits beside the activity strip, not on a row of its own', (
@@ -426,6 +435,9 @@ void main() {
       await pumpScreen(tester, ChatHarness());
       expect(find.text('早上好'), findsOneWidget);
       expect(find.text('新对话'), findsOneWidget);
+      // A new chat carries the model in the bar's top-right (2026-11-09 拍板);
+      // an open conversation moves it to the composer's foot instead.
+      expect(find.byKey(const ValueKey('header-model')), findsOneWidget);
 
       await tester.tap(find.text(defaultSuggestions.first.label));
       await tester.pump();

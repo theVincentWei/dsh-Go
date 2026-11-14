@@ -115,6 +115,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('设备图标选择器：固定 4 列，同列同左缘、同行同顶、块块同宽', (tester) async {
+    await pump(tester, const SshHostFormPage(), [secretStoreProvider.overrideWithValue(MemorySecretStore())]);
+    final rects = {
+      for (final label in ['默认', 'Mac mini', '显示器', '台式机', '机箱', '笔记本', 'NAS'])
+        label: tester.getRect(find.ancestor(of: find.text(label), matching: find.byType(InkWell)).first),
+    };
+    // 同列同左缘（行 2 只有 3 块，第 4 列空着，但列位置不变）。
+    expect(rects['默认']!.left, rects['机箱']!.left);
+    expect(rects['Mac mini']!.left, rects['笔记本']!.left);
+    expect(rects['显示器']!.left, rects['NAS']!.left);
+    // 同行同顶。
+    expect(rects['默认']!.top, rects['台式机']!.top);
+    expect(rects['机箱']!.top, rects['NAS']!.top);
+    // 块块同宽，且撑满字段（4 列铺满，不留 72dp 定宽的参差）。
+    final width = rects['默认']!.width;
+    for (final r in rects.values) {
+      expect(r.width, width);
+    }
+    final rowWidth = width * 4 + 8 * 3;
+    expect(rowWidth, rects['台式机']!.right - rects['默认']!.left, reason: '第 1 行 4 块铺满字段宽');
+  });
+
   for (final brightness in Brightness.values) {
     testWidgets('字号 2.0 标签完整，提示切换错误不移动（${brightness.name}）', (tester) async {
       final error = ValueNotifier<String?>(null);

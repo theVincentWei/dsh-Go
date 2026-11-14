@@ -19,6 +19,7 @@ import '../common/ask_ai.dart';
 import '../common/brief_notice.dart';
 import '../common/risk_notice.dart';
 import '../common/feature_tile.dart';
+import '../common/local_engine_gate.dart';
 import '../settings/background_guide_page.dart';
 import '../settings/index/spots.dart';
 import '../settings/index/spot_anchor.dart';
@@ -319,6 +320,11 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.phoneControlTitle, child: _page(context));
+  }
+
+  Widget _page(BuildContext context) {
     final l10n = context.l10n;
     final state = ref.watch(phoneProvider);
     final blocker = ref.watch(phoneBlockerProvider);

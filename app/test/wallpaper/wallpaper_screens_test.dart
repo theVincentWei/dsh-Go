@@ -81,12 +81,12 @@ void main() {
 
   for (final brightness in Brightness.values) {
     final mode = brightness == Brightness.dark ? 'dark' : 'light';
-    testWidgets('golden: the drawer over the wallpaper ($mode)', (tester) async {
+    testWidgets('golden: the 聊天 tab over the wallpaper ($mode)', (tester) async {
       SharedPreferences.setMockInitialValues({CustomWallpaper.prefsKey: jsonOf(fixtureWallpaper(brightFixture))});
       shell.usePhoneSurface(tester);
       await tester.pumpWidget(
         shell.goldenApp(
-          home: HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true),
+          home: HomeShell(chatBuilder: const SizedBox.expand()),
           brightness: brightness,
           overrides: [
             localRuntimeProvider.overrideWith(
@@ -99,7 +99,8 @@ void main() {
       );
       await bakeLands(tester, find.byType(Scaffold).first);
       expect(pictureUnder(tester, find.byType(Scaffold).first)?.image, isNotNull);
-      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/drawer_$mode.png'));
+      // TODO(golden): 底部三 tab 改版后需在有 Flutter 的机器上 flutter test --update-goldens 重录（原名 drawer_$mode.png）。
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/chat_tab_$mode.png'));
     });
   }
 

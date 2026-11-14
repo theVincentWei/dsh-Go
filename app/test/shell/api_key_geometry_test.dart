@@ -7,13 +7,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'golden_harness.dart';
 
+/// Pages under test are pushed pages: a blank page underneath keeps
+/// `Navigator.canPop` true, so [AppPage] renders its back key.
+Widget _pushed(Widget page) => Navigator(
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
+  pages: [
+    MaterialPage<void>(child: const SizedBox.shrink()),
+    MaterialPage<void>(child: page),
+  ],
+);
+
 void main() {
   testWidgets('settings and onboarding share the secondary-page back rectangle', (tester) async {
     usePhoneSurface(tester);
     Future<Rect> pump(Widget page) async {
       await tester.pumpWidget(
         goldenApp(
-          home: page,
+          home: _pushed(page),
           brightness: Brightness.light,
           overrides: [settingsProvider.overrideWith(() => FakeSettings(const AppSettings(loaded: true)))],
         ),

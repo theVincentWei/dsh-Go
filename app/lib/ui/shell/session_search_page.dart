@@ -20,7 +20,7 @@ import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'drawer/session_deletion.dart';
 import 'page_frame.dart';
-import 'sessions_drawer.dart' show sessionSelectionColor, sessionTitle;
+import 'session_list_page.dart' show sessionSelectionColor, sessionTitle;
 
 /// "搜索对话" at the top of the sessions drawer. Opens [SessionSearchPage];
 /// picking a result opens that conversation and closes the drawer.

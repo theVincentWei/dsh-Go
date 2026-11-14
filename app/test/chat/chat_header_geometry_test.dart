@@ -45,7 +45,7 @@ Future<void> _pump(
                     ? ModelChip(selection: testCatalog.defaultSelection, onSelected: (_) {}, grouped: true)
                     : null,
                 onOpenDrawer: () {},
-                onNewChat: () {},
+                onOpenSettings: () {},
               ),
             ),
           ),
@@ -113,7 +113,7 @@ void main() {
         final bar = _rect(tester, 'chat-header-bar');
         final pill = _rect(tester, 'chat-title-pill');
         final menu = _rect(tester, 'chat-menu');
-        final fresh = _rect(tester, 'chat-new-chat');
+        final fresh = _rect(tester, 'chat-settings');
         final status = tester.getRect(find.text('连接已断开'));
         expect(pill.top - bar.top, closeTo(bar.bottom - pill.bottom, 0.1));
         expect(menu.size, const Size.square(44));
@@ -157,7 +157,7 @@ void main() {
               expect(tester.takeException(), isNull);
               final pill = _rect(tester, 'chat-title-pill');
               final menu = _rect(tester, 'chat-menu');
-              final fresh = _rect(tester, 'chat-new-chat');
+              final fresh = _rect(tester, 'chat-settings');
               final chip = _chip(tester);
 
               // The mirror holds and every gap is 8.

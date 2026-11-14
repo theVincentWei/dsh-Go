@@ -79,10 +79,13 @@ abstract final class DshGlyphs {
   static const cloudArrowDown = IconData(0xe04e, fontFamily: family);
   static const cloudSlash = IconData(0xe074, fontFamily: family);
   static const code = IconData(0xe09b, fontFamily: family);
+  static const computerTower = IconData(0xe0eb, fontFamily: family);
   static const copy = IconData(0xe01e, fontFamily: family);
   static const cpu = IconData(0xe077, fontFamily: family);
   static const crownSimple = IconData(0xe0c8, fontFamily: family);
   static const cursorText = IconData(0xe04b, fontFamily: family);
+  static const desktop = IconData(0xe0e9, fontFamily: family);
+  static const desktopTower = IconData(0xe0ea, fontFamily: family);
   static const deviceMobile = IconData(0xe07a, fontFamily: family);
   static const devices = IconData(0xe07b, fontFamily: family);
   static const dotsNine = IconData(0xe00c, fontFamily: family);
@@ -90,7 +93,7 @@ abstract final class DshGlyphs {
   static const dotsThree = IconData(0xe004, fontFamily: family);
   static const dotsThreeVertical = IconData(0xe005, fontFamily: family);
   static const downloadSimple = IconData(0xe02d, fontFamily: family);
-  static const ear = IconData(0xe0ec, fontFamily: family);
+  static const ear = IconData(0xe0f1, fontFamily: family);
   static const envelopeSimple = IconData(0xe0db, fontFamily: family);
   static const exclamationMark = IconData(0xe064, fontFamily: family);
   static const export = IconData(0xe020, fontFamily: family);
@@ -128,6 +131,7 @@ abstract final class DshGlyphs {
   static const handPalm = IconData(0xe0c0, fontFamily: family);
   static const handPointing = IconData(0xe0c3, fontFamily: family);
   static const handTap = IconData(0xe0be, fontFamily: family);
+  static const hardDrives = IconData(0xe0ec, fontFamily: family);
   static const headset = IconData(0xe0e3, fontFamily: family);
   static const heart = IconData(0xe05b, fontFamily: family);
   static const heartFill = IconData(0xe05c, fontFamily: family);
@@ -153,6 +157,7 @@ abstract final class DshGlyphs {
   static const lockSimple = IconData(0xe073, fontFamily: family);
   static const lockSimpleFill = IconData(0xe07f, fontFamily: family);
   static const lockSimpleOpen = IconData(0xe080, fontFamily: family);
+  static const macMini = IconData(0xe0e8, fontFamily: family);  // drawn
   static const magicWand = IconData(0xe0d4, fontFamily: family);
   static const magnifyingGlass = IconData(0xe03a, fontFamily: family);
   static const magnifyingGlassX = IconData(0xe06f, fontFamily: family);  // drawn
@@ -160,7 +165,7 @@ abstract final class DshGlyphs {
   static const medal = IconData(0xe0d9, fontFamily: family);
   static const megaphone = IconData(0xe0cb, fontFamily: family);
   static const microphone = IconData(0xe016, fontFamily: family);
-  static const microphoneSlash = IconData(0xe0eb, fontFamily: family);
+  static const microphoneSlash = IconData(0xe0f0, fontFamily: family);
   static const minus = IconData(0xe032, fontFamily: family);
   static const minusCircle = IconData(0xe033, fontFamily: family);
   static const musicNote = IconData(0xe096, fontFamily: family);
@@ -175,8 +180,8 @@ abstract final class DshGlyphs {
   static const pauseFill = IconData(0xe04a, fontFamily: family);
   static const pencilSimple = IconData(0xe025, fontFamily: family);
   static const pencilSimpleLine = IconData(0xe034, fontFamily: family);
-  static const phone = IconData(0xe0e9, fontFamily: family);
-  static const phoneDisconnect = IconData(0xe0ea, fontFamily: family);
+  static const phone = IconData(0xe0ee, fontFamily: family);
+  static const phoneDisconnect = IconData(0xe0ef, fontFamily: family);
   static const play = IconData(0xe0e5, fontFamily: family);
   static const playCircle = IconData(0xe0da, fontFamily: family);
   static const playFill = IconData(0xe049, fontFamily: family);
@@ -207,7 +212,7 @@ abstract final class DshGlyphs {
   static const slideshow = IconData(0xe098, fontFamily: family);
   static const smiley = IconData(0xe0d8, fontFamily: family);
   static const sparkle = IconData(0xe09e, fontFamily: family);
-  static const speakerHigh = IconData(0xe0e8, fontFamily: family);
+  static const speakerHigh = IconData(0xe0ed, fontFamily: family);
   static const square = IconData(0xe056, fontFamily: family);
   static const squaresFour = IconData(0xe0b2, fontFamily: family);
   static const stack = IconData(0xe0c1, fontFamily: family);
@@ -314,10 +319,13 @@ abstract final class DshGlyphs {
     'cloudArrowDown': cloudArrowDown,
     'cloudSlash': cloudSlash,
     'code': code,
+    'computerTower': computerTower,
     'copy': copy,
     'cpu': cpu,
     'crownSimple': crownSimple,
     'cursorText': cursorText,
+    'desktop': desktop,
+    'desktopTower': desktopTower,
     'deviceMobile': deviceMobile,
     'devices': devices,
     'dotsNine': dotsNine,
@@ -363,6 +371,7 @@ abstract final class DshGlyphs {
     'handPalm': handPalm,
     'handPointing': handPointing,
     'handTap': handTap,
+    'hardDrives': hardDrives,
     'headset': headset,
     'heart': heart,
     'heartFill': heartFill,
@@ -388,6 +397,7 @@ abstract final class DshGlyphs {
     'lockSimple': lockSimple,
     'lockSimpleFill': lockSimpleFill,
     'lockSimpleOpen': lockSimpleOpen,
+    'macMini': macMini,
     'magicWand': magicWand,
     'magnifyingGlass': magnifyingGlass,
     'magnifyingGlassX': magnifyingGlassX,

@@ -274,6 +274,25 @@ Libraries.dev metal-fx, translated to Flutter GLSL.
 - `app/assets/tavern/lodash-4.17.21.min.js`：包内 `lodash.min.js` 原样，SHA256 `a9705dfc47c0763380d851ab1801be6f76019f6b67e40e9b873f8b4a0603f7a9`
 - `app/assets/licenses/lodash-4.17.21-LICENSE.txt`：包内 `LICENSE` 原样，SHA256 `f71e8ed126b46346494aad5486874cd8f0aafe95092ed67d2e3cb6110f939abc`
 - 来源：npm 镜像的 `lodash-4.17.21.tgz`，与 npm 公布的 integrity `sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==` 一致（2026-11-12 核对）
+### DiceBear Critters（CC0 1.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | DiceBear「Critters」（style `@dicebear/styles` 10.6.0），https://www.dicebear.com/styles/critters/ |
+| 版权人 | DiceBear（Florian Körner），CC0 1.0 公共领域贡献（无需署名）；生成库 `@dicebear/core` 10.7.0（MIT） |
+| 许可 | CC0 1.0，https://creativecommons.org/publicdomain/zero/1.0/ |
+| 用途 | 会话列表的行首默认头像：构建期由 `app/tool/session_avatars/make_session_avatars.mjs` 按 100 个固定种子生成的 108px PNG 图库 |
+| 文件 | `app/assets/session_avatars/avatar_00..99.png`，运行时按会话 id 的 FNV-1a 取槽（`SessionAvatarGallery`） |
+
+### DiceBear Pixel Art（CC0 1.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | DiceBear「Pixel Art」（style `@dicebear/styles` 10.6.0），https://www.dicebear.com/styles/pixel-art/ |
+| 版权人 | DiceBear（Florian Körner），CC0 1.0 公共领域贡献（无需署名） |
+| 许可 | CC0 1.0，https://creativecommons.org/publicdomain/zero/1.0/ |
+| 用途 | 团队/子代理的默认头像：构建期由 `app/tool/session_avatars/make_session_avatars.mjs --style pixel-art` 按 100 个固定种子生成的 108px 透明 PNG 图库 |
+| 文件 | `app/assets/agent_avatars/avatar_00..99.png`，运行时按成员名的 FNV-1a 取槽（`AvatarGallery`） |
 
 ### JetBrains Mono（SIL OFL 1.1）
 

@@ -34,7 +34,7 @@ void main() {
           builder: (context, ref, _) {
             flowContext = context;
             flowRef = ref;
-            return HomeShell(chatBuilder: (_) => const SizedBox.expand(), initiallyOpen: true);
+            return HomeShell(chatBuilder: const SizedBox.expand());
           },
         ),
         overrides: workspaceOverrides(

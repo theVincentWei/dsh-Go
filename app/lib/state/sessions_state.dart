@@ -79,9 +79,11 @@ class PendingSessionArchive {
   }
 }
 
-/// A title read through `session/projections` for a row `session/list`
-/// served without one, as of the row's `updatedAt`.
-typedef SessionTitleRead = ({DateTime updatedAt, String? title, bool? blank});
+/// What one `session/projections` read returned for a row, as of the row's
+/// `updatedAt`: the title the list served without, and the second line
+/// (`preview`) folded from the same response's `turnOutline` — the
+/// conversation's latest message. Either may be null (the Host has none).
+typedef SessionTitleRead = ({DateTime updatedAt, String? title, String? preview, bool? blank});
 
 /// A title read that failed, as of the row's `updatedAt`: the [failures] in a
 /// row, and when the row may be asked again.
@@ -145,7 +147,8 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
   /// A host event in the debounce window changed a conversation.
   bool _debouncedChange = false;
 
-  /// Titles read for rows served without one, by session id (this host).
+  /// Row reads (title, second line) for rows served without them, by session
+  /// id (this host).
   final Map<String, SessionTitleRead> _titles = {};
 
   /// The title reads of the live connection ([_readTitles]): one queue that
@@ -357,27 +360,43 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
   List<SessionSummary> _rows() => _titles.isEmpty ? _all : [for (final s in _all) _withTitle(s)];
 
   /// [s] with what was read for it: its title where the list had none (an
-  /// older read beats 「未命名」 until the newer one lands), and blank only
-  /// while the row is as it was read.
+  /// older read beats 「未命名」 until the newer one lands), the second line
+  /// (`preview`, the conversation's latest message) — cold and Host-held rows
+  /// alike, since hints carry the title but never a preview — and blank only
+  /// while a cold row is as it was read.
   SessionSummary _withTitle(SessionSummary s) {
     final read = _titles[s.sessionId];
-    // A conversation the Host holds is served first-hand.
-    if (read == null || s.projectionsKind == 'sequenced') return s;
+    if (read == null) return s;
+    final warm = s.projectionsKind == 'sequenced';
     final title = read.title?.trim();
-    final fill = (s.title?.trim().isEmpty ?? true) && title != null && title.isNotEmpty;
-    final blank = read.blank == true && read.updatedAt == s.updatedAt;
-    if (!fill && !blank) return s;
+    final preview = read.preview?.trim();
+    // A conversation the Host holds is served first-hand: its hints' title
+    // wins, the read only fills the second line.
+    final fillTitle = !warm && (s.title?.trim().isEmpty ?? true) && title != null && title.isNotEmpty;
+    final fillPreview = (s.previewText?.trim().isEmpty ?? true) && preview != null && preview.isNotEmpty;
+    final blank = !warm && read.blank == true && read.updatedAt == s.updatedAt;
+    if (!fillTitle && !fillPreview && !blank) return s;
     return s.copyWith(
       blank: blank ? true : null,
-      projections: fill ? SessionProjections(s.projections.asOfSeq, {...s.projections.values, 'title': title}) : null,
+      projections: (fillTitle || fillPreview)
+          ? SessionProjections(s.projections.asOfSeq, {
+            ...s.projections.values,
+            if (fillTitle) 'title': title,
+            // `preview` is what SessionSummary.previewText reads; the engine
+            // serves its own key once it grows one, and wins the ?? in the UI.
+            if (fillPreview) 'preview': preview,
+          })
+          : null,
     );
   }
 
   bool _needsTitle(SessionSummary s, DateTime now) =>
       !s.isSubagent &&
       !s.blank &&
-      s.projectionsKind != 'sequenced' &&
-      (s.title?.trim().isEmpty ?? true) &&
+      // The second line rides the same read: a row wants one until it has its
+      // title and its `preview`. Host-held rows too — their hints carry the
+      // title but never a preview.
+      ((s.title?.trim().isEmpty ?? true) || (s.previewText?.trim().isEmpty ?? true)) &&
       !_archived.contains(s.sessionId) &&
       !(_titleReads?.running.contains(s.sessionId) ?? false) &&
       _titles[s.sessionId]?.updatedAt != s.updatedAt &&
@@ -432,7 +451,23 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
     var unsupported = false;
     try {
       final projections = await client.projections(row.sessionId);
-      read = (updatedAt: row.updatedAt, title: projections?.title, blank: projections?.blank);
+      var preview = projections?.turnOutlinePreview;
+      if (preview == null && projections != null && projections.asOfSeq >= 0) {
+        // 老主机的 projections 没有 turnOutline 投影:读一小页事件尾,取最后
+        // 一条有文本的助手/人写消息(与通知取文案同一套路,非激活读)。
+        try {
+          final page = await client.history(row.sessionId, throughSeq: projections.asOfSeq, maxMessages: 4);
+          preview = _tailPreview(page.events);
+        } on Object {
+          // 尾页读失败不致命:副标题落到 cwd。
+        }
+      }
+      read = (
+        updatedAt: row.updatedAt,
+        title: projections?.title,
+        preview: preview,
+        blank: projections?.blank,
+      );
     } on DshRemoteException catch (error) {
       if (error.code == 'METHOD_NOT_ALLOWED' || error.code.endsWith('method-not-found')) {
         unsupported = true;
@@ -472,7 +507,9 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
       _titleFailures.remove(row.sessionId);
       final before = _titles[row.sessionId];
       _titles[row.sessionId] = read;
-      if (read.title != before?.title || read.blank != before?.blank) _titlesChanged(reads.ref);
+      if (read.title != before?.title || read.preview != before?.preview || read.blank != before?.blank) {
+        _titlesChanged(reads.ref);
+      }
     }
     if (identical(_titlesUnsupported, client)) {
       reads.queue.clear();
@@ -504,6 +541,27 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
       if (!r.mounted) return;
       if (state.hasValue && !state.isLoading) state = AsyncData(_visible());
     });
+  }
+
+  /// 当前版本还没读到副标题、且读管道仍会读的行 —— 列表用它显示三点占位
+  /// (行高锁定两行),读到或确认读不到(主机不支持/行 hints 已带全)即消失。
+  Set<String> get pendingSubtitleIds {
+    final ids = <String>{};
+    for (final s in _all) {
+      if (_subtitlePending(s)) ids.add(s.sessionId);
+    }
+    return ids;
+  }
+
+  bool _subtitlePending(SessionSummary s) {
+    // 主机不支持这种读(relay 等):占位会永远转点,直接终态。
+    if (_titlesUnsupported != null) return false;
+    // hints 已带全(未来的引擎 preview):无需占位。
+    if ((s.title?.trim().isNotEmpty ?? false) && (s.previewText?.trim().isNotEmpty ?? false)) return false;
+    // 这个版本已经读到过:即使没有副标题也已是终态(cwd 回退)。
+    final read = _titles[s.sessionId];
+    if (read != null && read.updatedAt == s.updatedAt) return false;
+    return !s.isSubagent && !s.blank && !_archived.contains(s.sessionId) && !_deleted.contains(s.sessionId);
   }
 
   /// Archived sessions of the active host, newest first (session search lists
@@ -857,6 +915,39 @@ class SessionsController extends AsyncNotifier<List<SessionSummary>> {
 }
 
 final sessionsProvider = AsyncNotifierProvider<SessionsController, List<SessionSummary>>(SessionsController.new);
+
+/// The newest conversation's id, for files the app opens without one (the
+/// desktop 文件 app's previews and long-press menus): null before the list has
+/// arrived, so those actions degrade to copying the path.
+final recentSessionIdProvider = Provider<String?>((ref) {
+  String? best;
+  DateTime? newest;
+  for (final session in ref.watch(sessionsProvider).value ?? const <SessionSummary>[]) {
+    if (session.sessionId.isEmpty) continue;
+    if (newest == null || session.updatedAt.isAfter(newest)) {
+      newest = session.updatedAt;
+      best = session.sessionId;
+    }
+  }
+  return best;
+});
+
+/// 事件尾页里最后一条有文本的助手/人写消息,折成一行(≤120 字)。老主机的
+/// projections 没有 turnOutline 时,副标题从这里取(与通知取文案同一套路)。
+String? _tailPreview(List<SessionLogEvent> events) {
+  for (final event in events.reversed) {
+    final text = switch (event) {
+      AssistantMessageEvent(:final message) => message.text,
+      UserMessageEvent(:final isHumanPrompt, :final message) when isHumanPrompt => message.text,
+      _ => null,
+    };
+    final line = text?.trim();
+    if (line != null && line.isNotEmpty) {
+      return line.length > 120 ? '${line.substring(0, 119)}…' : line;
+    }
+  }
+  return null;
+}
 
 /// A remote host with no working directory of its own: without a workspace, a
 /// new conversation would land wherever its `dsh web` happened to start.

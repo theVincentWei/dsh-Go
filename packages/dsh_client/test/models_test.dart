@@ -7,6 +7,40 @@ List<DshEvent> parseFollow(String fixture, {String sessionId = 's'}) =>
     loadJsonl(fixture).map((v) => parseFollowFrame(sessionId, v)).toList();
 
 void main() {
+  group('SessionProjections.turnOutlinePreview', () {
+    test('is null without an outline, or when no turn has text', () {
+      expect(SessionProjections(1, const {}).turnOutlinePreview, isNull);
+      expect(
+        SessionProjections(1, {
+          'turnOutline': [
+            {'turn': 0, 'seq': 1, 'prompt': '', 'response': ''},
+          ],
+        }).turnOutlinePreview,
+        isNull,
+      );
+    });
+
+    test('prefers the newest turn\'s response, trimmed, falling back to its prompt', () {
+      final p = SessionProjections(1, {
+        'turnOutline': [
+          {'turn': 0, 'seq': 1, 'prompt': 'ask one', 'response': 'answer one'},
+          {'turn': 1, 'seq': 2, 'prompt': '  ask two  ', 'response': '   '},
+        ],
+      });
+      expect(p.turnOutlinePreview, 'ask two');
+    });
+
+    test('falls back to the newest turn that has any text', () {
+      final p = SessionProjections(1, {
+        'turnOutline': [
+          {'turn': 0, 'seq': 1, 'prompt': 'ask one', 'response': 'answer one'},
+          {'turn': 1, 'seq': 2, 'prompt': '', 'response': ''},
+        ],
+      });
+      expect(p.turnOutlinePreview, 'answer one');
+    });
+  });
+
   group('follow frames: reply OK turn', () {
     final events = parseFollow('follow_reply_ok.jsonl');
 

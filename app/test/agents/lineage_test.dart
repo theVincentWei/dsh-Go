@@ -7,6 +7,7 @@
 
 import 'package:dsh_app/state/agents_state.dart';
 import 'package:dsh_app/state/chat_state.dart';
+import 'package:dsh_app/state/notify_state.dart' show FlagController, chatPageOnScreenProvider;
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspace_state.dart';
 import 'package:dsh_app/ui/agents/agent_widgets.dart';
@@ -53,6 +54,11 @@ ChatState _childChat() => ChatState(
 List<Override> _overrides(ChatHarness harness) => [
   ...harness.overrides,
   ...agentsOverrides(sampleAgentSessions()),
+  // The chat page mounts as the home route here, so its 「正在看」 flag flips
+  // true inside the first build — legal on the phone (the page is always
+  // pushed, current only after the transition) but pinned by Riverpod's
+  // build-phase guard in tests. Start the flag at its on-screen value.
+  chatPageOnScreenProvider.overrideWith(() => FlagController(true)),
   workspaceSourceProvider.overrideWith((ref, id) => null),
   workspaceRootProvider.overrideWith((ref, id) => null),
 ];
@@ -174,19 +180,31 @@ void main() {
       expect(container.read(currentSessionProvider), reviewerId);
     });
 
-    testWidgets('a child: breadcrumb back, named by its task, no model chip', (tester) async {
+    testWidgets('a child: plain back key, named by its task, no model chip', (tester) async {
       final container = await _pumpChat(tester, reviewerId);
       expect(find.byType(HeaderBackKey), findsOneWidget);
-      expect(find.text('修复登录重复提交'), findsOneWidget);
+      // The plain round key carries no label (the parent title stays in its
+      // tooltip); the title pill names the child by its task instead.
+      expect(find.descendant(of: find.byType(HeaderBackKey), matching: find.byType(Text)), findsNothing);
       expect(find.descendant(of: find.byType(ChatHeader), matching: find.text('审查改动')), findsOneWidget);
       expect(find.byType(ModelChip), findsNothing);
-      // 「‹ 上级对话」 replaces ≡, so there is no 新对话 key to mirror it.
-      expect(find.byKey(const ValueKey('chat-new-chat')), findsNothing);
+      // The back key replaces ≡, so there is no 新对话 key to mirror it.
+      expect(find.byKey(const ValueKey('chat-settings')), findsNothing);
       // Its own child: one more level down.
       expect(find.descendant(of: find.byType(HeaderAgentsKey), matching: find.text('1')), findsOneWidget);
       await tester.tap(find.byType(HeaderBackKey));
       await pumpFrames(tester, 4);
       expect(container.read(currentSessionProvider), parentId);
+    });
+
+    testWidgets('system back in a child walks to its parent, not out of the chat', (tester) async {
+      final container = await _pumpChat(tester, reviewerId);
+      // System back on the pushed page: maybePop is what a pop route runs.
+      await tester.state<NavigatorState>(find.byType(Navigator)).maybePop();
+      await pumpFrames(tester, 4);
+      expect(container.read(currentSessionProvider), parentId);
+      // The page itself stays: the conversation switched in place.
+      expect(find.byType(ChatScreen), findsOneWidget);
     });
 
     testWidgets('nothing changes without subagents', (tester) async {
@@ -200,22 +218,22 @@ void main() {
       await pumpFrames(tester, 6);
       expect(find.byType(HeaderAgentsKey), findsNothing);
       expect(find.byType(HeaderBackKey), findsNothing);
-      expect(find.byKey(const ValueKey('chat-new-chat')), findsOneWidget);
-      expect(find.byIcon(AppIcons.menu), findsOneWidget);
+      // The chat is a pushed page (no onOpenDrawer): no ≡ key; the 新对话
+      // key stays on the title line.
+      expect(find.byKey(const ValueKey('chat-settings')), findsOneWidget);
+      expect(find.byIcon(AppIcons.menu), findsNothing);
     });
 
     testWidgets('geometry: one height, even gaps, symmetric insets', (tester) async {
       await _pumpChat(tester, parentId);
-      final menu = tester.getRect(
-        find.ancestor(of: find.byIcon(AppIcons.menu), matching: find.byType(GlassSurface)).first,
-      );
+      final newChat = tester.getRect(find.byKey(const ValueKey('chat-settings')));
       final capsule = tester.getRect(
         find.descendant(of: find.byType(HeaderAgentsKey), matching: find.byType(GlassSurface)).first,
       );
       final title = tester.getRect(find.ancestor(of: find.text('修复登录重复提交'), matching: find.byType(GlassSurface)).first);
       expect(capsule.height, closeTo(44, 0.01));
-      expect(capsule.height, closeTo(menu.height, 0.01));
-      expect(capsule.center.dy, closeTo(menu.center.dy, 0.01));
+      expect(capsule.height, closeTo(newChat.height, 0.01));
+      expect(capsule.center.dy, closeTo(newChat.center.dy, 0.01));
       expect(capsule.left - title.right, greaterThanOrEqualTo(8 - 0.01));
       // Glyph and count sit 14 in from each end, centred on one line.
       final glyph = tester.getRect(
@@ -228,20 +246,20 @@ void main() {
       expect(count.center.dy, closeTo(capsule.center.dy, 0.5));
     });
 
-    testWidgets('geometry: the breadcrumb key', (tester) async {
+    testWidgets('geometry: the back key matches the other round keys', (tester) async {
       await _pumpChat(tester, reviewerId);
-      final key = tester.getRect(
-        find.descendant(of: find.byType(HeaderBackKey), matching: find.byType(GlassSurface)).first,
+      final key = tester.getRect(find.byType(HeaderBackKey));
+      final arrow = tester.getRect(
+        find.descendant(of: find.byType(HeaderBackKey), matching: find.byIcon(AppIcons.back)),
       );
-      final arrow = tester.getRect(find.byIcon(AppIcons.back));
-      final label = tester.getRect(find.text('修复登录重复提交'));
+      // One 44 glass circle with a 22 arrow centred in it — the same key the
+      // pushed pages and the secondary pages use.
+      expect(key.width, closeTo(44, 0.01));
       expect(key.height, closeTo(44, 0.01));
-      expect(arrow.left - key.left, closeTo(HeaderBackKey.padding, 0.01));
-      expect(key.right - label.right, closeTo(HeaderBackKey.padding, 0.01));
+      expect(arrow.width, closeTo(22, 0.01));
+      expect(arrow.center.dx, closeTo(key.center.dx, 0.5));
       expect(arrow.center.dy, closeTo(key.center.dy, 0.5));
-      expect(label.center.dy, closeTo(key.center.dy, 0.5));
-      expect(key.width, lessThanOrEqualTo(HeaderBackKey.maxWidth + 0.01));
-      // 12 from the screen edge, like the drawer key it replaces.
+      // 12 from the screen edge, like the key it replaces.
       expect(key.left, closeTo(12, 0.01));
     });
   });

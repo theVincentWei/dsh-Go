@@ -61,9 +61,10 @@
     }
   },
   "shellEngineLogs": "引擎日志",
-  "shellWelcomeMessage": "把 DeepSeek 智能体\n装进口袋",
+  "shellWelcomeMessage": "万事交给万器",
   "shellGetStarted": "开始",
   "shellSearchChats": "搜索对话",
+  "chatListTitle": "会话",
   "shellCollapseChatList": "收起对话列表",
   "shellExpandChatList": "展开对话列表",
   "shellChatList": "对话列表",
@@ -288,6 +289,7 @@
   },
   "shellHostChatsAfterConnecting": "连接后显示这台主机上的对话",
   "shellCurrentHostLabel": "当前主机：{name}，{view}。切换主机",
+  "shellDeviceLabel": "机器",
   "@shellCurrentHostLabel": {
     "placeholders": {
       "name": {
@@ -592,14 +594,5 @@
   "shellPanelModel": "模型",
   "shellPanelHost": "主机",
   "shellPanelOpenFull": "打开完整页面",
-  "shellPanelNoPlugins": "这段对话还没有插件面板",
-  "shellQuickPanel": "快捷入口",
-  "shellQuickPanelHint": "在「{path}」里调整",
-  "@shellQuickPanelHint": {
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  }
+  "shellPanelNoPlugins": "这段对话还没有插件面板"
 }

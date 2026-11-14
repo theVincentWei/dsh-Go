@@ -20,8 +20,13 @@
 // onboarding they are held, natively and in the bridges.
 
 import 'dart:async';
+<<<<<<< HEAD
 import 'dart:io';
+=======
+import 'dart:io' show Platform;
+>>>>>>> loc-main
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -52,6 +57,7 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
   StreamSubscription<IncomingShare>? _shares;
   StreamSubscription<LauncherEntry>? _entries;
   VoidCallback? _offFiles;
+  VoidCallback? _offIntake;
 
   @override
   void initState() {
@@ -59,6 +65,13 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
     _shares = ref.read(shareIntakeProvider).shares.listen((share) => unawaited(_onShare(share)));
     _entries = ref.read(launcherBridgeProvider).entries.listen((entry) => unawaited(_onEntry(entry)));
     _offFiles = ref.read(linkRouterProvider).registerFileFallback(_onFile);
+    // iOS share intake: the ShareExtension saves the share into the shared
+    // container and opens `dshgo://intake` to bring the app forward; the link
+    // carries nothing and is swallowed here (the share itself arrives over
+    // dsh/share, _shares above). Android never opens this link.
+    if (!kIsWeb && Platform.isIOS) {
+      _offIntake = ref.read(linkRouterProvider).registerLinkHandler('intake', (_) async => true);
+    }
     ref.listenManual(recentShortcutsProvider, (_, recents) {
       if (recents != null) {
         unawaited(ref.read(launcherBridgeProvider).setRecent(recents));
@@ -71,6 +84,7 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
     unawaited(_shares?.cancel());
     unawaited(_entries?.cancel());
     _offFiles?.call();
+    _offIntake?.call();
     super.dispose();
   }
 
@@ -126,17 +140,23 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
         await _untilResumed();
         if (mounted) await _compose(request);
       case OpenChatEntry(:final host, :final sessionId):
-        if (!await _showChat() || !mounted) return;
+        if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
         final hosts = ref.read(hostsProvider);
-        if (host.kind == HostKind.ssh && hosts.loaded && hosts.sshById(host.id) == null) {
-          // Its host was removed since the shortcut was made.
-          ref.read(composeInboxProvider.notifier).push(ComposeRequest(problems: [appL10n.shellChatGone]));
-          return;
+        // Its host was removed since the shortcut was made.
+        final gone = host.kind == HostKind.ssh && hosts.loaded && hosts.sshById(host.id) == null;
+        if (!gone) {
+          // Always select the host: it also stops a pending restore of the
+          // last one from switching away on a cold start (as notification
+          // taps do). Select before the reveal: the shell opens the
+          // conversation only with its session already current.
+          ref.read(activeHostProvider.notifier).select(host);
+          ref.read(currentSessionProvider.notifier).select(sessionId);
         }
-        // Always select the host: it also stops a pending restore of the last
-        // one from switching away on a cold start (as notification taps do).
-        ref.read(activeHostProvider.notifier).select(host);
-        ref.read(currentSessionProvider.notifier).select(sessionId);
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+        widget.onReveal?.call(false);
+        if (gone) {
+          ref.read(composeInboxProvider.notifier).push(ComposeRequest(problems: [appL10n.shellChatGone]));
+        }
     }
   }
 
@@ -174,14 +194,17 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
   }
 
   /// Back to the chat: pages and sheets above it closed (unsaved edits only
-  /// with the person's say-so), the drawer pushed away. False when they chose
-  /// to stay.
+  /// with the person's say-so), then the shell puts the conversation (or the
+  /// new-chat composer) over the tabs. False when they chose to stay. Pop
+  /// first, reveal after — the shell pushes onto what is already standing
+  /// (chat_alert_host's contract); revealing before the pops had the pushed
+  /// page popped right back away.
   Future<bool> _showChat() async {
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) {
       return false;
     }
-    widget.onReveal?.call(false);
     Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+    widget.onReveal?.call(false);
     return true;
   }
 

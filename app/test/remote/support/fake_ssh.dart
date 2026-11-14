@@ -84,6 +84,10 @@ class FakeTransport implements SshTransport {
 
   final FakeRemote remote;
   bool pingOk;
+
+  /// A second forwardable port independent of the managed `dsh web`
+  /// (e.g. the AppHub server); null means nothing listens there.
+  int? extraPort;
   final _done = Completer<void>();
   final List<String> scripts = [];
   final List<(String, int)> tunnels = [];
@@ -104,6 +108,7 @@ class FakeTransport implements SshTransport {
   Future<TunnelChannel> openTunnel(String host, int port) async {
     tunnels.add((host, port));
     if (remote.tunnelErrors.isNotEmpty) throw remote.tunnelErrors.removeAt(0);
+    if (port == extraPort) return FakeChannel(echo: true);
     if (remote.pid == null || port != remote.port) throw const TunnelRefused();
     return FakeChannel(echo: true);
   }
@@ -131,6 +136,9 @@ class FakeSshServer {
 
   final remote = FakeRemote();
   PresentedHostKey hostKey;
+
+  /// Handed to every transport: the host's extra forwardable port.
+  int? extraPort;
   final List<FakeTransport> transports = [];
   final List<SshConnectParams> connects = [];
 
@@ -144,7 +152,7 @@ class FakeSshServer {
     if (failNext.isNotEmpty) throw failNext.removeAt(0);
     final ok = await verify(hostKey);
     if (!ok) throw const HostLinkError(HostLinkErrorKind.hostKeyRejected, 'rejected');
-    final t = FakeTransport(remote);
+    final t = FakeTransport(remote)..extraPort = extraPort;
     transports.add(t);
     return t;
   }

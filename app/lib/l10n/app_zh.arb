@@ -1799,6 +1799,7 @@
   "botsPetSettings": "宠物设置",
   "botsPetDeepy": "Deepy 小鲸鱼",
   "botsPetWhaleGirl": "鲸娘",
+  "botsPetPonkan": "匠匠",
   "botsPetNone": "不显示",
   "botsPets": "宠物",
   "botsPetSource": "来自 DSH-TUI",
@@ -2254,6 +2255,44 @@
   "diagnosticsForAiHint": "把环境快照写进引擎，AI 自己读",
   "diagnosticsForAiDone": "已写入诊断，问 AI「看下诊断」就行",
   "diagnosticsForAiFailed": "写不进去：本机运行时还没装好",
+  "catalogAppHubSection": "AppHub 应用",
+  "catalogAppHubMarket": "应用市场",
+  "catalogAppHubMarketSummary": "小程序的安装与更新",
+  "apphubSearchHint": "搜索小程序",
+  "apphubTabApps": "应用",
+  "apphubTabInstalled": "已安装",
+  "apphubOpen": "打开",
+  "apphubInstall": "安装",
+  "apphubUpdate": "更新",
+  "apphubUninstall": "卸载",
+  "apphubUninstallBody": "删除手机上的小程序包与本地数据;引擎侧业务库保留。",
+  "apphubUninstallWholeBody": "将卸载此小程序并停止主机上的服务;主机数据将保留,重装即恢复。",
+  "apphubUninstallPurge": "同时清除主机数据(账本等不可恢复)",
+  "apphubUninstallHostFailed": "主机命令未成功,已仅卸载本机;主机后端可能仍在运行,可稍后重试。",
+  "apphubNoMarket": "AppHub 未连接",
+  "apphubEmpty": "暂无应用",
+  "apphubGet": "获取",
+  "apphubKindMiniProgram": "小程序",
+  "apphubMore": "更多",
+  "apphubCollapse": "收起",
+  "apphubSectionAbout": "简介",
+  "apphubSectionWhatsNew": "新功能",
+  "apphubSectionInfo": "信息",
+  "apphubSectionPermissions": "权限与隐私",
+  "apphubSectionVersions": "版本历史",
+  "apphubVersionPrefix": "版本",
+  "apphubPrivacyNone": "不收集任何数据",
+  "apphubPrivacyNoneBody": "开发者声明：此小程序不会收集你的任何数据。",
+  "apphubPermissionDeclared": "已声明",
+  "apphubPermissionDomains": "可访问域名",
+  "apphubPermissionSaveFailed": "权限状态保存失败，请重试。",
+  "apphubInfoCategory": "类别",
+  "apphubInfoSize": "大小",
+  "apphubInfoCompatibility": "兼容性",
+  "apphubInfoVersion": "版本",
+  "apphubInfoUpdated": "更新日期",
+  "apphubInfoDeveloper": "开发者",
+  "apphubInfoLanguage": "语言",
   "chatBackgroundTaskNotice": "后台任务通知",
   "chatBackgroundTaskMessage": "后台任务消息",
   "chatDeclineQuestion": "不回答",
@@ -3026,12 +3065,26 @@
       }
     }
   },
+  "chatCurrentChat": "当前会话",
+  "chatNowTools": "现在要用的",
+  "chatDownloadCenter": "下载",
+  "chatDownloadCount": "{count} 个下载任务",
+  "@chatDownloadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatDownloadSheetHint": "点击条目跳到对应会话 · 断线后从断点续传",
   "commonCancel": "取消",
   "commonRetry": "重试",
   "commonClose": "关闭",
   "commonCopied": "已复制",
   "commonSave": "保存",
   "commonSettings": "设置",
+  "tabChats": "聊天",
+  "tabMiniApps": "小程序",
   "commonBack": "返回",
   "commonCopy": "复制",
   "commonDone": "完成",
@@ -5131,6 +5184,16 @@
   "fileImageName": "图片",
   "fileSharedText": "分享的文字.txt",
   "fileChatFallback": "对话",
+  "hostFilesLocations": "位置",
+  "hostFilesShowHidden": "显示隐藏",
+  "hostFilesHideHidden": "关闭隐藏",
+  "hostFilesNew": "新建",
+  "hostFilesTypeFolder": "文件夹",
+  "hostFilesTypeFile": "文件",
+  "hostFilesNameFolderHint": "文件夹名称",
+  "hostFilesNameFileHint": "文件名（含扩展名）",
+  "hostFilesFileNeedsEngine": "新建文件需引擎升级后可用",
+  "hostFilesSummary": "浏览主机的目录",
   "fileUploadToHost": "传文件到电脑",
   "fileUploadToHostHint": "放进这个对话在电脑上的工作区，原文件不压缩",
   "fileUploadProgress": "正在传 {done}/{total}：{name}",
@@ -5491,6 +5554,44 @@
   "hubPermissionPhoneConfirm": "手机操控确认",
   "hubHardwareEnterSends": "外接键盘按 Enter 发送",
   "hubHardwareEnterSendsHint": "开启后，Shift+Enter 换行。屏幕键盘仍换行；Ctrl/⌘+Enter 始终可发送。",
+  "hubToggleRecents": "显示/隐藏最近使用",
+  "hubRecentGroup": "最近使用",
+  "hubEditing": "整理模式：拖动图标换位或跨组，点分组名旁的 ⋯ 管理",
+  "hubDefaultGroup": "应用",
+  "hubConversationTools": "本对话",
+  "hubNewGroup": "新建分组",
+  "hubGroupName": "分组名称",
+  "hubRename": "重命名",
+  "hubMoveUp": "上移",
+  "hubMoveDown": "下移",
+  "hubDeleteGroup": "删除分组",
+  "hubDeleteGroupBody": "「{group}」里的应用会移回「应用」组，应用本身不受影响。",
+  "@hubDeleteGroupBody": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "hubDropHere": "拖应用到这里",
+  "hubNoMatch": "没有找到「{query}」",
+  "@hubNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "autoSyncTitle": "静默同步",
+  "autoSyncSummary": "服务器上架的小程序自动装到本机并保持最新，无需逐次确认",
+  "hubAppUnavailableOnMachine": "「{name}」在这台机器上不可用(后端未部署)",
+  "@hubAppUnavailableOnMachine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "hubQuickPanel": "左滑快捷入口",
   "hubQuickPanelSwipe": "左滑打开",
   "hubQuickPanelSwipeHint": "在对话里从右向左滑。代码块、表格这些能横向滚动的内容不受影响。",
@@ -5637,6 +5738,7 @@
   "localEnvPhoneNeedsRuntime": "安装本机运行环境后可用",
   "localEnvSignInNeedsRuntime": "需要本机运行环境",
   "localEnvSignInInstallFirst": "安装后即可登录",
+  "localEnvGateBody": "这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。",
   "marketSectionOfficial": "官方",
   "marketSectionAdapted": "适配 DSH Go",
   "marketSectionAll": "全部",
@@ -6080,6 +6182,82 @@
     }
   },
   "nearbyChange": "更换",
+  "notifyCenterTitle": "服务通知",
+  "notifyCenterEmpty": "小程序的通知会出现在这里",
+  "notifyCenterMarkAll": "全部已读",
+  "notifyCenterGroupCount": "{count} 条",
+  "@notifyCenterGroupCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifyCenterUnread": "{count} 条未读",
+  "@notifyCenterUnread": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifyCenterLoadFailed": "连不上 AppHub，先看看已收到的通知",
+  "notifyCenterOpenFailed": "小程序页打不开，已留在通知中心",
+  "notifyCenterDismiss": "划掉",
+  "notifyCenterOpenMiniApp": "打开小程序",
+  "notifySubscribePanelTitle": "订阅通知",
+  "notifySubscribePanelBody": "「{app}」想在你操作后给你发通知。可以只订阅一次，发完就结束。",
+  "@notifySubscribePanelBody": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifySubscribePanelMainSwitch": "接收通知",
+  "notifySubscribeAccept": "允许",
+  "notifySubscribeReject": "拒绝",
+  "notifySubscribeNoTemplates": "没有可订阅的模板",
+  "notifyUpdateApplied": "「{app}」已升级至 v{version}",
+  "@notifyUpdateApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdateAppliedPlain": "「{app}」已升级，下次打开生效",
+  "@notifyUpdateAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyUpdatePublicText": "小程序已更新",
+  "notifyInstallApplied": "「{app}」已装好 v{version}，在小程序桌面打开",
+  "@notifyInstallApplied": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyInstallAppliedPlain": "「{app}」已装好，在小程序桌面打开",
+  "@notifyInstallAppliedPlain": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "notifyInstallPublicText": "小程序已安装",
   "performanceTitle": "性能",
   "performanceAuto": "自动",
   "performanceFull": "完整",
@@ -8654,6 +8832,7 @@
     }
   },
   "remoteBootstrapStarting": "正在远端启动 DSH…",
+  "remoteWaitReady": "等远端 DSH 就绪…",
   "remoteErrCommandNotFound": "远端找不到「{command}」",
   "@remoteErrCommandNotFound": {
     "placeholders": {
@@ -9273,6 +9452,15 @@
   "remoteEditHost": "编辑主机",
   "remoteSshHostIntro": "连接你电脑或服务器上的 DSH",
   "remoteHostBasicInfo": "基本信息",
+  "remoteHostIcon": "设备图标",
+  "remoteHostIconHelp": "标在主机列表和切换器上，纯外观，随时可改",
+  "remoteHostIconDefault": "默认",
+  "remoteHostIconMacMini": "Mac mini",
+  "remoteHostIconDesktop": "显示器",
+  "remoteHostIconDesktopTower": "台式机",
+  "remoteHostIconTower": "机箱",
+  "remoteHostIconLaptop": "笔记本",
+  "remoteHostIconNas": "NAS",
   "remoteHostNameHint": "比如：电脑、家里的 Mac",
   "remoteHost": "主机",
   "remoteHostAddressHint": "192.168.1.20 或 example.com",
@@ -9773,6 +9961,7 @@
   "askAiQuestionAllowForChat": "「本对话都允许」会放行哪些操作？怎么关掉？",
   "askAiQuestionPlugins": "插件能做什么？装第三方插件要注意什么？",
   "askAiQuestionRemote": "怎么连接自己的电脑或服务器？和用本机有什么不同？",
+  "askAiQuestionMarket": "应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？",
   "phoneRuntimeUpgradeBase": "新引擎与现有 Linux 环境不能确认兼容，更新已停止。原环境和已装工具没有删除。请先完整备份，再联系维护者迁移；不要直接重置或卸载 App。",
   "phoneRuntimeUpgradeManifest": "无法安全识别运行时更新清单，更新已停止，原环境保留。请核对安装包并联系维护者，不要直接重置。",
   "phoneRuntimeUpgradeInterrupted": "运行时升级尚未完成，数据与恢复现场已保留。请重试安装；仍失败时导出诊断并联系维护者，不要重置或删除恢复目录。",
@@ -9918,6 +10107,7 @@
   "searchKwWebBusySend": "发送,排队,插话,AI 工作时",
   "searchKwPluginsMarket": "插件市场,安装插件,市场,获取插件",
   "searchKwUsageStats": "统计,使用统计,匿名,隐私,数据,改进,遥测,分析",
+  "searchNeedsLocalEngineOn": "启用本机引擎后可用",
   "searchKwQuickPanel": "左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口",
   "selfUpdateTransport": "安装路线",
   "selfUpdateSystem": "正常安装（默认）",
@@ -10111,9 +10301,10 @@
     }
   },
   "shellEngineLogs": "引擎日志",
-  "shellWelcomeMessage": "把 DeepSeek 智能体\n装进口袋",
+  "shellWelcomeMessage": "万事交给万器",
   "shellGetStarted": "开始",
   "shellSearchChats": "搜索对话",
+  "chatListTitle": "会话",
   "shellCollapseChatList": "收起对话列表",
   "shellExpandChatList": "展开对话列表",
   "shellChatList": "对话列表",
@@ -10348,6 +10539,7 @@
       }
     }
   },
+  "shellDeviceLabel": "机器",
   "shellChatGone": "这个对话已不在了",
   "shellAccentMist": "雾蓝",
   "shellAccentDaiqing": "黛青",

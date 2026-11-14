@@ -32,7 +32,7 @@ abstract final class AppIcons {
   static const openExternal = DshGlyphs.arrowSquareOut;
   static const openLink = DshGlyphs.arrowUpRight;
   static const openWith = DshGlyphs.dotsNine;
-  static const allFeatures = DshGlyphs.dotsNine;
+  static const allFeatures = DshGlyphs.squaresFour;
   static const browser = DshGlyphs.browser;
   static const scrollToBottom = DshGlyphs.arrowDown;
   static const scrollToTop = DshGlyphs.arrowUp;
@@ -243,6 +243,13 @@ abstract final class AppIcons {
   static const computer = DshGlyphs.laptop;
   static const thisPhone = DshGlyphs.deviceMobile;
   static const sshHost = DshGlyphs.terminalWindow;
+  // SSH 主机的「设备图标」：按设备型号挑的 glyph，见 SshHostDevice。
+  static const deviceMacMini = DshGlyphs.macMini;
+  static const deviceDesktop = DshGlyphs.desktop;
+  static const deviceDesktopTower = DshGlyphs.desktopTower;
+  static const deviceTower = DshGlyphs.computerTower;
+  static const deviceLaptop = DshGlyphs.laptop;
+  static const deviceNas = DshGlyphs.hardDrives;
   static const remoteHost = DshGlyphs.devices;
   static const remoteHosts = DshGlyphs.devices;
   static const webConsole = DshGlyphs.globe;

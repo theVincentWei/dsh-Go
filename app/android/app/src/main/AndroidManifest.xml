@@ -52,7 +52,7 @@
          TODO(targetSdk >= 31): also configure dataExtractionRules. -->
     <application
         android:allowBackup="false"
-        android:label="DSH Go"
+        android:label="万器"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -329,7 +329,7 @@
 
         <!-- Chat artifacts: hands one file at a time to the app that opens it (files/FilesPlugin.kt). -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".files.DshFileProvider"
             android:authorities="${applicationId}.files"
             android:exported="false"
             android:grantUriPermissions="true">

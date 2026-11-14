@@ -34,6 +34,7 @@ import '../../features/all_features_page.dart' show dshWebOpenerProvider;
 import '../../common/app_dialog.dart';
 import '../../features/feature_catalog.dart';
 import '../../settings/index/settings_pages.dart' show settingsPageForLink;
+import '../../shell/reveal_conversation.dart';
 import '../../settings/settings_screen.dart';
 import 'native_panel.dart';
 import 'native_voice_consent.dart';
@@ -739,7 +740,7 @@ void insertIntoComposer(
     composer.insert(text);
     return;
   }
-  Navigator.of(context).popUntil((route) => route.isFirst);
+  revealConversation(context);
   ref.read(composerInsertProvider.notifier).request(ComposerInsert(token: text, sessionId: sessionId));
 }
 
@@ -757,14 +758,17 @@ Future<void> openNativePage(BuildContext context, WidgetRef ref, String page, {S
   final navigator = Navigator.of(context);
   switch (page) {
     case 'new-chat':
-      navigator.popUntil((route) => route.isFirst);
       ref.read(currentSessionProvider.notifier).select(null);
+      revealConversation(context);
       return;
     case 'settings':
       await navigator.push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
       return;
   }
-  final item = [for (final section in featureSections) ...section.items].where((i) => i.id == page).firstOrNull;
+  final item = [
+    for (final section in featureSections) ...section.items,
+    ...currentChatTools,
+  ].where((i) => i.id == page).firstOrNull;
   if (item == null) {
     // Settings left 全部功能 for 设置; their ids still open the same page.
     if (settingsPageForLink(page, sessionId: sessionId) case final settings? when context.mounted) {

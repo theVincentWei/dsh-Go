@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../runtime/local_runtime_supported.dart';
+
 /// First-run flags that outlive a single launch.
 ///
 /// - [welcomeSeen]: the user tapped "开始" once. If the process dies mid-unpack, the
@@ -135,3 +137,14 @@ class OnboardingPrefsController extends Notifier<OnboardingPrefs> {
 final onboardingPrefsProvider = NotifierProvider<OnboardingPrefsController, OnboardingPrefs>(
   OnboardingPrefsController.new,
 );
+
+/// Whether this phone's app offers the on-device engine at all: the platform
+/// has a runtime and it wasn't declined for a remote host (first run 「远程
+/// 主机」, or 「卸载运行环境」). The local-engine pages, their entries and
+/// their search rows key off this, so such a phone shows none of them; any
+/// install (`RuntimeInstallController.install`) clears the decline and this
+/// turns back on.
+final localEngineAvailableProvider = Provider<bool>((ref) {
+  if (!localRuntimeSupported) return false;
+  return !ref.watch(onboardingPrefsProvider).localDeclined;
+});

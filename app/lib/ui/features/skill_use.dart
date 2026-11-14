@@ -15,7 +15,11 @@ import '../../state/agents_state.dart' show hostSessionsProvider;
 import '../../state/composer_insert.dart';
 import '../../state/workspaces_state.dart';
 import '../engine_settings/field_sheets.dart' show SheetActions;
+<<<<<<< HEAD
 import 'phone_skill_use.dart';
+=======
+import '../shell/reveal_conversation.dart';
+>>>>>>> loc-main
 
 /// Which composer gets the skill.
 enum SkillUse {
@@ -105,7 +109,7 @@ void useSkill(BuildContext context, {required SkillInfo skill, required String s
   }
   // Back to the chat first, then the request: the composer takes focus on
   // the route that is now on top, not under the closing pages.
-  Navigator.of(context).popUntil((route) => route.isFirst);
+  revealConversation(context);
   container
       .read(composerInsertProvider.notifier)
       .request(ComposerInsert.skill(skill.name, sessionId: use == SkillUse.here ? sessionId : null));

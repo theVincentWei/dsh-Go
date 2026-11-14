@@ -391,8 +391,9 @@ void main() {
         catalog: ModelCatalog.fromJson(const {'groups': <Object?>[]}),
       );
       await pumpChat(tester, harness);
-      // The new chat's header chip (and the composer's, once typing) asks for one.
-      expect(find.descendant(of: find.byType(ModelChip), matching: find.text('选择模型')), findsOneWidget);
+      // A new chat carries the model twice on a phone: the bar's chip (右上角)
+      // and the composer's pill, both reading 选择模型 without a catalog.
+      expect(find.text('选择模型'), findsWidgets);
       await tester.tap(find.byType(TextField));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
