@@ -4,7 +4,7 @@ import '../../l10n/l10n.dart';
 import '../../state/app_info.dart';
 import '../common/fade_in.dart';
 import '../fx/metal/metal_text.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../theme/theme.dart';
 import 'onboarding_scaffold.dart';
 import 'usage_notice_row.dart';
@@ -69,8 +69,9 @@ class WelcomePage extends StatelessWidget {
   }
 }
 
-/// The brand mark (the colour glyph) over a soft glow, easing in (fade + a slight
-/// grow) the first time the page shows. Still under reduced motion.
+/// The 万器 mark (the launcher's infinity ring on its navy circle) over a soft
+/// glow, easing in (fade + a slight grow) the first time the page shows. Still
+/// under reduced motion.
 class _BrandArrival extends StatefulWidget {
   const _BrandArrival();
 
@@ -82,8 +83,8 @@ class _BrandArrivalState extends State<_BrandArrival> with SingleTickerProviderS
   late final AnimationController _arrive = AnimationController(vsync: this, duration: AppMotion.slow);
   late final Animation<double> _curve = CurvedAnimation(parent: _arrive, curve: AppMotion.enter);
 
-  static const _mark = 60.0;
-  static const _glow = 220.0;
+  static const _mark = 96.0;
+  static const _glow = 240.0;
 
   @override
   void didChangeDependencies() {
@@ -107,7 +108,7 @@ class _BrandArrivalState extends State<_BrandArrival> with SingleTickerProviderS
     final dark = scheme.brightness == Brightness.dark;
     return SizedBox(
       // Layout keeps the mark's size; the glow spills around it unclipped.
-      width: _mark * BrandMark.aspect,
+      width: _mark,
       height: _mark,
       child: AnimatedBuilder(
         animation: _curve,
@@ -120,24 +121,20 @@ class _BrandArrivalState extends State<_BrandArrival> with SingleTickerProviderS
           alignment: Alignment.center,
           children: [
             Positioned.fill(
-              // The glow centres on the glyph's visual centre, not its box.
-              child: Transform.translate(
-                offset: -BrandMark.opticalShift(_mark),
-                child: OverflowBox(
-                  maxWidth: _glow,
-                  maxHeight: _glow,
-                  child: IgnorePointer(
-                    child: SizedBox.square(
-                      dimension: _glow,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              scheme.primary.withValues(alpha: dark ? 0.22 : 0.16),
-                              scheme.primary.withValues(alpha: 0),
-                            ],
-                          ),
+              child: OverflowBox(
+                maxWidth: _glow,
+                maxHeight: _glow,
+                child: IgnorePointer(
+                  child: SizedBox.square(
+                    dimension: _glow,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            scheme.primary.withValues(alpha: dark ? 0.22 : 0.16),
+                            scheme.primary.withValues(alpha: 0),
+                          ],
                         ),
                       ),
                     ),
@@ -145,7 +142,7 @@ class _BrandArrivalState extends State<_BrandArrival> with SingleTickerProviderS
                 ),
               ),
             ),
-            const BrandMark(size: _mark),
+            const WanqiMark(size: _mark),
           ],
         ),
       ),

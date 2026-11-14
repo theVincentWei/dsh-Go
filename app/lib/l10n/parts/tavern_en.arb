@@ -590,7 +590,7 @@
       }
     }
   },
-  "tavernStorybookMadeWith": "Written in the DSH Go tavern",
+  "tavernStorybookMadeWith": "Written in the Wanqi tavern",
   "tavernStorybookContents": "Contents",
   "tavernStorybookChapter": "Chapter {n}",
   "@tavernStorybookChapter": {
