@@ -63,6 +63,16 @@ Future<ui.Image> shippedIcon(int px, {String variant = 'mist'}) async {
     for (final m in RegExp(r'android:color="#([0-9A-Fa-f]{8})"').allMatches(xml))
       Color(int.parse(m.group(1)!, radix: 16)),
   ];
+  // 纯色背景(合并树 v2 图标:单一 android:fillColor,#RRGGBB 六位)兜底取
+  // fillColor 画平色;渐变变体仍走上面的双色(aRGB 八位)。
+  if (colours.isEmpty) {
+    final fill = RegExp(r'android:fillColor="#([0-9A-Fa-f]{6,8})"').firstMatch(xml);
+    if (fill != null) {
+      final hex = fill.group(1)!;
+      final argb = hex.length == 6 ? 'FF$hex' : hex;
+      colours.add(Color(int.parse(argb, radix: 16)));
+    }
+  }
   final bytes = File('android/app/src/main/res/mipmap-xxxhdpi/ic_launcher${suffix}_foreground.png').readAsBytesSync();
   final codec = await ui.instantiateImageCodec(bytes);
   final foreground = (await codec.getNextFrame()).image;
@@ -77,7 +87,11 @@ Future<ui.Image> shippedIcon(int px, {String variant = 'mist'}) async {
     ..translate(-18, -18)
     ..drawRect(
       const Rect.fromLTWH(0, 0, 108, 108),
-      Paint()..shader = ui.Gradient.linear(const Offset(7.57, -5.87), const Offset(100.43, 113.87), colours),
+      Paint()..shader = ui.Gradient.linear(
+        const Offset(7.57, -5.87),
+        const Offset(100.43, 113.87),
+        colours.length == 1 ? [colours.first, colours.first] : colours,
+      ),
     )
     ..drawImageRect(
       foreground,
