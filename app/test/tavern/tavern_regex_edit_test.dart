@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 /// Two ST rules; the first carries a field of its own the page does not show.
@@ -64,7 +65,8 @@ Future<void> _open(WidgetTester tester, PreviewTavern tavern) async {
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const TavernRegexPage(),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(const TavernRegexPage()),
       ),
     ),
   );

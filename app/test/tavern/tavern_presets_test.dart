@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 const _source = '﻿{\r\n  "temperature": 1.3, "openai_max_context": 32768\r\n}\r\n';
@@ -48,7 +49,8 @@ Future<List<List<TavernChatFile>>> _open(
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const TavernPresetsPage(),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(const TavernPresetsPage()),
       ),
     ),
   );

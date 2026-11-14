@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 Future<void> _open(WidgetTester tester, PreviewTavern tavern, Widget home) async {
@@ -26,7 +27,8 @@ Future<void> _open(WidgetTester tester, PreviewTavern tavern, Widget home) async
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: home,
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(home),
       ),
     ),
   );

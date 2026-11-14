@@ -17,6 +17,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 /// The preview, accepting a card import.
@@ -61,7 +62,8 @@ Future<List<Uri>> _importLink(
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const TavernHomePage(),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(const TavernHomePage()),
       ),
     ),
   );

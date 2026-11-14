@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 /// The preview, taking a card in by recording it and handing back one of its
@@ -47,7 +48,8 @@ Future<void> _home(WidgetTester tester, PreviewTavern tavern) async {
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const TavernHomePage(),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(const TavernHomePage()),
       ),
     ),
   );

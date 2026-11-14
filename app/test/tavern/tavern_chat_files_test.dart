@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 /// The preview, reading and writing ST chat files.
@@ -63,7 +64,8 @@ Future<List<List<TavernChatFile>>> _open(WidgetTester tester, _Files tavern, Lis
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const TavernCharacterPage(characterId: 'sample-innkeeper'),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(const TavernCharacterPage(characterId: 'sample-innkeeper')),
       ),
     ),
   );

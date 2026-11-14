@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 /// The preview, remembering every patch it was asked to save.
@@ -39,7 +40,8 @@ Future<void> _open(WidgetTester tester, PreviewTavern tavern, {Widget? home}) as
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: home ?? const TavernCharacterPage(characterId: 'sample-innkeeper'),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(home ?? const TavernCharacterPage(characterId: 'sample-innkeeper')),
       ),
     ),
   );

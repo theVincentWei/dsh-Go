@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/mounted_route.dart';
 import '../support/test_fonts.dart';
 
 /// The preview, answering 测一下 with [answer] when given, or failing.
@@ -46,7 +47,8 @@ Future<void> _open(WidgetTester tester, PreviewTavern tavern) async {
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const TavernLorebookPage(characterId: 'sample-innkeeper'),
+        initialRoute: mountedRoute,
+        routes: mountedRoutes(const TavernLorebookPage(characterId: 'sample-innkeeper')),
       ),
     ),
   );
@@ -160,7 +162,8 @@ void main() {
           locale: const Locale('zh', 'CN'),
           supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          home: const TavernLorebookPage(characterId: 'sample-innkeeper'),
+          initialRoute: mountedRoute,
+          routes: mountedRoutes(const TavernLorebookPage(characterId: 'sample-innkeeper')),
         ),
       ),
     );
