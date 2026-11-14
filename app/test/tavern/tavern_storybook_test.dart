@@ -30,7 +30,7 @@ TavernMessage _m(TavernRole role, String text, {String speaker = '林晚', bool 
       hidden: hidden,
     );
 
-const _words = TavernBookWords(language: 'zh-CN', contents: '目录', chapter: _chapter, madeWith: '用 DSH Go 酒馆写成');
+const _words = TavernBookWords(language: 'zh-CN', contents: '目录', chapter: _chapter, madeWith: '用 万器 酒馆写成');
 String _chapter(int n) => '第 $n 章';
 
 final _png = Uint8List.fromList([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
@@ -72,8 +72,8 @@ void main() {
         you: '你',
       );
       expect(
-        buildTavernStoryText(story, madeWith: '用 DSH Go 酒馆写成'),
-        '雨夜\n\n林晚 和 你 · 2026-11-09\n\n林晚：\n「炉子还热着。」\n\n你：\n外面怎么了？\n\n—— 用 DSH Go 酒馆写成\n',
+        buildTavernStoryText(story, madeWith: '用 万器 酒馆写成'),
+        '雨夜\n\n林晚 和 你 · 2026-11-09\n\n林晚：\n「炉子还热着。」\n\n你：\n外面怎么了？\n\n—— 用 万器 酒馆写成\n',
       );
     });
   });
