@@ -116,38 +116,31 @@ void main() {
     });
   });
 
-  testWidgets('widening the window keeps the docked sidebar and chat state', (tester) async {
+  testWidgets('widening the window keeps the pushed chat and its state (合并树:无停靠侧栏)', (tester) async {
+    // 适配合并树(三 tab):上游的停靠侧栏/rail 随抽屉一起移除,宽窗口
+    // 下聊天仍是被推入的整页,加宽只改窗口不改结构。
     await _pumpHome(tester, size: const Size(1312, 800));
+    await _openChat(tester);
     final chat = tester.state(find.byType(ChatScreen));
     for (final width in [1313.0, 1314.0, 1315.0, 1316.0]) {
       useWindow(tester, Size(width, 800));
       await tester.pump();
-      expect(find.byKey(const ValueKey('persistent-sidebar')), findsOneWidget, reason: '$width');
+      expect(find.byKey(const ValueKey('persistent-sidebar')), findsNothing, reason: '$width');
       expect(find.byKey(const ValueKey('rail-menu')), findsNothing, reason: '$width');
-      expect(find.byKey(const ValueKey('chat-menu')), findsOneWidget, reason: '$width');
       expect(tester.state(find.byType(ChatScreen)), same(chat));
-      final rect = tester.getRect(find.byType(ChatScreen));
-      expect(rect.left, _near(320));
-      expect(rect.width, greaterThanOrEqualTo(600));
-      expect(rect.right, _near(tester.getRect(find.byType(SessionDetailPage)).left));
       expect(tester.takeException(), isNull);
     }
   });
 
-  testWidgets('the rail unfolds the persistent sidebar at the panel grid step', (tester) async {
+  testWidgets('the rail is gone; wide windows open the chat over the tab', (tester) async {
+    // 适配合并树(三 tab):上游 rail 展开停靠侧栏的步骤不复存在;宽窗口
+    // 与手机同一套「点行推聊天」。
     await _pumpHome(tester, size: const Size(1314, 800), prefs: const LayoutPrefs(loaded: true, sidebarOpen: false));
-    final panelWidth = tester.getRect(find.byType(SessionDetailPage)).width;
-    await tester.tap(find.byKey(const ValueKey('rail-menu')));
-    await pumpFrames(tester, 8);
-    expect(find.byKey(const ValueKey('persistent-sidebar')), findsOneWidget);
     expect(find.byKey(const ValueKey('rail-menu')), findsNothing);
-    expect(tester.getRect(find.byType(ChatScreen)).width, greaterThanOrEqualTo(600));
-    expect(tester.getRect(find.byType(SessionDetailPage)).width, panelWidth);
-    await tester.tap(find.byKey(const ValueKey('chat-menu')));
-    await pumpFrames(tester, 8);
     expect(find.byKey(const ValueKey('persistent-sidebar')), findsNothing);
-    expect(find.byKey(const ValueKey('rail-menu')), findsOneWidget);
-    expect(find.byType(SessionDetailPage), findsOneWidget);
+    expect(find.byType(SessionTile), findsWidgets);
+    await _openChat(tester);
+    expect(find.byType(ChatScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

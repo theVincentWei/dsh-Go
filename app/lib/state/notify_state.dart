@@ -163,6 +163,9 @@ class FlagController extends Notifier<bool> {
   bool build() => _initial;
 
   void set(bool value) {
+    // riverpod 3:容器的销毁可能抢在延迟回调之前(测试里整树拆除时),
+    // 已销毁的 Notifier 上写 state 会炸 UnmountedRefException,直接跳过。
+    if (!ref.mounted) return;
     if (value != state) state = value;
   }
 }

@@ -549,8 +549,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     _endInteraction?.call();
     _endInteraction = null;
     // Removed without a pop's dependency change: if the page still believed
-    // itself current, take the flag back.
-    if (_routeCurrent) _pageFlag?.set(false);
+    // itself current, take the flag back. Deferred: riverpod 3 forbids
+    // provider writes while the widget tree finalizes (same as _voiceFlag).
+    if (_routeCurrent && _pageFlag != null) {
+      final pageFlag = _pageFlag!;
+      scheduleMicrotask(() => pageFlag.set(false));
+    }
     _draftScope = Object();
     _creating = null;
     _syncWait = null;
