@@ -85,7 +85,7 @@ Future<({DrawerHost host, HostConnection connection, ProviderContainer container
   await tester.pumpWidget(
     goldenApp(
       brightness: Brightness.light,
-      home: HomeShell(chatBuilder: const SizedBox.expand()),
+      home: HomeShell(chatBuilder: showChat ? null : const SizedBox.expand()),
       overrides: [
         ...workspaceOverrides(host, current: 's1', prefs: const WorkspacePrefs(loaded: true)).skip(1),
         switchConnectionProvider.overrideWith(() => SwitchConnection(connection)),
@@ -169,7 +169,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('deletion receipt leaves the real composer visible and tappable after closing the drawer', (
+  testWidgets('deletion receipt leaves the real composer visible and tappable after deleting from the list', (
     tester,
   ) async {
     await _start(tester, showChat: true);
@@ -178,9 +178,9 @@ void main() {
     await _settle(tester);
     expect(find.text('已永久删除 1 个对话'), findsOneWidget);
 
-    // The drawer's scrim closes it while the receipt is still on screen.
-    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-    await tester.tapAt(Offset(size.width - 20, size.height / 2));
+    // 适配合并树(三 tab):没有抽屉与遮罩,删除发生在聊天 tab 列表上;
+    // 删除后点开剩下的对话进真正的聊天页,凭据横幅不挡输入。
+    await tester.tap(_tile('A second'));
     await _settle(tester);
     final input = find.descendant(of: find.byType(Composer), matching: find.byType(EditableText));
     expect(input, findsOneWidget);

@@ -2,6 +2,7 @@
 // W4-02 background worker (W4-03 diagnostic). The startup fan-out must keep
 // provider metadata on both paths; a 3-second read must leave cached rows,
 // scrolling and controls usable, and keep the scroll position on replace.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -175,8 +176,10 @@ class _HttpLists {
             'running': false,
             'blank': false,
             'agentAvailable': false,
+            // 适配合并树:行带全 preview(合并树的行有副标题占位转点,永远
+            // 等读标题会不 settle);生产里正常行也总会读到副标题。
             'projections': {
-              'values': {'title': '$revision Session $i'},
+              'values': {'title': '$revision Session $i', 'preview': 'recent activity $i'},
             },
           },
       ],
@@ -319,7 +322,9 @@ void main() {
             );
           },
         ),
-        'plugins' => const PluginsScreen(),
+        // 适配合并树:AppPage 的 actions 条(刷新键)只在被推入的路由挂载
+        // (首路由是紧凑大标题头部),所以把插件页推入后再操作。
+        'plugins' => const _Pushed(child: PluginsScreen()),
         'providers' => const ProvidersPage(),
         _ => Scaffold(
           body: SizedBox(
@@ -413,4 +418,31 @@ void main() {
       });
     });
   }
+}
+
+/// 适配合并树:把页面推入二级路由(首路由是紧凑头部,没有 actions 条)。
+class _Pushed extends StatefulWidget {
+  const _Pushed({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Pushed> createState() => _PushedState();
+}
+
+class _PushedState extends State<_Pushed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(
+          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => widget.child)),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }
