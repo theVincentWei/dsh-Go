@@ -32954,18 +32954,6 @@ abstract class L10n {
   /// **'显示起始页的聊天建议'**
   String get hubChatSuggestionsHint;
 
-  /// No description provided for @hubQuickPanel.
-  ///
-  /// In zh, this message translates to:
-  /// **'左滑快捷入口'**
-  String get hubQuickPanel;
-
-  /// No description provided for @searchKwQuickPanel.
-  ///
-  /// In zh, this message translates to:
-  /// **'左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口'**
-  String get searchKwQuickPanel;
-
   /// No description provided for @searchKwChatSuggestions.
   ///
   /// In zh, this message translates to:

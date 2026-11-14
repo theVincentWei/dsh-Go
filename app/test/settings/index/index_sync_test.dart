@@ -363,14 +363,7 @@ void main() {
       await _check(tester, SettingsPageId.webSearch, () => pumpEngine(tester, const WebSearchSettingsPage()));
     });
     testWidgets('界面', (tester) async {
-      // 适配合并树: 快捷面板行已从界面页移除,Spots.quickPanel 与索引条目
-      // 暂留在表里(设置搜索的死条目,待清理)——先按缺席放行。
-      await _check(
-        tester,
-        SettingsPageId.interface,
-        () => pumpEngine(tester, const InterfacePage()),
-        absent: {'quick-panel'},
-      );
+      await _check(tester, SettingsPageId.interface, () => pumpEngine(tester, const InterfacePage()));
     });
     testWidgets('隐私与分享', (tester) async {
       await _check(tester, SettingsPageId.privacy, () => pumpEngine(tester, const PrivacyPage()));

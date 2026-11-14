@@ -18982,12 +18982,6 @@ class L10nEn extends L10n {
   String get hubChatSuggestionsHint => 'Show chat suggestions on the start page';
 
   @override
-  String get hubQuickPanel => 'Swipe-left shortcuts';
-
-  @override
-  String get searchKwQuickPanel => 'swipe,left swipe,shortcuts,gesture,quick panel,quick access';
-
-  @override
   String get searchKwChatSuggestions => 'start page,empty page,new chat,chat suggestions,suggestion cards';
 
   @override

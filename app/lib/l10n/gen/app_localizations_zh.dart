@@ -18000,12 +18000,6 @@ class L10nZh extends L10n {
   String get hubChatSuggestionsHint => '显示起始页的聊天建议';
 
   @override
-  String get hubQuickPanel => '左滑快捷入口';
-
-  @override
-  String get searchKwQuickPanel => '左滑,快捷入口,手势,滑动,目录,自定义目录,快捷,常用入口';
-
-  @override
   String get searchKwChatSuggestions => '起始页,空白页,新对话,聊天建议,建议卡片';
 
   @override
