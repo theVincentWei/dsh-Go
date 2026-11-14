@@ -22,7 +22,7 @@ const diagnosticsMarkdownBytes = 16 * 1024;
 /// [redactDiagnostics] on the way out. The UTF-8 budget includes the notice.
 String diagnosticsMarkdown(DiagnosticsSnapshot s, {int maxBytes = diagnosticsMarkdownBytes}) {
   final b = StringBuffer()
-    ..writeln('# DSH Go 本机诊断')
+    ..writeln('# 万器 本机诊断')
     ..writeln()
     ..writeln('> App 写在引擎里的环境快照，给排查问题用；已脱敏。生成时间：${_time(s.at)}。')
     ..writeln();

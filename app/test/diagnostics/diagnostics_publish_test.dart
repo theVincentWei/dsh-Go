@@ -37,7 +37,7 @@ void main() {
     final call = calls.single;
     expect(call.method, 'publishDiagnostics');
     final markdown = (call.arguments as Map<Object?, Object?>)['markdown'] as String;
-    expect(markdown, contains('# DSH Go 本机诊断'));
+    expect(markdown, contains('# 万器 本机诊断'));
     expect(markdown, contains('## 环境'));
   });
 

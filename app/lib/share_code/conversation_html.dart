@@ -21,7 +21,7 @@ String conversationHtml(String fileText, {required String title}) {
       .replaceAll('\u2028', r'\u2028')
       .replaceAll('\u2029', r'\u2029');
   return replayViewerPage
-      .replaceFirst('__DSHGO_TITLE__', '${_escape(title)} · DSH Go')
+      .replaceFirst('__DSHGO_TITLE__', '${_escape(title)} · 万器')
       .replaceFirst('__DSHGO_DATA__', data);
 }
 
