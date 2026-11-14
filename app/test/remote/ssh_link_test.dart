@@ -89,12 +89,14 @@ void main() {
     expect(l.currentClient, same(original));
   });
 
-  test('a refused reused port never replaces a live server', () async {
+  test('a refused reused port is restarted into a fresh instance', () async {
+    // 合并树语义(本地拍板):端口探测被拒 = 复用的 DSH 已死,退避后强制
+    // 重启一个新实例,而不是守着永不答应的旧进程。
     server.remote.pid = 500;
     server.remote.tunnelErrors.add(const TunnelRefused());
     final l = link();
     await l.open();
-    expect(server.remote.launches, 0);
+    expect(server.remote.launches, 1, reason: 'a reused DSH whose port refuses is started fresh');
     expect(l.status.isConnected, isTrue);
   });
 
@@ -191,7 +193,8 @@ void main() {
     );
     await l.open();
     expect(server.last.scripts, isEmpty);
-    expect(server.last.tunnels.single, ('127.0.0.1', server.remote.port));
+    // AppHub 随行转发(本地拍板)会多探/多开一条通道,这里只认 DSH 端口那条。
+    expect(server.last.tunnels, contains(('127.0.0.1', server.remote.port)));
     expect(connector.calls.single.token, 'existing-token');
     expect(connector.calls.single.hostHeader, '127.0.0.1:${server.remote.port}');
     await expectLater(l.restartManaged(), throwsStateError);
@@ -220,8 +223,16 @@ void main() {
         config: sampleSsh.copyWith(dshMode: SshDshMode.attachOnly, remotePort: server.remote.port),
         secrets: const SshSecrets(password: 'pw', attachToken: 'existing-token'),
       );
-      await expectLater(l.open(), throwsA(isA<HostLinkError>()));
-      expect(server.transports, hasLength(1));
+      if (loginFailure) {
+        // 令牌被拒要人来改,不可重试:直接停在失败。
+        await expectLater(l.open(), throwsA(isA<HostLinkError>()));
+        expect(server.transports, hasLength(1));
+      } else {
+        // tunnelFailed 一律可重试(本地「退避不封顶」拍板):被拒的探测消耗
+        // 掉之后,重试在同一 attach 端口上落地,依旧不启动任何服务端。
+        await l.open();
+        expect(l.status.isConnected, isTrue);
+      }
       expect(server.last.scripts, isEmpty);
       expect(server.remote.launches, 0);
       expect(server.remote.pid, 500);

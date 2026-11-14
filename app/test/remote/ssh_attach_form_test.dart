@@ -81,7 +81,8 @@ void main() {
     expect(server.connects, isEmpty);
 
     await tester.tap(find.widgetWithText(FilledButton, '测试连接'));
-    await tester.pump();
+    // 合并树里状态是异步派发(不再 sync),终态要等一帧才画到进度卡上。
+    await tester.pumpAndSettle();
     expect(server.connects, hasLength(1), reason: 'normal test reached the fake SSH transport');
     expect(server.last.scripts, hasLength(2), reason: 'normal test completed probe and start');
     expect(server.last.isClosed, isTrue, reason: 'nodsh terminated the SSH connection');
