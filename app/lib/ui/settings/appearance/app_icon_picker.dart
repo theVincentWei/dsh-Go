@@ -191,36 +191,35 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(_RingPainter old) => old.color != color || old.icon != icon || old.mask != mask;
 }
 
-/// How each launcher icon is drawn: the gradient of its background layer
-/// (`res/drawable/ic_launcher[_<name>]_background.xml`, the same diagonal for
-/// all four) and its glyph.
+/// How each launcher icon is drawn: its background layer (`res/drawable/
+/// ic_launcher[_<name>]_background.xml`) and the 万器 mark (silver double-line
+/// loop + thick loop + gold four-point star), the v2/v3 shipped foreground.
 class AppIconArt {
-  const AppIconArt._(this.from, this.to, this.glyph, [this.mono]);
+  const AppIconArt._(this.from, this.to);
 
-  /// Top-left and bottom-right of the background gradient.
+  /// The background gradient's ends. The default variant is v2 拍板's flat
+  /// brand navy: `from == to` paints it as one solid colour.
   final Color from;
   final Color to;
-  final AppIconGlyph glyph;
-
-  /// The flat glyph colour, for [AppIconGlyph.mono].
-  final Color? mono;
 
   /// The gradient's ends in the launcher's 108 grid (ic_launcher_background.xml).
   static const start = Offset(7.57, -5.87);
   static const end = Offset(100.43, 113.87);
 
+  /// The mark's colours, as the shipped foregrounds print them
+  /// (a6adacbed: 银环 #D9D9D9 + 金星 #CEC045).
+  static const ring = Color(0xFFD9D9D9);
+  static const star = Color(0xFFCEC045);
+
   static AppIconArt of(AppIcon icon) => switch (icon) {
-    // The default icon; on the phone its glyph is the original art, here the
-    // brand master's glass (the same fit).
-    AppIcon.mist => const AppIconArt._(Color(0xFF9AB0E8), Color(0xFF405AAD), AppIconGlyph.glassDark),
-    AppIcon.night => const AppIconArt._(Color(0xFF2C3D6C), Color(0xFF0C122D), AppIconGlyph.glassDark),
-    AppIcon.frost => const AppIconArt._(Color(0xFFFCFDFF), Color(0xFFDDE5F8), AppIconGlyph.glassLight),
-    AppIcon.ink => const AppIconArt._(Color(0xFF292B30), Color(0xFF0D0E11), AppIconGlyph.mono, Color(0xFFF5F7FB)),
+    // v2 拍板: the default icon's background is the solid brand navy
+    // (shipped ic_launcher_background.xml), not the retired blue gradient.
+    AppIcon.mist => const AppIconArt._(Color(0xFF071328), Color(0xFF071328)),
+    AppIcon.night => const AppIconArt._(Color(0xFF2C3D6C), Color(0xFF0C122D)),
+    AppIcon.frost => const AppIconArt._(Color(0xFFFCFDFF), Color(0xFFDDE5F8)),
+    AppIcon.ink => const AppIconArt._(Color(0xFF292B30), Color(0xFF0D0E11)),
   };
 }
-
-/// The brand glyph's three renderings (`assets/brand/glyph-*.svg`).
-enum AppIconGlyph { glassDark, glassLight, mono }
 
 /// [icon] as the launcher shows it: [size] square, cut to [mask] (an outline
 /// in 0…1, see [AppIconState.mask]; a rounded square when null), with a
@@ -260,22 +259,8 @@ class _IconPainter extends CustomPainter {
       ..drawRect(
         const Rect.fromLTWH(0, 0, 108, 108),
         Paint()..shader = ui.Gradient.linear(AppIconArt.start, AppIconArt.end, [art.from, art.to]),
-      );
-    switch (art.glyph) {
-      case AppIconGlyph.mono:
-        final paint = Paint()..color = art.mono!;
-        canvas
-          ..drawPath(BrandGlyph.body, paint)
-          ..drawPath(BrandGlyph.bubble, paint);
-      case AppIconGlyph.glassDark || AppIconGlyph.glassLight:
-        final dark = art.glyph == AppIconGlyph.glassDark;
-        canvas
-          ..drawPath(BrandGlyph.body, Paint()..shader = dark ? BrandGlyph.tailDark : BrandGlyph.tailLight)
-          ..drawPath(BrandGlyph.fin, Paint()..shader = dark ? BrandGlyph.finDark : BrandGlyph.finLight)
-          ..drawPath(BrandGlyph.belly, Paint()..shader = dark ? BrandGlyph.bellyDark : BrandGlyph.bellyLight)
-          ..drawPath(BrandGlyph.bubble, Paint()..shader = dark ? BrandGlyph.bubbleDark : BrandGlyph.bubbleLight);
-    }
-    canvas
+      )
+      .._wanqiMark()
       ..restore()
       // Half of it falls outside the clip: a 1 px line just inside the edge.
       ..drawPath(
@@ -291,6 +276,69 @@ class _IconPainter extends CustomPainter {
   @override
   bool shouldRepaint(_IconPainter old) => old.icon != icon || old.mask != mask || old.edge != edge;
 }
+
+extension _WanqiMark on Canvas {
+  /// The v3 launcher foreground: the 万器 infinity ring (thin double-line left
+  /// loop, thick right loop) in silver with the four-point gold star, from
+  /// ic_launcher_monochrome.xml's geometry. The shipped foregrounds draw the
+  /// mark at 48% of the canvas about the centre (82397ab68), so the same
+  /// bounds are fitted here: the geometry's centre (56, 48.75) lands on the
+  /// canvas centre at 0.8×.
+  void _wanqiMark() {
+    final ring = Paint()
+      ..color = AppIconArt.ring
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final star = Paint()..color = AppIconArt.star;
+    save();
+    translate(54, 54);
+    scale(0.8);
+    translate(-56, -48.75);
+    for (final (path, width) in _loops) {
+      drawPath(path, ring..strokeWidth = width);
+    }
+    drawPath(_star, star);
+    restore();
+  }
+}
+
+/// The ring's three loops (stroke width in the 108 grid) and the star, as
+/// `pathData` in ic_launcher_monochrome.xml draws them.
+final _loops = <(Path, double)>[
+  (
+    Path()
+      ..moveTo(54, 54)
+      ..cubicTo(46, 42.5, 24, 42.5, 24, 54)
+      ..cubicTo(24, 65.5, 46, 65.5, 54, 54),
+    2.6,
+  ),
+  (
+    Path()
+      ..moveTo(54, 54)
+      ..cubicTo(48, 46.6, 30, 46.6, 30, 54)
+      ..cubicTo(30, 61.4, 48, 61.4, 54, 54),
+    2.6,
+  ),
+  (
+    Path()
+      ..moveTo(54, 54)
+      ..cubicTo(61.5, 42.5, 84, 42.5, 84, 54)
+      ..cubicTo(84, 65.5, 61.5, 65.5, 54, 54),
+    9.6,
+  ),
+];
+
+final _star =
+    Path()
+      ..moveTo(79.5, 32)
+      ..lineTo(81.6, 38.4)
+      ..lineTo(88, 40.5)
+      ..lineTo(81.6, 42.6)
+      ..lineTo(79.5, 49)
+      ..lineTo(77.4, 42.6)
+      ..lineTo(71, 40.5)
+      ..lineTo(77.4, 38.4)
+      ..close();
 
 /// The launcher's icon shape at [side] × [side]: [mask] (a closed outline in
 /// 0…1 from the system) or, without one, a rounded square.

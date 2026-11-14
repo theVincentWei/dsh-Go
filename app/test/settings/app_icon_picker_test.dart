@@ -267,31 +267,45 @@ void main() {
         final file = icon == AppIcon.mist ? 'ic_launcher_background' : 'ic_launcher_${icon.name}_background';
         final xml = File('$res/drawable/$file.xml').readAsStringSync();
         double attr(String a) => double.parse(RegExp('android:$a="([-0-9.]+)"').firstMatch(xml)!.group(1)!);
-        final colors = [
-          for (final m in RegExp('android:color="#([0-9A-Fa-f]{8})"').allMatches(xml))
-            Color(int.parse(m.group(1)!, radix: 16)),
-        ];
         final art = AppIconArt.of(icon);
-        expect(colors, [art.from, art.to], reason: file);
-        expect(Offset(attr('startX'), attr('startY')), AppIconArt.start, reason: file);
-        expect(Offset(attr('endX'), attr('endY')), AppIconArt.end, reason: file);
+        // v2 拍板: the default background is one flat brand navy (a single
+        // android:fillColor); the other three keep the diagonal gradient.
+        if (icon == AppIcon.mist) {
+          final fill = RegExp('android:fillColor="#([0-9A-Fa-f]{6,8})"').firstMatch(xml)!.group(1)!;
+          final argb = fill.length == 6 ? 'FF$fill' : fill;
+          expect(Color(int.parse(argb, radix: 16)), art.from, reason: file);
+          expect(art.from, art.to, reason: '$file: the preview paints the flat base as from == to');
+        } else {
+          final colors = [
+            for (final m in RegExp('android:color="#([0-9A-Fa-f]{8})"').allMatches(xml))
+              Color(int.parse(m.group(1)!, radix: 16)),
+          ];
+          expect(colors, [art.from, art.to], reason: file);
+          expect(Offset(attr('startX'), attr('startY')), AppIconArt.start, reason: file);
+          expect(Offset(attr('endX'), attr('endY')), AppIconArt.end, reason: file);
+        }
       }
     });
 
     testWidgets("墨's glyph colour", (tester) async {
+      // v3 foreground (a6adacbed): the 万器 mark in silver and gold — the
+      // colours the preview's mark paints. Sample pure ring/star pixels of
+      // the shipped 432 px (4 px per 108-grid unit) foreground.
       final bytes = File('$res/mipmap-xxxhdpi/ic_launcher_ink_foreground.png').readAsBytesSync();
       final rgba = await tester.runAsync(() async {
         final frame = await (await ui.instantiateImageCodec(bytes)).getNextFrame();
         return (await frame.image.toByteData())!;
       });
-      // Inside the body (108 grid (53.5, 70)), at 4 px per unit.
-      final at = (280 * 432 + 214) * 4;
-      final pixel = [for (var i = 0; i < 4; i++) rgba!.getUint8(at + i)];
-      final mono = AppIconArt.of(AppIcon.ink).mono!;
-      expect(pixel[3], 255);
-      expect(pixel[0], closeTo((mono.r * 255).round(), 2));
-      expect(pixel[1], closeTo((mono.g * 255).round(), 2));
-      expect(pixel[2], closeTo((mono.b * 255).round(), 2));
+      int pixel(int x, int y) {
+        final at = (y * 432 + x) * 4;
+        // toByteData() is RGBA; ARGB32 is the colour's packing.
+        final r = rgba!.getUint8(at), g = rgba.getUint8(at + 1), b = rgba.getUint8(at + 2), a = rgba.getUint8(at + 3);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+      }
+
+      // The star's heart (grid 73.5, 45) and a solid ring point (52.25, 56.75).
+      expect(pixel(294, 180), AppIconArt.star.toARGB32(), reason: 'gold star');
+      expect(pixel(209, 227), AppIconArt.ring.toARGB32(), reason: 'silver ring');
     });
   });
 
