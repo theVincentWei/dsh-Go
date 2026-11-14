@@ -193,16 +193,9 @@ void main() {
         await match('seat_settings');
       });
 
-      testWidgets('全部功能: plugin panels in 插件 ($mode)', (tester) async {
-        await _pump(
-          tester,
-          const AllFeaturesPage(),
-          brightness: brightness,
-          seats: seatOverrides(inventory: seatInventory(occupancy: fullOccupancy)),
-        );
-        await _reveal(tester, find.text('探针面板'));
-        await match('seat_all_features');
-      });
+      // (seat_all_features 两张金图退役: 合并树的手机端「全部功能」是小程序
+      // 桌面,不再列插件面板;桌面目录才吃 featureSectionsProvider。面板列表
+      // 的视觉由「对话详情: the 插件 tab」金图(seat_session_plugins)覆盖。)
 
       testWidgets('Cordis: the interactive region over the actions ($mode)', (tester) async {
         await _pump(
@@ -478,16 +471,25 @@ void main() {
     });
 
     testWidgets('a panel with an island opens its page; the other opens DSH Web', (tester) async {
-      await _pump(
+      // 适配合并树: 手机端「全部功能」不再列插件面板,面板行在对话详情的
+      // 插件 tab;行为不变(岛面板行开 PluginSeatPage,网页行开 DSH Web)。
+      await _pumpDetail(
         tester,
-        const AllFeaturesPage(),
+        tab: SessionTab.plugins,
         seats: [
-          ...seatOverrides(inventory: seatInventory(occupancy: fullOccupancy)),
+          ...seatOverrides(
+            inventory: seatInventory(
+              occupancy: {
+                Slots.main: fullOccupancy[Slots.main]!,
+                Slots.panelList: fullOccupancy[Slots.panelList]!,
+              },
+            ),
+          ),
           dshWebOpenerProvider.overrideWithValue((context, ref, target) => openedWeb.add(target)),
         ],
       );
-      await _reveal(tester, find.text('桌宠面板'));
       await tester.tap(find.text('桌宠面板'));
+      await _settle(tester);
       expect(openedWeb.single, const DshWebTarget(sidebar: true));
       await tester.tap(find.text('探针面板'));
       await _settle(tester);
