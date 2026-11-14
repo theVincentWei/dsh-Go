@@ -354,6 +354,7 @@
   "hubDropHere": "拖应用到这里",
   "hubNoMatch": "没有找到「{query}」",
   "autoSyncTitle": "静默同步",
+  "searchKwAutoSync": "静默同步,自动安装,自动升级,小程序,静默,免确认",
   "autoSyncSummary": "服务器上架的小程序自动装到本机并保持最新，无需逐次确认",
   "@hubNoMatch": {
     "placeholders": {

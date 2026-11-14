@@ -2772,6 +2772,7 @@
   "hubDropHere": "Drop apps here",
   "hubNoMatch": "Nothing matches \"{query}\"",
   "autoSyncTitle": "Silent sync",
+  "searchKwAutoSync": "silent sync,auto install,auto update,mini apps,no confirm,background install",
   "autoSyncSummary": "Mini programs on the server install and update automatically without prompts",
   "hubAppUnavailableOnMachine": "\"{name}\" is unavailable on this machine (backend not deployed)",
   "launchScreenTitle": "Launch screen",

@@ -612,6 +612,7 @@ abstract final class Spots {
     page: SettingsPageId.hub,
     group: _general,
     title: (l) => l.autoSyncTitle,
+    keywords: (l) => l.searchKwAutoSync,
   );
   static final askAi = SettingSpot(
     'ask-ai',

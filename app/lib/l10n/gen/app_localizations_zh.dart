@@ -9059,6 +9059,9 @@ class L10nZh extends L10n {
   String get autoSyncTitle => '静默同步';
 
   @override
+  String get searchKwAutoSync => '静默同步,自动安装,自动升级,小程序,静默,免确认';
+
+  @override
   String get autoSyncSummary => '服务器上架的小程序自动装到本机并保持最新，无需逐次确认';
 
   @override

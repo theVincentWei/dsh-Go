@@ -16724,6 +16724,12 @@ abstract class L10n {
   /// **'静默同步'**
   String get autoSyncTitle;
 
+  /// No description provided for @searchKwAutoSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'静默同步,自动安装,自动升级,小程序,静默,免确认'**
+  String get searchKwAutoSync;
+
   /// No description provided for @autoSyncSummary.
   ///
   /// In zh, this message translates to:

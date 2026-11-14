@@ -9552,6 +9552,9 @@ class L10nEn extends L10n {
   String get autoSyncTitle => 'Silent sync';
 
   @override
+  String get searchKwAutoSync => 'silent sync,auto install,auto update,mini apps,no confirm,background install';
+
+  @override
   String get autoSyncSummary => 'Mini programs on the server install and update automatically without prompts';
 
   @override
