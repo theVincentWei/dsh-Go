@@ -180,6 +180,17 @@ void main() {
     expect(server.last.scripts.single, isNot(contains(r'kill "$P"')));
   });
 
+  test('open() resolving implies the connected terminal status is already applied', () async {
+    // 表单的「测试连通性」在读到终态后立刻退订:成功终态必须像失败终态一样
+    // 是链路同步状态(open 返回即生效),而不是赌广播流投递时序——真机上
+    // 退订与投递同拍竞速,queued 的 connected 事件会永远到不了进度卡
+    // (卡片停在「登录」,即真机「测试连通性挂登录」回归)。
+    final l = link();
+    await l.open();
+    expect(l.status.phase, HostLinkPhase.connected);
+    expect(l.status.step, isNull, reason: 'terminal status carries no pending step');
+  });
+
   test('compression preference reaches SSH connection parameters', () {
     expect(SshConnectParams.of(sampleSsh, const SshSecrets()).compression, isTrue);
     expect(SshConnectParams.of(sampleSsh.copyWith(compression: false), const SshSecrets()).compression, isFalse);

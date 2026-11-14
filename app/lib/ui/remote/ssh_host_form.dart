@@ -294,6 +294,13 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       } else {
         await link.open();
       }
+      // 成功终态与失败终态同一竞速:open() 一回来 finally 就退订,排队中的
+      // connected 事件退订后才轮到投递,卡片会永远停在「登录」。直接读链路
+      // 的同步状态,成功/失败都即时落到进度卡上。
+      final terminal = link.status;
+      if (mounted && terminal.phase == HostLinkPhase.connected && !identical(terminal, _testStatus)) {
+        setState(() => _testStatus = terminal);
+      }
     } catch (_) {
       // Shown in the progress card. The terminal status is read straight off
       // the link's synchronous state instead of the status stream: the
