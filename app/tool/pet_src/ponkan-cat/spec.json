@@ -253,13 +253,13 @@
     "anim": "roam-hop",
     "faces": "right",
     "everyMs": {
-      "mean": 4000,
-      "min": 2500,
-      "max": 9000
+      "mean": 3000,
+      "min": 2000,
+      "max": 7000
     },
     "span": [
-      0.35,
-      0.8
+      0.5,
+      0.95
     ]
   },
   "sleep": {
