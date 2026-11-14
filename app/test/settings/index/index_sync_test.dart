@@ -231,7 +231,7 @@ void main() {
     );
   });
 
-  testWidgets('关于 DSH Go', (tester) async {
+  testWidgets('关于 万器', (tester) async {
     await _check(tester, SettingsPageId.about, () => _app(tester, const AboutPage(), _running()));
   });
 
