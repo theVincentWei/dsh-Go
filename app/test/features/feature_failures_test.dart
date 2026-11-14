@@ -71,8 +71,33 @@ const _permission = PermissionState(
 
 Future<void> _pump(WidgetTester tester, Widget page, List<Override> overrides) async {
   usePhoneView(tester);
-  await tester.pumpWidget(testApp(page, overrides: overrides));
+  // 适配合并树:AppPage 的 actions 条(如 Schedules/AgentPresets 的「新建」)
+  // 只在被推入的路由挂载,首路由是紧凑大标题头部。
+  await tester.pumpWidget(testApp(_Pushed(page: page), overrides: overrides));
   await pumpFrames(tester, 6);
+}
+
+/// 适配合并树:把页面推入二级路由,让 AppPage 的 actions 条挂载。
+class _Pushed extends StatefulWidget {
+  const _Pushed({required this.page});
+
+  final Widget page;
+
+  @override
+  State<_Pushed> createState() => _PushedState();
+}
+
+class _PushedState extends State<_Pushed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => widget.page)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }
 
 void main() {

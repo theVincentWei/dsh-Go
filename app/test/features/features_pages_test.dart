@@ -14,6 +14,7 @@ import 'package:dsh_app/ui/remote/remote_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
 import 'package:dsh_app/ui/chat/current_chat_page.dart';
 import 'package:dsh_app/ui/chat/widgets/plus_panel.dart';
+import 'package:dsh_app/ui/applet/hub_apps_group.dart' show HubInstalledApp, HubInstalledController, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
 import 'package:dsh_app/ui/features/permission_page.dart';
@@ -158,7 +159,15 @@ const _permissions = PermissionState(
 );
 
 /// Fixed data for every feature provider (goldens and navigation).
+/// 适配合并树(万器 AppHub):页面读已装小程序清单来定目录 settled 态,
+/// 测试喂空清单(等价「无小程序」),避免真实 provider 卡在加载。
+class _FixedInstalled extends HubInstalledController {
+  @override
+  Future<List<HubInstalledApp>> build() async => const [];
+}
+
 List<Override> _fixed({String? current = 's1', bool autoApprove = false}) => [
+  hubInstalledProvider.overrideWith(_FixedInstalled.new),
   activeConnectionProvider.overrideWithValue(AsyncData(fakeConnection)),
   localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
   sessionsProvider.overrideWith(_Sessions.new),

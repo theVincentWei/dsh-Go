@@ -13,6 +13,8 @@ import 'package:dsh_app/state/settings_state.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
 import 'package:dsh_app/ui/features/preset_editor/preset_editor_page.dart';
 import 'package:dsh_client/dsh_client.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -110,7 +112,8 @@ void main() {
 
   Future<void> pump(WidgetTester tester, Widget page, {Brightness brightness = Brightness.light}) async {
     usePhoneView(tester);
-    await tester.pumpWidget(testApp(page, brightness: brightness, overrides: overrides()));
+    // 适配合并树:页面推入二级路由,actions 条才挂载。
+    await tester.pumpWidget(testApp(_Pushed(child: page), brightness: brightness, overrides: overrides()));
     await pumpFrames(tester, 8);
   }
 
@@ -298,4 +301,28 @@ void main() {
       });
     });
   }
+}
+
+/// 适配合并树:AppPage 的 actions 条(「新建」等)只在被推入的路由挂载
+/// (首路由是紧凑大标题头部),生产里这些页面总是被推入。
+class _Pushed extends StatefulWidget {
+  const _Pushed({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Pushed> createState() => _PushedState();
+}
+
+class _PushedState extends State<_Pushed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => widget.child)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }
