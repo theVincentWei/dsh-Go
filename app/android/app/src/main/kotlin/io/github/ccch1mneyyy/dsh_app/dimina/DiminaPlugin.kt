@@ -84,6 +84,9 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
         // 宿主扩展通道:小程序 requestSubscribeMessage → 原生订阅面板(契约 §5.2/§5.3)。
         // 注册发生在 Dimina.init 之后(框架的扩展模块表此时才可用)。
         registerNotifyExtModule()
+        // 平台权限契约 v1 §6:第二扩展模块 dsh-permissions——容器侧 consent 的
+        // 宿主读写口(容器 JS 查/置 per-appid 授权态)。注册时机同 dsh-notify。
+        registerPermissionsExtModule()
         // 框架升级链路:升级的检测/下载/弹窗确认/换包全在容器侧,小程序不参与;
         // 这里只把升级里程碑转发给 Flutter(市场页按真实状态刷新,不再轮询猜)。
         Dimina.getInstance().setOnMiniProgramUpdateListener(object : MiniProgramUpdateListener {
@@ -159,6 +162,17 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
             },
         )
         Dimina.getInstance().registerExtModule(NOTIFY_EXT_MODULE, module)
+    }
+
+    /**
+     * 「dsh-permissions」宿主扩展模块(平台权限契约 v1 §6):容器侧 consent 的
+     * 宿主读写口。容器旧版没有 MiniProgramPermissionStore 时整个模块优雅
+     * no-op(反射能力探测见 [PermissionStoreGateway]);详情页开关不走这个
+     * 模块实例,而是经 dsh/dimina 通道的 getPermissionState/setPermission
+     * 直达同一网关(数据源同源)。
+     */
+    private fun registerPermissionsExtModule() {
+        Dimina.getInstance().registerExtModule(PERMISSIONS_EXT_MODULE, PermissionsExtModule())
     }
 
     /** 模板名向 Dart 要(带 app 名);拿不到就给空表,面板显示「通知 N」兜底。 */
@@ -361,6 +375,36 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                     }
                 }
             }
+            // 平台权限契约 v1 §6/§7:容器 consent 的宿主读写口。数据源=容器
+            // MiniProgramPermissionStore(反射网关),不是市场数据;store 不可用
+            // (旧 dimina 依赖)时 supported=false、写回 false,Dart 侧降级只读。
+            // store 的 appContext 挂在 Dimina.init(SDK ctor)上,详情页可能先于
+            // 首次 open 到达——这里按 sync 分支同款先 ensureInitialized。
+            "getPermissionState" -> {
+                val appId = call.argument<String>("appId")
+                if (appId.isNullOrBlank()) {
+                    result.error("BAD_ARGS", "appId is required", null)
+                    return
+                }
+                ensureInitialized(call.argument<Boolean>("dark") ?: false)
+                result.success(
+                    mapOf(
+                        "supported" to PermissionStoreGateway.supported,
+                        "scopes" to PermissionStoreGateway.stateMap(appId),
+                    ),
+                )
+            }
+            "setPermission" -> {
+                val appId = call.argument<String>("appId")
+                val scope = call.argument<String>("scope")
+                val granted = call.argument<Boolean>("granted")
+                if (appId.isNullOrBlank() || scope.isNullOrBlank() || granted == null) {
+                    result.error("BAD_ARGS", "appId/scope/granted are required", null)
+                    return
+                }
+                ensureInitialized(call.argument<Boolean>("dark") ?: false)
+                result.success(PermissionStoreGateway.setPermission(appId, scope, granted))
+            }
             // 通知入口相关分支(pushNotifyUnread/openNotificationCenter/fetchUnread)
             // 已随 2026-11-11 拍板「星河容器里不放通知按钮」拆除:入口收在宿主
             // 的会话列表与「小程序」桌面页头,容器只保留升级/订阅两类通道。
@@ -374,5 +418,8 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
 
         /** 与 Dimina 小程序侧 `module` 参数一致(契约 §5.3)。 */
         private const val NOTIFY_EXT_MODULE = "dsh-notify"
+
+        /** 与 Dimina 小程序侧 `module` 参数一致(平台权限契约 v1 §6)。 */
+        private const val PERMISSIONS_EXT_MODULE = "dsh-permissions"
     }
 }

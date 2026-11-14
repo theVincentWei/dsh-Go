@@ -23,6 +23,7 @@ import '../notify/notification_center.dart' show consumeMiniAppNotices;
 import 'apphub_uninstall_dialog.dart' show showAndRunAppUninstall;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
+import 'hub_app_permissions.dart';
 import 'hub_apps_group.dart' show hubInstalledProvider;
 import 'hub_icon_cache.dart' show HubBundleIcon, hubIconCache;
 
@@ -82,6 +83,7 @@ class HubAppRef {
     this.versionCode,
     this.versionName = '',
     this.autoSync = false,
+    this.permissions = HubAppPermissions.empty,
   });
 
   final String appId;
@@ -96,18 +98,9 @@ class HubAppRef {
 
   /// autoSync 静默同步(bundle.json 顶层字段,缺省 false)。
   final bool autoSync;
-}
 
-/// 一条权限声明(store.json 的 permissions 项)。
-class _HubPermission {
-  _HubPermission.fromJson(Map<String, Object?> json)
-      : key = json['key'] as String? ?? '',
-        title = json['title'] as String? ?? '',
-        usage = json['usage'] as String? ?? '';
-
-  final String key;
-  final String title;
-  final String usage;
+  /// 权限声明(市场列表行新形态,契约 v1 §5;详情端点旧形态兜底,取并集)。
+  final HubAppPermissions permissions;
 }
 
 /// 详情接口(`/api/v1/apps/<appId>`)的完整数据。
@@ -130,10 +123,7 @@ class _HubAppDetail {
           for (final dynamic k in json['keywords'] as List<dynamic>? ?? <dynamic>[])
             if (k is String && k.isNotEmpty) k,
         ],
-        permissions = [
-          for (final dynamic p in json['permissions'] as List<dynamic>? ?? <dynamic>[])
-            if (p is Map<String, Object?>) _HubPermission.fromJson(p),
-        ],
+        permissions = HubAppPermissions.fromJson(json['permissions']),
         screenshots = [
           for (final dynamic s in json['screenshots'] as List<dynamic>? ?? <dynamic>[])
             if (s is String && s.isNotEmpty) s,
@@ -153,7 +143,7 @@ class _HubAppDetail {
   final String? updatedAt;
   final int? sizeBytes;
   final List<String> keywords;
-  final List<_HubPermission> permissions;
+  final HubAppPermissions permissions;
   final List<String> screenshots;
 }
 
@@ -173,15 +163,20 @@ class _HubAppVersion {
   final DateTime? createdAt;
 }
 
-/// 权限 key → 展示图标(线性风格,与自带应用一致)。
+/// 权限 key → 展示图标(线性风格,与自带应用一致)。key=wx 口径 scope 串
+/// (契约 §4 映射表);旧数据的简称 key 一并兼容。
 IconData _permissionIcon(String key) => switch (key) {
+      'scope.record' || 'record' || 'microphone' => Icons.mic_none_outlined,
+      'scope.notification' || 'notifications' => Icons.notifications_none_outlined,
+      'scope.contacts' => Icons.contacts_outlined,
+      'scope.camera' || 'camera' => Icons.photo_camera_outlined,
+      'scope.writePhotosAlbum' => Icons.photo_outlined,
+      'scope.bluetooth' => Icons.bluetooth_outlined,
+      'scope.clipboard' => Icons.content_paste_outlined,
+      'scope.userLocation' || 'location' => Icons.location_on_outlined,
+      'network' || 'network.external' => Icons.public_outlined,
       'storage' => Icons.save_outlined,
-      'network' => Icons.public_outlined,
-      'microphone' => Icons.mic_none_outlined,
-      'camera' => Icons.photo_camera_outlined,
       'audio' => Icons.music_note_outlined,
-      'notifications' => Icons.notifications_none_outlined,
-      'location' => Icons.location_on_outlined,
       _ => Icons.extension_outlined,
     };
 
@@ -194,7 +189,8 @@ class ApphubAppDetailPage extends ConsumerStatefulWidget {
   ConsumerState<ApphubAppDetailPage> createState() => _ApphubAppDetailPageState();
 }
 
-class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
+class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage>
+    with WidgetsBindingObserver {
   _HubAppDetail? _detail;
   List<_HubAppVersion> _versions = const <_HubAppVersion>[];
   Map<String, Object?>? _installed;
@@ -202,6 +198,12 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
   bool _opening = false;
   bool _descExpanded = false;
   StreamSubscription<DiminaUpdateEvent>? _updateSub;
+
+  // 授权级 scope 的容器 consent(契约 v1 §7:开关状态数据源=容器,不是市场数据)。
+  // scope → granted;_consentSupported=false = 容器侧 store 不可用(旧 dimina
+  // 依赖),开关降级成只读声明展示。null=还没查到,开关先禁用防误显。
+  Map<String, bool> _consent = const <String, bool>{};
+  bool? _consentSupported;
 
   // 截图 bytes 的会话级内存缓存:详情页重进不重复拉,不落盘(截图体量大,
   // 且服务端带 cache-control,重进场景少)。值是 in-flight/完成的 Future,
@@ -211,15 +213,24 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _updateSub = DiminaHost.updateEvents.listen(_onUpdateEvent);
     unawaited(_refreshInstalled());
     unawaited(_load());
+    unawaited(_loadConsent());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _updateSub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 从容器回来(授权弹窗/容器内设置可能改过 consent)按真实状态刷新开关。
+    if (state == AppLifecycleState.resumed) unawaited(_loadConsent());
   }
 
   Future<void> _onUpdateEvent(DiminaUpdateEvent event) async {
@@ -235,6 +246,58 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
       setState(() => _installed = state);
     } catch (_) {
       // 查询失败保留旧值;视为未装处理。
+    }
+  }
+
+  /// 权限声明的合并视图:市场列表行新形态(带 mode/network.domains)优先,
+  /// 详情端点旧形态兜底——行里没带(老 server/无声明)时退回 detail 的 scopes。
+  HubAppPermissions get _permData {
+    final HubAppPermissions row = widget.app.permissions;
+    final HubAppPermissions detail = _detail?.permissions ?? HubAppPermissions.empty;
+    if (row.scopes.isEmpty && row.networkDomains.isEmpty) return detail;
+    final Set<String> rowKeys = <String>{
+      for (final HubAppPermission p in row.scopes) p.key,
+    };
+    return HubAppPermissions(
+      scopes: <HubAppPermission>[
+        ...row.scopes,
+        for (final HubAppPermission p in detail.scopes)
+          if (!rowKeys.contains(p.key)) p,
+      ],
+      networkDomains: row.networkDomains,
+    );
+  }
+
+  /// 拉容器 consent(经 dsh/dimina → DiminaPlugin → 容器 store):授权级开关
+  /// 的事实来源。通道不可用/容器旧版没有 store → supported=false,UI 降级只读。
+  Future<void> _loadConsent() async {
+    try {
+      final Map<String, Object?>? state = await DiminaHost.permissionState(widget.app.appId);
+      if (!mounted) return;
+      setState(() {
+        _consentSupported = state?['supported'] == true;
+        _consent = <String, bool>{
+          for (final MapEntry<Object?, Object?> entry
+              in (state?['scopes'] as Map? ?? const <Object?, Object?>{}).entries)
+            if (entry.value is bool) '${entry.key}': entry.value as bool,
+        };
+      });
+    } catch (_) {
+      if (mounted) setState(() => _consentSupported = false);
+    }
+  }
+
+  /// 授权级开关:乐观置位 → 写容器 consent;写失败回滚并提示,不假装成功。
+  Future<void> _toggleConsent(HubAppPermission p, bool granted) async {
+    final bool prev = _consent[p.key] ?? false;
+    setState(() => _consent = <String, bool>{..._consent, p.key: granted});
+    final bool ok = await DiminaHost.setPermission(widget.app.appId, p.key, granted);
+    if (!mounted) return;
+    if (!ok) {
+      setState(() => _consent = <String, bool>{..._consent, p.key: prev});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.apphubPermissionSaveFailed)),
+      );
     }
   }
 
@@ -386,7 +449,7 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
               theme,
               title: l10n.apphubSectionPermissions,
               child: _permissions(theme, l10n),
-              show: !_detail!.collects || _detail!.permissions.isNotEmpty,
+              show: !(_detail?.collects ?? false) || _permData.isNotEmpty,
             ),
             _section(
               theme,
@@ -617,9 +680,15 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
   }
 
   // ---- 权限与隐私 ------------------------------------------------------------
+  //
+  // 契约 v1 §7:授权级 scope=名称+说明+开关(容器 consent 置位,经 dsh/dimina
+  // 通道写容器 store);声明级/占位级=只读 chip(已声明),占位级置灰;外网
+  // 域名白名单=只读展示。容器 store 不可用(旧 dimina 依赖)时授权级同样降级
+  // 成只读——没有可写的 consent 就不摆一个永远关不掉的开关骗人。
 
   Widget _permissions(ThemeData theme, L10n l10n) {
     final bool collects = _detail?.collects ?? false;
+    final HubAppPermissions perms = _permData;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -657,35 +726,129 @@ class _ApphubAppDetailPageState extends ConsumerState<ApphubAppDetailPage> {
               ],
             ),
           ),
-        for (final _HubPermission p in _detail?.permissions ?? const <_HubPermission>[])
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Row(
+        for (final HubAppPermission p in perms.scopes)
+          if (p.authLevel) _authScopeRow(theme, l10n, p) else _declaredScopeRow(theme, l10n, p),
+        if (perms.networkDomains.isNotEmpty)
+          _domainsRow(theme, l10n, perms.networkDomains),
+      ],
+    );
+  }
+
+  /// 授权级行:名称+说明+consent 开关。consent 未查到(null)先禁用开关防
+  /// 「闪一下全关」;容器 store 不可用(false)→ 降级成只读声明 chip。
+  Widget _authScopeRow(ThemeData theme, L10n l10n, HubAppPermission p) {
+    if (_consentSupported == false) return _declaredScopeRow(theme, l10n, p);
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _permissionLeading(theme, _permissionIcon(p.key)),
+          const SizedBox(width: 11),
+          Expanded(child: _permissionTitles(theme, p)),
+          Switch(
+            value: _consent[p.key] ?? false,
+            onChanged: _consentSupported == null
+                ? null
+                : (bool granted) => unawaited(_toggleConsent(p, granted)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 声明级/占位级行:只读「已声明」chip;占位级(契约 §1:v1 容器诚实 fail)置灰。
+  Widget _declaredScopeRow(ThemeData theme, L10n l10n, HubAppPermission p) {
+    final bool muted = p.placeholderLevel;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _permissionLeading(theme, _permissionIcon(p.key), muted: muted),
+          const SizedBox(width: 11),
+          Expanded(child: _permissionTitles(theme, p, muted: muted)),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: muted
+                  ? Colors.transparent
+                  : theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(999),
+              border: muted
+                  ? Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.4))
+                  : null,
+            ),
+            child: Text(
+              l10n.apphubPermissionDeclared,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: muted ? theme.colorScheme.outline : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 外网域名白名单(契约 §2/§5):声明级只读展示,一行一个域名。
+  Widget _domainsRow(ThemeData theme, L10n l10n, List<String> domains) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _permissionLeading(theme, Icons.public_outlined),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                Text(l10n.apphubPermissionDomains, style: theme.textTheme.titleSmall),
+                for (final String domain in domains)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      domain,
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+                    ),
                   ),
-                  child: Icon(_permissionIcon(p.key), color: theme.colorScheme.primary, size: 17),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(p.title.isEmpty ? p.key : p.title, style: theme.textTheme.titleSmall),
-                      if (p.usage.isNotEmpty)
-                        Text(p.usage, style: theme.textTheme.bodySmall?.copyWith(height: 1.35)),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _permissionLeading(ThemeData theme, IconData icon, {bool muted = false}) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: muted
+            ? theme.colorScheme.surfaceContainerHighest
+            : theme.colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(
+        icon,
+        color: muted ? theme.colorScheme.outline : theme.colorScheme.primary,
+        size: 17,
+      ),
+    );
+  }
+
+  Widget _permissionTitles(ThemeData theme, HubAppPermission p, {bool muted = false}) {
+    final TextStyle? titleStyle =
+        muted ? theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.outline) : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(p.title.isEmpty ? p.key : p.title, style: titleStyle ?? theme.textTheme.titleSmall),
+        if (p.usage.isNotEmpty)
+          Text(p.usage, style: theme.textTheme.bodySmall?.copyWith(height: 1.35)),
       ],
     );
   }

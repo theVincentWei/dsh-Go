@@ -28,6 +28,7 @@ import '../common/segmented_pill.dart';
 import 'apphub_app_detail_page.dart' show ApphubAppDetailPage, HubAppRef;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
+import 'hub_app_permissions.dart';
 import 'hub_apps_group.dart' show hubAppGlyph;
 import 'hub_icon_cache.dart' show HubBundleIcon, hubIconCache;
 
@@ -45,7 +46,8 @@ class _HubApp {
         iconUrl = json['iconUrl'] as String?,
         versionCode = (json['versionCode'] as num?)?.toInt(),
         versionName = json['versionName'] as String? ?? '',
-        autoSync = json['autoSync'] == true;
+        autoSync = json['autoSync'] == true,
+        permissions = HubAppPermissions.fromJson(json['permissions']);
 
   final String appId;
   final String name;
@@ -62,6 +64,9 @@ class _HubApp {
   /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = open 时
   /// 升级跳过确认弹窗直接激活。
   final bool autoSync;
+
+  /// 权限声明(市场列表行新形态,契约 v1 §5;null=无声明,空模型)。
+  final HubAppPermissions permissions;
 }
 
 class ApphubMarketPage extends ConsumerStatefulWidget {
@@ -229,6 +234,7 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
             versionCode: app.versionCode,
             versionName: app.versionName,
             autoSync: app.autoSync,
+            permissions: app.permissions,
           ),
         ),
       ),

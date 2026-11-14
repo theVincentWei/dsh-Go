@@ -3443,6 +3443,15 @@ class L10nEn extends L10n {
   String get apphubPrivacyNoneBody => 'The developer says this mini program does not collect any of your data.';
 
   @override
+  String get apphubPermissionDeclared => 'Declared';
+
+  @override
+  String get apphubPermissionDomains => 'Allowed Domains';
+
+  @override
+  String get apphubPermissionSaveFailed => 'Couldn\'t update the permission. Try again.';
+
+  @override
   String get apphubInfoCategory => 'Category';
 
   @override

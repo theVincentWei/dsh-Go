@@ -3281,6 +3281,15 @@ class L10nZh extends L10n {
   String get apphubPrivacyNoneBody => '开发者声明：此小程序不会收集你的任何数据。';
 
   @override
+  String get apphubPermissionDeclared => '已声明';
+
+  @override
+  String get apphubPermissionDomains => '可访问域名';
+
+  @override
+  String get apphubPermissionSaveFailed => '权限状态保存失败，请重试。';
+
+  @override
   String get apphubInfoCategory => '类别';
 
   @override

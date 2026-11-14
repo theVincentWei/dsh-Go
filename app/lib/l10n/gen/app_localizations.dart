@@ -6074,6 +6074,24 @@ abstract class L10n {
   /// **'开发者声明：此小程序不会收集你的任何数据。'**
   String get apphubPrivacyNoneBody;
 
+  /// No description provided for @apphubPermissionDeclared.
+  ///
+  /// In zh, this message translates to:
+  /// **'已声明'**
+  String get apphubPermissionDeclared;
+
+  /// No description provided for @apphubPermissionDomains.
+  ///
+  /// In zh, this message translates to:
+  /// **'可访问域名'**
+  String get apphubPermissionDomains;
+
+  /// No description provided for @apphubPermissionSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'权限状态保存失败，请重试。'**
+  String get apphubPermissionSaveFailed;
+
   /// No description provided for @apphubInfoCategory.
   ///
   /// In zh, this message translates to:
