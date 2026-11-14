@@ -141,9 +141,19 @@ class _Room {
   );
 
   Future<void> open(WidgetTester tester) async {
-    await tester.pumpWidget(app(const CompanionMemoryPage()));
+    await tester.pumpWidget(app(const SizedBox()));
+    // 适配合并树：AppPage 的 actions 条只在被推入的页面(compact=false)挂载,
+    // 首路由是紧凑大标题头部。生产里本页总是从伴侣页推入,这里照实推入;
+    // 推入转场走完再交给用例,避免转场中的点按被指针门禁吞掉。
+    tester.state<NavigatorState>(find.byType(Navigator)).push(
+      MaterialPageRoute<void>(builder: (_) => const CompanionMemoryPage()),
+    );
+    // 推入转场走完再交给用例(600ms>300ms 转场);不用 pumpAndSettle,
+    // 页面里有常驻动画在这里永远不停。
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     container = ProviderScope.containerOf(tester.element(find.byType(CompanionMemoryPage)));
-    await flush(tester);
   }
 
   Future<void> close(WidgetTester tester) async {
@@ -427,7 +437,11 @@ void main() {
     final old = Completer<DshHttpResponse>();
     room.a.nextList = () => old.future;
     await room.open(tester);
-    await room.close(tester);
+    // 挂起的列表读永远不落地,整树拆除后没有可 settle 的东西,固定打帧即可。
+    await tester.pumpWidget(room.app(const SizedBox()));
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     old.complete(room.a.memories());
     await flush(tester);
     expect(tester.takeException(), isNull);
