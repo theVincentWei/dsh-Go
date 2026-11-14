@@ -1,7 +1,7 @@
 {
   "format": 1,
-  "title": { "en": "DSH Go plugin market", "zh": "DSH Go 插件市场" },
-  "description": { "en": "Plugins checked for DSH Go", "zh": "为 DSH Go 检查过的插件" },
+  "title": { "en": "Wanqi plugin market", "zh": "万器 插件市场" },
+  "description": { "en": "Plugins checked for Wanqi", "zh": "为 万器 检查过的插件" },
   "metadata": {
     "categories": {
       "media": { "title": { "en": "Media", "zh": "媒体" } },
