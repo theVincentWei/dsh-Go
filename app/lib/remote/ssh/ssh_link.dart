@@ -662,15 +662,21 @@ class SshHostLink implements HostLink {
     _closed = true;
     _delay.cancel();
     await _kickSub?.cancel();
-    await _lostSub?.cancel();
     await _muxSub?.cancel();
     _teardownTransport();
+    // 先关隧道、再退订 lost:tunnel 引擎的广播流在「订阅者已退订」时 close
+    // 的 done 永不派发(widget 测试的 FakeAsync 下 await 直接挂死——真机
+    // 事件循环无此问题,但测试与生产应同一顺序,不留一处只在真机能跑的路径)。
+    // _lost 本身看 _closed 门禁,晚退订这一瞬不会触发任何恢复。
     await _tunnel.close();
+    await _lostSub?.cancel();
     final client = _client;
     _client = null;
     if (client != null) await client.close().catchError((_) {});
-    await _statuses.close();
-    await _clients.close();
+    // 广播流的 close() 只是不再收新事件,不必等它的 done 派发:链路已终结,
+    // 残余事件照常异步送达;await 反而会在订阅者已退订时挂住调用方。
+    unawaited(_statuses.close());
+    unawaited(_clients.close());
   }
 }
 

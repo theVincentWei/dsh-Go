@@ -155,7 +155,10 @@ class SshTunnelEngine {
     _forwarder = null;
     await _extraForwarder?.close();
     _extraForwarder = null;
-    await _events.close();
+    // 事件流的 close() 同样不等 done:engine 已终结,广播流的 done 派发只是
+    // 异步收尾,await 会在订阅者已退订时挂住调用方(事件循环不转的测试区
+    // 里更是永不完成)。残余的 lost 事件无人再消费。
+    unawaited(_events.close());
   }
 
   Future<T> _withTransport<T>(Future<T> Function(SshTransport transport) action) {

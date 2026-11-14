@@ -295,9 +295,20 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
         await link.open();
       }
     } catch (_) {
-      // Shown in the progress card.
+      // Shown in the progress card. The terminal status is read straight off
+      // the link's synchronous state instead of the status stream: the
+      // subscription is cancelled in the same event-loop turn that emits the
+      // failure, so the queued terminal event can lose the race against the
+      // cancellation and never reach the card.
+      final terminal = link.status;
+      if (mounted && terminal.phase == HostLinkPhase.failed && !identical(terminal, _testStatus)) {
+        setState(() => _testStatus = terminal);
+      }
     } finally {
-      await _testSub?.cancel();
+      // 订阅退订与链路收尾都不必等:广播流的 done 在事件循环里只是异步收尾,
+      // await 会让「测试中」的转圈永远停不下来(测试的 FakeAsync 区里更是
+      // 永不完成);unawaited 之后按钮立即可点,清理照常完成。
+      unawaited(_testSub?.cancel());
       _testSub = null;
       if (identical(_test, link)) {
         _test = null;
@@ -306,7 +317,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       }
       // The remote dsh keeps running for the real connection; only our
       // test session closes.
-      await link.close();
+      unawaited(link.close().catchError((Object _) {}));
     }
   }
 
