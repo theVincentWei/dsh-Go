@@ -40,7 +40,7 @@
   "workshopAbout": "简介",
   "workshopNoDescription": "作者没有写简介。",
   "workshopSource": "来源",
-  "workshopMinApp": "需要 万器 {version} 或更新的版本。",
+  "workshopMinApp": "需要万器 {version} 或更新的版本。",
   "@workshopMinApp": {
     "placeholders": {
       "version": {

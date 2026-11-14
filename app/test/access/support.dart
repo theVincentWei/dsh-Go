@@ -20,7 +20,7 @@ import '../shell/golden_harness.dart';
 /// Every item off, on a phone that reports them all.
 const offPhone = AccessReadings(
   vendor: 'vivo',
-  appLabel: '万器', // 适配合并树:原生 label 已更名
+  appLabel: '万器',
   mic: false,
   storage: false,
   notifications: false,

@@ -1987,7 +1987,7 @@ const _samples = [
   _Card(
     id: 'sample-innkeeper',
     name: '林晚',
-    creator: 'DSH Go',
+    creator: '万器',
     tags: ['示例', '悬疑'],
     description: '雨夜小镇上一家旅店的老板娘，知道很多事，但只说一半。',
     creatorNotes: '这是一张示例卡，用来预览酒馆的界面。',
@@ -2020,7 +2020,7 @@ const _samples = [
   _Card(
     id: 'sample-navigator',
     name: '星图',
-    creator: 'DSH Go',
+    creator: '万器',
     tags: ['示例', '科幻'],
     description: '远航飞船上的导航 AI，说话简短，偶尔会讲冷笑话。',
     greetings: ['「舰桥欢迎你，舰长。航线已经算好，还有三十七个小时抵达。要听个笑话打发时间吗？」'],

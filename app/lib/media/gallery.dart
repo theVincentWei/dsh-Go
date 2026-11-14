@@ -21,16 +21,15 @@ class MediaChannel {
   final MethodChannel channel;
 
   /// Saves [bytes] (PNG, JPEG, GIF or WebP, of type [mime]) into the
-  /// gallery's DSH Go album as [name]; returns where it landed
-  /// (`Pictures/DSH Go/chart.png`).
+  /// gallery's 万器 album as [name]; returns where it landed
+  /// (`Pictures/万器/chart.png`).
   Future<String> saveImage(Uint8List bytes, {required String name, required String mime}) async =>
       await channel.invokeMethod<String>('saveImage', {'bytes': bytes, 'name': name, 'mime': mime}) ??
-      'Pictures/DSH Go/$name';
+      'Pictures/万器/$name';
 
   /// Streams an already materialized local video into the gallery.
   Future<String> saveVideoFile(String path, {required String name}) async =>
-      await channel.invokeMethod<String>('saveVideoFile', {'path': path, 'name': name}) ??
-      'Movies/DSH Go/$name';
+      await channel.invokeMethod<String>('saveVideoFile', {'path': path, 'name': name}) ?? 'Movies/万器/$name';
 
   /// The app's page in system settings (storage was refused for good).
   Future<bool> openSettings() async => await channel.invokeMethod<bool>('openSettings') ?? false;

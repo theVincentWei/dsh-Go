@@ -44,7 +44,7 @@ import '../plugins/seats/seat_probe.dart';
 import '../providers/providers_page.dart';
 import '../remote/host_status.dart';
 import '../remote/remote_screen.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -333,7 +333,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Center(child: BrandMark(size: 18, color: colors.textDisabled)),
+          child: Center(child: WanqiMark(size: 18, color: colors.textDisabled)),
         ),
       ],
     );

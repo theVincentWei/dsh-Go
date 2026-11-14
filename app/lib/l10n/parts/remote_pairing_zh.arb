@@ -5,7 +5,7 @@
   "remotePairTitle": "扫码配对电脑",
   "remotePairSubtitle": "不用注册 Remote 账号，也不会传 DeepSeek 密码或登录凭据",
   "remotePairNeedsDeepSeek": "先登录 DeepSeek 账号",
-  "remotePairNeedsDeepSeekBody": "扫码配对要先在 万器 里登录 DeepSeek 账号。配对时只附带账号 ID 用来标记这台手机，不传密码、Cookie 或 Token。",
+  "remotePairNeedsDeepSeekBody": "扫码配对要先在万器里登录 DeepSeek 账号。配对时只附带账号 ID 用来标记这台手机，不传密码、Cookie 或 Token。",
   "remotePairScanHint": "对准电脑上 Remote 插件显示的配对二维码",
   "remotePairPasteLink": "粘贴配对链接",
   "remotePairPasteEmpty": "剪贴板里没有配对链接",
@@ -53,7 +53,7 @@
     }
   },
   "remotePairFailedTitle": "没能配对",
-  "remotePairOtherServerBody": "这个二维码来自 {server}，和 万器 现在用的 Remote 服务器不同。切换过去继续吗？两个服务器的登录各自保留。",
+  "remotePairOtherServerBody": "这个二维码来自 {server}，和万器现在用的 Remote 服务器不同。切换过去继续吗？两个服务器的登录各自保留。",
   "@remotePairOtherServerBody": {
     "placeholders": {
       "server": {
@@ -63,7 +63,7 @@
   },
   "remotePairSwitchServer": "切换服务器并继续",
   "remotePairScanAgain": "重新扫码",
-  "remotePairErrInvalidCode": "这不是 万器 的配对二维码",
+  "remotePairErrInvalidCode": "这不是万器的配对二维码",
   "remotePairErrOtherServer": "这个二维码来自另一个 Remote 服务器",
   "remotePairErrUnsupported": "这个 Remote 服务器还不支持扫码配对",
   "remotePairErrExpired": "二维码已过期或已经用过了。请在电脑上重新生成二维码",

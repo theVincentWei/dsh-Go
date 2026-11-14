@@ -25,7 +25,7 @@ Pick a template and whether to show the **Question** and **Model and steps**, th
 
 ### File
 
-Choose a **Chat file** (`.dshgo`, to replay and continue in DSH Go), a **Web page** (opens in any browser, even offline) or Markdown (plain text, readable anywhere). **Preview** it if you like, then **Save** (to Download/DSH-Go) or **Share**.
+Choose a **Chat file** (`.dshgo`, to replay and continue in Wanqi), a **Web page** (opens in any browser, even offline) or Markdown (plain text, readable anywhere). **Preview** it if you like, then **Save** (to Download/DSH-Go) or **Share**.
 
 ### Text
 
@@ -46,7 +46,7 @@ If you change the range or options after creating a link, the link on the panel 
 
 ## Replay and continue
 
-Open a `.dshgo` file or DSH Go share link with DSH Go to replay it:
+Open a `.dshgo` file or Wanqi share link with Wanqi to replay it:
 
 - It plays automatically. Pause, drag the progress bar, and switch between 1×, 2× and 4×. When it ends, tap **Replay**.
 - Tap **Full chat** to see the whole conversation at once.

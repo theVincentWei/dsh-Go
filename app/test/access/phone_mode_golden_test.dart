@@ -1,4 +1,4 @@
-// Goldens for first run's 确认方式 sheet over 「想让 DSH Go 帮你做哪些事」:
+// Goldens for first run's 确认方式 sheet over 「想让万器帮你做哪些事」:
 // nothing chosen yet, and 全程自动 chosen with what stays with the person.
 //
 //   flutter test --update-goldens test/access/phone_mode_golden_test.dart

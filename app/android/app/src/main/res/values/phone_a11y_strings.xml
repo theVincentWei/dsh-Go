@@ -22,7 +22,7 @@
     <string name="overlay_unlocks_review">Review</string>
     <string name="overlay_unlock_system">system settings</string>
     <string name="overlay_unlock_secrets">passwords and codes</string>
-    <string name="overlay_unlock_own_app">DSH Go itself</string>
+    <string name="overlay_unlock_own_app">Wanqi itself</string>
     <string name="overlay_list_separator">", "</string>
     <!-- The ball's screen-reader action that stops the task. -->
     <item type="id" name="overlay_action_stop" />

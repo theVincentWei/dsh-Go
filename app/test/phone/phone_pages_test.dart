@@ -133,7 +133,7 @@ void main() {
 
       h.native!.push(phoneStatus(shizukuInstalled: true, shizukuRunning: true));
       await settlePhone(tester);
-      await tester.tap(find.text('授权给 万器'));
+      await tester.tap(find.text('授权给万器'));
       await tester.pump();
       expect(h.native!.callsOf('requestShizukuPermission'), hasLength(1));
 
@@ -162,7 +162,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('打开 Shizuku 官网'), findsNothing);
       expect(find.text('用 Sui 开启'), findsNothing);
-      await tester.tap(find.text('授权给 万器'));
+      await tester.tap(find.text('授权给万器'));
       await tester.pumpAndSettle();
       expect(h.native!.callsOf('requestShizukuPermission').single.arguments, {'provider': 'sui'});
 

@@ -79,7 +79,7 @@ void main() {
     await tester.tap(find.text('在此主机上安装'));
     await tester.pumpAndSettle();
     expect(find.byType(MarketPluginSheet), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, '需要 万器 1.0.2 或更高版本')).onPressed, isNull);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, '需要万器 1.0.2 或更高版本')).onPressed, isNull);
     expect(carrier.argsOf('pluginManager/installBundle'), isEmpty);
   });
 

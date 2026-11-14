@@ -372,7 +372,7 @@ class SafetyGate(
             }
             Decision.UNAVAILABLE -> Result.No(
                 // l10n:keep agent safety result
-                "这一步需要用户确认，但确认界面现在不可用。请用户打开 DSH Go 检查通知与手机操控设置；不要自动重试操作。",
+                "这一步需要用户确认，但确认界面现在不可用。请用户打开万器检查通知与手机操控设置；不要自动重试操作。",
                 "refused:no-gate",
             )
         }

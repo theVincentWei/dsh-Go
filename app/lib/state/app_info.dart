@@ -15,12 +15,10 @@ abstract final class AppInfo {
   }
 
   /// The app's name as the phone shows it: launcher, Recents, notifications, system
-  /// settings, the licence page and the launch overlay's wordmark. Matches
-  /// `android:label` in AndroidManifest.xml.
+  /// settings, the licence page. Matches `android:label` in AndroidManifest.xml.
   static const name = '万器';
 
-  /// The in-app wordmark: the drawer's lockup, the welcome page and the brand mark's
-  /// spoken label. The fork's own name, matching `android:label` (万器).
+  /// The in-app wordmark: the drawer's lockup and the brand mark's spoken label.
   static const wordmark = '万器';
 
   /// Required wording: the app is built on DSH but is not an official DeepSeek product.

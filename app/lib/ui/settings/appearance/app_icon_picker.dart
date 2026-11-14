@@ -11,6 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/l10n.dart';
 import '../../../state/app_icon_state.dart';
 import '../../common/pressable.dart';
+import '../../shell/wanqi_glyph.g.dart';
+import '../../shell/wanqi_mark.dart';
 import '../../theme/theme.dart';
 import '../../common/brief_notice.dart';
 
@@ -190,33 +192,36 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(_RingPainter old) => old.color != color || old.icon != icon || old.mask != mask;
 }
 
-/// How each launcher icon is drawn: its background layer (`res/drawable/
-/// ic_launcher[_<name>]_background.xml`) and the 万器 mark (silver double-line
-/// loop + thick loop + gold four-point star), the v2/v3 shipped foreground.
+/// How each launcher icon is drawn: the background layer
+/// (`res/drawable/ic_launcher[_<name>]_background.xml`, the same diagonal for the
+/// three graded ones; the default is flat navy) and the colour of the 万器 ring.
 class AppIconArt {
-  const AppIconArt._(this.from, this.to);
+  const AppIconArt._(this.from, this.to, this.ring);
 
-  /// The background gradient's ends. The default variant is v2 拍板's flat
-  /// brand navy: `from == to` paints it as one solid colour.
+  /// Top-left and bottom-right of the background (equal: a flat fill).
   final Color from;
   final Color to;
+
+  /// The ring's colour on this background; the star is gold on all four.
+  final Color ring;
 
   /// The gradient's ends in the launcher's 108 grid (ic_launcher_background.xml).
   static const start = Offset(7.57, -5.87);
   static const end = Offset(100.43, 113.87);
 
-  /// The mark's colours, as the shipped foregrounds print them
-  /// (a6adacbed: 银环 #D9D9D9 + 金星 #CEC045).
-  static const ring = Color(0xFFD9D9D9);
-  static const star = Color(0xFFCEC045);
+  /// The 万器 mark's share of the icon's square: the foreground layer's fit
+  /// (see tool/gen_android_icons.py).
+  static const markScale = 0.48;
 
   static AppIconArt of(AppIcon icon) => switch (icon) {
-    // v2 拍板: the default icon's background is the solid brand navy
-    // (shipped ic_launcher_background.xml), not the retired blue gradient.
-    AppIcon.mist => const AppIconArt._(Color(0xFF071328), Color(0xFF071328)),
-    AppIcon.night => const AppIconArt._(Color(0xFF2C3D6C), Color(0xFF0C122D)),
-    AppIcon.frost => const AppIconArt._(Color(0xFFFCFDFF), Color(0xFFDDE5F8)),
-    AppIcon.ink => const AppIconArt._(Color(0xFF292B30), Color(0xFF0D0E11)),
+    // 雾蓝: the default, a flat brand navy with the silver ring.
+    AppIcon.mist => const AppIconArt._(WanqiMark.navy, WanqiMark.navy, WanqiMark.silver),
+    // 夜幕: the night gradient with the pale lavender ring.
+    AppIcon.night => const AppIconArt._(Color(0xFF2C3D6C), Color(0xFF0C122D), Color(0xFFECEAFE)),
+    // 霜白: the frost gradient with the brand navy ring.
+    AppIcon.frost => const AppIconArt._(Color(0xFFFCFDFF), Color(0xFFDDE5F8), WanqiMark.navy),
+    // 墨: the ink gradient with the silver ring.
+    AppIcon.ink => const AppIconArt._(Color(0xFF292B30), Color(0xFF0D0E11), WanqiMark.silver),
   };
 }
 
@@ -258,8 +263,17 @@ class _IconPainter extends CustomPainter {
       ..drawRect(
         const Rect.fromLTWH(0, 0, 108, 108),
         Paint()..shader = ui.Gradient.linear(AppIconArt.start, AppIconArt.end, [art.from, art.to]),
-      )
-      .._wanqiMark()
+      );
+    // The foreground layer: the 万器 ring and star at the icon's own 48 %.
+    canvas
+      ..save()
+      ..translate(54, 54)
+      ..scale(AppIconArt.markScale)
+      ..translate(-54, -54)
+      ..drawPath(WanqiGlyph.ring, Paint()..color = art.ring)
+      ..drawPath(WanqiGlyph.star, Paint()..color = WanqiMark.gold)
+      ..restore();
+    canvas
       ..restore()
       // Half of it falls outside the clip: a 1 px line just inside the edge.
       ..drawPath(
@@ -275,69 +289,6 @@ class _IconPainter extends CustomPainter {
   @override
   bool shouldRepaint(_IconPainter old) => old.icon != icon || old.mask != mask || old.edge != edge;
 }
-
-extension _WanqiMark on Canvas {
-  /// The v3 launcher foreground: the 万器 infinity ring (thin double-line left
-  /// loop, thick right loop) in silver with the four-point gold star, from
-  /// ic_launcher_monochrome.xml's geometry. The shipped foregrounds draw the
-  /// mark at 48% of the canvas about the centre (82397ab68), so the same
-  /// bounds are fitted here: the geometry's centre (56, 48.75) lands on the
-  /// canvas centre at 0.8×.
-  void _wanqiMark() {
-    final ring = Paint()
-      ..color = AppIconArt.ring
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final star = Paint()..color = AppIconArt.star;
-    save();
-    translate(54, 54);
-    scale(0.8);
-    translate(-56, -48.75);
-    for (final (path, width) in _loops) {
-      drawPath(path, ring..strokeWidth = width);
-    }
-    drawPath(_star, star);
-    restore();
-  }
-}
-
-/// The ring's three loops (stroke width in the 108 grid) and the star, as
-/// `pathData` in ic_launcher_monochrome.xml draws them.
-final _loops = <(Path, double)>[
-  (
-    Path()
-      ..moveTo(54, 54)
-      ..cubicTo(46, 42.5, 24, 42.5, 24, 54)
-      ..cubicTo(24, 65.5, 46, 65.5, 54, 54),
-    2.6,
-  ),
-  (
-    Path()
-      ..moveTo(54, 54)
-      ..cubicTo(48, 46.6, 30, 46.6, 30, 54)
-      ..cubicTo(30, 61.4, 48, 61.4, 54, 54),
-    2.6,
-  ),
-  (
-    Path()
-      ..moveTo(54, 54)
-      ..cubicTo(61.5, 42.5, 84, 42.5, 84, 54)
-      ..cubicTo(84, 65.5, 61.5, 65.5, 54, 54),
-    9.6,
-  ),
-];
-
-final _star =
-    Path()
-      ..moveTo(79.5, 32)
-      ..lineTo(81.6, 38.4)
-      ..lineTo(88, 40.5)
-      ..lineTo(81.6, 42.6)
-      ..lineTo(79.5, 49)
-      ..lineTo(77.4, 42.6)
-      ..lineTo(71, 40.5)
-      ..lineTo(77.4, 38.4)
-      ..close();
 
 /// The launcher's icon shape at [side] × [side]: [mask] (a closed outline in
 /// 0…1 from the system) or, without one, a rounded square.

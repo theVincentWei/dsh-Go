@@ -23,9 +23,9 @@ Expand **More settings** and open this row, read the explanation and tap **Autho
 
 When authorizing through Shizuku (including Sui) or self-ADB, the app checks whether the permission was actually granted. It distinguishes an authorization request that could not be completed through the channel, an explicit system denial, and an acknowledged request that still left the permission ungranted. An explicit denial is not reported as an ADB disconnection. A temporary Shizuku or self-ADB authorization connection may close normally afterward; that alone does not mean the attempt failed. If the system denies permission, using the computer command is not guaranteed to succeed.
 
-After granting permission, turning off the accessibility service in Android settings will trigger an attempt to turn it back on. To stop phone control, turn off the switch inside DSH Go. Restoration changes only DSH Go's service entry and preserves other accessibility services.
+After granting permission, turning off the accessibility service in Android settings will trigger an attempt to turn it back on. To stop phone control, turn off the switch inside Wanqi. Restoration changes only Wanqi's service entry and preserves other accessibility services.
 
-After a system force-stop, reopen DSH Go before it can recover. Repeated failures back off to about ten minutes between attempts. This permission does not keep the app alive indefinitely or fix the underlying cause of a service crash.
+After a system force-stop, reopen Wanqi before it can recover. Repeated failures back off to about ten minutes between attempts. This permission does not keep the app alive indefinitely or fix the underlying cause of a service crash.
 
 ## Android Shell (separate authorization)
 
@@ -65,7 +65,7 @@ Expand **More settings** on the phone control page, then adjust it under **Float
 
 - **Idle opacity**: how far the capsule or the ball fades after 3 seconds untouched, 30% to 100%, 70% by default. A touch brings it back; the card and anything waiting for you stay solid. With **Collapse when idle** on, the capsule shrinks to a ball instead of fading, and the ball fades.
 - **Collapse when idle**: off by default. When on, the capsule shrinks to a ball after a few idle seconds, and opens by itself when you need to approve something.
-- **Back to DSH Go when done**: on by default. When the reply ends and the app is in the background, it tries to bring you back to that chat. If the system blocks background windows, use the notification; see Confirmations and return below.
+- **Back to Wanqi when done**: on by default. When the reply ends and the app is in the background, it tries to bring you back to that chat. If the system blocks background windows, use the notification; see Confirmations and return below.
 
 Whatever the settings, the bar closes when the reply ends.
 
@@ -88,18 +88,18 @@ Stopping phone control also stops every reply in progress on this phone's engine
 
 When you pick Phone control during first-time setup, you choose once after agreeing to the disclosure: **Ask me at key steps** (Always ask) or **Fully automatic** (Always skip). You can change it here anytime.
 
-An approval card left for 30 seconds counts as **Decline**. In every mode, system settings and permission pages, passwords and verification codes, and DSH Go itself stay with you unless turned on under **Lift limits**; apps set to Hands off are changed in **App rules**. Confirmation lists these, with links to both.
+An approval card left for 30 seconds counts as **Decline**. In every mode, system settings and permission pages, passwords and verification codes, and Wanqi itself stay with you unless turned on under **Lift limits**; apps set to Hands off are changed in **App rules**. Confirmation lists these, with links to both.
 
 ## Confirmations and return
 
 <!-- nav: commonSettings,hubSettingsPhoneControl,phoneBackgroundGuideTitle -->
 `Settings › Phone control › Confirmations and return`
 
-Once phone control is on, this row is under **More settings** on the phone control page; tap it to read the guidance again. **Open system settings** opens DSH Go's system App info page.
+Once phone control is on, this row is under **More settings** on the phone control page; tap it to read the guidance again. **Open system settings** opens Wanqi's system App info page.
 
-When a step needs your decision, DSH Go shows a card. If the card is unavailable, it tries a notification or returns to the app. Allow phone-control notifications and pop-up alerts in system settings. Some phones also offer a permission to display pop-up windows while running in the background; allowing it can help the app return. Menu names vary by system version.
+When a step needs your decision, Wanqi shows a card. If the card is unavailable, it tries a notification or returns to the app. Allow phone-control notifications and pop-up alerts in system settings. Some phones also offer a permission to display pop-up windows while running in the background; allowing it can help the app return. Menu names vary by system version.
 
-If the app doesn't return after a task finishes, tap **Task complete · View result** in the notification. If the system blocks notifications or background windows, open DSH Go yourself to see the result. Turning on **Back to DSH Go when done** doesn't guarantee that the system will allow it.
+If the app doesn't return after a task finishes, tap **Task complete · View result** in the notification. If the system blocks notifications or background windows, open Wanqi yourself to see the result. Turning on **Back to Wanqi when done** doesn't guarantee that the system will allow it.
 
 ## App rules
 
@@ -117,7 +117,7 @@ All three are off by default, and each turns on separately:
 
 - **System settings**: permissions, installers, security center, notifications.
 - **Passwords and codes**: fill in passwords, verification and payment codes. The action log shows •••• and never what was typed.
-- **DSH Go itself**: tap and type inside DSH Go.
+- **Wanqi itself**: tap and type inside Wanqi.
 
 Turning one on opens a page first: what AI can then do, what could go wrong, and the disclaimer below. Press and hold **I understand the risks, turn on** for about 1.5 seconds to apply it. Turning one off takes a single tap. Nothing can be turned on while a task is running. While any is on, the Phone control page shows **Limits lifted**, the floating bar puts a small lock before its line, and **Limits lifted** in its card brings you back here. Banking and payment apps aren't here; change them in **App rules**.
 
@@ -125,7 +125,7 @@ Disclaimer:
 
 - Once on, AI can do the above without anyone confirming.
 - AI can be misled by content in web pages, messages or files.
-- Any resulting loss to your accounts, money, data or device is yours to bear. DSH Go and its developers accept no liability.
+- Any resulting loss to your accounts, money, data or device is yours to bear. Wanqi and its developers accept no liability.
 - Turn it on only when you need it, and off when you're done.
 - We advise against turning it on for a device that holds payment or banking details.
 
@@ -143,6 +143,6 @@ Expand **More settings**. **Recent actions** logs every step, without screen con
 
 Requires Android 14 or later. Only Shizuku and Direct ADB appear initially; Root / Sui are under **More connections (Root / Sui)**. Open one connection to see only the next setup step. Opening the page or expanding an option never authorizes or switches a connection. Direct ADB instructions and manual pairing are under **Pairing help / manual entry**; after pairing, **Cannot connect?** offers manual connection-port entry. Once enabled, only the current connection is shown; expand **Change connection** to switch. Root still requires the risk notice and root-manager authorization; su never runs before that. Connection errors remain visible when options are collapsed.
 
-Keep the screen on and unlocked; Shizuku and Direct ADB also need Wi-Fi and wireless debugging. This page’s **More settings** holds connection keeping, background capacity, screen orientation and requirements. “Keep … channel” is off by default: without it, re-enable the mode after restarting the app or phone. Only turning it on allows DSH Go to try restoring this connection after disconnection, reopening the app or restarting the phone. Root requests authorization again; Shizuku / Sui use existing permission and wait for their service; Direct ADB uses existing pairing. After a system force-stop, open DSH Go yourself. Folding options changes none of these permissions or keeping settings.
+Keep the screen on and unlocked; Shizuku and Direct ADB also need Wi-Fi and wireless debugging. This page’s **More settings** holds connection keeping, background capacity, screen orientation and requirements. “Keep … channel” is off by default: without it, re-enable the mode after restarting the app or phone. Only turning it on allows Wanqi to try restoring this connection after disconnection, reopening the app or restarting the phone. Root requests authorization again; Shizuku / Sui use existing permission and wait for their service; Direct ADB uses existing pairing. After a system force-stop, open Wanqi yourself. Folding options changes none of these permissions or keeping settings.
 - **Background running**: prevents Android from turning off accessibility; opens the phone settings guide.
 - **Confirmations and return**: see confirmations and task results in time; see Confirmations and return above.

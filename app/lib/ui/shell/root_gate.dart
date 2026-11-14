@@ -22,7 +22,7 @@ import '../onboarding/setup_progress.dart';
 import '../remote/remote_screen.dart';
 import '../theme/theme.dart';
 import '../web/mode_home.dart';
-import 'brand_mark.dart';
+import 'wanqi_mark.dart';
 import 'usage_upgrade_notice.dart';
 
 /// Where a launch should start, given what is installed and configured.
@@ -423,7 +423,7 @@ class _SplashState extends State<_Splash> {
           child: AnimatedOpacity(
             opacity: _visible ? 1 : 0,
             duration: AppMotion.of(context, AppMotion.slow),
-            child: const BrandMark(size: 64, tile: true),
+            child: const WanqiMark(size: 64, disc: true),
           ),
         ),
       ),
