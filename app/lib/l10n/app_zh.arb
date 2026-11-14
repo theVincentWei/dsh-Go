@@ -8801,6 +8801,7 @@
   "askAiQuestionAllowForChat": "「本对话都允许」会放行哪些操作？怎么关掉？",
   "askAiQuestionPlugins": "插件能做什么？装第三方插件要注意什么？",
   "askAiQuestionRemote": "怎么连接自己的电脑或服务器？和用本机有什么不同？",
+  "askAiQuestionMarket": "应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？",
   "schemaDocumentationTitle": "字段说明",
   "schemaDocumentationOverview": "概述",
   "schemaDocumentationEach": "每一项",
@@ -9078,7 +9079,7 @@
     }
   },
   "shellEngineLogs": "引擎日志",
-  "shellWelcomeMessage": "把 DeepSeek 智能体\n装进口袋",
+  "shellWelcomeMessage": "万事交给万器",
   "shellGetStarted": "开始",
   "shellSearchChats": "搜索对话",
   "chatListTitle": "会话",

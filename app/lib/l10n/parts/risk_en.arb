@@ -24,5 +24,6 @@
   "askAiQuestionPhoneFiles": "With “Access phone files” on, which files can AI read and change, and how do I turn it off?",
   "askAiQuestionAllowForChat": "What does “Allow for chat” let through, and how do I turn it off?",
   "askAiQuestionPlugins": "What can plugins do, and what should I watch for with third-party ones?",
-  "askAiQuestionRemote": "How do I connect my own computer or server, and how is that different from this phone?"
+  "askAiQuestionRemote": "How do I connect my own computer or server, and how is that different from this phone?",
+  "askAiQuestionMarket": "The App market is unreachable or empty — how do I set up its backend (the wanqi service) and the plugins it needs on the host?"
 }

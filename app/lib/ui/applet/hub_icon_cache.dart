@@ -68,8 +68,16 @@ class HubIconCache {
   }
 }
 
-/// bundle 图标渲染件:拿到 bytes 直接铺(圆角透明底已烘在 PNG 里),
-/// 没有就整颗落 [fallback]。市场列表/详情、桌面瓷贴三处共用。
+/// bundle 图标的裁切形状(渲染层统一负责,不依赖 PNG 自烘):
+/// - [rounded]:27% 圆角方,与图标库 120 画布圆角 32.4 同比(市场列表/
+///   详情、桌面瓷贴、通知 Banner 的标准应用图标形);
+/// - [circle]:正圆(通知中心列表行)。
+///
+/// 旧图标把圆角烘在 PNG 里,新发的包不一定带;渲染层照裁,两种来源同一形。
+enum HubIconClip { rounded, circle }
+
+/// bundle 图标渲染件:拿到 bytes 直接铺并按 [clip] 裁切,没有就整颗落
+/// [fallback]。市场列表/详情、桌面瓷贴、通知 Banner/列表行共用。
 class HubBundleIcon extends StatelessWidget {
   const HubBundleIcon({
     super.key,
@@ -78,6 +86,7 @@ class HubBundleIcon extends StatelessWidget {
     required this.url,
     required this.fallback,
     this.size = 46,
+    this.clip = HubIconClip.rounded,
   });
 
   final String appId;
@@ -87,6 +96,10 @@ class HubBundleIcon extends StatelessWidget {
   /// 缺图时的兜底(图标库 painter 或单色字形),与有图时同尺寸占位。
   final Widget fallback;
   final double size;
+  final HubIconClip clip;
+
+  /// 圆角占比:图标库规范的 32.4/120(hub_app_icon.dart)。
+  static const double cornerRadiusRatio = 0.27;
 
   @override
   Widget build(BuildContext context) {
@@ -95,13 +108,20 @@ class HubBundleIcon extends StatelessWidget {
       builder: (BuildContext context, AsyncSnapshot<Uint8List?> snapshot) {
         final Uint8List? bytes = snapshot.data;
         if (bytes == null) return fallback;
-        return Image.memory(
+        final Widget image = Image.memory(
           bytes,
           width: size,
           height: size,
           fit: BoxFit.contain,
           filterQuality: FilterQuality.medium,
         );
+        return switch (clip) {
+          HubIconClip.rounded => ClipRRect(
+            borderRadius: BorderRadius.circular(size * cornerRadiusRatio),
+            child: image,
+          ),
+          HubIconClip.circle => ClipOval(child: image),
+        };
       },
     );
   }

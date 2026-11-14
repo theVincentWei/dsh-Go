@@ -25478,6 +25478,12 @@ abstract class L10n {
   /// **'怎么连接自己的电脑或服务器？和用本机有什么不同？'**
   String get askAiQuestionRemote;
 
+  /// No description provided for @askAiQuestionMarket.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？'**
+  String get askAiQuestionMarket;
+
   /// No description provided for @schemaDocumentationTitle.
   ///
   /// In zh, this message translates to:
@@ -26603,7 +26609,7 @@ abstract class L10n {
   /// No description provided for @shellWelcomeMessage.
   ///
   /// In zh, this message translates to:
-  /// **'把 DeepSeek 智能体\n装进口袋'**
+  /// **'万事交给万器'**
   String get shellWelcomeMessage;
 
   /// No description provided for @shellGetStarted.

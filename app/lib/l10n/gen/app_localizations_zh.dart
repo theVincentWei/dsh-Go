@@ -13928,6 +13928,9 @@ class L10nZh extends L10n {
   String get askAiQuestionRemote => '怎么连接自己的电脑或服务器？和用本机有什么不同？';
 
   @override
+  String get askAiQuestionMarket => '应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？';
+
+  @override
   String get schemaDocumentationTitle => '字段说明';
 
   @override
@@ -14514,7 +14517,7 @@ class L10nZh extends L10n {
   String get shellEngineLogs => '引擎日志';
 
   @override
-  String get shellWelcomeMessage => '把 DeepSeek 智能体\n装进口袋';
+  String get shellWelcomeMessage => '万事交给万器';
 
   @override
   String get shellGetStarted => '开始';

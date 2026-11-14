@@ -38,5 +38,6 @@
   "askAiQuestionPhoneFiles": "「访问手机文件」打开后，AI 能读写哪些文件？怎么关掉？",
   "askAiQuestionAllowForChat": "「本对话都允许」会放行哪些操作？怎么关掉？",
   "askAiQuestionPlugins": "插件能做什么？装第三方插件要注意什么？",
-  "askAiQuestionRemote": "怎么连接自己的电脑或服务器？和用本机有什么不同？"
+  "askAiQuestionRemote": "怎么连接自己的电脑或服务器？和用本机有什么不同？",
+  "askAiQuestionMarket": "应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？"
 }

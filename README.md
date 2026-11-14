@@ -194,6 +194,23 @@ DSH Go 提供聊天界面、本机运行环境和远程连接，是基于 [DeepS
 
 本地引擎默认使用 PRoot 兼容启动。开发者选项中的直接启动默认关闭，开启后的兼容性和回退方式见[常见问题](docs/guide/zh/11-faq.md)。当前 Android 构建以 APK 侧载为目标，不是 Google Play 发布配置。
 
+## 应用市场（wanqi）
+
+桌面宫格的「应用市场」列出小程序，安装与升级都在里面完成。市场页只是橱窗：列表来自引擎主机上的市场服务（AppHub，wanqi 项目的服务端，固定端口 7610）。SSH 远程主机在链路建立时自动转发该端口；仿真器与 USB 调试经 adb 反向端口；经 DSH Remote 中继连接的主机需要主机侧装好市场中继插件。主机上没有这套服务时，市场页会一直显示「AppHub 未连接」。
+
+在主机上安装市场后端与 wanqi CLI（两个仓库随万器项目提供，暂未单独公开发布；macOS 数据库用 Homebrew 的 MariaDB，没装过先 `brew install mariadb`）：
+
+```bash
+git clone <wanqi 仓库> wanqi && cd wanqi
+git clone <小程序包仓> dsh-go-miniprograms    # 与 wanqi 并列放置
+bash server/tool/install-cli.sh              # 生成 ~/.local/bin/wanqi
+wanqi service doctor                         # 体检；不健康会按依赖序自动拉起
+wanqi service start server                   # 启动市场服务端（默认端口 7610）
+wanqi bundle install ../dsh-go-miniprograms/dist/wx5b8e2f4a9c1d7e60-10.zip  # 装一个示例
+```
+
+常用命令：`wanqi service status` 看健康表、`wanqi service logs server -f` 跟日志、`wanqi bundle upgrade <zip>` 升级、`wanqi bundle rollback --app <id>` 回滚、`wanqi bundle remove --app <id>` 卸载。手机侧的用法与连不上的排查见[应用市场](docs/guide/zh/13-market.md)。
+
 ## 数据与权限
 
 模型请求会发送给你配置的提供方。开启手机操控后，任务需要的屏幕文字可能发送给模型，支持看图的模型也可能收到截图；请先阅读 App 的权限说明。

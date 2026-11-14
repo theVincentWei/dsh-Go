@@ -14643,6 +14643,10 @@ class L10nEn extends L10n {
       'How do I connect my own computer or server, and how is that different from this phone?';
 
   @override
+  String get askAiQuestionMarket =>
+      'The App market is unreachable or empty — how do I set up its backend (the wanqi service) and the plugins it needs on the host?';
+
+  @override
   String get schemaDocumentationTitle => 'Field descriptions';
 
   @override
@@ -15269,7 +15273,7 @@ class L10nEn extends L10n {
   String get shellEngineLogs => 'Engine logs';
 
   @override
-  String get shellWelcomeMessage => 'The DeepSeek agent,\nin your pocket';
+  String get shellWelcomeMessage => 'Leave it all to Wanqi';
 
   @override
   String get shellGetStarted => 'Start';

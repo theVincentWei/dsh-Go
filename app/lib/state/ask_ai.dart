@@ -54,7 +54,11 @@ enum AskAiTopic {
   plugins,
 
   /// 远程主机's page.
-  remote;
+  remote,
+
+  /// 应用市场's page: the market backend (the wanqi service) and what to
+  /// install when the page shows 未连接 or an empty list.
+  market;
 
   String get question => switch (this) {
     overview => appL10n.askAiQuestionOverview,
@@ -66,6 +70,7 @@ enum AskAiTopic {
     allowForChat => appL10n.askAiQuestionAllowForChat,
     plugins => appL10n.askAiQuestionPlugins,
     remote => appL10n.askAiQuestionRemote,
+    market => appL10n.askAiQuestionMarket,
   };
 
   /// The page of `docs/guide/<lang>/` that answers [question].
@@ -75,6 +80,7 @@ enum AskAiTopic {
     allowForChat => '01-chat',
     plugins => '08-plugins',
     remote => '03-engine-hosts',
+    market => '13-market',
   };
 }
 
