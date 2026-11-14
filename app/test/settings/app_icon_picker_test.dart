@@ -11,6 +11,7 @@ import 'dart:ui' as ui;
 
 import 'package:dsh_app/state/app_icon_state.dart';
 import 'package:dsh_app/ui/settings/appearance/app_icon_picker.dart';
+import 'package:dsh_app/ui/shell/wanqi_mark.dart';
 import 'package:dsh_app/ui/settings/settings_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -272,26 +273,52 @@ void main() {
             Color(int.parse(m.group(1)!, radix: 16)),
         ];
         final art = AppIconArt.of(icon);
+        if (colors.isEmpty) {
+          // 雾蓝 is a flat fill, not a gradient.
+          final solid = RegExp('android:fillColor="#([0-9A-Fa-f]{6,8})"').firstMatch(xml)!.group(1)!;
+          final argb = solid.length == 6 ? 'FF$solid' : solid;
+          expect(Color(int.parse(argb, radix: 16)), art.from, reason: file);
+          expect(art.from, art.to, reason: '$file is flat');
+          continue;
+        }
         expect(colors, [art.from, art.to], reason: file);
         expect(Offset(attr('startX'), attr('startY')), AppIconArt.start, reason: file);
         expect(Offset(attr('endX'), attr('endY')), AppIconArt.end, reason: file);
       }
     });
 
-    testWidgets("墨's glyph colour", (tester) async {
-      final bytes = File('$res/mipmap-xxxhdpi/ic_launcher_ink_foreground.png').readAsBytesSync();
-      final rgba = await tester.runAsync(() async {
-        final frame = await (await ui.instantiateImageCodec(bytes)).getNextFrame();
-        return (await frame.image.toByteData())!;
-      });
-      // Inside the body (108 grid (53.5, 70)), at 4 px per unit.
-      final at = (280 * 432 + 214) * 4;
-      final pixel = [for (var i = 0; i < 4; i++) rgba!.getUint8(at + i)];
-      final mono = AppIconArt.of(AppIcon.ink).mono!;
-      expect(pixel[3], 255);
-      expect(pixel[0], closeTo((mono.r * 255).round(), 2));
-      expect(pixel[1], closeTo((mono.g * 255).round(), 2));
-      expect(pixel[2], closeTo((mono.b * 255).round(), 2));
+    testWidgets('foreground colours', (tester) async {
+      int rgb(Color c) => ((c.r * 255).round() << 16) | ((c.g * 255).round() << 8) | (c.b * 255).round();
+      bool close(int a, int b) =>
+          ((a >> 16) - (b >> 16)).abs() <= 8 &&
+          (((a >> 8) & 0xFF) - ((b >> 8) & 0xFF)).abs() <= 8 &&
+          ((a & 0xFF) - (b & 0xFF)).abs() <= 8;
+      final gold = rgb(WanqiMark.gold);
+      for (final icon in AppIcon.values) {
+        final file = icon == AppIcon.mist ? 'ic_launcher_foreground' : 'ic_launcher_${icon.name}_foreground';
+        final bytes = File('$res/mipmap-xxxhdpi/$file.png').readAsBytesSync();
+        final rgba = await tester.runAsync(() async {
+          final frame = await (await ui.instantiateImageCodec(bytes)).getNextFrame();
+          return (await frame.image.toByteData())!;
+        });
+        final counts = <int, int>{};
+        for (var i = 0; i < rgba!.lengthInBytes; i += 4) {
+          if (rgba.getUint8(i + 3) < 250) continue;
+          final key = (rgba.getUint8(i) << 16) | (rgba.getUint8(i + 1) << 8) | rgba.getUint8(i + 2);
+          counts[key] = (counts[key] ?? 0) + 1;
+        }
+        var dominant = 0;
+        var best = 0;
+        counts.forEach((key, count) {
+          if (count > best) {
+            best = count;
+            dominant = key;
+          }
+        });
+        final art = AppIconArt.of(icon);
+        expect(close(dominant, rgb(art.ring)), isTrue, reason: '$file: the ring');
+        expect(counts.keys.any((key) => close(key, gold)), isTrue, reason: '$file: the star');
+      }
     });
   });
 

@@ -18,7 +18,7 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 
 import '../../l10n/l10n.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 
 /// Error correction level. M (~15 % recoverable) is the default for links.
 enum QrEcc {
@@ -600,7 +600,7 @@ class QrCodeView extends StatelessWidget {
                     width: plate.logoSide * cell,
                     height: plate.logoSide * cell,
                     child: ExcludeSemantics(
-                      child: BrandMark(key: logoKey, size: plate.logoSide * cell, tile: true),
+                      child: WanqiMark(key: logoKey, size: plate.logoSide * cell, disc: true),
                     ),
                   ),
                 ],

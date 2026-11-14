@@ -10,7 +10,7 @@ import 'package:dsh_app/state/safe_mode_state.dart';
 import 'package:dsh_app/ui/community/community_page.dart';
 import 'package:dsh_app/ui/community/community_widgets.dart';
 import 'package:dsh_app/ui/share/qr_code.dart';
-import 'package:dsh_app/ui/shell/brand_mark.dart';
+import 'package:dsh_app/ui/shell/wanqi_mark.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -91,13 +91,13 @@ void main() {
   testWidgets('without the forum hook the lead card is the project', (tester) async {
     await pump(tester);
     expect(find.text('论坛'), findsNothing);
-    expect(find.text('DSH Go'), findsOneWidget);
+    expect(find.text('万器'), findsOneWidget);
     expect(find.text('开源项目，欢迎点星'), findsOneWidget);
     // The brand glyph sits on its visual centre in the avatar circle.
-    final mark = tester.getRect(find.byType(BrandMark));
-    final circle = tester.getRect(find.ancestor(of: find.byType(BrandMark), matching: find.byType(DecoratedBox)).first);
+    final mark = tester.getRect(find.byType(WanqiMark));
+    final circle = tester.getRect(find.ancestor(of: find.byType(WanqiMark), matching: find.byType(DecoratedBox)).first);
     final centre =
-        mark.topLeft + Offset(BrandMark.visualCentre.dx * mark.width, BrandMark.visualCentre.dy * mark.height);
+        mark.topLeft + Offset(WanqiMark.visualCentre.dx * mark.width, WanqiMark.visualCentre.dy * mark.height);
     expect((centre - circle.center).distance, lessThan(0.01));
   });
 

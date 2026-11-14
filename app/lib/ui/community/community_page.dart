@@ -21,7 +21,7 @@ import '../common/overview_card.dart';
 import '../common/tile_grid.dart';
 import '../settings/settings_widgets.dart' show SettingsSection;
 import '../share/share_content.dart' show dshGoProjectUrl;
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../shell/reveal_conversation.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -94,13 +94,7 @@ class _Overview extends StatelessWidget {
       semanticLabel: l10n.botsProjectHome,
       leading: DecoratedBox(
         decoration: ShapeDecoration(color: colors.identity[0], shape: const CircleBorder()),
-        // Centred on its visual centre, not its box.
-        child: Center(
-          child: Transform.translate(
-            offset: BrandMark.opticalShift(_markSize),
-            child: const BrandMark(size: _markSize),
-          ),
-        ),
+        child: Center(child: WanqiMark(size: _markSize)),
       ),
       title: const Text(AppInfo.name),
       subtitle: Text(tagline ?? l10n.botsOpenSource),

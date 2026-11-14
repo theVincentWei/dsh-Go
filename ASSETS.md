@@ -6,7 +6,7 @@ DSH Go 的源码以 AGPL-3.0 发布（见 [LICENSE](LICENSE)），但下面这�
 
 | 素材 | 位置 | 来源 |
 |---|---|---|
-| DSH Go 品牌标识（鱼尾与气泡） | `app/assets/brand/`；由它生成的 `app/lib/ui/shell/brand_glyph.g.dart` | DSH Go 自己的品牌图形 |
+| 万器品牌标识（无穷环与金星） | `app/assets/brand/wanqi-*.svg`；由它生成的 `app/lib/ui/shell/wanqi_glyph.g.dart`（母版另存 `icon-svg/`，见用户自有品牌） | 用户自有品牌（万器），2026-11-14 统一替换掉旧的 DSH Go 鱼尾标 |
 | 安卓启动图标（万器无穷环：藏青 #071328 底 + 银环 #D9D9D9 + 金星 #CEC045，源自已退役万器.app 的图标设计） | `app/android/app/src/main/res/mipmap-*/`、`drawable/ic_launcher_background.xml`、`drawable/ic_launcher_monochrome.xml` | 用户自有品牌（万器），2026-11-12 替换 |
 | Deepy 小鲸鱼（像素鲸鱼桌宠） | 源文件 `app/tool/pet_src/deepy-whale/`；宠物包 `app/assets/pets/deepy-whale/` | DSH-TUI 的吉祥物。源文件按 [Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk) 的主题包格式制作，只沿用了它的格式 |
 | 匠匠（像素橘猫桌宠） | 源文件 `app/tool/pet_src/ponkan-cat/`（`spec.json` + `strips/` 序列帧）；宠物包 `app/assets/pets/ponkan-cat/` | 由用户提供的七动作像素猫参考图改编，动作/装饰由脚本合成。**原始参考图的授权尚未确认，确认前不要对外分发或合入主线** |
@@ -20,7 +20,7 @@ go.dshtui.com 首页（`site/home/`）由社区开发者 ClayGao233 / 采云师�
 
 仓库首页 README 用到的展示素材 `docs/assets/`（首图、社交预览图、桌宠动图、社群二维码）同样适用本页的条件：可以随本仓库一起查看和转载介绍，不要用在你自己发布的产品上。
 
-宠物包由 `app/tool/make_pet_pack.py` 从 `app/tool/pet_src/` 生成，品牌图形的代码由 `app/tool/make_brand_mark.py` 从 `app/assets/brand/` 生成。工具脚本本身和其他源码一样，以 AGPL-3.0 发布。
+宠物包由 `app/tool/make_pet_pack.py` 从 `app/tool/pet_src/` 生成，品牌图形的代码由 `app/tool/make_wanqi_mark.py` 从 `app/assets/brand/` 生成。旧的 DSH Go 鱼尾标母版（`glyph-*.svg`、`tile.svg`）已从 App 里移除，`site/` 下的副本仍按原条件归属 DSH-TUI。工具脚本本身和其他源码一样，以 AGPL-3.0 发布。
 
 伙伴小屋的 Live2D 素材不在这个仓库和 APK 里：Cubism Core（Live2D 专有许可）、Cubism Web Framework（Live2D Open Software License）和角色模型都打成单独的素材包，用时才放进手机，见 [docs/design/companion.md](docs/design/companion.md)。模型的作者和授权写在素材包的 `character.json` 里，App 菜单底部原样显示。
 

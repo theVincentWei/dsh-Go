@@ -17,7 +17,7 @@ import '../common/app_sheet.dart';
 import '../common/sheet_title_bar.dart';
 import '../settings/settings_widgets.dart' show SettingsSection;
 import '../phone/android_shell_page.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../star/star_prompt_dialog.dart' show openStarProject;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -119,7 +119,8 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
     final update = ref.read(appUpdateProvider);
     if (update.busy || update.loadingInstallStatus) return;
     if (update.installRoute == UpdateInstallRoute.shizuku &&
-        update.privilegedStatus.shizukuUid != null && update.privilegedStatus.shizukuUid != 2000) {
+        update.privilegedStatus.shizukuUid != null &&
+        update.privilegedStatus.shizukuUid != 2000) {
       return;
     }
     final rawPort = update.installRoute == UpdateInstallRoute.adb ? _adbPort.text : '';
@@ -195,8 +196,12 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(update.hasSelfUpdateResult ? l10n.updateCurrentVersion(update.current.name) :
-                    l10n.updateUpToDateVersion(update.current.name), style: theme.textTheme.bodyLarge),
+                  Text(
+                    update.hasSelfUpdateResult
+                        ? l10n.updateCurrentVersion(update.current.name)
+                        : l10n.updateUpToDateVersion(update.current.name),
+                    style: theme.textTheme.bodyLarge,
+                  ),
                   if (_selfUpdateStatus(context, update) case final status?) ...[
                     const SizedBox(height: 16),
                     status,
@@ -238,7 +243,7 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
                 children: [
                   Row(
                     children: [
-                      const BrandMark(size: 52, tile: true),
+                      const WanqiMark(size: 52, disc: true),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -254,9 +259,10 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
                   ),
                   const SizedBox(height: 16),
                   if (_status(context, update) case final status?) ...[status, const SizedBox(height: 16)],
-                  if (!update.busy && (update.task == UpdateTaskPhase.ready ||
-                      update.task == UpdateTaskPhase.needsPermission ||
-                      update.task == UpdateTaskPhase.failed && _systemInstallerHelps.contains(update.problem))) ...[
+                  if (!update.busy &&
+                      (update.task == UpdateTaskPhase.ready ||
+                          update.task == UpdateTaskPhase.needsPermission ||
+                          update.task == UpdateTaskPhase.failed && _systemInstallerHelps.contains(update.problem))) ...[
                     _routeControls(context, update),
                     const SizedBox(height: 16),
                   ],
@@ -322,11 +328,13 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
             DropdownMenuItem(value: UpdateInstallRoute.shizuku, child: Text(l10n.selfUpdateShizuku)),
             DropdownMenuItem(value: UpdateInstallRoute.adb, child: Text(l10n.selfUpdateAdb)),
           ],
-          onChanged: update.loadingInstallStatus ? null : (value) {
-            if (value == null) return;
-            _adbPort.clear();
-            controller.selectInstallRoute(value);
-          },
+          onChanged: update.loadingInstallStatus
+              ? null
+              : (value) {
+                  if (value == null) return;
+                  _adbPort.clear();
+                  controller.selectInstallRoute(value);
+                },
         ),
         const SizedBox(height: 8),
         Text(l10n.selfUpdateSecurityNote, style: small),
@@ -335,15 +343,21 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
           Text(l10n.selfUpdateNativeConfirm, style: small),
           if (route == UpdateInstallRoute.shizuku) ...[
             const SizedBox(height: 8),
-            Text(l10n.selfUpdateShizukuStatus(
-              uid != null && uid != 2000 ? l10n.selfUpdateUnsupportedIdentity :
-                status.shizukuInstalled && status.shizukuRunning && status.shizukuGranted
-                  ? l10n.selfUpdateReady : l10n.selfUpdatePermissionRequired,
-            )),
+            Text(
+              l10n.selfUpdateShizukuStatus(
+                uid != null && uid != 2000
+                    ? l10n.selfUpdateUnsupportedIdentity
+                    : status.shizukuInstalled && status.shizukuRunning && status.shizukuGranted
+                    ? l10n.selfUpdateReady
+                    : l10n.selfUpdatePermissionRequired,
+              ),
+            ),
             Text('${l10n.androidShellUid}: ${uid ?? l10n.androidShellUidUnknown}', style: small),
             TextButton(
               key: const ValueKey('update-authorize-shizuku'),
-              onPressed: update.loadingInstallStatus ? null : () => unawaited(controller.requestUpdateShizukuPermission()),
+              onPressed: update.loadingInstallStatus
+                  ? null
+                  : () => unawaited(controller.requestUpdateShizukuPermission()),
               child: Text(l10n.selfUpdateAuthorize),
             ),
           ] else ...[
@@ -365,15 +379,17 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
             ),
             TextButton(
               key: const ValueKey('update-adb-pairing'),
-              onPressed: update.loadingInstallStatus ? null : () async {
-                await Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const AndroidShellPage()));
-                if (mounted) unawaited(controller.refreshInstallStatus());
-              },
+              onPressed: update.loadingInstallStatus
+                  ? null
+                  : () async {
+                      await Navigator.of(context)
+                          .push<void>(MaterialPageRoute(builder: (_) => const AndroidShellPage()));
+                      if (mounted) unawaited(controller.refreshInstallStatus());
+                    },
               child: Text(l10n.selfUpdatePairing),
             ),
           ],
-          if (update.privilegedErrorCode case final code?)
-            Text(l10n.selfUpdateErrorCode(code), style: small),
+          if (update.privilegedErrorCode case final code?) Text(l10n.selfUpdateErrorCode(code), style: small),
           TextButton(
             onPressed: update.loadingInstallStatus ? null : () => unawaited(controller.refreshInstallStatus()),
             child: Text(l10n.selfUpdateRefresh),
@@ -393,7 +409,8 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
       SelfUpdatePendingState.pending => (l10n.selfUpdatePendingTitle, l10n.selfUpdatePendingMessage),
       SelfUpdatePendingState.unknown => (l10n.selfUpdateUnknownTitle, l10n.selfUpdateUnknownMessage),
       SelfUpdatePendingState.installed || SelfUpdatePendingState.superseded => (
-        l10n.selfUpdateVerifiedTitle, l10n.selfUpdateVerifiedVersion(update.current.name, update.current.build ?? 0),
+        l10n.selfUpdateVerifiedTitle,
+        l10n.selfUpdateVerifiedVersion(update.current.name, update.current.build ?? 0),
       ),
       _ => (l10n.selfUpdateFailedTitle, l10n.selfUpdateFailedMessage),
     };
@@ -442,7 +459,9 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
       case UpdateTaskPhase.installing:
         return _Progress(
           title: l10n.updateInstalling,
-          note: update.installRoute == UpdateInstallRoute.system ? l10n.updateConfirmInstallNote : l10n.selfUpdateNativeConfirm,
+          note: update.installRoute == UpdateInstallRoute.system
+              ? l10n.updateConfirmInstallNote
+              : l10n.selfUpdateNativeConfirm,
         );
       case UpdateTaskPhase.ready:
         final unfinished = _installUnfinished.contains(update.problem);
@@ -493,8 +512,9 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
       Text(context.l10n.selfUpdateEndWaitingNote, style: Theme.of(context).textTheme.bodySmall),
       TextButton(
         key: const ValueKey('update-end-waiting'),
-        onPressed: update.loadingInstallStatus ? null :
-          () => unawaited(ref.read(appUpdateProvider.notifier).acknowledgeUnknownSelfUpdate()),
+        onPressed: update.loadingInstallStatus
+            ? null
+            : () => unawaited(ref.read(appUpdateProvider.notifier).acknowledgeUnknownSelfUpdate()),
         child: Text(context.l10n.selfUpdateEndWaiting),
       ),
     ],
@@ -570,8 +590,7 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          pair(l10n.commonClose, close, l10n.selfUpdateReadResult,
-              () => unawaited(controller.reconcileSelfUpdate())),
+          pair(l10n.commonClose, close, l10n.selfUpdateReadResult, () => unawaited(controller.reconcileSelfUpdate())),
           if (update.selfUpdate.state == SelfUpdatePendingState.unknown && update.selfUpdate.canAcknowledge)
             _endWaiting(context, update),
         ],
@@ -641,20 +660,28 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
       case UpdateTaskPhase.installing:
         return busy(l10n.updateInstallingBusy);
       case UpdateTaskPhase.ready:
-        final unsupportedUid = update.installRoute == UpdateInstallRoute.shizuku &&
-            update.privilegedStatus.shizukuUid != null && update.privilegedStatus.shizukuUid != 2000;
-        final install = pair(l10n.commonLater, close, l10n.commonInstall,
-          update.loadingInstallStatus || !_validPort || unsupportedUid ? null :
-            () => _submitInstall(),
+        final unsupportedUid =
+            update.installRoute == UpdateInstallRoute.shizuku &&
+            update.privilegedStatus.shizukuUid != null &&
+            update.privilegedStatus.shizukuUid != 2000;
+        final install = pair(
+          l10n.commonLater,
+          close,
+          l10n.commonInstall,
+          update.loadingInstallStatus || !_validPort || unsupportedUid ? null : () => _submitInstall(),
         );
         final buttons = update.installRoute == UpdateInstallRoute.system && _installUnfinished.contains(update.problem)
-            ? withSystemInstaller(install) : install;
+            ? withSystemInstaller(install)
+            : install;
         return update.apkHere ? withExport(buttons) : buttons;
       case UpdateTaskPhase.needsPermission:
         if (update.installRoute != UpdateInstallRoute.system) {
-          return pair(l10n.commonLater, close, l10n.commonInstall,
-            update.loadingInstallStatus || !_validPort ? null :
-              () => _submitInstall());
+          return pair(
+            l10n.commonLater,
+            close,
+            l10n.commonInstall,
+            update.loadingInstallStatus || !_validPort ? null : () => _submitInstall(),
+          );
         }
         return pair(
           l10n.commonLater,
@@ -664,13 +691,24 @@ class _UpdateSheetState extends ConsumerState<UpdateSheet> {
         );
       case UpdateTaskPhase.failed:
         if (_browserOnly.contains(update.problem)) {
-          final buttons = pair(l10n.commonClose, close, l10n.updateOpenReleasePage, () => unawaited(_openPage(context, page)));
+          final buttons = pair(
+            l10n.commonClose,
+            close,
+            l10n.updateOpenReleasePage,
+            () => unawaited(_openPage(context, page)),
+          );
           return update.apkHere ? withExport(buttons) : buttons;
         }
-        final retry = pair(l10n.commonLater, close, l10n.commonRetry,
-          update.loadingInstallStatus || !_validPort ? null : () => _submitInstall(retry: true));
-        final buttons = update.installRoute == UpdateInstallRoute.system && _systemInstallerHelps.contains(update.problem)
-            ? withSystemInstaller(retry) : retry;
+        final retry = pair(
+          l10n.commonLater,
+          close,
+          l10n.commonRetry,
+          update.loadingInstallStatus || !_validPort ? null : () => _submitInstall(retry: true),
+        );
+        final buttons =
+            update.installRoute == UpdateInstallRoute.system && _systemInstallerHelps.contains(update.problem)
+            ? withSystemInstaller(retry)
+            : retry;
         return update.apkHere ? withExport(buttons) : buttons;
     }
   }

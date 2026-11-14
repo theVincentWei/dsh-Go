@@ -26,7 +26,7 @@ import '../remote/host_switcher.dart';
 import '../remote/remote_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/settings_widgets.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 
@@ -52,7 +52,7 @@ class WebMarkButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     // The mark at the weight of the page's other glyphs (22 wide in a 44
     // key), centred on its ink rather than its box.
-    final mark = size * 0.5 / BrandMark.aspect;
+    final mark = size * 0.5 / WanqiMark.aspect;
     return Semantics(
       button: true,
       label: label,
@@ -66,10 +66,7 @@ class WebMarkButton extends StatelessWidget {
             grouped: true,
             onTap: onTap,
             child: Center(
-              child: Transform.translate(
-                offset: BrandMark.opticalShift(mark),
-                child: BrandMark(size: mark, color: scheme.onSurface),
-              ),
+              child: WanqiMark(size: mark, color: scheme.onSurface),
             ),
           ),
         ),

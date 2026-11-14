@@ -14,7 +14,7 @@ import '../chat/render/markdown_body.dart';
 import '../common/tool_glyph.dart' show ToolGlyphs;
 import '../plugins/plugin_detail_sheet.dart' show PluginHero, PluginStats;
 import '../plugins/plugin_widgets.dart' show PluginAvatar;
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'qr_code.dart';
@@ -998,11 +998,11 @@ class _Footer extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        BrandLockup(fontSize: word, label: AppInfo.name, color: ink, glyphColor: onField ? Colors.white : null),
+        WanqiLockup(fontSize: word, label: AppInfo.name, color: ink, glyphColor: onField ? Colors.white : null),
         const SizedBox(height: 3),
         Padding(
           // Under the word, not the glyph.
-          padding: EdgeInsets.only(left: BrandLockup.wordInset(word)),
+          padding: EdgeInsets.only(left: WanqiLockup.wordInset(word)),
           child: Text(
             code == null ? l10n.viewShareBrandLineNoQr : l10n.viewShareBrandLine,
             maxLines: 1,
