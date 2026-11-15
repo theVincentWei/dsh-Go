@@ -10,6 +10,7 @@ import '../remote/network_watch.dart';
 import '../remote/relay/relay_backend.dart';
 import '../remote/ssh/ssh_link.dart';
 import '../remote/ssh/ssh_transport.dart';
+import '../remote/ssh/ssh_tunnel.dart';
 import '../runtime/runtime_bridge.dart';
 import '../runtime/container_paths.dart';
 import 'workspaces_state.dart';
@@ -173,9 +174,22 @@ final localConnectionProvider = AsyncNotifierProvider<LocalConnectionController,
 /// Network changes and app resumes; remote links re-check on each.
 final networkKicksProvider = Provider<Stream<void>>((ref) => networkKicks());
 
-/// Opens SSH connections (dartssh2). Overriding this (tests) pins the
-/// transport to a fake server; production connects directly.
-final sshTransportFactoryProvider = Provider<SshTransportFactory>((ref) => DartSshTransport.connect);
+/// Opens SSH connections (dartssh2). Overriding this (tests) pins the tunnel
+/// engine to the test isolate with the fake server; production keeps the
+/// default and runs the tunnel in its own isolate via
+/// [sshTunnelFactoryProvider], so SSH crypto stays off the UI thread.
+final SshTransportFactory _defaultSshTransportFactory = DartSshTransport.connect;
+
+final sshTransportFactoryProvider = Provider<SshTransportFactory>((ref) => _defaultSshTransportFactory);
+
+/// Builds the tunnel for one SSH host: the isolate engine unless a test
+/// overrode the transport factory above.
+final sshTunnelFactoryProvider = Provider<SshTunnel Function()>((ref) {
+  final transportFactory = ref.watch(sshTransportFactoryProvider);
+  return identical(transportFactory, _defaultSshTransportFactory)
+      ? IsolateSshTunnel.new
+      : () => LocalSshTunnel(SshTunnelEngine(transportFactory: transportFactory));
+});
 
 /// Builds the link for one remote host. Overridable so tests can inject fake
 /// transports.
@@ -188,7 +202,10 @@ final sshLinkFactoryProvider = Provider<SshLinkFactory>(
       config: config,
       loadSecrets: () => hosts.loadSecrets(config.id),
       pinHostKey: (key) => hosts.pinHostKey(config.id, key),
-      transportFactory: ref.read(sshTransportFactoryProvider),
+      tunnel: ref.read(sshTunnelFactoryProvider)(),
+      // A cold remote DSH answers TCP before it answers HTTP; without this the
+      // first login GET sits out the full request timeout on 「登录」.
+      waitReady: remoteDshReadyWait,
       // No prompt here: a host becomes active only after its key was
       // confirmed in the UI (test connection / host sheet), so an unknown key
       // at this point fails closed.

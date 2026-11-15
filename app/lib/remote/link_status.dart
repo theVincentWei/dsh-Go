@@ -309,8 +309,11 @@ class Backoff {
   /// Delay before the next attempt; increments [attempt].
   Duration next() {
     attempt++;
-    final exp = initial.inMilliseconds * math.pow(2, attempt - 1);
-    final capped = math.min(exp.toDouble(), max.inMilliseconds.toDouble());
+    // 用 double 起算:int 的 2^(attempt-1) 从 attempt 64 起溢出成负数,
+    // 退避不封顶的链路重连超过约一小时就会拿到回绕后的天文数字延迟
+    // (又是「卡在重连、只能杀 App」),30s 封顶必须一直是 30s 封顶。
+    final exp = initial.inMilliseconds * math.pow(2.0, attempt - 1).toDouble();
+    final capped = math.min(exp, max.inMilliseconds.toDouble());
     // Half fixed, half jitter: never zero, still spread out.
     final ms = capped / 2 + _random.nextDouble() * capped / 2;
     return Duration(milliseconds: ms.round());
