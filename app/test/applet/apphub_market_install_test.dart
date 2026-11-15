@@ -86,7 +86,7 @@ void main() {
     expect(inbox, isNotEmpty);
     // 填好等确认:问AI管线加「关于<App 品牌>App：」前缀(文案随品牌版本走,
     // DSH Go/万器 都合法),引导词原样跟随;只入队不自动发送。
-    expect(inbox.last.text, matches(RegExp(r'^关于\S*App：请在这台主机上安装万器 CLI')));
+    expect(inbox.last.text, matches(RegExp(r'^关于.+App：请在这台主机上安装万器 CLI')));
     expect(inbox.last.text, contains(apphubInstallPrompt));
     await tester.pumpWidget(const SizedBox.shrink());
   });
