@@ -8,6 +8,7 @@ import '../../l10n/l10n.dart';
 import '../../remote/relay/relay_backend.dart';
 import '../../runtime/local_footprint.dart';
 import '../../runtime/local_runtime_supported.dart';
+import '../../runtime/runtime_bridge.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/app_info.dart';
 import '../../state/connection_state.dart';
@@ -103,13 +104,19 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     if (ok && navigator.mounted) navigator.maybePop();
   }
 
-  /// A host added while this phone has nothing to run on (no runtime, first
-  /// run) is the one to use: take it at once instead of a second tap.
+  /// A host added while this phone has nothing to talk to yet — first run's
+  /// remote path, a remote-only package without a bundled runtime, a declined
+  /// or reset runtime — is the one to use: take it at once instead of a second
+  /// tap. A runtime that is installed or starting stays put: saving a host for
+  /// later must not yank the active engine.
   Future<void> _addSsh(BuildContext context, WidgetRef ref) async {
     final saved = await Navigator.of(context)
         .push<SshHostConfig>(MaterialPageRoute(builder: (_) => const SshHostFormPage()));
     if (saved == null || !context.mounted) return;
-    final nothingHere = ref.read(localRuntimeProvider).status.runtimeMissing;
+    // "Nothing here" asks whether this phone has anywhere to talk, not what
+    // the runtime reports: [runtimeMissing] also requires a bundled runtime,
+    // which a remote-only package (iOS TestFlight) never has.
+    final nothingHere = ref.read(localRuntimeProvider).status.phase == RuntimePhase.notInstalled;
     if (nothingHere && ref.read(activeHostProvider).isLocal) await _use(context, ref, HostRef.ssh(saved.id));
   }
 
