@@ -212,17 +212,27 @@ class _RootGateState extends ConsumerState<RootGate> {
   }
 
   /// 「远程主机」: the host list over the setup step. Picking a host there
-  /// (it closes itself) finishes first run without the runtime; coming back
-  /// without one returns to the choice.
+  /// (it closes itself) finishes first run without the runtime; signing in
+  /// to DSH Remote also counts — the list closes itself back here and 继续
+  /// completes without a host (pick one later from the shell's host key).
+  /// Coming back with neither returns to the choice.
   Future<void> _useRemote() async {
     if (_pickingRemote) return;
+    if (ref.read(relayAccountProvider).value?.signedIn ?? false) return _finishRemoteSetup();
     _pickingRemote = true;
     try {
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RemoteScreen()));
     } finally {
       _pickingRemote = false;
     }
-    if (!mounted || ref.read(activeHostProvider).isLocal) return;
+    await _finishRemoteSetup();
+  }
+
+  /// 远程路径收尾:选了主机,或已登录 DSH Remote(主机回主页用主机钥匙补选)。
+  Future<void> _finishRemoteSetup() async {
+    if (!mounted) return;
+    final relaySignedIn = ref.read(relayAccountProvider).value?.signedIn ?? false;
+    if (ref.read(activeHostProvider).isLocal && !relaySignedIn) return;
     if (_beside) _leaveBeside();
     await ref.read(onboardingPrefsProvider.notifier).setLocalDeclined(true);
     // What installing does on the other path: Android 13 asks about

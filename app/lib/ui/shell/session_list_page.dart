@@ -41,7 +41,6 @@ import '../safe_mode/safe_mode_banner.dart';
 import '../share/share_entry.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import '../web/mode_home.dart' show WebModeKey;
 import '../workspace/text_prompt.dart';
 import '../workspace/workspace_switcher.dart';
 import '../workspace/workspaces_page.dart';
@@ -288,7 +287,10 @@ class _SessionListPageState extends ConsumerState<SessionListPage> {
         // out of the action bar's way in multi-select.
         Positioned(
           right: 16,
-          bottom: 100,
+          // 与底栏玻璃件保持一缝(安卓观感为基准):壳层已把 bottom 覆写成
+          // 系统底距+76(=玻璃栏顶+10),安卓分毫不动,iOS 的 Home 指示条
+          // 更高,引用覆写值后自动获得同样的 10px 缝,不再贴死。
+          bottom: MediaQuery.of(context).padding.bottom,
           child: AnimatedOpacity(
             opacity: selecting ? 0 : 1,
             duration: quick,
@@ -330,14 +332,12 @@ class _TitleRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(child: Text(context.l10n.chatListTitle, style: Theme.of(context).textTheme.headlineLarge)),
-        // 模式 and 网页模式 (upstream tavern graft): companion/tavern stay one
-        // quiet pill away from the chat list, like upstream's drawer top bar.
+        // 模式 (upstream tavern graft): companion/tavern stays one quiet pill
+        // away from the chat list, like upstream's drawer top bar.
         const SizedBox(width: 8),
         const ModeKey(),
-        const SizedBox(width: 8),
-        const WebModeKey(tier: GlassTier.pill),
-        // 「服务通知」钥匙已迁走(2026-11-11 拍板:通知入口只留「小程序」桌面
-        // 页头右上角),标题行只剩工作区/搜索/视图选项三颗。
+        // 原生/网页模式切换钮不上会话列表(2026-11-15 拍板,上游 graft 带回后摘除):
+        // 进网页模式仍走抽屉脚部的地球标,返回原生走网页页内的切换钥匙。
         const SizedBox(width: 8),
         RoundKey(
           icon: AppIcons.folderOpen,

@@ -39,8 +39,34 @@ import 'ssh_host_form.dart';
 /// dsh-app starts `dsh web` over SSH and tunnels to it). Picking a host makes
 /// it the active one; the chat and the session list follow. The old Remote
 /// Web console stays as a small fallback at the bottom.
-class RemoteScreen extends ConsumerWidget {
+class RemoteScreen extends ConsumerStatefulWidget {
   const RemoteScreen({super.key});
+
+  @override
+  ConsumerState<RemoteScreen> createState() => _RemoteScreenState();
+}
+
+class _RemoteScreenState extends ConsumerState<RemoteScreen> {
+  /// 登录成功(false→true):等主机列表落定(≤6s),恰好一台直接激活再返回
+  /// (直达已连接的主页);多台/拉取失败也先回引导选择页,引导按「已登录」
+  /// 继续,主机回主页后用底栏主机钥匙补选。
+  Future<void> _onSignedIn() async {
+    for (var i = 0; i < 12; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      final s = ref.read(relayAccountProvider).value;
+      if (s == null || !s.signedIn) return;
+      if (s.hosts.isNotEmpty || s.hostsFailed) break;
+    }
+    if (!mounted) return;
+    final s = ref.read(relayAccountProvider).value;
+    if (s != null && s.hosts.length == 1 && ref.read(activeHostProvider).isLocal) {
+      final host = s.hosts.single;
+      await _use(context, ref, HostRef.relay(host.id, name: host.name));
+      return;
+    }
+    if (mounted) Navigator.of(context).maybePop();
+  }
 
   void _openConsole(BuildContext context) {
     final l10n = context.l10n;
@@ -88,11 +114,15 @@ class RemoteScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final ssh = ref.watch(hostsProvider.select((s) => s.ssh));
     final active = ref.watch(activeHostProvider);
     final signedIn = ref.watch(relayAccountProvider.select((a) => a.value?.signedIn ?? false));
+    // 登录成功(false→true)即回引导,见 [_onSignedIn]。
+    ref.listen(relayAccountProvider.select((a) => a.value?.signedIn ?? false), (prev, now) {
+      if (prev == false && now) unawaited(_onSignedIn());
+    });
     void push(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
     return AppPage.list(
       title: l10n.commonRemoteHost,
