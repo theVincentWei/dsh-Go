@@ -1,7 +1,8 @@
 // The ＋ panel (settings-ia §4.4, media-generation §4.2): tiles equal and 8
 // apart, 16 from the sides, the 本对话 card lined up with them; 权限 goes
-// through `/permission`, 计划模式 through `/plan` and `/plan off`, 确认方式
-// through `setPolicies`; and the permission pill on the composer's edge.
+// through `/permission`, 确认方式 through `setPolicies`; and the permission
+// pill on the composer's edge. 计划模式's toggle row is gone (2026-11-15 拍板,
+// 双端删除): `/plan` itself still works from the session detail state card.
 
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/state/chat_state.dart';
@@ -199,29 +200,6 @@ void main() {
       expect(harness.controllers['s1']!.commandLines, ['/permission danger-full-access']);
     });
 
-    testWidgets('计划模式 runs /plan, then /plan off', (tester) async {
-      final harness = await _openPanel(tester);
-      final toggle = find.descendant(
-        of: find.ancestor(of: find.text('计划模式'), matching: find.byType(ListPageRow)),
-        matching: find.byType(Switch),
-      );
-      expect(tester.widget<Switch>(toggle).value, isFalse);
-      await tester.tap(toggle);
-      await pumpFrames(tester);
-      expect(tester.widget<Switch>(toggle).value, isTrue);
-      await tester.tap(toggle);
-      await pumpFrames(tester);
-      expect(harness.controllers['s1']!.commandLines, ['/plan', '/plan off']);
-    });
-
-    testWidgets('a plan mode already on reads on', (tester) async {
-      await _openPanel(tester, modes: const SessionModes(preset: 'workspace-write', plan: true));
-      final toggle = find.descendant(
-        of: find.ancestor(of: find.text('计划模式'), matching: find.byType(ListPageRow)),
-        matching: find.byType(Switch),
-      );
-      expect(tester.widget<Switch>(toggle).value, isTrue);
-    });
   });
 
   group('手机操控', () {
