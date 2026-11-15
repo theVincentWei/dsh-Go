@@ -61,7 +61,7 @@
     }
   },
   "shellEngineLogs": "引擎日志",
-  "shellWelcomeMessage": "把 DeepSeek 智能体\n装进口袋",
+  "shellWelcomeMessage": "万事交给万器",
   "shellGetStarted": "开始",
   "shellSearchChats": "搜索对话",
   "chatListTitle": "会话",
@@ -498,7 +498,7 @@
   "shellJsonStringNewline": "字符串里不能直接换行",
   "shellJsonControlCharacter": "字符串里有控制字符",
   "shellJsonBadNumber": "数字格式不对",
-  "shellSkillInstallPrompt": "请在这台主机上安装 DSH Go 的界面技能 {skill}：",
+  "shellSkillInstallPrompt": "请在这台主机上安装万器的界面技能 {skill}：",
   "@shellSkillInstallPrompt": {
     "placeholders": {
       "skill": {
@@ -597,11 +597,5 @@
   "shellPanelNoPlugins": "这段对话还没有插件面板",
   "shellQuickPanel": "快捷入口",
   "shellQuickPanelHint": "在「{path}」里调整",
-  "@shellQuickPanelHint": {
-    "placeholders": {
-      "path": {
-        "type": "String"
-      }
-    }
-  }
+  "@shellQuickPanelHint": {"placeholders": {"path": {"type": "String"}}}
 }

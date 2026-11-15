@@ -21,6 +21,8 @@ val hasWholeReleaseKey = listOf("storeFile", "keyAlias").all { !keyProps.getProp
 
 // Per-ABI runtime bundles produced by runtime/build-runtime.sh.
 val runtimeOut = rootProject.file("../../runtime/out")
+// libtawcroot.so for the opt-in tawcroot launch method (runtime/tawcroot/build.py; missing = unavailable).
+val tawcrootOut = rootProject.file("../../runtime/out-tawcroot")
 
 // versionCode is the build minute, same encoding as tooling/build_number.py:
 // (year - 2026) * 10^8 + MMDDhhmm at UTC+8. tooling/build-apk.sh passes it as
@@ -66,6 +68,9 @@ android {
     }
 
     sourceSets {
+        getByName("main") {
+            jniLibs.srcDir(File(tawcrootOut, "jniLibs"))
+        }
         getByName("arm64") {
             assets.srcDir(File(runtimeOut, "arm64-v8a/assets"))
             jniLibs.srcDir(File(runtimeOut, "arm64-v8a/jniLibs"))
@@ -81,8 +86,10 @@ android {
         // nativeLibraryDir so they can be executed.
         jniLibs {
             useLegacyPackaging = true
+            // sherpa_onnx_android 1.12.36 and ORT Android 1.23.2 ship identical ORT binaries.
+            pickFirsts += "**/libonnxruntime.so"
             // Keep the Termux binaries byte-identical to runtime/out (their hashes are in the manifest).
-            keepDebugSymbols += listOf("**/libproot.so", "**/libproot-loader.so", "**/libtalloc.so", "**/libandroid-shmem.so")
+            keepDebugSymbols += listOf("**/libproot.so", "**/libproot-loader.so", "**/libtalloc.so", "**/libandroid-shmem.so", "**/libtawcroot.so")
         }
     }
 
@@ -151,8 +158,19 @@ flutter {
     source = "../.."
 }
 
+// Local JVM tests need the desktop JNI library, not Android's classes.jar.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    exclude(group = "com.microsoft.onnxruntime", module = "onnxruntime-android")
+}
+
 dependencies {
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2") // MIT
+    testImplementation("com.microsoft.onnxruntime:onnxruntime:1.23.2")
+    // Bundled Chinese OCR. SDK statistics disclosed separately; initialization is opt-in per use.
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
     testImplementation("junit:junit:4.13.2")
+    // Android stubs do not implement JSONObject in local JVM upgrade tests.
+    testImplementation("org.json:json:20240303")
 
     // .tar.xz support for the rootfs bundle.
     implementation("org.tukaani:xz:1.10")

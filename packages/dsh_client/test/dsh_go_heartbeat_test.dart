@@ -299,7 +299,13 @@ class _HostConnection {
   final WebSocket socket;
   final messages = _Inbox<Map<String, Object?>>();
   final closed = Completer<int?>();
-  void send(Map<String, Object?> message) => socket.add(jsonEncode(message));
+  void send(Map<String, Object?> message) {
+    // 心跳回包与对端关停竞速:口已关就静默丢弃(与真实服务端一致——往断掉的
+    // 连接回包只会白白报错)。合并树的客户端在某些拍上会先关旧口。
+    try {
+      socket.add(jsonEncode(message));
+    } on StateError catch (_) {}
+  }
 }
 
 class _Inbox<T> {

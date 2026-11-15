@@ -3,8 +3,11 @@
 // 测试里：控制器替身把网络调用记下来。
 
 import 'package:dsh_app/state/apphub_notices_state.dart';
+import 'package:dsh_app/ui/applet/hub_icon_cache.dart' show HubBundleIcon, HubIconClip;
 import 'package:dsh_app/ui/bots/bots_page.dart' show UnreadBadge;
+import 'package:dsh_app/ui/common/list_page_row.dart' show ListPageRow;
 import 'package:dsh_app/ui/notify/notification_center.dart';
+import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -251,6 +254,33 @@ void main() {
       await tester.tap(find.text('记账'));
       await tester.pumpAndSettle();
       expect(find.text('记账提醒'), findsOneWidget);
+    });
+
+    testWidgets('行首圆图标：该小程序的应用图标 32×32 圆裁，缺图回落铃铛圆', (tester) async {
+      final fake = FakeNotices(
+        AppHubNotices(
+          loaded: true,
+          unread: 1,
+          notices: <MiniAppNotice>[notice(6, title: '带图标的行')],
+        ),
+      );
+      await pumpPage(tester, notices: fake.initial, fake: fake);
+      await tester.pump();
+      // 行首 = 该小程序的应用图标（圆裁）。测试容器里 meta 表是真实 AppHub
+      // 请求，测试替身把它拦成 400 → 空表 → 这一行走缺图回落（铃铛圆）。
+      final HubBundleIcon icon = tester.widget<HubBundleIcon>(find.byType(HubBundleIcon));
+      expect(icon.appId, 'a1');
+      expect(icon.size, 32);
+      expect(icon.clip, HubIconClip.circle);
+      expect(tester.getSize(find.byType(HubBundleIcon)), const Size(32, 32));
+      final ListPageRow row = tester.widget<ListPageRow>(
+        find.ancestor(of: find.text('带图标的行'), matching: find.byType(ListPageRow)),
+      );
+      expect(row.leadingWidth, 40);
+      expect(
+        find.descendant(of: find.byType(ListPageRow), matching: find.byIcon(AppIcons.notifications)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('全部已读：全部移出列表、回到空态', (tester) async {

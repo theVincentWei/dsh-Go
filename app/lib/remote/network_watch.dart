@@ -31,7 +31,11 @@ Stream<void> networkKicks() {
       lifecycle = AppLifecycleListener(onResume: () => controller.add(null));
     },
     onCancel: () {
-      unawaited(connectivity?.cancel());
+      try {
+        // 与 listen 同防护:平台流在测试 zone / 特定生命周期下 cancel 会炸
+        // (MissingPluginException 一族),拆订失败等价于本来就没人监听。
+        unawaited(connectivity?.cancel().catchError((Object _) {}));
+      } catch (_) {}
       lifecycle?.dispose();
       connectivity = null;
       lifecycle = null;

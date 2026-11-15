@@ -31,7 +31,6 @@ import '../../links/launcher_entries.dart';
 import '../../links/share_intake.dart';
 import '../../pets/overlay_channel.dart' show petOverlayChannelProvider;
 import '../../pets/pet_overlay_bridge.dart';
-import '../../state/android_features.dart';
 import '../../state/compose_inbox.dart';
 import '../../state/hosts_state.dart';
 import '../../state/sessions_state.dart';
@@ -292,25 +291,15 @@ class _WebEntryHostState extends ConsumerState<WebEntryHost> {
       ref.read(appLinksProvider).add(link.appLink);
       return;
     }
-    // Read after the answer, as on the native home.
-    if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) {
-      return ComposeRequest.discardShare(share);
-    }
     final request = await ComposeRequest.fromShare(share, maxBytes: maxWebComposeBytes);
-    if (mounted) _open(request);
+    if (mounted) await _compose(request);
   }
 
   Future<void> _onEntry(LauncherEntry entry) async {
     switch (entry) {
-      case NewChatEntry(:final text):
-        // Dictation is the native composer's; Siri's supplied text still
-        // belongs in the web composer, without sending it.
-        if (mounted) {
-          final request = ref.read(operatingSystemProvider) == 'ios' && text.isNotEmpty
-              ? ComposeRequest(text: text)
-              : null;
-          await _compose(request);
-        }
+      case NewChatEntry():
+        // Dictation is the native composer's; the page starts a conversation.
+        if (mounted) await _compose(null);
       case ScreenshotEntry(:final path):
         await _onShare(
           IncomingShare(
@@ -343,11 +332,8 @@ class _WebEntryHostState extends ConsumerState<WebEntryHost> {
   /// composer.
   Future<void> _compose(ComposeRequest? request) async {
     if (!mounted || !await DiscardGuard.confirmLeave(context) || !mounted) return;
-    _open(request);
+    ref.read(webOpenProvider.notifier).request(const DshWebTarget(newSession: true), compose: request);
   }
-
-  void _open(ComposeRequest? request) =>
-      ref.read(webOpenProvider.notifier).request(const DshWebTarget(newSession: true), compose: request);
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();

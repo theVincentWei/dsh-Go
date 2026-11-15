@@ -21,6 +21,17 @@ Map<String, Object?> lifted({bool system = false, bool secrets = false, bool own
   'unlocks': {'systemPages': system, 'secretFields': secrets, 'ownApp': ownApp},
 };
 
+/// The selected task (12) has ended; another conversation's (13) is [other].
+Map<String, Object?> twoSessions(Map<String, Object?> other) => {
+  ...phoneStatus(a11y: true),
+  'taskProtocol': 1,
+  'selectedTaskId': 12,
+  'tasks': [
+    {'id': 12, 'sessionId': 'A', 'runId': '1', 'active': false},
+    {'id': 13, 'sessionId': 'B', 'runId': '1', ...other},
+  ],
+};
+
 Switch switchOf(WidgetTester tester, PhoneUnlock unlock) => tester.widget<Switch>(
   find.descendant(of: find.byKey(ValueKey('unlock-${unlock.name}')), matching: find.byType(Switch)),
 );
@@ -49,7 +60,7 @@ void main() {
       for (final (unlock, title, hint) in [
         (PhoneUnlock.systemPages, '系统设置', '含权限页、安装器、安全中心、通知栏'),
         (PhoneUnlock.secretFields, '密码和验证码', '填写密码、验证码和支付密码'),
-        (PhoneUnlock.ownApp, 'DSH Go 自身', '在 DSH Go 里点按和输入'),
+        (PhoneUnlock.ownApp, '万器自身', '在万器里点按和输入'),
       ]) {
         expect(find.text(title), findsOneWidget);
         expect(find.text(hint), findsOneWidget);
@@ -76,7 +87,7 @@ void main() {
         '免责声明',
         '开启后，AI 可以在无人确认的情况下执行上述操作。',
         'AI 可能被网页、消息或文件中的内容误导。',
-        '由此造成的账号、资金、数据或设备损失由你自行承担，DSH Go 及其开发者不承担责任。',
+        '由此造成的账号、资金、数据或设备损失由你自行承担，万器及其开发者不承担责任。',
         '建议只在需要时临时开启，用完关闭。',
         '不建议在存有支付或银行信息的设备上开启。',
         '我了解风险，开启',
@@ -163,6 +174,42 @@ void main() {
       ]);
     });
 
+    for (final (what, other) in [
+      ('still active', {'active': true}),
+      ('with a call waiting to start', {'pendingCalls': 1}),
+      ('still draining its last call', {'draining': true, 'stopped': true}),
+    ]) {
+      testWidgets('another conversation\'s task $what while the selected one ended: nothing turns on', (tester) async {
+        final native = FakePhoneNative(status: twoSessions(other), policies: lifted(ownApp: true));
+        await pumpPhone(tester, const PhoneUnlockPage(), native: native);
+        expect(find.byKey(const ValueKey('unlock-busy')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('unlock-systemPages')));
+        await tester.pumpAndSettle();
+        expect(find.byType(PhoneUnlockConfirmPage), findsNothing);
+        expect(unlockWrites(native), isEmpty);
+        await tester.tap(find.byKey(const ValueKey('unlock-ownApp')));
+        await settlePhone(tester);
+        expect(unlockWrites(native), [
+          {'ownApp': false},
+        ]);
+      });
+    }
+
+    testWidgets('another conversation\'s task: the hold goes dead, and a late one refuses the write', (tester) async {
+      final h = await pumpPhone(tester, const PhoneUnlockConfirmPage(unlock: PhoneUnlock.secretFields));
+      h.native!.status = twoSessions({'active': true});
+      await hold(tester, const Duration(milliseconds: 1600));
+      expect(unlockWrites(h.native!), isEmpty);
+      expect(find.byType(PhoneUnlockConfirmPage), findsOneWidget);
+      expect(find.text('任务进行中，结束后才能开启'), findsWidgets);
+      h.native!.push(twoSessions({'active': false}));
+      await settlePhone(tester);
+      expect(tester.widget<HoldToConfirmButton>(find.byType(HoldToConfirmButton)).enabled, isTrue);
+      h.native!.push(twoSessions({'active': true}));
+      await settlePhone(tester);
+      expect(tester.widget<HoldToConfirmButton>(find.byType(HoldToConfirmButton)).enabled, isFalse);
+    });
+
     testWidgets('a task that starts while the page is open: the hold goes dead', (tester) async {
       final h = await pumpPhone(tester, const PhoneUnlockConfirmPage(unlock: PhoneUnlock.ownApp));
       h.native!.push(phoneStatus(a11y: true, taskActive: true));
@@ -198,8 +245,12 @@ void main() {
     testWidgets('nothing lifted: no tag, the usual footnote, 未开启 on the row', (tester) async {
       await pumpPhone(tester, const PhoneControlScreen());
       expect(find.byType(UnlockedTag), findsNothing);
-      expect(find.text('密码、验证码、付款和系统设置都由你来'), findsOneWidget);
       expect(find.text('均未开启'), findsOneWidget);
+      // The self-check panel makes the lazy list taller; build the footer by scrolling to it.
+      final footnote = find.text('密码、验证码、付款和系统设置都由你来');
+      await tester.scrollUntilVisible(footnote, 200, scrollable: find.byType(Scrollable).first);
+      await settlePhone(tester);
+      expect(footnote, findsOneWidget);
     });
 
     testWidgets('something lifted: the tag under the overview opens 解除限制', (tester) async {
@@ -221,7 +272,7 @@ void main() {
       await tester.pumpAndSettle();
       final yours = find.byKey(const ValueKey('confirm-yours'));
       expect(find.descendant(of: yours, matching: find.text('这些由你来操作')), findsOneWidget);
-      for (final line in ['系统设置和权限页面', '密码和验证码', 'DSH Go 自身', '应用名单里「不碰」的 App，默认含银行、支付类']) {
+      for (final line in ['系统设置和权限页面', '密码和验证码', '万器自身', '应用名单里「不碰」的 App，默认含银行、支付类']) {
         expect(find.descendant(of: yours, matching: find.text(line)), findsOneWidget, reason: line);
       }
       expect(find.descendant(of: yours, matching: find.text('应用名单')), findsOneWidget);

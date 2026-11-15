@@ -4,6 +4,7 @@
 // JSON.
 
 import 'replay_viewer.g.dart';
+import '../state/app_info.dart';
 
 /// MIME type of the exported page.
 const conversationHtmlMime = 'text/html';
@@ -21,7 +22,7 @@ String conversationHtml(String fileText, {required String title}) {
       .replaceAll('\u2028', r'\u2028')
       .replaceAll('\u2029', r'\u2029');
   return replayViewerPage
-      .replaceFirst('__DSHGO_TITLE__', '${_escape(title)} · DSH Go')
+      .replaceFirst('__DSHGO_TITLE__', '${_escape(title)} · ${AppInfo.name}')
       .replaceFirst('__DSHGO_DATA__', data);
 }
 

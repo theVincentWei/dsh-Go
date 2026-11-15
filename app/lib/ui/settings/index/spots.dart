@@ -70,6 +70,7 @@ enum SettingsPageId {
   agentPresets,
   phone,
   phoneAppRules,
+  phoneAndroidShell,
   phoneDnd,
   phoneUnlocks,
   webSearch,
@@ -80,6 +81,7 @@ enum SettingsPageId {
   interface,
   notifications,
   voice,
+  voiceReading,
   performance,
   background,
   systemAccess,
@@ -397,6 +399,12 @@ final _pages = <SettingsPageMeta>[
     condition: SpotCondition.localEngineOn,
   ),
   SettingsPageMeta(
+    SettingsPageId.phoneAndroidShell,
+    title: (l) => l.androidShellTitle,
+    parent: SettingsPageId.phone,
+    keywords: (l) => l.androidShellEntryHint,
+  ),
+  SettingsPageMeta(
     SettingsPageId.phoneDnd,
     title: (l) => l.phoneDndTitle,
     parent: SettingsPageId.phone,
@@ -475,6 +483,13 @@ final _pages = <SettingsPageMeta>[
     group: _general,
     keywords: (l) => l.searchKwVoice,
     links: const ['voice'],
+  ),
+  SettingsPageMeta(
+    SettingsPageId.voiceReading,
+    title: (l) => l.speechVoiceTitle,
+    parent: SettingsPageId.voice,
+    keywords: (l) => l.searchKwVoiceReading,
+    links: const ['voice-reading'],
   ),
   SettingsPageMeta(
     SettingsPageId.performance,
@@ -633,6 +648,13 @@ abstract final class Spots {
     group: _general,
     title: (l) => l.localeTitle,
     keywords: (l) => l.searchKwLanguage,
+  );
+  static final autoSync = SettingSpot(
+    'auto-sync',
+    page: SettingsPageId.hub,
+    group: _general,
+    title: (l) => l.autoSyncTitle,
+    keywords: (l) => l.searchKwAutoSync,
   );
   static final askAi = SettingSpot(
     'ask-ai',
@@ -833,6 +855,18 @@ abstract final class Spots {
     keywords: (l) => l.searchKwPetDisplayWhen,
     androidOnly: true,
   );
+  static final petOverlayShows = SettingSpot(
+    'pet-overlay-shows',
+    page: SettingsPageId.pets,
+    title: (l) => l.botsPetOverlayShows,
+    keywords: (l) => l.searchKwPetOverlayShows,
+  );
+  static final petOverlayFraming = SettingSpot(
+    'pet-overlay-framing',
+    page: SettingsPageId.pets,
+    title: (l) => l.botsPetOverlayFraming,
+    keywords: (l) => l.searchKwPetOverlayFraming,
+  );
 
   // 界面.
   static final uiMode = SettingSpot(
@@ -846,6 +880,12 @@ abstract final class Spots {
     page: SettingsPageId.interface,
     title: (l) => l.hubHardwareEnterSends,
     keywords: (l) => l.hubHardwareEnterSendsHint,
+  );
+  static final chatSuggestions = SettingSpot(
+    'chat-suggestions',
+    page: SettingsPageId.interface,
+    title: (l) => l.hubChatSuggestions,
+    keywords: (l) => l.searchKwChatSuggestions,
   );
   static final tableTint = SettingSpot(
     'table-tint',
@@ -1123,6 +1163,7 @@ final _rows = <SettingSpot>[
   Spots.chatTextSize,
   Spots.foldTurns,
   Spots.language,
+  Spots.autoSync,
   Spots.askAi,
   Spots.community,
   Spots.addProvider,
@@ -1149,8 +1190,11 @@ final _rows = <SettingSpot>[
   Spots.petQuiet,
   Spots.petOutsideApp,
   Spots.petDisplayWhen,
+  Spots.petOverlayShows,
+  Spots.petOverlayFraming,
   Spots.uiMode,
   Spots.hardwareEnterSends,
+  Spots.chatSuggestions,
   Spots.tableTint,
   Spots.webApp,
   Spots.openWeb,

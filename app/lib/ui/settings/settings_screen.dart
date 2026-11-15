@@ -7,7 +7,6 @@ import '../../l10n/l10n.dart';
 import '../../runtime/local_footprint.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/account_state.dart';
-import '../../state/android_features.dart';
 import '../../state/ask_ai.dart' show askAiAvailableProvider;
 import '../../state/balance_state.dart';
 import '../../state/connection_state.dart';
@@ -45,7 +44,7 @@ import '../plugins/seats/seat_probe.dart';
 import '../providers/providers_page.dart';
 import '../remote/host_status.dart';
 import '../remote/remote_screen.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -95,8 +94,6 @@ class SettingsScreen extends ConsumerWidget {
     final engine = EngineStatusView.of(runtime);
     final colors = DshColors.of(context);
     final notifier = ref.read(settingsProvider.notifier);
-    final android = ref.watch(androidSystemFeaturesProvider);
-    final ios = ref.watch(operatingSystemProvider) == 'ios';
     final uiMode = ref.watch(uiModeProvider.select((s) => s.mode));
     final host = ref.watch(activeHostProvider);
     Widget? text(String? value, {Color? color}) =>
@@ -108,12 +105,12 @@ class SettingsScreen extends ConsumerWidget {
         ? (replyPrefsSummary(ref) == null ? l10n.commonNotSet : l10n.hubValueSet)
         : null;
     // 能力.
-    final phone = android || ios ? ref.watch(phoneProvider) : null;
-    final phoneValue = phone == null || !phone.loaded || !phone.status.ready
+    final phone = ref.watch(phoneProvider);
+    final phoneValue = !phone.loaded || !phone.status.ready
         ? null
         : !phone.status.enabled
         ? l10n.hubValueOff
-        : (ios ? phone.status.bridgeListening : phone.status.a11y.ok)
+        : phone.status.a11y.ok
         ? l10n.pluginsTurnedOn
         : l10n.hubValueOneStep;
     final plugins = ref.watch(installedPluginsProvider.select((s) => s.value?.length));
@@ -122,8 +119,8 @@ class SettingsScreen extends ConsumerWidget {
     final newApi = search == null
         ? null
         : search.valueOf(const FieldRef(WebSearchSettingsPage.webNs, ['searchProvider'])) == 'deepseek-search-api';
-    // 通用. HarmonyOS has no battery exemption to report.
-    final exempt = android ? ref.watch(batteryExemptProvider).value : null;
+    // 通用.
+    final exempt = ref.watch(batteryExemptProvider).value;
     // 主机.
     final ssh = ref.watch(hostsProvider.select((s) => s.ssh.length));
     final localEngine = ref.watch(localEngineAvailableProvider);
@@ -172,9 +169,7 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           title: l10n.hubGroupCapabilities,
           children: [
-            // 手机操控按能力显隐（用户拍板 2026-11-12：iOS 纯远程包彻底隐藏入口）。
-            // foundation 的 _buildIOS 能力保留在代码里，入口恢复时改回 `android || ios`。
-            if (android)
+            if (localEngine)
               SettingsTile(
                 icon: AppIcons.phoneControl,
                 tint: SettingsHues.abilities,
@@ -292,15 +287,13 @@ class SettingsScreen extends ConsumerWidget {
               value: ssh == 0 ? null : Text(l10n.hubValueHosts(ssh)),
               onTap: () => _push(context, const RemoteScreen()),
             ),
-            // 引擎参数按能力显隐（同上拍板）：无本机引擎不出现（连置灰都不要）。
-            if (localEngine)
-              SettingsTile(
-                icon: AppIcons.configure,
-                tint: SettingsHues.hosts,
-                spot: SettingsIndex.entry(SettingsPageId.engineParams),
-                value: Text(hostName),
-                onTap: () => _push(context, const EngineSettingsHubPage()),
-              ),
+            SettingsTile(
+              icon: AppIcons.configure,
+              tint: SettingsHues.hosts,
+              spot: SettingsIndex.entry(SettingsPageId.engineParams),
+              value: Text(hostName),
+              onTap: () => _push(context, const EngineSettingsHubPage()),
+            ),
           ],
         ),
         SettingsSection(
@@ -340,7 +333,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Center(child: BrandMark(size: 18, color: colors.textDisabled)),
+          child: Center(child: WanqiMark(size: 18, color: colors.textDisabled)),
         ),
       ],
     );

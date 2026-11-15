@@ -105,6 +105,7 @@ class _SheetBundle extends CachingAssetBundle {
 }
 
 void main() {
+  setUp(quietSeamChannels);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('an unavailable native plugin never activates an event channel', (tester) async {
@@ -285,8 +286,9 @@ void main() {
           final widths = <double>[];
           for (final mode in PerformanceMode.values) {
             final row = find.byKey(ValueKey('performance-mode-${mode.name}'));
-            await tester.ensureVisible(row);
-            await tester.pumpAndSettle();
+            // 适配合并树: ensureVisible 的滚动力学(AppPage 浮栏头部 + 快照
+            // 保活)会让后续 tap 打在错位的旧帧上,而 320x1400 的窗口里三行
+            // 本就完整可见,滚不滚都在场——直接量与点。
             final rect = tester.getRect(row);
             expect(rect.height, greaterThanOrEqualTo(48));
             expect(rect.left, closeTo(16, 0.01));

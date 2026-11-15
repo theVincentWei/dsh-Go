@@ -125,7 +125,9 @@ void main() {
       ),
     );
     await pumpFrames(tester);
-    expect(find.byType(AppBackdrop), findsOneWidget);
+    // 适配合并树:真实 HomeShell 有两层 AppBackdrop——页面自己的 + 壁纸层
+    // (拍板:全局壁纸),上游单层断言改为两层。
+    expect(find.byType(AppBackdrop), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 

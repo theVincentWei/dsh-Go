@@ -9,9 +9,9 @@ import '../../state/settings_state.dart';
 import '../chat/balance_widgets.dart' show BalanceSettingsLine;
 import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
+import '../common/local_engine_gate.dart';
 import '../common/overview_card.dart';
 import '../onboarding/api_key_page.dart';
-import '../settings/credential_recovery_dialog.dart';
 import '../settings/settings_widgets.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -114,8 +114,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    // The account page works against remote hosts too — no local-engine gate.
-    return _page(context);
+    // Local-engine page: a declined phone gets the short notice instead.
+    return LocalEngineGate(title: context.l10n.engineAccountTitle, child: _page(context));
   }
 
   Widget _page(BuildContext context) {
@@ -518,11 +518,6 @@ Future<void> manageApiKey(BuildContext context, WidgetRef ref) async {
           ],
         ),
       );
-      if (ok != true) return;
-      try {
-        await ref.read(settingsProvider.notifier).setApiKey('');
-      } catch (e) {
-        if (!context.mounted || !await offerCredentialRecovery(context, ref, e)) rethrow;
-      }
+      if (ok == true) await ref.read(settingsProvider.notifier).setApiKey('');
   }
 }

@@ -10,6 +10,7 @@ import '../../state/browser_source.dart';
 import '../chat/artifact_preview.dart';
 import '../files/workspace_browser.dart';
 import 'session_artifacts.dart';
+import 'workspace_upload.dart';
 
 /// `1.2 KB` / `340 B` / `3.4 MB`.
 String formatBytes(int bytes) {
@@ -42,6 +43,8 @@ class _WorkspaceFilesTabState extends ConsumerState<WorkspaceFilesTab> with Auto
       // Delivered and generated files (possibly outside the workspace): on top at the root.
       header: (rel) => [
         if (rel.isEmpty) SliverToBoxAdapter(child: SessionArtifactsSection(sessionId: widget.sessionId)),
+        // Uploads land at the workspace root: offered there only.
+        if (rel.isEmpty) SliverToBoxAdapter(child: WorkspaceUploadRow(sessionId: widget.sessionId)),
       ],
       builder: (context, slivers, refresh) => RefreshIndicator(
         onRefresh: refresh,

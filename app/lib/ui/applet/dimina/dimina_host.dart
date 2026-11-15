@@ -261,6 +261,41 @@ final class DiminaHost {
         'appId': appId,
       });
 
+  /// 容器 consent 查询(平台权限契约 v1 §6/§7):
+  /// `{supported: bool, scopes: {scope: granted}}`。
+  /// supported=false = 容器侧 MiniProgramPermissionStore 不可用(旧 dimina
+  /// 依赖/老原生),调用方按只读降级;null = 通道异常,同义降级。
+  static Future<Map<String, Object?>?> permissionState(String appId) async {
+    try {
+      return await _channel.invokeMapMethod<String, Object?>('getPermissionState',
+          <String, Object?>{'appId': appId, 'dark': themeDark});
+    } on PlatformException catch (error) {
+      debugPrint('[dimina] permissionState unsupported: ${error.code}');
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  /// 写容器 consent(授权级 scope 的详情页开关):true = 已落容器 store。
+  /// false = 容器 store 不可用/写失败,调用方回滚开关显示。
+  static Future<bool> setPermission(String appId, String scope, bool granted) async {
+    try {
+      return await _channel.invokeMethod<bool>('setPermission', <String, Object?>{
+            'appId': appId,
+            'scope': scope,
+            'granted': granted,
+            'dark': themeDark,
+          }) ??
+          false;
+    } on PlatformException catch (error) {
+      debugPrint('[dimina] setPermission unsupported: ${error.code}');
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   /// autoSync 静默同步(autoSync 扩展):不拉任何界面,容器后台把
   /// [updateManifestUrl] 描述的包装到本机——没装 → 首装进 active;已装旧版 →
   /// 拉新包并**跳过升级确认弹窗**直接激活。返回

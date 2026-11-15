@@ -13,6 +13,7 @@ import 'package:dsh_app/ui/workspace/directory_picker.dart';
 import 'package:dsh_app/ui/workspace/workspaces_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../shell/golden_harness.dart';
 import 'support.dart';
@@ -43,6 +44,8 @@ Future<void> _open(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   // The 聊天 tab on dsh-app: the title row, a pinned conversation, then days.
   goldenBoth(
     'chat_tab_workspace',

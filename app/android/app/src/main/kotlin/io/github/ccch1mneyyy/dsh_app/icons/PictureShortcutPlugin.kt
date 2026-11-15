@@ -126,7 +126,7 @@ internal object PictureShortcuts {
 
     fun label(raw: String?): String {
         val clean = raw.orEmpty().replace(Regex("\\s+"), " ").trim()
-        if (clean.isEmpty()) return "DSH Go"
+        if (clean.isEmpty()) return "万器"
         return if (clean.codePointCount(0, clean.length) <= MAX_LABEL) clean
         else clean.substring(0, clean.offsetByCodePoints(0, MAX_LABEL))
     }

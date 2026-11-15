@@ -18,6 +18,7 @@ import 'package:dsh_app/state/chat_state.dart';
 import 'package:dsh_app/ui/share/share_image_page.dart';
 import 'package:dsh_app/ui/share/share_panel.dart';
 import 'package:dsh_app/ui/shell/session_search_page.dart';
+import 'package:dsh_app/ui/shell/session_list_page.dart' show SessionTile;
 import 'package:dsh_app/ui/terminal/terminal_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -96,6 +97,9 @@ void main() {
     keyboard: 200,
     only: const [Brightness.light],
     before: (tester) async {
+      // 适配合并树: 首页是三 tab 的会话列表,聊天页要靠点会话行推入。
+      await tester.tap(find.byType(SessionTile).first);
+      await pumpFrames(tester, 8);
       await tester.showKeyboard(find.byType(EditableText).first);
       await pumpFrames(tester, 8);
     },
@@ -108,27 +112,26 @@ void main() {
     (b) => homeApp(brightness: b),
     keyboard: 200,
     before: (tester) async {
+      // 适配合并树: 同上,先推入聊天页再进键盘。
+      await tester.tap(find.byType(SessionTile).first);
+      await pumpFrames(tester, 8);
       await tester.showKeyboard(find.byType(EditableText).first);
       await tester.enterText(find.byType(EditableText).first, '第一行\n第二行\n第三行\n第四行\n第五行\n第六行');
       await pumpFrames(tester, 8);
     },
   );
-  _golden(
-    'phone_drawer',
-    phoneLeft,
-    (b) => homeApp(brightness: b),
-    only: const [Brightness.light],
-    before: (tester) async {
-      await tester.tap(find.byKey(const ValueKey('chat-menu')));
-      await pumpFrames(tester, 8);
-    },
-  );
+  // (phone_drawer 退役: 合并树里聊天页是推入路由,≡ 抽屉键随 onOpenDrawer
+  // 缺省而消失,手机尺寸没有聊天侧抽屉——抽屉内容成了聊天 tab 列表,由
+  // phone_chat(现为会话列表)与 test/drawer 的金图覆盖。)
   _golden(
     'phone_detail_page',
     phoneLeft,
     (b) => homeApp(brightness: b),
     only: const [Brightness.light],
     before: (tester) async {
+      // 适配合并树: 先推入聊天页,再开对话详情。
+      await tester.tap(find.byType(SessionTile).first);
+      await pumpFrames(tester, 8);
       SessionDetailPage.open(tester.element(find.byType(ChatScreen)), 's1');
       await pumpFrames(tester, 10);
     },

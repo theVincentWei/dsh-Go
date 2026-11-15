@@ -3,8 +3,9 @@
 //
 //   share sheet        a lone `.dshgo` file or a share link → the share-code
 //                      importer (as if opened); a hosted conversation link →
-//                      its replay; anything else → 新对话 with the text and
-//                      attachments in the composer, not sent
+//                      its replay; a lone character card → 酒馆; anything
+//                      else → 新对话 with the text and attachments in the
+//                      composer, not sent
 //   launcher shortcut  新对话 / 语音输入 → 新对话 (listening) · a recent
 //                      conversation → that conversation, on its host
 //   Quick Settings     新对话
@@ -19,7 +20,7 @@
 // onboarding they are held, natively and in the bridges.
 
 import 'dart:async';
-import 'dart:io' show Platform;
+import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -29,13 +30,13 @@ import '../../l10n/l10n.dart';
 import '../../links/app_links.dart';
 import '../../links/launcher_entries.dart';
 import '../../links/share_intake.dart';
-import '../../state/android_features.dart';
 import '../../state/attachments.dart';
 import '../../state/compose_inbox.dart';
 import '../../state/draft_store.dart';
 import '../../state/hosts_state.dart';
 import '../../state/sessions_state.dart';
 import '../common/discard_guard.dart';
+import '../tavern/tavern_intake.dart';
 
 /// Draws nothing. Put it once in the home shell's stack, next to [LinkHost].
 class SystemEntryHost extends ConsumerStatefulWidget {
@@ -61,13 +62,11 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
     _entries = ref.read(launcherBridgeProvider).entries.listen((entry) => unawaited(_onEntry(entry)));
     _offFiles = ref.read(linkRouterProvider).registerFileFallback(_onFile);
     // iOS share intake: the ShareExtension saves the share into the shared
-    // container and opens `dshgo://ios-share-inbox` (ShareInbox.wakeUp) to
-    // bring the app forward; the link carries nothing and is swallowed here
-    // (the share itself arrives over dsh/share, _shares above; the inbox
-    // folders are emptied on the app coming to the front). Android never
-    // opens this link.
+    // container and opens `dshgo://intake` to bring the app forward; the link
+    // carries nothing and is swallowed here (the share itself arrives over
+    // dsh/share, _shares above). Android never opens this link.
     if (!kIsWeb && Platform.isIOS) {
-      _offIntake = ref.read(linkRouterProvider).registerLinkHandler('ios-share-inbox', (_) async => true);
+      _offIntake = ref.read(linkRouterProvider).registerLinkHandler('intake', (_) async => true);
     }
     ref.listenManual(recentShortcutsProvider, (_, recents) {
       if (recents != null) {
@@ -99,21 +98,21 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
       ref.read(appLinksProvider).add(link.appLink);
       return;
     }
-    // Read after the answer: shares arriving behind an unanswered 「放弃修改？」
-    // wait in the cache, not in memory.
-    await _showChat();
-    if (!mounted) return ComposeRequest.discardShare(share);
+    // A lone character card goes to 酒馆.
+    if (share.files case [final file]
+        when share.skipped.isEmpty && await isTavernCardFile(File(file.path), file.name)) {
+      final ui = ref.read(linkRouterProvider).context ?? (mounted ? context : null);
+      if (ui != null && ui.mounted) await openTavernCardFile(ui, ref, File(file.path), file.name);
+      return;
+    }
     final request = await ComposeRequest.fromShare(share, heldBytes: _heldDraftBytes);
-    if (mounted) ref.read(composeInboxProvider.notifier).push(request);
+    if (mounted) await _compose(request);
   }
 
   /// Bytes the draft this arrival lands in already holds; share loading checks
   /// the message's whole budget before buffering anything.
   int get _heldDraftBytes {
-    // iOS shares always merge into the new-chat draft, even when another
-    // conversation is selected. Its attachments own the pre-read budget.
-    final key = ref.read(operatingSystemProvider) == 'ios' ? 'new' : ref.read(currentSessionProvider) ?? 'new';
-    final draft = ref.read(draftStoreProvider).drafts[key];
+    final draft = ref.read(draftStoreProvider).drafts[ref.read(currentSessionProvider) ?? 'new'];
     return totalAttachmentBytes(draft?.attachments ?? const []);
   }
 
@@ -186,12 +185,8 @@ class _SystemEntryHostState extends ConsumerState<SystemEntryHost> {
   /// with unsaved edits open, it still lands there, ready for when they're
   /// back.
   Future<void> _compose(ComposeRequest request) async {
-    final revealed = await _showChat();
-    if (!mounted) return;
-    // Siri dictation needs the visible composer. Keeping an edit page open
-    // cancels this voice request; text and files may still wait in its draft.
-    if (!revealed && request.voice && ref.read(operatingSystemProvider) == 'ios') return;
-    ref.read(composeInboxProvider.notifier).push(request);
+    await _showChat();
+    if (mounted) ref.read(composeInboxProvider.notifier).push(request);
   }
 
   /// Back to the chat: pages and sheets above it closed (unsaved edits only

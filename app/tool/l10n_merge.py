@@ -203,8 +203,6 @@ def main(argv):
     areas = set()
     # Match selected suffixes longest first: an area may itself contain '_'.
     for filename in os.listdir(PARTS):
-        if filename.startswith('._'):  # macOS AppleDouble metadata, not an ARB input.
-            continue
         for lang in sorted(langs, key=len, reverse=True):
             suffix = f'_{lang}.arb'
             if filename.endswith(suffix):
@@ -275,7 +273,7 @@ def main(argv):
     else:
         selected_outputs = {f'app_{lang}.arb' for lang in langs}
         unexpected = sorted(f for f in os.listdir(L10N)
-                            if f.endswith('.arb') and not f.startswith('._') and f not in selected_outputs)
+                            if f.endswith('.arb') and f not in selected_outputs)
         if unexpected:
             errors.append('unselected merged catalogs: ' + ', '.join(unexpected) +
                           '; use a clean checkout or remove these generated files deliberately')
@@ -289,7 +287,8 @@ def main(argv):
     if check_only:
         return 0
     for lang in langs:
-        with open(os.path.join(L10N, f'app_{lang}.arb'), 'w', encoding='utf-8') as f:
+        # LF on every platform: Windows would write CRLF, and CI diffs against LF.
+        with open(os.path.join(L10N, f'app_{lang}.arb'), 'w', encoding='utf-8', newline='\n') as f:
             json.dump(merged[lang], f, ensure_ascii=False, indent=2)
             f.write('\n')
     if no_gen:

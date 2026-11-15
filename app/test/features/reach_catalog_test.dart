@@ -1,6 +1,8 @@
 import 'package:dsh_app/state/bots_state.dart';
 import 'package:dsh_app/state/session_search.dart';
 import 'package:dsh_app/state/sessions_state.dart';
+import 'package:dsh_app/state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
+import 'package:dsh_app/ui/applet/hub_apps_group.dart' show HubInstalledApp, HubInstalledController, hubInstalledProvider;
 import 'package:dsh_app/ui/common/tile_grid.dart';
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/feature_catalog.dart';
@@ -14,6 +16,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../search/support.dart';
 import '../shell/golden_harness.dart';
+
+/// 适配合并树(万器 AppHub):页面读已装小程序清单来定目录 settled 态,
+/// 测试喂空清单(等价「无小程序」),避免真实 provider 卡在加载。
+class _FixedInstalled extends HubInstalledController {
+  @override
+  Future<List<HubInstalledApp>> build() async => const [];
+}
 
 FeatureItem item(String id) => [
   ...featureSections.expand((section) => section.items),
@@ -92,6 +101,12 @@ void main() {
       goldenApp(
         brightness: Brightness.light,
         overrides: [
+          hubInstalledProvider.overrideWith(_FixedInstalled.new),
+          // 适配合并树(万器 AppHub):渲染侧传 sections,注册者(sync)读
+          // provider——两边必须同源,目录才一致(test/hub 惯例)。
+          featureSectionsProvider.overrideWithValue([
+            FeatureSection('主机与设置', [item('search')]),
+          ]),
           sessionsProvider.overrideWith(() => SearchSessions(sampleSearchSessions())),
           sessionContentSearchProvider.overrideWithValue(backend),
           currentSessionProvider.overrideWith(() => FakeCurrentSession('s1')),
@@ -117,6 +132,9 @@ void main() {
       ),
     );
     final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+    // 适配合并树:激活 keep-alive 注册者(生产在 DshApp 根装配 watch 一次),
+    // 目录经它整批同步进引擎注册表,桌面画布才有得画。
+    container.read(hubDesktopSyncProvider);
     await tester.tap(find.text('首页入口'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('搜索对话'));

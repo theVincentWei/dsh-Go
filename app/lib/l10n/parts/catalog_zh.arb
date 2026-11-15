@@ -149,6 +149,9 @@
   "apphubVersionPrefix": "版本",
   "apphubPrivacyNone": "不收集任何数据",
   "apphubPrivacyNoneBody": "开发者声明：此小程序不会收集你的任何数据。",
+  "apphubPermissionDeclared": "已声明",
+  "apphubPermissionDomains": "可访问域名",
+  "apphubPermissionSaveFailed": "权限状态保存失败，请重试。",
   "apphubInfoCategory": "类别",
   "apphubInfoSize": "大小",
   "apphubInfoCompatibility": "兼容性",
@@ -159,8 +162,8 @@
   "catalogCurrentChat": "当前对话",
   "catalogPlanGoal": "计划与目标",
   "catalogPlanGoalSummary": "目标、计划与待办",
-  "catalogSubagents": "子代理",
-  "catalogSubagentsSummary": "谱系与状态，点开接着聊",
   "catalogReference": "引用文件和对话",
-  "catalogReferenceSummary": "在输入框用 @ 引用"
+  "catalogReferenceSummary": "在输入框用 @ 引用",
+  "catalogSubagents": "子代理",
+  "catalogSubagentsSummary": "谱系与状态，点开接着聊"
 }

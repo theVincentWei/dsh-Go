@@ -60,9 +60,21 @@ void main() {
   testWidgets('问 AI in the bar asks how to connect a computer', (tester) async {
     seed(HostRef.local);
     usePhoneSurface(tester);
+    // 合并树的 AppPage:根路由页面是 compact 头,浮栏(带 actions)只在被
+    // push 的页面上出现——真机里远程主机页正是从主机切换器 push 进来的,
+    // 所以这里按同一形态先挂一个壳页再 push RemoteScreen。
     await tester.pumpWidget(
       goldenApp(
-        home: const RemoteScreen(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RemoteScreen())),
+                child: const Text('Open remote'),
+              ),
+            ),
+          ),
+        ),
         brightness: Brightness.light,
         overrides: [
           secretStoreProvider.overrideWithValue(MemorySecretStore()),
@@ -77,12 +89,14 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Open remote'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('问 AI'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     final c = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
     expect(c.read(composeInboxProvider).single.text, '/dsh-go-guide 怎么连接自己的电脑或服务器？和用本机有什么不同？');
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   testWidgets('the startup preference stays out of the way until a remote host exists', (tester) async {
     SharedPreferences.setMockInitialValues({});

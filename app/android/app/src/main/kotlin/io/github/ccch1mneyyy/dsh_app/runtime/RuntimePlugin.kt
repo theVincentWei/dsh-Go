@@ -74,7 +74,8 @@ class RuntimePlugin :
             "getStatus" -> result.success(controller.status())
             "publishDiagnostics" -> {
                 val markdown = call.argument<String>("markdown")
-                result.success(if (markdown == null || markdown.length > 256 * 1024) null else controller.publishDiagnostics(markdown))
+                val manual = call.argument<Any?>("manual") == true
+                result.success(if (markdown == null || markdown.length > 256 * 1024) null else controller.publishDiagnostics(markdown, manual = manual))
             }
             "installManagedSkill" -> {
                 val owner = managedSkillOwner
@@ -159,6 +160,14 @@ class RuntimePlugin :
                     result.error("launch_method_unavailable", error.message, null)
                 }
             }
+            "setTawcEngine" -> {
+                try {
+                    controller.setTawcEngine(call.argument<Boolean>("enabled") == true)
+                    result.success(null)
+                } catch (error: IllegalStateException) {
+                    result.error("launch_method_unavailable", error.message, null)
+                }
+            }
             "failureLog" -> result.success(controller.failureLog())
             "batteryExempt" -> {
                 val pm = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -184,8 +193,7 @@ class RuntimePlugin :
             "requestStorage" -> requestStorage(result)
             "openAllFilesAccess" -> {
                 val intent = PhoneStorage.allFilesAccessIntent(appContext)
-                if (intent != null) runCatching { appContext.startActivity(intent) }
-                result.success(intent != null)
+                result.success(intent != null && runCatching { appContext.startActivity(intent) }.isSuccess)
             }
             else -> result.notImplemented()
         }

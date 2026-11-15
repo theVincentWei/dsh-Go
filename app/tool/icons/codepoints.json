@@ -235,5 +235,10 @@
  "desktop": 57577,
  "desktopTower": 57578,
  "computerTower": 57579,
- "hardDrives": 57580
+ "hardDrives": 57580,
+ "speakerHigh": 57581,
+ "phone": 57582,
+ "phoneDisconnect": 57583,
+ "microphoneSlash": 57584,
+ "ear": 57585
 }

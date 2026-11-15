@@ -132,15 +132,29 @@ void main() {
     carrier.handlers['pluginManager/listBundles'] = (_) => <Object?>[];
     carrier.handlers['pluginInventory/list'] = (_) => {'entries': <Object?>[]};
     usePhoneView(tester);
+    // 合并树的 AppPage:根路由页面是 compact 头,浮栏(带 actions)只在被
+    // push 的页面上出现——真机里插件页正是从入口 push 进来的,所以这里按
+    // 同一形态先挂一个壳页再 push PluginsScreen。
     await tester.pumpWidget(
       testApp(
-        const PluginsScreen(),
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PluginsScreen())),
+                child: const Text('Open plugins'),
+              ),
+            ),
+          ),
+        ),
         overrides: [
           ...pluginOverrides(fakeHost(client), selectHost: false),
           activeHostProvider.overrideWith(() => FixedHost(HostRef.local)),
         ],
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open plugins'));
     await tester.pumpAndSettle();
     final ask = tester.getRect(find.byTooltip('问 AI'));
     final refresh = tester.getRect(find.byTooltip('刷新'));

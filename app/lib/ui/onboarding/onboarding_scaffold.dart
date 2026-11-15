@@ -55,7 +55,7 @@ class OnboardingProgress extends InheritedWidget {
 /// holds its capsule, centred; the row keeps its height whether the capsule
 /// shows or not, and steps aside for the keyboard.
 class OnboardingScaffold extends StatelessWidget {
-  const OnboardingScaffold({super.key, required this.children, this.leading, this.showRuntime = true});
+  const OnboardingScaffold({super.key, required this.children, this.leading, this.showRuntime = true, this.backdrop});
 
   /// Laid out in a full-height column; use [Spacer]s to distribute space.
   final List<Widget> children;
@@ -66,6 +66,10 @@ class OnboardingScaffold extends StatelessWidget {
   /// False on a page that shows the unpack itself (a big halo): no capsule.
   final bool showRuntime;
 
+  /// A gradient in place of [AppBackdrop]'s mist (the welcome page's own brand
+  /// gradient). Null: the shared mist backdrop every other page uses.
+  final Gradient? backdrop;
+
   /// Space under the capsule, above the bottom safe area.
   static const capsuleBottom = 12.0;
 
@@ -74,68 +78,73 @@ class OnboardingScaffold extends StatelessWidget {
     final theme = Theme.of(context);
     final progress = OnboardingProgress.maybeOf(context);
     final capsule = showRuntime && (progress?.runtime ?? false) && MediaQuery.viewInsetsOf(context).bottom == 0;
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: dshSystemOverlay(theme.brightness),
-      child: AppBackdrop(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: SafeArea(
-            // Width is capped *outside* IntrinsicHeight: intrinsic heights are
-            // measured at the incoming width, and measuring wrapped text at the
-            // full tablet width would under-estimate the column and overflow.
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                  children: [
-                    // Fixed above the scrolling content, like a page's top bar:
-                    // the back key 12 in, the step bar centred on the screen.
-                    SizedBox(
-                      height: 56,
-                      width: double.infinity,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (progress != null)
-                            OnboardingStepBar(
-                              step: progress.step,
-                              steps: progress.steps,
-                              animate:
-                                  progress.since != null &&
-                                  DateTime.now().difference(progress.since!) < const Duration(milliseconds: 400),
-                            ),
-                          if (leading case final leading?) Positioned(left: 12, child: leading),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) => SingleChildScrollView(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                            child: IntrinsicHeight(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-                              ),
-                            ),
+    final page = Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        // Width is capped *outside* IntrinsicHeight: intrinsic heights are
+        // measured at the incoming width, and measuring wrapped text at the
+        // full tablet width would under-estimate the column and overflow.
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              children: [
+                // Fixed above the scrolling content, like a page's top bar:
+                // the back key 12 in, the step bar centred on the screen.
+                SizedBox(
+                  height: 56,
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (progress != null)
+                        OnboardingStepBar(
+                          step: progress.step,
+                          steps: progress.steps,
+                          animate:
+                              progress.since != null &&
+                              DateTime.now().difference(progress.since!) < const Duration(milliseconds: 400),
+                        ),
+                      if (leading case final leading?) Positioned(left: 12, child: leading),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
                           ),
                         ),
                       ),
                     ),
-                    if (capsule)
-                      Padding(
-                        key: const ValueKey('setup-capsule-slot'),
-                        padding: const EdgeInsets.only(bottom: capsuleBottom),
-                        child: Center(child: SetupProgressCapsule(onRemote: progress!.onRemote)),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
+                if (capsule)
+                  Padding(
+                    key: const ValueKey('setup-capsule-slot'),
+                    padding: const EdgeInsets.only(bottom: capsuleBottom),
+                    child: Center(child: SetupProgressCapsule(onRemote: progress!.onRemote)),
+                  ),
+              ],
             ),
           ),
         ),
       ),
+    );
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: dshSystemOverlay(theme.brightness),
+      child: switch (backdrop) {
+        null => AppBackdrop(child: page),
+        final gradient => DecoratedBox(
+          decoration: BoxDecoration(gradient: gradient),
+          child: page,
+        ),
+      },
     );
   }
 }

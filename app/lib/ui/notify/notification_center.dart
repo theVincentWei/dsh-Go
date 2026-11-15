@@ -17,6 +17,7 @@ import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/apphub_notices_state.dart';
 import '../../state/notify_state.dart' show notifyChannelProvider;
 import '../applet/dimina/dimina_host.dart';
+import '../applet/hub_icon_cache.dart' show HubBundleIcon, HubIconClip;
 import '../bots/bots_page.dart' show UnreadBadge;
 import '../common/app_sheet.dart' show groupTitleStyle;
 import '../common/empty_view.dart';
@@ -272,14 +273,26 @@ class _NotificationCenterPageState extends ConsumerState<NotificationCenterPage>
   Widget _row(BuildContext context, WidgetRef ref, MiniAppNotice notice) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    // 收件箱里全是未读：统一圆点 + 加粗标题。
+    final colors = DshColors.of(context);
+    // 行首 = 该小程序的应用图标（圆裁，市场同源图标；没带图回落铃铛圆）。
+    // 收件箱里全是未读（未读数在组头角标），图标替代原来的未读圆点。
+    final String? iconUrl = ref.watch(appHubAppMetaProvider).value?[notice.appId]?.iconUrl;
     final row = ListPageRow(
       key: ValueKey<String>('notice-${notice.id}'),
-      leading: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+      leading: HubBundleIcon(
+        appId: notice.appId,
+        url: iconUrl,
+        size: 32,
+        clip: HubIconClip.circle,
+        fallback: DecoratedBox(
+          decoration: ShapeDecoration(color: colors.infoContainer, shape: const CircleBorder()),
+          child: SizedBox.square(
+            dimension: 32,
+            child: Icon(AppIcons.notifications, size: 18, color: colors.onInfoContainer),
+          ),
+        ),
       ),
+      leadingWidth: 40,
       title: notice.title,
       titleStyle: theme.textTheme.bodyLarge?.copyWith(
         fontSize: 15,

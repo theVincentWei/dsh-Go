@@ -1,12 +1,11 @@
 // Settings search: what a query finds and in what order, in Chinese and
 // English alike; the page around it (common words, recent searches, a result
 // opening its page at the row, a row that isn't there right now, 问 AI when
-// nothing matched and not in 网页模式, what only Android has on HarmonyOS); and
-// the two ways in (the hub's capsule, ⚙ held down in the drawer).
+// nothing matched and not in 网页模式); and the way in (the hub's capsule —
+// the drawer's ⚙-hold entry went away with the drawer).
 
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/runtime/runtime_state.dart';
-import 'package:dsh_app/state/android_features.dart';
 import 'package:dsh_app/state/ask_ai.dart';
 import 'package:dsh_app/state/compose_inbox.dart';
 import 'package:dsh_app/state/hosts_state.dart';
@@ -17,7 +16,6 @@ import 'package:dsh_app/ui/settings/index/spots.dart';
 import 'package:dsh_app/ui/settings/search/settings_search.dart';
 import 'package:dsh_app/ui/settings/search/settings_search_page.dart';
 import 'package:dsh_app/ui/settings/settings_screen.dart';
-import 'package:dsh_app/ui/shell/sessions_drawer.dart' show IdentityBar;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -63,6 +61,14 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('matching', () {
+    test('Android system commands find the phone page, not the engine shell', () {
+      final androidShell = SettingsIndex.entry(SettingsPageId.phoneAndroidShell);
+      for (final query in ['Android Shell', '系统命令', 'system-command']) {
+        expect(_search(query).first.spot, androidShell, reason: query);
+      }
+      expect(_search('bash').first.spot, SettingsIndex.entry(SettingsPageId.shell));
+    });
+
     test('lower case, full width folded, spaces dropped', () {
       expect(normalizeQuery('ＡＰＩ　Key'), 'apikey');
       expect(normalizeQuery(' Dark  Mode '), 'darkmode');
@@ -219,44 +225,6 @@ void main() {
       expect(find.text('没有找到相关设置'), findsOneWidget);
       expect(find.textContaining('问 AI'), findsNothing);
     });
-
-    testWidgets('on HarmonyOS: the launcher icon is there, the picture shortcut and launch screen aren\'t', (tester) async {
-      await _pumpSearch(tester, overrides: [..._overrides(), operatingSystemProvider.overrideWithValue('ohos')]);
-      await _type(tester, _zh.pluginsAppIcon);
-      expect(find.text(_zh.pluginsAppIcon), findsWidgets);
-      expect(find.text(_zh.harmonySearchUnavailable), findsNothing);
-      for (final q in [_zh.iconShortcutRow, _zh.launchScreenTitle]) {
-        await _type(tester, q);
-        expect(find.text(_zh.harmonySearchUnavailable), findsOneWidget, reason: q);
-      }
-    });
-
-    testWidgets('on HarmonyOS: what only Android has says so, a typo stays a typo', (tester) async {
-      await _pumpSearch(tester, overrides: [..._overrides(), operatingSystemProvider.overrideWithValue('ohos')]);
-      for (final q in ['悬浮窗', '手机操控', '无障碍', 'phone control', '电池优化']) {
-        await _type(tester, q);
-        expect(find.text(_zh.harmonySearchUnavailable), findsOneWidget, reason: q);
-        expect(find.text('没有找到相关设置'), findsNothing, reason: q);
-      }
-      await _type(tester, '怎么把对话导出成 PDF');
-      expect(find.text('没有找到相关设置'), findsOneWidget);
-      expect(find.text(_zh.harmonySearchUnavailable), findsNothing);
-      await _type(tester, '后台运行');
-      expect(find.text('没有找到相关设置'), findsNothing);
-      expect(find.text(_zh.harmonySearchUnavailable), findsNothing);
-    });
-
-    testWidgets('on Android: those words find their pages, and it never says so', (tester) async {
-      await _pumpSearch(tester, overrides: [..._overrides(), operatingSystemProvider.overrideWithValue('android')]);
-      for (final q in ['悬浮窗', '手机操控', '无障碍', 'phone control', '电池优化']) {
-        await _type(tester, q);
-        expect(find.text('没有找到相关设置'), findsNothing, reason: q);
-        expect(find.text(_zh.harmonySearchUnavailable), findsNothing, reason: q);
-      }
-      await _type(tester, '怎么把对话导出成 PDF');
-      expect(find.text('没有找到相关设置'), findsOneWidget);
-      expect(find.text(_zh.harmonySearchUnavailable), findsNothing);
-    });
   });
 
   group('ways in', () {
@@ -269,31 +237,6 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-search')));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsSearchPage), findsOneWidget);
-    });
-
-    testWidgets('⚙ held down in the drawer goes to search; a tap still opens settings', (tester) async {
-      var held = 0;
-      var tapped = 0;
-      await tester.pumpWidget(
-        goldenApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomCenter,
-              child: IdentityBar(onHost: () {}, onFeatures: () {}, onSettings: () => tapped++, onSettingsHold: () => held++),
-            ),
-          ),
-          brightness: Brightness.light,
-          overrides: _overrides(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final gear = find.bySemanticsLabel('设置');
-      await tester.longPress(gear);
-      await tester.pumpAndSettle();
-      expect((held, tapped), (1, 0));
-      await tester.tap(gear);
-      await tester.pumpAndSettle();
-      expect((held, tapped), (1, 1));
     });
   });
 }

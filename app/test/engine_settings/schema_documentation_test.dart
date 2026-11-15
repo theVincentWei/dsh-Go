@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dsh_app/l10n/l10n.dart';
@@ -116,7 +117,9 @@ void main() {
     );
     await pumpPage(
       tester,
-      const EngineSettingsPage(ns: 'voice'),
+      // 适配合并树:「字段说明」键在 AppPage 的 actions 条里,该条只在被
+      // 推入的路由挂载(首路由是紧凑大标题头部);生产里设置页总是被推入。
+      const _Pushed(child: EngineSettingsPage(ns: 'voice')),
       overrides: engineOverrides(DshClient.withCarrier(host)),
     );
     expect(find.byTooltip('字段说明'), findsOneWidget);
@@ -320,4 +323,27 @@ void main() {
     expect(find.text(appL10n.stateLinkOpenFailed), findsOneWidget);
     expect(find.byType(SchemaDocumentationSheet), findsOneWidget);
   });
+}
+
+/// 适配合并树:把页面推入二级路由,让 AppPage 的 actions 条挂载。
+class _Pushed extends StatefulWidget {
+  const _Pushed({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Pushed> createState() => _PushedState();
+}
+
+class _PushedState extends State<_Pushed> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => widget.child)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }

@@ -75,6 +75,9 @@ class _Rig {
 
   Future<void> tap(WidgetTester tester, String text) async {
     await tester.ensureVisible(find.text(text));
+    // 合并树表单比上游长(多了 attach-only/设备图标等块):ensureVisible 触发
+    // 的是滚动动画,不 settle 就点,按钮还停在视口外, tap 会打在别处。
+    await tester.pumpAndSettle();
     await tester.tap(find.text(text));
     await tester.pump();
   }

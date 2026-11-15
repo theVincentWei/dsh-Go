@@ -135,6 +135,39 @@ void main() {
   });
 
   group('header', () {
+    testWidgets('the hidden busy dot stops ticking once no child runs (#1094)', (tester) async {
+      Finder mutedDot() => find.descendant(
+        of: find.byType(HeaderAgentsKey),
+        matching: find.byWidgetPredicate((w) => w is TickerMode && !w.enabled),
+      );
+      await _pumpChat(tester, parentId);
+      expect(mutedDot(), findsNothing);
+
+      final idle = {
+        for (final MapEntry(:key, :value) in sampleAgentSessions().entries)
+          key: key == testsId ? value.copyWith(running: false) : value,
+      };
+      usePhoneView(tester);
+      await tester.pumpWidget(
+        testApp(
+          const ChatScreen(),
+          overrides: [
+            ..._harness(parentId).overrides,
+            ...agentsOverrides(idle),
+            // 适配合并树(三 tab):与 _overrides 同源——聊天页的首帧
+            // 「正在看」置位会被 Riverpod build 相位守卫拦下,测试里
+            // 直接以在屏值起步。
+            chatPageOnScreenProvider.overrideWith(() => FlagController(true)),
+            workspaceSourceProvider.overrideWith((ref, id) => null),
+            workspaceRootProvider.overrideWith((ref, id) => null),
+          ],
+        ),
+      );
+      await pumpFrames(tester, 6);
+      expect(find.byType(HeaderAgentsKey), findsOneWidget);
+      expect(mutedDot(), findsOneWidget);
+    });
+
     testWidgets('「N 个子代理」 opens the sheet; a row opens the child', (tester) async {
       final container = await _pumpChat(tester, parentId);
       final key = find.byType(HeaderAgentsKey);

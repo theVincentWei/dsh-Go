@@ -12,7 +12,8 @@ import '../../../l10n/l10n.dart';
 import '../../../state/android_features.dart';
 import '../../../state/app_icon_state.dart';
 import '../../common/pressable.dart';
-import '../../shell/brand_glyph.g.dart';
+import '../../shell/wanqi_glyph.g.dart';
+import '../../shell/wanqi_mark.dart';
 import '../../theme/theme.dart';
 import '../../common/brief_notice.dart';
 
@@ -196,36 +197,38 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(_RingPainter old) => old.color != color || old.icon != icon || old.mask != mask;
 }
 
-/// How each launcher icon is drawn: the gradient of its background layer
-/// (`res/drawable/ic_launcher[_<name>]_background.xml`, the same diagonal for
-/// all four) and its glyph.
+/// How each launcher icon is drawn: the background layer
+/// (`res/drawable/ic_launcher[_<name>]_background.xml`, the same diagonal for the
+/// three graded ones; the default is flat navy) and the colour of the 万器 ring.
 class AppIconArt {
-  const AppIconArt._(this.from, this.to, this.glyph, [this.mono]);
+  const AppIconArt._(this.from, this.to, this.ring);
 
-  /// Top-left and bottom-right of the background gradient.
+  /// Top-left and bottom-right of the background (equal: a flat fill).
   final Color from;
   final Color to;
-  final AppIconGlyph glyph;
 
-  /// The flat glyph colour, for [AppIconGlyph.mono].
-  final Color? mono;
+  /// The ring's colour on this background; the star is gold on all four.
+  final Color ring;
 
   /// The gradient's ends in the launcher's 108 grid (ic_launcher_background.xml).
   static const start = Offset(7.57, -5.87);
   static const end = Offset(100.43, 113.87);
 
+  /// The 万器 mark's share of the icon's square: the foreground layer's fit
+  /// (see tool/gen_android_icons.py).
+  static const markScale = 0.48;
+
   static AppIconArt of(AppIcon icon) => switch (icon) {
-    // The default icon; on the phone its glyph is the original art, here the
-    // brand master's glass (the same fit).
-    AppIcon.mist => const AppIconArt._(Color(0xFF9AB0E8), Color(0xFF405AAD), AppIconGlyph.glassDark),
-    AppIcon.night => const AppIconArt._(Color(0xFF2C3D6C), Color(0xFF0C122D), AppIconGlyph.glassDark),
-    AppIcon.frost => const AppIconArt._(Color(0xFFFCFDFF), Color(0xFFDDE5F8), AppIconGlyph.glassLight),
-    AppIcon.ink => const AppIconArt._(Color(0xFF292B30), Color(0xFF0D0E11), AppIconGlyph.mono, Color(0xFFF5F7FB)),
+    // 雾蓝: the default, a flat brand navy with the silver ring.
+    AppIcon.mist => const AppIconArt._(WanqiMark.navy, WanqiMark.navy, WanqiMark.silver),
+    // 夜幕: the night gradient with the pale lavender ring.
+    AppIcon.night => const AppIconArt._(Color(0xFF2C3D6C), Color(0xFF0C122D), Color(0xFFECEAFE)),
+    // 霜白: the frost gradient with the brand navy ring.
+    AppIcon.frost => const AppIconArt._(Color(0xFFFCFDFF), Color(0xFFDDE5F8), WanqiMark.navy),
+    // 墨: the ink gradient with the silver ring.
+    AppIcon.ink => const AppIconArt._(Color(0xFF292B30), Color(0xFF0D0E11), WanqiMark.silver),
   };
 }
-
-/// The brand glyph's three renderings (`assets/brand/glyph-*.svg`).
-enum AppIconGlyph { glassDark, glassLight, mono }
 
 /// [icon] as the launcher shows it: [size] square, cut to [mask] (an outline
 /// in 0…1, see [AppIconState.mask]; a rounded square when null), with a
@@ -266,20 +269,15 @@ class _IconPainter extends CustomPainter {
         const Rect.fromLTWH(0, 0, 108, 108),
         Paint()..shader = ui.Gradient.linear(AppIconArt.start, AppIconArt.end, [art.from, art.to]),
       );
-    switch (art.glyph) {
-      case AppIconGlyph.mono:
-        final paint = Paint()..color = art.mono!;
-        canvas
-          ..drawPath(BrandGlyph.body, paint)
-          ..drawPath(BrandGlyph.bubble, paint);
-      case AppIconGlyph.glassDark || AppIconGlyph.glassLight:
-        final dark = art.glyph == AppIconGlyph.glassDark;
-        canvas
-          ..drawPath(BrandGlyph.body, Paint()..shader = dark ? BrandGlyph.tailDark : BrandGlyph.tailLight)
-          ..drawPath(BrandGlyph.fin, Paint()..shader = dark ? BrandGlyph.finDark : BrandGlyph.finLight)
-          ..drawPath(BrandGlyph.belly, Paint()..shader = dark ? BrandGlyph.bellyDark : BrandGlyph.bellyLight)
-          ..drawPath(BrandGlyph.bubble, Paint()..shader = dark ? BrandGlyph.bubbleDark : BrandGlyph.bubbleLight);
-    }
+    // The foreground layer: the 万器 ring and star at the icon's own 48 %.
+    canvas
+      ..save()
+      ..translate(54, 54)
+      ..scale(AppIconArt.markScale)
+      ..translate(-54, -54)
+      ..drawPath(WanqiGlyph.ring, Paint()..color = art.ring)
+      ..drawPath(WanqiGlyph.star, Paint()..color = WanqiMark.gold)
+      ..restore();
     canvas
       ..restore()
       // Half of it falls outside the clip: a 1 px line just inside the edge.

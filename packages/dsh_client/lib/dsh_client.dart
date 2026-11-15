@@ -54,3 +54,7 @@ export 'src/workspace_upload.dart';
 export 'src/workspaces_api.dart';
 
 export 'src/lifecycle_api.dart';
+
+export 'src/companion_recall_api.dart';
+export 'src/companion_signals.dart';
+export 'src/companion_signals_api.dart';

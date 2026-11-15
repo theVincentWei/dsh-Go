@@ -181,6 +181,11 @@ List<HubInstalledApp> mergeInstalledMinis({
 Future<List<HubInstalledApp>> _fetchInstalled() async {
   final http.Response response =
       await http.get(Uri.parse('$appHubBase/api/v1/apps')).timeout(const Duration(seconds: 8));
+  // 非 200(反代重启窗口的 400、空响应)按「目录暂空」处理,返回空清单让
+  // 下次 invalidate 重试;不抛错——抛错会进 AsyncError 触发 Riverpod 的
+  // 退避重试(测试环境还会留下 pending Timer)。真网络异常(timeout 等)
+  // 仍然抛出,由调用方显示错误态。
+  if (response.statusCode != 200) return const <HubInstalledApp>[];
   final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
   if (body is! Map || body['apps'] is! List) return const <HubInstalledApp>[];
   final List<dynamic> rows = body['apps'] as List<dynamic>;

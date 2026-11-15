@@ -82,7 +82,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('share-code-share')));
     await _settle(tester);
-    expect(out.sharedText.single, contains('「读书笔记」· DSH Go 插件'));
+    expect(out.sharedText.single, contains('「读书笔记」· 万器插件'));
     expect(out.sharedText.single, contains(link));
 
     expect(find.byKey(const ValueKey('share-code-save')), findsNothing);
@@ -360,6 +360,10 @@ void main() {
     final code = encodeShareCode(const PluginShare(notesPlugin));
     final broken = ShareLink.inline(ShareKind.plugin, '${code.substring(0, code.length - 12)}.${code.split('.').last}');
     await _pump(tester, (c) => openShareLink(c, broken), shareOverrides(net: sampleNet()));
+    for (var i = 0; i < 100 && find.text('这个分享码不完整或已损坏').evaluate().isEmpty; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
     expect(find.text('这个分享码不完整或已损坏'), findsOneWidget);
     expect(find.text('安装插件'), findsNothing);
   });

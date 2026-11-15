@@ -41,6 +41,7 @@ class ListPageRow extends StatelessWidget {
     this.meta,
     this.metaColor,
     this.trailing,
+    this.trailingSemanticLabel,
     this.onTap,
     this.chevron,
     this.danger = false,
@@ -84,6 +85,9 @@ class ListPageRow extends StatelessWidget {
   final String? meta;
   final Color? metaColor;
   final Widget? trailing;
+
+  /// Names a separate trailing control without merging it with the row action.
+  final String? trailingSemanticLabel;
   final VoidCallback? onTap;
 
   /// Defaults to "has [onTap] and no [trailing]".
@@ -205,7 +209,9 @@ class ListPageRow extends StatelessWidget {
                 const SizedBox(width: 12),
                 SwitchTheme(
                   data: SwitchTheme.of(context).copyWith(materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  child: trailing,
+                  child: trailingSemanticLabel == null
+                      ? trailing
+                      : Semantics(label: trailingSemanticLabel, child: trailing),
                 ),
               ],
               if (showChevron) ...[const SizedBox(width: 4), const OverviewChevron()],

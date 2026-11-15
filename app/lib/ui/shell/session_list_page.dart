@@ -9,7 +9,6 @@
 import 'dart:async';
 
 import 'package:dsh_client/dsh_client.dart';
-import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,18 +29,20 @@ import '../../state/sessions_state.dart';
 import '../../state/workspaces_state.dart';
 import '../bots/bots_page.dart' show BotsPage, UnreadBadge;
 import '../chat/media/media_format.dart' show chatTitleShown;
-import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
 import '../common/empty_view.dart';
 import '../common/read_list_status.dart';
 import '../common/smooth_size.dart';
 import '../common/status_dot.dart';
 import '../onboarding/local_install.dart';
+import '../modes/mode_switch.dart' show ModeKey;
 import '../safe_mode/engine_failure_card.dart';
 import '../safe_mode/safe_mode_banner.dart';
 import '../share/share_entry.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
+import '../web/mode_home.dart' show WebModeKey;
+import '../workspace/text_prompt.dart';
 import '../workspace/workspace_switcher.dart';
 import '../workspace/workspaces_page.dart';
 import '../pets/pet_perch.dart';
@@ -329,6 +330,12 @@ class _TitleRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(child: Text(context.l10n.chatListTitle, style: Theme.of(context).textTheme.headlineLarge)),
+        // 模式 and 网页模式 (upstream tavern graft): companion/tavern stay one
+        // quiet pill away from the chat list, like upstream's drawer top bar.
+        const SizedBox(width: 8),
+        const ModeKey(),
+        const SizedBox(width: 8),
+        const WebModeKey(tier: GlassTier.pill),
         // 「服务通知」钥匙已迁走(2026-11-11 拍板:通知入口只留「小程序」桌面
         // 页头右上角),标题行只剩工作区/搜索/视图选项三颗。
         const SizedBox(width: 8),
@@ -612,40 +619,13 @@ class _SessionList extends ConsumerWidget {
   }
 
   Future<String?> _askTitle(BuildContext context, String initial) {
-    final controller = TextEditingController(text: initial);
-    final waitForRemoval = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-    Future<String?>? removed;
-    return showAppDialog<String>(
-      context: context,
-      builder: (dialog) {
-        if (waitForRemoval) removed = ModalRoute.of<String>(dialog)?.completed;
-        return AlertDialog(
-          title: Text(context.l10n.shellRenameChat),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLength: 80,
-            decoration: InputDecoration(hintText: context.l10n.shellChatTitle, counterText: ''),
-            onSubmitted: (v) => Navigator.pop(dialog, v.trim()),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialog), child: Text(context.l10n.commonCancel)),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialog, controller.text.trim()),
-              child: Text(context.l10n.commonSave),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(() {
-      final completion = removed;
-      if (completion == null) {
-        controller.dispose();
-      } else {
-        // The result arrives before the closing dialog leaves the overlay.
-        unawaited(completion.then<void>((_) => controller.dispose()));
-      }
-    });
+    return showTextPrompt(
+      context,
+      title: context.l10n.shellRenameChat,
+      initial: initial,
+      hint: context.l10n.shellChatTitle,
+      maxLength: 80,
+    );
   }
 }
 
@@ -859,18 +839,13 @@ class _EmptyState extends ConsumerWidget {
         actionLabel: l10n.shellStartEngine,
         onAction: () => unawaited(EngineControl.ensureStarted(ProviderScope.containerOf(context))),
       ),
-      RuntimePhase.notInstalled when status.runtimeMissing => switch (localMissingCopy(
-        l10n,
-        available: ref.watch(localRuntimeProvider.select((s) => s.available)),
-      )) {
-        final copy => EmptyView(
-          compact: true,
-          icon: AppIcons.thisPhone,
-          title: copy.title,
-          actionLabel: copy.action,
-          onAction: () => unawaited(openLocalInstall(context)),
-        ),
-      },
+      RuntimePhase.notInstalled when status.runtimeMissing => EmptyView(
+        compact: true,
+        icon: AppIcons.thisPhone,
+        title: l10n.localEnvNotInstalled,
+        actionLabel: l10n.phoneEngineInstallRuntime,
+        onAction: () => unawaited(openLocalInstall(context)),
+      ),
       _ => EmptyView(
         compact: true,
         icon: AppIcons.power,

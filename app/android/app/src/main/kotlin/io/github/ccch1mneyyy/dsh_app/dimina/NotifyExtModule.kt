@@ -232,7 +232,7 @@ class NotifyExtModule(
          * 改动；统一权限系统落地时**与 server 总闸一起**改回 false（服务端对应
          * `notify_logic.dart` 的 `kCurrentNotifyPolicy`）。
          */
-        const val AUTO_ACCEPT_WITHOUT_PANEL = true
+        const val AUTO_ACCEPT_WITHOUT_PANEL = false
         private const val PREFS = "dsh_notify"
         private const val KEY_MAIN_SWITCH = "main_switch"
         private const val KEY_ITEM_SETTINGS = "item_settings"

@@ -8,11 +8,11 @@ import '../../l10n/l10n.dart';
 import '../../state/agents_state.dart';
 import '../chat/run_info.dart' show formatSpan;
 import '../chat/widgets/live_clock.dart';
-import '../common/avatar_gallery.dart';
 import '../common/fade_in.dart';
 import '../common/list_page_row.dart';
 import '../common/overview_card.dart' show OverviewChevron;
 import '../common/status_chip.dart';
+import '../fx/bot_avatar/bot_avatar.dart' as fx;
 import '../theme/theme.dart';
 
 StatusTone agentTone(AgentRunState state) => switch (state) {
@@ -22,18 +22,20 @@ StatusTone agentTone(AgentRunState state) => switch (state) {
   AgentRunState.idle => StatusTone.idle,
 };
 
-/// 智能体的头像:pixel-art 像素小人图库(构建期由 tool/session_avatars 烘焙,
-/// 见 common/avatar_gallery.dart),FNV-1a(名字)选槽 —— 同一名字永远同一张
-/// 脸,垫在由名字哈希出的 identity 色盘上(圆是"人"的语言,和工具的方块区分
-/// 开);资产缺失时回退名字的首字。
+/// 智能体的头像:按名字固定一只 Libraries.dev 小机器人(形状、颜色跟主题色),
+/// 运行中会跳动干活,其余时候是一帧静止画面。「+3」这种余数仍是一个圆里写字。
 class AgentAvatar extends StatelessWidget {
-  const AgentAvatar(this.name, {super.key, this.size = 28, this.ring});
+  const AgentAvatar(this.name, {super.key, this.size = 28, this.ring, this.working = false});
 
   final String name;
   final double size;
 
-  /// A ring in the surface colour (overlapping avatars in a stack).
+  /// A ring in the surface colour (overlapping avatars in a stack): the bot
+  /// then sits on a disc of it, so the stack still reads as separate faces.
   final Color? ring;
+
+  /// The agent is running: the bot hops while it works.
+  final bool working;
 
   static String letterOf(String name) {
     final trimmed = name.trim();
@@ -42,36 +44,59 @@ class AgentAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final disc = ring;
+    if (name.startsWith('+')) return _LetterAvatar(name, size: size, ring: disc);
+    final bot = fx.BotAvatar(
+      id: name.trim(),
+      size: disc == null ? size : size * 0.82,
+      state: working ? fx.BotAvatarState.working : fx.BotAvatarState.idle,
+      // Glossy plastic: drawn on the first frame; plush fur bakes in the background.
+      shading: fx.BotAvatarShading.plastic,
+      excludeFromSemantics: true,
+    );
+    if (disc == null) return bot;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: ShapeDecoration(color: disc, shape: const CircleBorder()),
+      child: bot,
+    );
+  }
+}
+
+/// 余数「+3」:中性色圆 + 字。
+class _LetterAvatar extends StatelessWidget {
+  const _LetterAvatar(this.text, {required this.size, this.ring});
+
+  final String text;
+  final double size;
+  final Color? ring;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = DshColors.of(context);
-    final tint = DshColors.identityIndex(name, colors.identity.length);
+    final dark = theme.brightness == Brightness.dark;
+    final fill = dark
+        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.12), theme.colorScheme.surface)
+        : Color.alphaBlend(theme.colorScheme.onSurface.withValues(alpha: 0.07), theme.colorScheme.surface);
     return ExcludeSemantics(
       child: Container(
         width: size,
         height: size,
+        alignment: Alignment.center,
         decoration: ShapeDecoration(
-          color: colors.identity[tint],
+          color: fill,
           shape: CircleBorder(side: ring == null ? BorderSide.none : BorderSide(color: ring!, width: 2)),
         ),
-        padding: EdgeInsets.all(size * 0.06),
-        child: ClipOval(
-          child: Image.asset(
-            agentAvatarGallery.assetFor(agentAvatarGallery.slotFor(name)),
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.none, // 像素画要保留硬边
-            gaplessPlayback: true,
-            errorBuilder: (context, _, _) => Center(
-              child: Text(
-                letterOf(name),
-                textScaler: TextScaler.noScaling,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontSize: size * 0.42,
-                  height: 1,
-                  fontWeight: FontWeight.w600,
-                  color: colors.onIdentity[tint],
-                ),
-              ),
-            ),
+        child: Text(
+          text,
+          textScaler: TextScaler.noScaling,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: size * 0.42,
+            height: 1,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -169,7 +194,7 @@ class AgentRow extends StatelessWidget {
               children: [
                 SizedBox(
                   width: ListPageRow.glyphSlot,
-                  child: Center(child: AgentAvatar(name)),
+                  child: Center(child: AgentAvatar(name, working: tone == StatusTone.busy)),
                 ),
                 const SizedBox(width: ListPageRow.gap),
                 Expanded(

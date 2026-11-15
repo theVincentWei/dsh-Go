@@ -20,7 +20,10 @@ import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/auto_sync_state.dart' show autoSyncProvider;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import 'hub_apps_group.dart' show hubInstalledProvider;
+import '../common/ask_ai.dart' show askAi, AskAiTopic;
+import '../../state/ask_ai.dart' show askAiAvailableProvider;
 import '../common/list_page_row.dart';
+import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../common/search_capsule.dart'
     show SearchCapsule;
@@ -28,6 +31,7 @@ import '../common/segmented_pill.dart';
 import 'apphub_app_detail_page.dart' show ApphubAppDetailPage, HubAppRef;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
+import 'hub_app_permissions.dart';
 import 'hub_apps_group.dart' show hubAppGlyph;
 import 'hub_icon_cache.dart' show HubBundleIcon, hubIconCache;
 
@@ -45,7 +49,8 @@ class _HubApp {
         iconUrl = json['iconUrl'] as String?,
         versionCode = (json['versionCode'] as num?)?.toInt(),
         versionName = json['versionName'] as String? ?? '',
-        autoSync = json['autoSync'] == true;
+        autoSync = json['autoSync'] == true,
+        permissions = HubAppPermissions.fromJson(json['permissions']);
 
   final String appId;
   final String name;
@@ -62,6 +67,9 @@ class _HubApp {
   /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = open 时
   /// 升级跳过确认弹窗直接激活。
   final bool autoSync;
+
+  /// 权限声明(市场列表行新形态,契约 v1 §5;null=无声明,空模型)。
+  final HubAppPermissions permissions;
 }
 
 class ApphubMarketPage extends ConsumerStatefulWidget {
@@ -229,6 +237,7 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
             versionCode: app.versionCode,
             versionName: app.versionName,
             autoSync: app.autoSync,
+            permissions: app.permissions,
           ),
         ),
       ),
@@ -241,7 +250,20 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.catalogAppHubMarket)),
+      // 右上角「问 AI」：只装了 App、没装市场后端（wanqi 服务）或相关插件的
+      // 人，点一下就把「怎么装」的问题填进新对话的输入框，agent 照随包的
+      // dsh-go-guide 应用市场页回答（lib/state/ask_ai.dart；网页模式不显示）。
+      appBar: AppBar(
+        title: Text(l10n.catalogAppHubMarket),
+        actions: <Widget>[
+          if (ref.watch(askAiAvailableProvider))
+            IconButton(
+              icon: const Icon(AppIcons.askAi),
+              tooltip: l10n.askAiTooltip,
+              onPressed: () => unawaited(askAi(context, AskAiTopic.market)),
+            ),
+        ],
+      ),
       body: Column(
         children: <Widget>[
           Padding(

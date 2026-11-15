@@ -130,6 +130,15 @@ PACKS = {
         faces='left',
         preview_zoom=2, preview_per_row=24,
     ),
+    'ponkan-cat': dict(
+        kind='strips', dir='ponkan-cat',
+        name='匠匠',
+        author='dsh-go 用户提供参考图',
+        license='用户提供的参考图，随 dsh-go 使用',
+        source='用户提供的七动作像素猫参考图，经 piskel-cli 切成序列帧',
+        faces='right',
+        preview_zoom=3, preview_per_row=8,
+    ),
     'whale-girl': dict(
         kind='whale-girl', dir='whale-girl',
         name='鲸娘',
@@ -372,6 +381,53 @@ def page_holds(html):
             holds[key] = int(hold)
     check(holds, 'index.html: AGENT table has no holds')
     return holds
+
+
+def load_strips(src, meta):
+    """Generic strip source: <dir>/spec.json plus <dir>/strips/<anim>.png, each a single
+    row of equal cells at canvas x scale. Durations and the Clawd state mapping come
+    straight from spec.json, so a pack authored as plain sprite frames needs no page to
+    scrape it back out of."""
+    root = os.path.join(src, meta['dir'])
+    spec = json.loads(read_text(os.path.join(root, 'spec.json')))
+    cw, ch = int(spec['canvas']['w']), int(spec['canvas']['h'])
+    scale = int(spec['scale'])
+    fw, fh = cw * scale, ch * scale
+    anims = {}
+    for name, a in spec['animations'].items():
+        durs = [int(d) for d in a['durs']]
+        sheet = read_rgba(os.path.join(root, 'strips', f'{name}.png'))
+        check(sheet.shape[0] == fh and sheet.shape[1] == fw * len(durs),
+              f'strips/{name}.png: {sheet.shape[1]}x{sheet.shape[0]} for {len(durs)} frames of {fw}x{fh}')
+        anims[name] = dict(
+            frames=[clean(sheet[:, i * fw:(i + 1) * fw]) for i in range(len(durs))],
+            durs=durs, source=f'strips/{name}.png')
+
+    one_shot = set(spec.get('oneShot', []))
+    for n, a in anims.items():
+        a['loop'] = n not in one_shot
+
+    states = {s: list(v) for s, v in spec['states'].items()}
+    for s, v in states.items():
+        for n in v:
+            check(n in anims, f'states.{s}: unknown animation {n!r}')
+    for n in one_shot:
+        check(n in anims, f'oneShot: unknown animation {n!r}')
+
+    mapping = dict(
+        states=states,
+        tiers=spec.get('tiers', {}),
+        reactions=spec['reactions'],
+        timings=spec['timings'],
+        idle_pool=list(spec.get('idlePool', {}).get('anims', [])),
+        bonus=spec.get('bonus', {}),
+        roam=spec['roam'],
+        sleep=spec['sleep'],
+        base_idle=spec.get('baseIdle', 'idle'),
+        clawd_layout={},
+        clawd_hit=None,
+    )
+    return (cw, ch), scale, scale, anims, mapping
 
 
 def load_whale_girl(src, meta):
@@ -684,7 +740,8 @@ def dumps(obj, indent=0):
 
 def build(pack_id, src, out_root, log=print):
     meta = PACKS[pack_id]
-    loader = load_clawd if meta['kind'] == 'clawd' else load_whale_girl
+    loader = {'clawd': load_clawd, 'whale-girl': load_whale_girl,
+              'strips': load_strips}[meta['kind']]
     (cw, ch), scale, export, anims, mapping = loader(src, meta)
     for n, a in anims.items():
         check(len(a['frames']) == len(a['durs']) > 0, f'{n}: frame / duration count mismatch')

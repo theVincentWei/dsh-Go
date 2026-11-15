@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "accessPickTitle": "What should DSH Go help with?",
+  "accessPickTitle": "What should Wanqi help with?",
   "accessPickMessage": "Pick any, then turn each one on",
   "accessPickConfirm": "Turn on selected",
   "accessSkip": "Skip",
@@ -14,8 +14,6 @@
   "accessFeatureBackgroundNeeds": "Tells you when tasks finish; needs notifications and background access",
   "accessFeatureVoice": "Voice input",
   "accessFeatureVoiceNeeds": "Needs the microphone",
-  "accessFeatureAlerts": "Reply alerts",
-  "accessFeatureAlertsNeeds": "Needs notifications",
   "accessVoiceModel": "Works offline; downloads a voice model of about {size} MB",
   "@accessVoiceModel": {
     "placeholders": {
@@ -63,7 +61,7 @@
   "accessBatteryWhy": "Tasks keep going when you switch apps",
   "accessVendorBackgroundWhy": "Keeps the system from cutting tasks off in the background",
   "accessAutostartTitle": "Allow auto-start",
-  "accessAutostartWhy": "Lets DSH Go come back after the system clears it",
+  "accessAutostartWhy": "Lets Wanqi come back after the system clears it",
   "accessVivoAutostartPath": "Permission management › Auto-start › {app}",
   "@accessVivoAutostartPath": {
     "placeholders": {
@@ -83,7 +81,7 @@
   "accessA11yTitle": "Turn on accessibility",
   "accessA11yWhy": "Phone control reads the screen and taps through it",
   "accessPopupTitle": "Allow pop-ups in background",
-  "accessPopupWhy": "Brings you back to DSH Go when phone control is done",
+  "accessPopupWhy": "Brings you back to Wanqi when phone control is done",
   "accessVivoPopupPath": "Permission management › {app} › Display pop-up windows in background",
   "@accessVivoPopupPath": {
     "placeholders": {
@@ -135,5 +133,7 @@
     }
   },
   "accessPageTitle": "System permissions",
-  "accessPageSubtitle": "What each feature needs from Android"
+  "accessPageSubtitle": "What each feature needs from Android",
+  "accessFeatureAlerts": "Reply alerts",
+  "accessFeatureAlertsNeeds": "Needs notifications"
 }

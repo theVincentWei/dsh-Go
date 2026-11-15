@@ -2,6 +2,13 @@
 <!-- Native UI text (notifications, overlays, foreground service, toasts), read through
      i18n/AppStrings.kt so it follows the app language. English here, Chinese in values-zh/. -->
 <resources>
+    <string name="self_update_confirm_title">Install this Wanqi update?</string>
+    <string name="self_update_confirm">Channel: %1$s (UID %2$d)\nVersion: %3$s (%4$d)\nSHA-256: %5$s\n\nAllow only this verified Wanqi update. The app will close and running tasks may be interrupted. Existing app data is kept. System signature and security policies still apply; the system can still refuse installation.</string>
+    <string name="self_update_allow_once">Install this update</string>
+    <string name="self_update_wait_title">End this installation wait?</string>
+    <string name="self_update_wait_confirm">The previous request may still be running in the system installer. Clearing this local record does not cancel it. First check that no installation is in progress. Nothing is installed or retried by clearing this record.</string>
+    <string name="self_update_wait_end">Clear waiting record</string>
+    <string name="phone_shell_confirm">Run an Android system command (%1$s, UID %2$s). It may change system settings or app data. Screen-control confirmation exemptions do not apply. Allow only this command:\n\n%3$s</string>
     <!-- background -->
     <string name="background_shizuku_missing">No available Shizuku / Sui interface detected</string>
     <string name="background_sui_stopped">The Sui interface is currently unavailable</string>
@@ -22,7 +29,6 @@
     <string name="background_input_window_not_ready">The input test window was not ready. No test tap was sent.</string>
     <string name="background_input_unconfirmed">The input test did not receive both touch events in time.</string>
     <string name="background_input_cancelled">The input test was cancelled.</string>
-    <string name="background_input_probe_busy">The background screen is in use. Retry the input test after the task ends.</string>
     <string name="background_input_cleanup_failed">Input test cleanup was not confirmed. Reconnect the privileged channel before retrying.</string>
     <string name="background_input_api_unavailable">This system has no background input API the App can use. Update the App, or report your device and system version.</string>
     <string name="background_input_permission_denied">The system refused background input. Check the channel’s permission; on Xiaomi/Redmi, turn on “USB debugging (Security settings)”.</string>
@@ -119,6 +125,7 @@
     <!-- pet -->
     <string name="pet_open_chat">Open chat</string>
     <string name="pet_more">More</string>
+    <string name="pet_tap_hint">Tap twice to open the chat</string>
     <string name="pet_snooze">Hide for today</string>
     <string name="pet_settings">Pet settings</string>
     <string name="pet_channel">Floating pet</string>
@@ -134,7 +141,6 @@
     <string name="pet_new_chat">New chat</string>
     <string name="pet_screenshot">Screenshot &amp; ask DSH-Go</string>
     <string name="pet_wheel_screenshot">Screenshot</string>
-    <string name="pet_wheel_hint">Drag to choose\nRelease to act</string>
     <string name="pet_wheel_stop">Stop</string>
     <string name="pet_wheel_hosts">Hosts</string>
     <string name="pet_wheel_snooze">Hide today</string>
@@ -218,7 +224,7 @@
     <string name="phone_share_chooser">Share to</string>
     <string name="phone_open_channel">Open from DSH</string>
     <string name="phone_open_notice">DSH · %1$s</string>
-    <string name="phone_tap_open">Tap to open</string>
+    <string name="phone_tap_open">Return to DSH to check the task. The action will not be repeated.</string>
     <string name="phone_reminder_channel">DSH reminders</string>
     <string name="phone_log_apps">List apps</string>
     <string name="phone_log_apps_filtered">List apps (filtered)</string>
@@ -322,6 +328,8 @@
     <string name="background_selection_cancelled">The channel selection was cancelled</string>
     <string name="background_keep_phone_disabled">Turn on phone control before keeping this connection.</string>
     <string name="background_keep_save_failed">Could not save the connection preference. Check it before restarting the app.</string>
+    <string name="background_viewport_invalid">Unknown background viewport preset</string>
+    <string name="background_viewport_save_failed">Could not save the background viewport preference.</string>
     <string name="dsh_notify_panel_title">Subscribe to notifications</string>
     <string name="dsh_notify_panel_body">\u201c%1$s\u201d would like to send you notifications after you act. Each subscription covers one message.</string>
     <string name="dsh_notify_main_switch">Receive notifications</string>

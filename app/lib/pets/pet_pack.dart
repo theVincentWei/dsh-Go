@@ -98,6 +98,9 @@ class PetPack {
     this.reactions = const {},
     this.roamAnim,
     this.roamFacing = PetFacing.front,
+    this.roamEvery = const PetEvery(),
+    this.roamWalkMin = 0.08,
+    this.roamWalkMax = 0.2,
     this.sleepAfter = const Duration(seconds: 60),
     this.wakeMs,
     this.hitBoxes = const {},
@@ -105,10 +108,16 @@ class PetPack {
     this.idlePool = const [],
     this.idleEvery = const PetEvery(),
     this.bonus = const {},
+    this.dir,
   });
 
-  /// Folder name under `assets/pets/`.
+  /// Folder name under `assets/pets/`, or under the brought pets' folder
+  /// (pet_library.dart).
   final String id;
+
+  /// Where a brought pet's sheets are on disk; null for the built-in ones,
+  /// which come from the app's assets.
+  final String? dir;
   final String name;
   final String? author;
   final String? license;
@@ -155,6 +164,15 @@ class PetPack {
   /// Which way the art looks: walking the other way mirrors it; front-facing
   /// art never mirrors.
   final PetFacing roamFacing;
+
+  /// How often a walk starts. Same shape as [idleEvery]; a pack that should pace
+  /// back and forth sets `roam.everyMs`, others keep the calm default.
+  final PetEvery roamEvery;
+
+  /// How far one walk goes, as a share of the perch. A pack that should cross the
+  /// chat window sets `roam.span: [min, max]`.
+  final double roamWalkMin;
+  final double roamWalkMax;
   final Duration sleepAfter;
 
   /// How long waking lasts; one pass of its animation when absent.
@@ -242,7 +260,7 @@ class PetPack {
 
   /// Parses pack.json. A pack that fails its checks throws [FormatException]
   /// (a broken pack is not loaded at all).
-  factory PetPack.parse(Map<String, Object?> json) {
+  factory PetPack.parse(Map<String, Object?> json, {String? dir}) {
     if (json['schema'] != schema) throw const FormatException('pack.json: schema');
     final id = _string(json['id']);
     if (id == null || id.isEmpty) throw const FormatException('pack.json: id');
@@ -367,6 +385,13 @@ class PetPack {
       roamAnim: roam['anim'] == null ? null : known(roam['anim'], 'roam'),
       // An explicit `flip: false` keeps front-facing art unmirrored.
       roamFacing: roam['flip'] == false ? PetFacing.front : PetFacing.values.asNameMap()[faces] ?? PetFacing.front,
+      roamEvery: PetEvery(
+        mean: (_num(_map(roam['everyMs'])['mean']) ?? 120000).round(),
+        min: (_num(_map(roam['everyMs'])['min']) ?? 45000).round(),
+        max: (_num(_map(roam['everyMs'])['max']) ?? 300000).round(),
+      ),
+      roamWalkMin: (_num(_list(roam['span']).firstOrNull) ?? 0.08).clamp(0.0, 1.0),
+      roamWalkMax: (_num(_list(roam['span']).elementAtOrNull(1)) ?? 0.2).clamp(0.0, 1.0),
       sleepAfter: Duration(milliseconds: (_num(sleep['afterMs']) ?? 60000).round()),
       wakeMs: _num(timings['wakeMs'])?.round(),
       hitBoxes: hitBoxes,
@@ -378,6 +403,7 @@ class PetPack {
         max: (_num(every['max']) ?? 300000).round(),
       ),
       bonus: bonus,
+      dir: dir,
     );
   }
 
@@ -390,7 +416,12 @@ class PetPack {
   }
 
   static String? _string(Object? v) => v is String ? v : null;
-  static double? _num(Object? v) => v is num ? v.toDouble() : null;
+  static double? _num(Object? v) {
+    if (v is! num) return null;
+    final number = v.toDouble();
+    if (!number.isFinite) throw const FormatException('pack.json: non-finite number');
+    return number;
+  }
   static Map<String, Object?> _map(Object? v) =>
       v is Map ? {for (final MapEntry(:key, :value) in v.entries) '$key': value} : const {};
   static List<Object?> _list(Object? v) => v is List ? v : const [];

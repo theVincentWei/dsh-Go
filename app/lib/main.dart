@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,12 +12,16 @@ import 'dev/frame_probe.dart';
 import 'diagnostics/app_error_log.dart';
 import 'launch/launch_state.dart';
 import 'launch/startup_trace.dart';
+import 'links/page_links.dart' show registerPageLink, tavernPageLink;
 import 'notify/apphub_notices.dart';
 import 'notify/apphub_proxy.dart';
 import 'runtime/local_paths.dart';
 import 'state/locale_state.dart';
 import 'ui/common/third_party_licenses.dart';
+import 'ui/fx/metal/metal_shader.dart';
+import 'ui/fx/waves/distortion_wave.dart';
 import 'ui/settings/font_licenses.dart';
+import 'ui/tavern/tavern_home_page.dart';
 import 'ui/theme/theme.dart';
 import 'ui/applet/dimina/dimina_poc_screen.dart' show DiminaPocScreen, kDiminaPoc;
 
@@ -37,6 +44,11 @@ Future<void> _startApp() async {
   // MIT / OFL notices must ship with the APK, not just the sources.
   registerThirdPartyLicenses();
   registerFontLicenses();
+  // dshgo://open/tavern: the page lives in ui/, which links/ does not import.
+  registerPageLink(tavernPageLink, () => const TavernHomePage());
+  // The effects' shaders load now, so the first wave or metal word is not a plain fallback.
+  unawaited(DistortionWave.precache());
+  unawaited(MetalShader.load());
   // AppHub 小程序通知:60s 轮询 notices,进程活着期间推送本地通知(M3)。
   AppHubNoticeService.start();
   // AppHub 固定端口本机反代:原生 Dimina 容器只认这个端口,SSH 隧道重连

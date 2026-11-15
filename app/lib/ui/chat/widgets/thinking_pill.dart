@@ -16,6 +16,7 @@ import '../../common/pressable.dart';
 import '../../common/smooth_size.dart';
 import '../../common/think_glyph.dart';
 import '../../engine_settings/engine_settings_page.dart' show openSettingsPage;
+import '../../fx/orbs/thinking_orb.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 import '../render/markdown_body.dart';
@@ -55,9 +56,13 @@ class ThinkingPill extends StatefulWidget {
     this.active = false,
     this.streaming = false,
     this.growIn = false,
+    this.meta,
   });
 
   final String reasoning;
+
+  /// Shown after the label, as a role-play shows how long it has thought.
+  final Widget? meta;
 
   /// 模型此刻还在思考(流式中且正文还没开始)。
   final bool active;
@@ -140,16 +145,18 @@ class _ThinkingPillState extends State<ThinkingPill> {
               shape: Squircle.border(StreamRow.lead * 0.32),
             ),
             child: Center(
-              // 自己一层:转动只重绘这个图形,不重绘整行。
-              child: RepaintBoundary(
-                child: ThinkGlyph(size: 15, color: brand, spinning: active),
-              ),
+              // 思考中是一颗慢慢变形的点阵小光球(Libraries.dev 思考光球),想完换回静止的图形
+              // (和标签一样直接换,不叠着淡入淡出)。
+              child: active
+                  ? ThinkingOrb(state: OrbState.breathing, size: OrbSize.px20, displaySize: 18, ink: OrbInk.tint(brand))
+                  : ThinkGlyph(size: 15, color: brand),
             ),
           ),
         ),
         const SizedBox(width: StreamRow.gap),
         // 标签直接换字,不做淡入淡出:两个词叠在同一个位置上闪一下更难看。
         ThinkingLabel(active ? l10n.chatThinkingActive : l10n.chatThinking, active: active),
+        ?widget.meta,
         if (preview.isNotEmpty) ...[
           const StreamDot(),
           Expanded(

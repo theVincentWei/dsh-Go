@@ -54,8 +54,13 @@ void dndGolden(
 }
 
 Future<void> Function(WidgetTester) tapText(String text) => (tester) async {
-  await tester.tap(find.text(text));
-  await tester.pumpAndSettle();
+  if (text == 'Root' || text == 'Sui' || text == '自连 ADB') {
+    await openPhoneChannel(tester, text);
+  } else {
+    await tester.ensureVisible(find.text(text));
+    await tester.tap(find.text(text));
+    await tester.pumpAndSettle();
+  }
 };
 
 Map<String, Object?> firstVisit() => privilegedStatus();
@@ -128,7 +133,7 @@ void main() {
   dndGolden('dnd_sui_in_use', suiInUse, narrow: true);
   dndGolden('dnd_sui_in_use', suiInUse, narrow: true, english: true);
 
-  // Sui runs, DSH Go isn't let in yet: suggested, unfolded by a tap.
+  // Sui runs, Wanqi isn't let in yet: suggested, unfolded by a tap.
   dndGolden('dnd_sui_grant', suiToGrant, before: tapText('Sui'));
   dndGolden('dnd_sui_grant', suiToGrant, narrow: true, before: tapText('Sui'));
 

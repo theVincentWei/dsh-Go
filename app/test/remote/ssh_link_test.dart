@@ -43,15 +43,18 @@ void main() {
     HostKeyPinner? pin,
     Backoff? backoff,
     bool retryFirstOpen = true,
+    SshSecrets secrets = const SshSecrets(password: 'pw'),
     StreamController<void>? kicks,
+    DshReadyWait? waitReady,
   }) {
     final l = SshHostLink(
       config: config,
-      loadSecrets: () async => const SshSecrets(password: 'pw'),
+      loadSecrets: () async => secrets,
       promptHostKey: prompt,
       pinHostKey: pin,
       transportFactory: server.connect,
       connectClient: connector.call,
+      waitReady: waitReady,
       backoff: backoff ?? quick(),
       retryFirstOpen: retryFirstOpen,
       kicks: kicks?.stream,
@@ -86,12 +89,14 @@ void main() {
     expect(l.currentClient, same(original));
   });
 
-  test('a refused reused port forces just one fresh server', () async {
+  test('a refused reused port is restarted into a fresh instance', () async {
+    // 合并树语义(本地拍板):端口探测被拒 = 复用的 DSH 已死,退避后强制
+    // 重启一个新实例,而不是守着永不答应的旧进程。
     server.remote.pid = 500;
     server.remote.tunnelErrors.add(const TunnelRefused());
     final l = link();
     await l.open();
-    expect(server.remote.launches, 1);
+    expect(server.remote.launches, 1, reason: 'a reused DSH whose port refuses is started fresh');
     expect(l.status.isConnected, isTrue);
   });
 
@@ -111,13 +116,204 @@ void main() {
     expect(server.remote.launches, 1);
   });
 
-  test('a token rejected by a reused DSH restarts it once', () async {
+  test('a token rejected by a reused DSH is final and never kills it', () async {
     server.remote.pid = 500;
     connector.failNext.add(const DshHttpException(401, 'stale'));
     final l = link();
-    await l.open();
-    expect(connector.calls, hasLength(2));
+    await expectLater(l.open(), throwsA(isA<HostLinkError>().having((e) => e.retryable, 'retryable', isFalse)));
+    expect(connector.calls, hasLength(1));
+    expect(server.remote.launches, 0);
+    expect(server.remote.pid, 500);
+  });
+
+  for (final missingLog in [false, true]) {
+    test('live but non-reusable process survives (missing log: $missingLog)', () async {
+      server.remote.pid = 500;
+      server.remote.sameCommand = missingLog;
+      server.remote.hasLaunchLine = !missingLog;
+      final l = link();
+      await expectLater(l.open(), throwsA(isA<HostLinkError>().having((e) => e.retryable, 'retryable', isFalse)));
+      expect(server.remote.launches, 0);
+      expect(server.remote.pid, 500);
+      expect(server.last.scripts, hasLength(1));
+      expect(server.last.tunnels, isEmpty);
+    });
+  }
+
+  test('explicit managed restart replaces a live instance', () async {
+    server.remote.pid = 500;
+    final l = link();
+    await l.restartManaged();
     expect(server.remote.launches, 1);
+    expect(server.last.scripts.single, contains('kill "\$P"'));
+  });
+
+  test('one restart action is not reused after a transient login failure', () async {
+    server.remote.pid = 500;
+    connector.failNext.add(const DshTransportException('temporary'));
+    final l = link();
+    await l.restartManaged();
+    expect(server.remote.launches, 1);
+    expect(server.transports.expand((t) => t.scripts).where((s) => s.contains(r'kill "$P"')), hasLength(1));
+  });
+
+  test('failed SSH authentication consumes restart consent before ordinary open', () async {
+    server.remote.pid = 500;
+    server.failNext.add(const HostLinkError(HostLinkErrorKind.authFailed, 'denied'));
+    final l = link();
+    await expectLater(l.restartManaged(), throwsA(isA<HostLinkError>()));
+    await l.open();
+    expect(server.remote.pid, 500);
+    expect(server.remote.launches, 0);
+    expect(server.last.scripts, hasLength(1));
+    expect(server.last.scripts.single, isNot(contains(r'kill "$P"')));
+  });
+
+  test('a network retry cannot inherit restart consent from the failed SSH attempt', () async {
+    server.remote.pid = 500;
+    server.failNext.add(const HostLinkError(HostLinkErrorKind.unreachable, 'offline', retryable: true));
+    final l = link();
+    await l.restartManaged();
+    expect(server.connects, hasLength(2));
+    expect(server.remote.pid, 500);
+    expect(server.remote.launches, 0);
+    expect(server.last.scripts.single, isNot(contains(r'kill "$P"')));
+  });
+
+  test('open() resolving implies the connected terminal status is already applied', () async {
+    // 表单的「测试连通性」在读到终态后立刻退订:成功终态必须像失败终态一样
+    // 是链路同步状态(open 返回即生效),而不是赌广播流投递时序——真机上
+    // 退订与投递同拍竞速,queued 的 connected 事件会永远到不了进度卡
+    // (卡片停在「登录」,即真机「测试连通性挂登录」回归)。
+    final l = link();
+    await l.open();
+    expect(l.status.phase, HostLinkPhase.connected);
+    expect(l.status.step, isNull, reason: 'terminal status carries no pending step');
+  });
+
+  test('compression preference reaches SSH connection parameters', () {
+    expect(SshConnectParams.of(sampleSsh, const SshSecrets()).compression, isTrue);
+    expect(SshConnectParams.of(sampleSsh.copyWith(compression: false), const SshSecrets()).compression, isFalse);
+  });
+
+  test('attach-only opens the fixed loopback port and never executes shell commands', () async {
+    server.remote.pid = 500;
+    final l = link(
+      config: sampleSsh.copyWith(dshMode: SshDshMode.attachOnly, remotePort: server.remote.port),
+      secrets: const SshSecrets(password: 'pw', attachToken: 'existing-token'),
+    );
+    await l.open();
+    expect(server.last.scripts, isEmpty);
+    // AppHub 随行转发(本地拍板)会多探/多开一条通道,这里只认 DSH 端口那条。
+    expect(server.last.tunnels, contains(('127.0.0.1', server.remote.port)));
+    expect(connector.calls.single.token, 'existing-token');
+    expect(connector.calls.single.hostHeader, '127.0.0.1:${server.remote.port}');
+    await expectLater(l.restartManaged(), throwsStateError);
+    await l.close();
+    expect(server.remote.launches, 0);
+    expect(server.remote.pid, 500);
+    expect(server.transports.expand((t) => t.scripts), isEmpty);
+  });
+
+  test('attach-only missing token fails without bootstrap', () async {
+    final l = link(config: sampleSsh.copyWith(dshMode: SshDshMode.attachOnly));
+    await expectLater(l.open(), throwsA(isA<HostLinkError>()));
+    expect(server.last.scripts, isEmpty);
+    expect(server.last.tunnels, isEmpty);
+  });
+
+  for (final loginFailure in [false, true]) {
+    test('attach-only failure never starts a server (login: $loginFailure)', () async {
+      server.remote.pid = 500;
+      if (loginFailure) {
+        connector.failNext.add(const DshHttpException(401, 'rejected'));
+      } else {
+        server.remote.tunnelErrors.add(const TunnelRefused());
+      }
+      final l = link(
+        config: sampleSsh.copyWith(dshMode: SshDshMode.attachOnly, remotePort: server.remote.port),
+        secrets: const SshSecrets(password: 'pw', attachToken: 'existing-token'),
+      );
+      if (loginFailure) {
+        // 令牌被拒要人来改,不可重试:直接停在失败。
+        await expectLater(l.open(), throwsA(isA<HostLinkError>()));
+        expect(server.transports, hasLength(1));
+      } else {
+        // tunnelFailed 一律可重试(本地「退避不封顶」拍板):被拒的探测消耗
+        // 掉之后,重试在同一 attach 端口上落地,依旧不启动任何服务端。
+        await l.open();
+        expect(l.status.isConnected, isTrue);
+      }
+      expect(server.last.scripts, isEmpty);
+      expect(server.remote.launches, 0);
+      expect(server.remote.pid, 500);
+    });
+  }
+  test('the login step waits for the remote DSH to answer first', () async {
+    final gate = Completer<void>();
+    var readyReturned = false;
+    final l = link(
+      waitReady: (_, __) async {
+        await gate.future;
+        readyReturned = true;
+      },
+    );
+    final opened = l.open();
+    // Nothing logs in through the tunnel while the ready-wait is parked.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(connector.calls, isEmpty);
+    gate.complete();
+    await opened;
+    expect(readyReturned, isTrue);
+    expect(connector.calls, hasLength(1));
+  });
+
+  test('a test connection (no retry) fails on a ready-wait timeout', () async {
+    final l = link(
+      retryFirstOpen: false,
+      waitReady: (_, __) => Future.error(const HostLinkError(HostLinkErrorKind.dshTimeout, 'never answered', retryable: true)),
+    );
+    await expectLater(l.open(), throwsA(isA<HostLinkError>()));
+    expect(l.status.phase, HostLinkPhase.failed);
+    expect(l.status.error?.kind, HostLinkErrorKind.dshTimeout);
+  });
+
+  test('waitForRemoteDshReady polls a dead door into dshTimeout', () async {
+    final dead = DshConnection(Uri.parse('http://127.0.0.1:1'));
+    addTearDown(dead.close);
+    await expectLater(
+      waitForRemoteDshReady(
+        dead,
+        budget: const Duration(milliseconds: 300),
+        probeTimeout: const Duration(milliseconds: 200),
+        interval: const Duration(milliseconds: 40),
+      ),
+      throwsA(isA<HostLinkError>()),
+    );
+  });
+
+  test('waitForRemoteDshReady passes an ok or answering door through at once', () async {
+    Future<int> serve(int status) async {
+      final http = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(http.close);
+      http.listen((request) async {
+        request.response.statusCode = status;
+        await request.response.close();
+      });
+      return http.port;
+    }
+
+    for (final status in [HttpStatus.ok, HttpStatus.unauthorized]) {
+      final port = await serve(status);
+      final connection = DshConnection(Uri.parse('http://127.0.0.1:$port'));
+      addTearDown(connection.close);
+      await waitForRemoteDshReady(
+        connection,
+        budget: const Duration(milliseconds: 300),
+        probeTimeout: const Duration(milliseconds: 200),
+        interval: const Duration(milliseconds: 40),
+      );
+    }
   });
 
   test('first connect walks every step and logs in through the tunnel', () async {

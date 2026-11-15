@@ -141,6 +141,9 @@
   "apphubVersionPrefix": "Version",
   "apphubPrivacyNone": "No Data Collected",
   "apphubPrivacyNoneBody": "The developer says this mini program does not collect any of your data.",
+  "apphubPermissionDeclared": "Declared",
+  "apphubPermissionDomains": "Allowed Domains",
+  "apphubPermissionSaveFailed": "Couldn't update the permission. Try again.",
   "apphubInfoCategory": "Category",
   "apphubInfoSize": "Size",
   "apphubInfoCompatibility": "Compatibility",
@@ -151,8 +154,8 @@
   "catalogCurrentChat": "Current chat",
   "catalogPlanGoal": "Plan and goal",
   "catalogPlanGoalSummary": "Goals, plans and to-dos",
-  "catalogSubagents": "Subagents",
-  "catalogSubagentsSummary": "Lineage and status; tap to chat",
   "catalogReference": "Reference files and chats",
-  "catalogReferenceSummary": "Use @ in the composer"
+  "catalogReferenceSummary": "Use @ in the composer",
+  "catalogSubagents": "Subagents",
+  "catalogSubagentsSummary": "Lineage and status; tap to chat"
 }

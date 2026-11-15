@@ -25,7 +25,6 @@ import '../../../plugins/native/native_files.dart';
 import '../../../plugins/native/native_model.dart';
 import '../../../plugins/native/native_state.dart';
 import '../../../plugins/native/native_surface.dart';
-import '../../../state/android_features.dart';
 import '../../../state/chat_state.dart';
 import '../../../state/composer_insert.dart';
 import '../../../state/hosts_state.dart';
@@ -34,7 +33,7 @@ import '../../../ui_config/ui_config_model.dart';
 import '../../features/all_features_page.dart' show dshWebOpenerProvider;
 import '../../common/app_dialog.dart';
 import '../../features/feature_catalog.dart';
-import '../../settings/index/settings_pages.dart' show SettingsIndex, settingsPageForLink;
+import '../../settings/index/settings_pages.dart' show settingsPageForLink;
 import '../../shell/reveal_conversation.dart';
 import '../../settings/settings_screen.dart';
 import 'native_panel.dart';
@@ -280,8 +279,10 @@ Future<bool> runNativeTap(
 
   // What may travel with this tap, after asking once.
   final wants = switch (surface) {
-    NativeSurface.composerActions ||
-    NativeSurface.composerTools => {if (plugin.wantsDraft) 'draft', if (plugin.wantsClipboard) 'clipboard'},
+    NativeSurface.composerActions || NativeSurface.composerTools => {
+      if (plugin.wantsDraft) 'draft',
+      if (plugin.wantsClipboard) 'clipboard',
+    },
     NativeSurface.messageActions => {if (plugin.wantsMessage && message != null) 'message'},
     _ => const <String>{},
   };
@@ -754,12 +755,6 @@ Future<void> runComposerCommand(BuildContext context, WidgetRef ref, String line
 
 /// An app page by its ui.json / 全部功能 id, `new-chat` or `settings`.
 Future<void> openNativePage(BuildContext context, WidgetRef ref, String page, {String? sessionId}) async {
-  // On HarmonyOS, Android's own pages aren't there: say so.
-  if (!ref.read(androidSystemFeaturesProvider) &&
-      SettingsIndex.androidOnlyLink(page, ios: ref.read(operatingSystemProvider) == 'ios')) {
-    _toast(context, context.l10n.harmonyPageUnavailable);
-    return;
-  }
   final navigator = Navigator.of(context);
   switch (page) {
     case 'new-chat':

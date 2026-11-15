@@ -17,6 +17,7 @@ import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'web_back.dart';
 import 'web_file_chooser.dart';
+import 'web_handle.dart';
 import 'web_navigation.dart';
 import 'web_target.dart';
 import 'web_view_guard.dart';
@@ -87,7 +88,8 @@ class WebViewPage extends StatefulWidget {
   final DshWebTarget? openTarget;
 
   /// Takes the back button's seat (网页模式: the native handle), at the
-  /// size of the button it replaces.
+  /// size of the button it replaces. A page without one seats the app's mark
+  /// as its way back instead (the marker in DSH Web's leading seat).
   final Widget Function(double size)? leading;
 
   /// The page is the app's home (网页模式): back leaves the app once the page
@@ -578,6 +580,7 @@ class _WebViewPageState extends State<WebViewPage> {
     _progress = 0;
     _error = null;
     _appliedInsets = null;
+    _sidebarOpen = false;
     unawaited(_setUp(controller));
   }
 
@@ -591,26 +594,32 @@ class _WebViewPageState extends State<WebViewPage> {
             // DSH Web keeps to its own origin; other pages open in the browser.
             onNavigationRequest: widget.dshWeb ? _onDshWebNavigation : null,
             onPageStarted: (_) {
-              if (!mounted || controller != _controller) return;
+              if (!mounted || _gone || controller != _controller) return;
               _files.invalidate();
               _set(() {
                 _loading = true;
                 _error = null;
               });
             },
-            onProgress: (p) => _set(() => _progress = p),
+            onProgress: (p) {
+              if (!mounted || _gone || controller != _controller) return;
+              _set(() => _progress = p);
+            },
             onPageFinished: (_) {
+              if (!mounted || _gone || controller != _controller) return;
               _set(() => _loading = false);
               _appliedInsets = null;
               _applyInsets();
               if (widget._adapt) unawaited(_injectPhoneLayout());
               if (widget.dshWeb) unawaited(_injectBackBridge());
               if (widget.dshWeb) unawaited(_injectOpenBridge());
+              if (widget.dshWeb) unawaited(_injectSidebarBridge());
               if (widget.dshWeb && widget.onSession != null) {
                 unawaited(_injectStateBridge());
               }
             },
             onWebResourceError: (error) {
+              if (!mounted || _gone || controller != _controller) return;
               if (kDebugMode) {
                 // URLs and descriptions may contain the Host's token.
                 debugPrint(
@@ -634,6 +643,9 @@ class _WebViewPageState extends State<WebViewPage> {
           controller.addJavaScriptChannel('DshAppCompose', onMessageReceived: (m) => widget.link?._composed(m.message)),
         if (widget.dshWeb && widget.onSession != null)
           controller.addJavaScriptChannel('DshAppState', onMessageReceived: _onState),
+        // Whether DSH Web's own sidebar drawer covers the page (the seat
+        // marker steps aside while it does).
+        if (widget.dshWeb) controller.addJavaScriptChannel('DshAppSidebar', onMessageReceived: _onSidebar),
       ].map((f) => f.catchError((_) {})),
     );
     if (!mounted || controller != _controller) return;
@@ -690,6 +702,10 @@ class _WebViewPageState extends State<WebViewPage> {
   /// Whether [WebViewPage.openTarget] was handed to the page already.
   bool _targetSent = false;
 
+  /// Whether DSH Web's own sidebar drawer is up (the seat marker steps aside
+  /// while it is): reported by `assets/web/dsh_web_sidebar.js`.
+  bool _sidebarOpen = false;
+
   /// Runs on every load: a session hop reloads the page and the bridge
   /// picks the rest of the target up from there. A load that failed
   /// finished on the WebView's own error page: the target and the
@@ -725,6 +741,26 @@ class _WebViewPageState extends State<WebViewPage> {
     } catch (_) {
       // Error page without a DOM: the next load injects again.
     }
+  }
+
+  /// DSH Web's own sidebar drawer, open or folded
+  /// (`assets/web/dsh_web_sidebar.js`).
+  static Future<String> _sidebarBridge() =>
+      _source('sidebar', () => rootBundle.loadString('assets/web/dsh_web_sidebar.js', cache: false));
+
+  Future<void> _injectSidebarBridge() async {
+    try {
+      await _controller.runJavaScript(await _sidebarBridge());
+    } catch (_) {
+      // Error page without a DOM: the next load injects again.
+    }
+  }
+
+  /// The page's sidebar drawer went up or down: the marker in its header row
+  /// steps aside for it, so it never covers the sidebar's own brand and rows.
+  void _onSidebar(JavaScriptMessage message) {
+    final open = message.message == 'open';
+    if (open != _sidebarOpen && mounted) setState(() => _sidebarOpen = open);
   }
 
   /// Session tracking (`assets/web/dsh_web_state.js`).
@@ -857,29 +893,13 @@ class _WebViewPageState extends State<WebViewPage> {
 
   void _onHide() => _hiddenAt = DateTime.now();
 
-  Future<void> _onShow() async {
+  void _onShow() {
     final after = widget.reloadAfterBackground;
     final hidden = _hiddenAt;
     _hiddenAt = null;
-    if (after == null || hidden == null || _gone || DateTime.now().difference(hidden) <= after) return;
-    final controller = _controller;
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS && widget.dshWeb) {
-      try {
-        final count = await controller
-            .runJavaScriptReturningResult(
-              "typeof window.__dshAppPendingAttachmentCount === 'function' ? window.__dshAppPendingAttachmentCount() : null",
-            )
-            .timeout(const Duration(seconds: 1));
-        // Only a definite count protects this draft. An unavailable or stuck
-        // page still gets the original socket-recovery reload.
-        if (count is num && count.isFinite && count > 0 && count == count.truncateToDouble()) return;
-      } on Object {
-        // Missing bridge, timeout or WebView error: keep the recovery reload.
-      }
+    if (after != null && hidden != null && !_gone && DateTime.now().difference(hidden) > after) {
+      unawaited(_controller.reload());
     }
-    // Asking JavaScript yields: the person may leave or background us again.
-    if (!mounted || _gone || _hiddenAt != null || !identical(controller, _controller)) return;
-    await controller.reload();
   }
 
   @override
@@ -1058,11 +1078,23 @@ class _WebViewPageState extends State<WebViewPage> {
   /// bar of its own. The page's own opener in the seat moves one gap past the
   /// marker (see the seat CSS in [WebPageInsets.script]), so both stay in the
   /// row DSH Web lays out.
+  ///
+  /// Its sidebar, opened, slides over that row: the marker steps aside for it
+  /// (fades out, and lets touches through to the sidebar's mask) instead of
+  /// covering the sidebar's brand and rows.
   Widget _seatControls(EdgeInsets padding) => Positioned(
     key: const ValueKey('web-controls-seat'),
     left: padding.left + WebChromeMetrics.seatLeft,
     top: padding.top + WebChromeMetrics.seatTop,
-    child: BackdropGroup(child: _leading(WebChromeMetrics.seatButton)),
+    child: IgnorePointer(
+      ignoring: _sidebarOpen,
+      child: AnimatedOpacity(
+        opacity: _sidebarOpen ? 0 : 1,
+        duration: AppMotion.of(context, AppMotion.standard),
+        curve: AppMotion.std,
+        child: BackdropGroup(child: _leading(WebChromeMetrics.seatButton, mark: true)),
+      ),
+    ),
   );
 
   /// Adapted DSH Web below [dshWebDesktopWidth]: only the two buttons, left-
@@ -1107,17 +1139,24 @@ class _WebViewPageState extends State<WebViewPage> {
   );
 
   /// The back button, or what [WebViewPage.leading] seats there instead.
-  Widget _leading(double size) =>
+  ///
+  /// [mark]: in DSH Web's own header row, where the page keeps a seat for the
+  /// app's marker (the official layout, phone widths), the way back is the
+  /// app's mark itself — the same round key as the 网页模式 handle, at the
+  /// size of the page's own chrome there.
+  Widget _leading(double size, {bool mark = false}) =>
       widget.leading?.call(size) ??
-      GlassIconButton(
-        icon: AppIcons.back,
-        tooltip: context.l10n.commonBack,
-        // The app's own chrome takes the whole 22; a marker the size of the
-        // page's own controls shrinks the glyph with it.
-        size: size,
-        iconSize: math.min(22, size * 0.6),
-        onPressed: _back,
-      );
+      (mark
+          ? WebMarkButton(size: size, tooltip: context.l10n.commonBack, label: context.l10n.commonBack, onTap: _back)
+          : GlassIconButton(
+              icon: AppIcons.back,
+              tooltip: context.l10n.commonBack,
+              // The app's own chrome takes the whole 22; a marker the size of
+              // the page's own controls shrinks the glyph with it.
+              size: size,
+              iconSize: math.min(22, size * 0.6),
+              onPressed: _back,
+            ));
 
   Widget _bar(BuildContext context, EdgeInsets padding) {
     final theme = Theme.of(context);
@@ -1296,9 +1335,6 @@ class _LoadErrorState extends State<_LoadError> {
 class DshWebLink {
   _WebViewPageState? _page;
   Completer<WebComposeResult>? _composing;
-  final _correlateComposeReplies = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-  final _composeReplies = <String, Completer<WebComposeResult>>{};
-  int _composeNumber = 0;
 
   /// Calls made while no page is attached (the engine still starting, a
   /// host switch rebuilding the page): the next page runs them.
@@ -1339,50 +1375,19 @@ class DshWebLink {
     List<({String name, String? type, String base64})> files = const [],
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    final done = Completer<WebComposeResult>();
-    final requestId = _correlateComposeReplies ? '${++_composeNumber}' : null;
-    if (requestId == null) {
-      _composing = done;
-    } else {
-      _composeReplies[requestId] = done;
-    }
+    final done = _composing = Completer<WebComposeResult>();
     final draft = {
-      'requestId': ?requestId,
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) 'composerAttachmentCount': true,
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) 'requireOpenedTarget': true,
       'text': text,
       'files': [
         for (final f in files) {'name': f.name, 'type': ?f.type, 'data': f.base64},
       ],
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) 'guardTextFallback': true,
     };
-    final script = 'window.__dshAppCompose && window.__dshAppCompose(${jsonEncode(draft)});';
-    try {
-      await _send(script);
-      return await done.future.timeout(timeout, onTimeout: () => const WebComposeResult());
-    } finally {
-      if (requestId != null) {
-        _composeReplies.remove(requestId);
-        // A failed paste must not be sent later, after its caller has fallen back.
-        _queued.remove(script);
-        _page?._pendingScripts.remove(script);
-      }
-    }
+    await _send('window.__dshAppCompose && window.__dshAppCompose(${jsonEncode(draft)});');
+    return done.future.timeout(timeout, onTimeout: () => const WebComposeResult());
   }
 
   void _composed(String message) {
-    Completer<WebComposeResult>? done;
-    if (_correlateComposeReplies) {
-      try {
-        final reply = jsonDecode(message);
-        if (reply is! Map || reply['requestId'] is! String) return;
-        done = _composeReplies.remove(reply['requestId']);
-      } on FormatException {
-        return;
-      }
-    } else {
-      done = _composing;
-    }
+    final done = _composing;
     if (done == null || done.isCompleted) return;
     done.complete(WebComposeResult.parse(message));
   }

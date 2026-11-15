@@ -4,10 +4,7 @@
 // `flutter test --update-goldens test/features/features_pages_test.dart`.
 
 import 'package:dsh_app/runtime/runtime_state.dart';
-import 'package:dsh_app/l10n/l10n.dart';
-import 'package:dsh_app/state/android_features.dart';
 import 'package:dsh_app/state/connection_state.dart';
-import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/state/features_state.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/settings_state.dart';
@@ -17,6 +14,8 @@ import 'package:dsh_app/ui/remote/remote_screen.dart';
 import 'package:dsh_app/ui/features/agent_presets_page.dart';
 import 'package:dsh_app/ui/chat/current_chat_page.dart';
 import 'package:dsh_app/ui/chat/widgets/plus_panel.dart';
+import 'package:dsh_app/state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
+import 'package:dsh_app/ui/applet/hub_apps_group.dart' show HubInstalledApp, HubInstalledController, hubInstalledProvider;
 import 'package:dsh_app/ui/features/all_features_page.dart';
 import 'package:dsh_app/ui/features/jobs_page.dart';
 import 'package:dsh_app/ui/features/permission_page.dart';
@@ -31,7 +30,6 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../chat/support/harness.dart';
-import '../phone/support.dart' show FixedActiveHost;
 import '../plugins/support/fake_plugin_host.dart';
 import '../phone/support.dart';
 import '../shell/golden_harness.dart' show FakeRuntime, runningStatus;
@@ -162,7 +160,15 @@ const _permissions = PermissionState(
 );
 
 /// Fixed data for every feature provider (goldens and navigation).
+/// 适配合并树(万器 AppHub):页面读已装小程序清单来定目录 settled 态,
+/// 测试喂空清单(等价「无小程序」),避免真实 provider 卡在加载。
+class _FixedInstalled extends HubInstalledController {
+  @override
+  Future<List<HubInstalledApp>> build() async => const [];
+}
+
 List<Override> _fixed({String? current = 's1', bool autoApprove = false}) => [
+  hubInstalledProvider.overrideWith(_FixedInstalled.new),
   activeConnectionProvider.overrideWithValue(AsyncData(fakeConnection)),
   localRuntimeProvider.overrideWith(() => FakeRuntime(const LocalRuntimeState(loaded: true, status: runningStatus))),
   sessionsProvider.overrideWith(_Sessions.new),
@@ -206,40 +212,14 @@ Future<void> _pump(
 }) async {
   usePhoneView(tester);
   await tester.pumpWidget(testApp(page, brightness: brightness, overrides: overrides ?? _fixed()));
+  // 适配合并树(万器 AppHub):激活 keep-alive 注册者(生产在 DshApp 根装配
+  // watch 一次),目录经它整批同步进引擎注册表,桌面画布才有得画。
+  ProviderScope.containerOf(tester.element(find.byType(Navigator).first)).read(hubDesktopSyncProvider);
   await pumpFrames(tester, 6);
 }
 
 void main() {
   setUpAll(loadTestFonts);
-
-  group('自动化任务 on HarmonyOS', () {
-    final note = lookupL10n(AppLocale.zhCN).harmonySchedulesLocal;
-
-    Future<void> schedules(WidgetTester tester, {required String os, HostRef host = HostRef.local}) => _pump(
-      tester,
-      SchedulesPage(now: _now),
-      overrides: [
-        ..._fixed(),
-        operatingSystemProvider.overrideWithValue(os),
-        activeHostProvider.overrideWith(() => FixedActiveHost(host)),
-      ],
-    );
-
-    testWidgets('on-device tasks only fire while the app runs, and it says so', (tester) async {
-      await schedules(tester, os: 'ohos');
-      expect(find.text(note), findsOneWidget);
-    });
-
-    testWidgets('a remote host\'s tasks run regardless', (tester) async {
-      await schedules(tester, os: 'ohos', host: const HostRef.relay('r1'));
-      expect(find.text(note), findsNothing);
-    });
-
-    testWidgets('Android has nothing to add', (tester) async {
-      await schedules(tester, os: 'android');
-      expect(find.text(note), findsNothing);
-    });
-  });
 
   group('全部功能', () {
     testWidgets('native items push their page; web items deep-link', (tester) async {

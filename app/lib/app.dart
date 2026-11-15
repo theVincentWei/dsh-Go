@@ -221,12 +221,10 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (Platform.operatingSystem == 'ohos')
-                    EasedKeyboardInset(child: MirroredSideInsets(child: DiminaFloatBall(child: child!)))
-                  else
-                    MirroredSideInsets(child: DiminaFloatBall(child: child!)),
-                  // 小程序浮窗单球(2026-11-12):⋯菜单「浮窗」收后台后贴边常驻,
-                  // 点击原地恢复;盖在所有路由之上、冷启动层之下。
+                  // 内容只挂一次(child 带着根 Navigator 的 GlobalKey,同一帧
+                  // 挂两次会以「Multiple widgets used the same GlobalKey」炸帧):
+                  // 浮窗球宿主自己的 Stack 把它垫在底层,球盖在它上面。
+                  DiminaFloatBall(child: MirroredSideInsets(child: child!)),
                   const LaunchLayer(),
                 ],
               ),

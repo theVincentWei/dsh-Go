@@ -194,6 +194,23 @@ A remote-only setup does not need a local runtime on the phone. Phone control wo
 
 The local engine uses compatible PRoot startup by default. Direct startup is off by default in Developer options; see [Troubleshooting](docs/guide/en/11-faq.md) for compatibility and fallback behavior. The current Android build targets APK sideloading, not Google Play distribution.
 
+## App market (wanqi)
+
+The App market tile on the desktop lists mini programs; installing and upgrading happen there. The page is a storefront only: the list comes from the market service on the engine host (AppHub, the wanqi project's server, fixed port 7610). An SSH host forwards the port automatically when the link comes up; emulators and USB debugging go through adb reverse; a host reached over DSH Remote relay needs the market relay plugin installed on that host. Without the service, the market page keeps saying “AppHub unreachable”.
+
+To install the market backend and the wanqi CLI on the host (both repositories ship with the Wanqi project and are not published separately yet; on macOS the database is Homebrew's MariaDB — install it first with `brew install mariadb` if missing):
+
+```bash
+git clone <wanqi repository> wanqi && cd wanqi
+git clone <mini-program repository> dsh-go-miniprograms   # next to wanqi
+bash server/tool/install-cli.sh              # creates ~/.local/bin/wanqi
+wanqi service doctor                         # health check; repairs in dependency order
+wanqi service start server                   # starts the market server (default port 7610)
+wanqi bundle install ../dsh-go-miniprograms/dist/wx5b8e2f4a9c1d7e60-10.zip  # install a sample
+```
+
+Handy commands: `wanqi service status` for the health table, `wanqi service logs server -f` to follow the logs, `wanqi bundle upgrade <zip>` to upgrade, `wanqi bundle rollback --app <id>` to roll back, `wanqi bundle remove --app <id>` to uninstall. For the phone side and connection troubleshooting, see [App market](docs/guide/en/13-market.md).
+
 ## Data and permissions
 
 Model requests go to the provider you configure. During phone-control tasks, relevant screen text may be sent to the model, and vision-capable models may receive screenshots. Read the app's permission disclosure before enabling the feature.

@@ -16,7 +16,7 @@
 import 'dart:convert';
 
 import 'package:dsh_app/ui/share/qr_code.dart';
-import 'package:dsh_app/ui/shell/brand_mark.dart';
+import 'package:dsh_app/ui/shell/wanqi_mark.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -298,7 +298,7 @@ void main() {
         ]) {
           expect(gap, moreOrLessEquals(edge + cell, epsilon: 1e-9));
         }
-        expect(tester.widget<BrandMark>(find.byKey(QrCodeView.logoKey)).tile, isTrue);
+        expect(tester.widget<WanqiMark>(find.byKey(QrCodeView.logoKey)).disc, isTrue);
       });
     }
 
@@ -325,7 +325,7 @@ void main() {
     testWidgets('no logo unless asked', (tester) async {
       await pump(tester, const QrCodeView(data: 'https://github.com/ccch1mneyyy/dsh-go'));
       expect(find.byKey(QrCodeView.logoKey), findsNothing);
-      expect(find.byType(BrandMark), findsNothing);
+      expect(find.byType(WanqiMark), findsNothing);
     });
 
     testWidgets('the tile is not announced apart from the code', (tester) async {

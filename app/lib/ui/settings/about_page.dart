@@ -11,7 +11,7 @@ import '../../l10n/l10n.dart';
 import '../../state/app_info.dart';
 import '../../state/star_prompt.dart' show starLinkOpenerProvider;
 import '../../state/update_state.dart';
-import '../shell/brand_mark.dart';
+import '../shell/wanqi_mark.dart';
 import '../shell/page_frame.dart';
 import '../star/star_prompt_dialog.dart' show openStarProject;
 import '../theme/app_icons.dart';
@@ -58,7 +58,7 @@ class AboutPage extends ConsumerWidget {
                 context: context,
                 applicationName: AppInfo.name,
                 applicationVersion: version,
-                applicationIcon: const Padding(padding: EdgeInsets.all(12), child: BrandMark(size: 56, tile: true)),
+                applicationIcon: const Padding(padding: EdgeInsets.all(12), child: WanqiMark(size: 56, disc: true)),
                 applicationLegalese: AppInfo.disclaimer,
               ),
             ),
@@ -91,7 +91,7 @@ class AboutPage extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
           child: Column(
             children: [
-              BrandMark(size: 18, color: colors.textDisabled),
+              WanqiMark(size: 18, color: colors.textDisabled),
               const SizedBox(height: 10),
               Text(
                 AppInfo.slogan,

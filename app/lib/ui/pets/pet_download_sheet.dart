@@ -9,6 +9,7 @@ import '../../l10n/l10n.dart';
 import '../../state/download_tasks.dart';
 import '../../state/hosts_state.dart';
 import '../common/app_sheet.dart';
+import '../theme/app_icons.dart';
 import '../session/workspace_files.dart' show formatBytes;
 
 /// 打开下载列表;[onOpen] 把一个条目带到它发起的会话。
@@ -43,7 +44,7 @@ class DownloadTasksPanel extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
               children: [
-                Icon(Icons.download, size: 16, color: scheme.onSurfaceVariant),
+                Icon(AppIcons.download, size: 16, color: scheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text(appL10n.chatDownloadCenter, style: Theme.of(context).textTheme.titleSmall),
                 const Spacer(),
@@ -90,7 +91,7 @@ class _TaskRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         child: Row(
           children: [
-            Icon(Icons.description_outlined, size: 18, color: scheme.onSurfaceVariant),
+            Icon(AppIcons.document, size: 18, color: scheme.onSurfaceVariant),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -125,7 +126,7 @@ class _TaskRow extends ConsumerWidget {
             const SizedBox(width: 6),
             IconButton(
               visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.close, size: 16),
+              icon: const Icon(AppIcons.close, size: 16),
               tooltip: appL10n.updateCancelDownload,
               onPressed: () {
                 task.cancel();

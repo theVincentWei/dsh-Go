@@ -4,6 +4,9 @@ import 'dart:math' as math;
 /// [SecretStore] under [SshSecrets] keys, never in this config.
 enum SshAuthMethod { password, privateKey }
 
+/// Whether the app owns the remote DSH process or only opens a tunnel to it.
+enum SshDshMode { managed, attachOnly }
+
 /// What a host physically is, for its row's device glyph (「设备图标」).
 /// Cosmetic: picking one never changes the connection or its pinned key.
 enum SshHostDevice { macMini, desktop, desktopTower, computerTower, laptop, hardDrives }
@@ -21,6 +24,9 @@ class SshHostConfig {
     required this.user,
     this.auth = SshAuthMethod.password,
     this.launchCommand = defaultDshLaunchCommand,
+    this.dshMode = SshDshMode.managed,
+    this.remotePort = 3080,
+    this.compression = true,
     this.workingDirectory,
     this.icon,
     this.hostKeyType,
@@ -36,6 +42,13 @@ class SshHostConfig {
   final int port;
   final String user;
   final SshAuthMethod auth;
+  final SshDshMode dshMode;
+
+  /// Fixed remote loopback port in attach-only mode.
+  final int remotePort;
+
+  /// Negotiate delayed SSH compression when supported by the server.
+  final bool compression;
 
   /// Shell command that starts DSH's web server on the remote. dsh-app appends
   /// `--host 127.0.0.1 --port 0 --no-open`.
@@ -60,7 +73,8 @@ class SshHostConfig {
 
   /// Fields that require a new SSH session when they change (name and the
   /// pinned key don't).
-  String get connectionKey => [host, port, user, auth.name, launchCommand.trim()].join('\u0000');
+  String get connectionKey =>
+      [host, port, user, auth.name, dshMode.name, remotePort, compression, launchCommand.trim()].join('\u0000');
 
   /// Changing where we connect forgets the pinned key: it belonged to the old
   /// machine.
@@ -71,6 +85,9 @@ class SshHostConfig {
     String? user,
     SshAuthMethod? auth,
     String? launchCommand,
+    SshDshMode? dshMode,
+    int? remotePort,
+    bool? compression,
     String? Function()? workingDirectory,
     SshHostDevice? Function()? icon,
     String? Function()? hostKeyType,
@@ -85,6 +102,9 @@ class SshHostConfig {
       user: user ?? this.user,
       auth: auth ?? this.auth,
       launchCommand: launchCommand ?? this.launchCommand,
+      dshMode: dshMode ?? this.dshMode,
+      remotePort: remotePort ?? this.remotePort,
+      compression: compression ?? this.compression,
       workingDirectory: workingDirectory != null ? workingDirectory() : this.workingDirectory,
       icon: icon != null ? icon() : this.icon,
       hostKeyType: hostKeyType != null ? hostKeyType() : (moved ? null : this.hostKeyType),
@@ -100,6 +120,9 @@ class SshHostConfig {
     'user': user,
     'auth': auth.name,
     'launchCommand': launchCommand,
+    'dshMode': dshMode.name,
+    'remotePort': remotePort,
+    'compression': compression,
     if (workingDirectory != null) 'workingDirectory': workingDirectory,
     if (icon != null) 'icon': icon!.name,
     if (hostKeyType != null) 'hostKeyType': hostKeyType,
@@ -116,6 +139,10 @@ class SshHostConfig {
     final port = raw['port'];
     final command = raw['launchCommand'];
     final cwd = raw['workingDirectory'];
+    final remotePort = raw['remotePort'];
+    if (raw['dshMode'] == 'attachOnly' && (remotePort is! int || remotePort < 1 || remotePort > 65535)) {
+      return null;
+    }
     final device = SshHostDevice.values.asNameMap()[raw['icon']];
     return SshHostConfig(
       id: id,
@@ -126,6 +153,9 @@ class SshHostConfig {
       auth: SshAuthMethod.values.firstWhere((m) => m.name == raw['auth'], orElse: () => SshAuthMethod.password),
       launchCommand: command is String && command.trim().isNotEmpty ? command : defaultDshLaunchCommand,
       workingDirectory: cwd is String && cwd.trim().isNotEmpty ? cwd : null,
+      dshMode: raw['dshMode'] == 'attachOnly' ? SshDshMode.attachOnly : SshDshMode.managed,
+      remotePort: remotePort is int && remotePort > 0 && remotePort < 65536 ? remotePort : 3080,
+      compression: raw['compression'] is bool ? raw['compression'] as bool : true,
       icon: device,
       hostKeyType: raw['hostKeyType'] as String?,
       hostKeyFingerprint: raw['hostKeyFingerprint'] as String?,
@@ -148,19 +178,36 @@ class SshHostConfig {
       other.user == user &&
       other.auth == auth &&
       other.launchCommand == launchCommand &&
+      other.dshMode == dshMode &&
+      other.remotePort == remotePort &&
+      other.compression == compression &&
       other.workingDirectory == workingDirectory &&
       other.icon == icon &&
       other.hostKeyType == hostKeyType &&
       other.hostKeyFingerprint == hostKeyFingerprint;
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, host, port, user, auth, launchCommand, workingDirectory, icon, hostKeyType, hostKeyFingerprint);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    host,
+    port,
+    user,
+    auth,
+    launchCommand,
+    dshMode,
+    remotePort,
+    compression,
+    workingDirectory,
+    icon,
+    hostKeyType,
+    hostKeyFingerprint,
+  );
 }
 
 /// The secret material for one SSH host, loaded from the [SecretStore].
 class SshSecrets {
-  const SshSecrets({this.password, this.privateKey, this.passphrase});
+  const SshSecrets({this.password, this.privateKey, this.passphrase, this.attachToken});
 
   final String? password;
 
@@ -168,9 +215,13 @@ class SshSecrets {
   final String? privateKey;
   final String? passphrase;
 
+  /// Launch token supplied by the owner of an existing DSH instance.
+  final String? attachToken;
+
   static String passwordKey(String hostId) => 'ssh.$hostId.password';
   static String privateKeyKey(String hostId) => 'ssh.$hostId.privateKey';
   static String passphraseKey(String hostId) => 'ssh.$hostId.passphrase';
+  static String attachTokenKey(String hostId) => 'ssh.$hostId.attachToken';
 
   bool get isEmpty => (password == null || password!.isEmpty) && (privateKey == null || privateKey!.trim().isEmpty);
 }

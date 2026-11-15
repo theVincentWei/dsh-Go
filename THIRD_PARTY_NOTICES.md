@@ -66,10 +66,16 @@ used with the author's permission.
 - `chat/`：`chat_header.dart`、`chat_list.dart`、`chat_screen.dart`、`composer.dart`、`model_sheet.dart`
 - `chat/render/`：`ansi_text.dart`、`code_block.dart`、`diff_view.dart`、`markdown_body.dart`
 - `chat/widgets/`：`approval_card.dart`、`assistant_message.dart`、`question_card.dart`、`thinking_pill.dart`、`tool_row.dart`、`user_bubble.dart`
-- `common/`：`app_sheet.dart`、`glass_pill.dart`、`overscroll_forwarder.dart`、`sheet_navigator.dart`、`status_dot.dart`、`streaming_cursor.dart`、`tool_glyph.dart`、`typing_indicator.dart`
+- `common/`：`app_sheet.dart`、`glass_pill.dart`、`overscroll_forwarder.dart`、`sheet_navigator.dart`、`status_dot.dart`、`streaming_cursor.dart`、`tool_glyph.dart`
 - `settings/`：`diagnostics_page.dart`、`settings_widgets.dart`
 - `shell/`：`drawer_drag.dart`、`home_shell.dart`、`sessions_drawer.dart`
 - `theme/`：`accent.dart`、`app_theme.dart`、`backdrop.dart`、`highlight_theme.dart`、`motion.dart`、`palette.dart`、`semantic_colors.dart`、`shapes.dart`、`squircle.dart`、`typography.dart`
+
+### dartssh2（MIT，已修改）
+
+- 来源：dartssh2 4.1.0（https://pub.dev/packages/dartssh2/versions/4.1.0），上游 https://github.com/vicajilau/dartssh2。
+- 本仓库位置：`packages/dartssh2/`；保留包内原始 `LICENSE`，Flutter 按本地依赖收集许可。
+- 本地改动：增加认证后启用的 `zlib@openssh.com` 压缩、关闭选项、重协商时的压缩流切换及对应测试；不修改密码算法。来源归档校验与维护说明见包内说明。
 
 ### DeepSeek Harness（MIT）
 
@@ -148,6 +154,32 @@ DS Bot 的 NOTICE 原文附在文末。
 | `test/fixtures/protocol-v1/` | `fixtures/protocol/v1`（原样复制） |
 | `tool/e2e/patch-webrtc.mjs` | 不复制代码：在 E2E 时改写上游 `apps/server/src/gateway.ts`，按托管 Server 的行为打开 WebRTC 协商与 signaling 转发 |
 
+### Libraries.dev（MIT）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | Libraries.dev，https://github.com/Jakubantalik/Libraries.dev （基于提交 `387b049`） |
+| 版权人 | Copyright (c) 2026 Jakub Antalik |
+| 许可 | MIT（只用代码；`LICENSE-MODEL.md` 管的模型文件 `Magnet.mfxl`、`VoicePosition.mfxl` 和 Pro 内容都没有用） |
+| 用途 | 界面特效：思考光球、边框流光、语音辉光、语音光环、机器人头像等，从作者的 TypeScript / Swift / Metal 源码翻译成 Dart、Flutter 着色器和 Kotlin |
+
+本仓库位置：`app/lib/ui/fx/`（每个文件第一行注明出处）及其 `app/shaders/fx/` 下的着色器。
+
+金属质感的着色器 `app/shaders/fx/metal_liquid.frag` 是 metal-fx 用的 Paper Shaders `liquidMetal`（Apache-2.0，Paper Design, Inc.，`@paper-design/shaders` 0.0.80）的 GLSL 翻译，按 metal-fx 的 NOTICE 原文保留：
+
+```text
+This product includes software developed by Paper Design, Inc.
+
+  Paper Shaders (https://github.com/paper-design/shaders)
+  Copyright (c) Paper Design, Inc.
+  Licensed under the Apache License, Version 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+
+The liquid-metal material in app/shaders/fx/metal_liquid.frag is the
+`liquidMetal` fragment stage of @paper-design/shaders 0.0.80, as used by
+Libraries.dev metal-fx, translated to Flutter GLSL.
+```改动：换成 Flutter 的 CustomPainter / FragmentShader 绘制，默认颜色从 App 主题色取，跟随「减弱动态」，声音电平改用 App 自己的采集数据；桌面专用的鼠标效果没有移植。
+
 ### DSHA（MIT）
 
 | 项 | 内容 |
@@ -167,6 +199,19 @@ DS Bot 的 NOTICE 原文附在文末。
 | 许可 | MIT |
 | 用途 | 社区论坛的容器配置，基于官方 `samples/standalone.yml` 改写 |
 | 文件 | `infra/forum/containers/app.yml`、`infra/forum/containers/app.reverse-proxy.yml` |
+
+### SillyTavern（AGPL-3.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | SillyTavern，https://github.com/SillyTavern/SillyTavern |
+| 版本 | 1.19.0，提交 `7e8663cd9c184a550b37238218bdd32c6efc68e9` |
+| 许可 | AGPL-3.0（与本项目相同） |
+| 用途 | 酒馆引擎照 SillyTavern 的行为移植或改写：提示词组装、世界书、宏、斜杠命令、正则、角色卡与聊天文件的读写、人设 |
+| 来源文件 | `public/script.js`；`public/scripts/` 下的 `PromptManager.js`、`openai.js`、`personas.js`、`world-info.js`、`macros.js`、`slash-commands.js`、`bookmarks.js`；`src/character-card-parser.js`、`src/prompt-converters.js`、`src/endpoints/characters.js`、`src/endpoints/chats.js`、`src/endpoints/backends/chat-completions.js` |
+| 文件 | `packages/dsh_tavern/lib/src/` 下文件头写明 SillyTavern 来源和提交的文件 |
+
+酒馆引擎里另有几处移植，许可写在各自的文件头或同目录的许可文件里：Fuse.js 7.1.0（Apache-2.0，`packages/dsh_tavern/lib/src/slash/FUSE-LICENSE.txt`）、json-logic-js（MIT，`packages/dsh_tavern/lib/src/state/JSONLOGIC-LICENSE.txt`）、Unicode 16.0.0 数据（Unicode 许可，`packages/dsh_tavern/lib/src/slash/UNICODE-NAME-LICENSE.txt`）、seedrandom 3.0.5（MIT，David Bau，许可原文在 `packages/dsh_tavern/lib/src/macros/macro_engine.dart`）、Handlebars 4.7.9 与 Moment 2.30.1 的有限行为（各自文件头注明）。
 
 ## 二、素材
 
@@ -192,7 +237,7 @@ DS Bot 的 NOTICE 原文附在文末。
 | 许可 | Apache License 2.0 |
 | 用途 | 桌面快捷方式与快速设置磁贴的图标；按自适应图标画布缩放、居中 |
 
-均在 `app/android/app/src/main/res/drawable/` 下：`ic_shortcut_chat_glyph.xml`（`chat_bubble_outline_rounded`）、`ic_shortcut_new_chat_glyph.xml`（`add_comment_outlined`）、`ic_shortcut_voice_glyph.xml`（`mic_none_rounded`）、`ic_tile_new_chat.xml`（`add_comment_outlined`）。鸿蒙的 `app/ohos/entry/src/main/resources/{base,dark}/media/shortcut_{new_chat,voice}_foreground.png` 由其中的 `ic_shortcut_new_chat_glyph.xml`、`ic_shortcut_voice_glyph.xml` 渲染（`tooling/ohos/make-launcher-icons.py`）。
+均在 `app/android/app/src/main/res/drawable/` 下：`ic_shortcut_chat_glyph.xml`（`chat_bubble_outline_rounded`）、`ic_shortcut_new_chat_glyph.xml`（`add_comment_outlined`）、`ic_shortcut_voice_glyph.xml`（`mic_none_rounded`）、`ic_tile_new_chat.xml`（`add_comment_outlined`）。
 
 ### discourse-emojis（MIT）
 
@@ -204,6 +249,31 @@ DS Bot 的 NOTICE 原文附在文末。
 | 用途 | 论坛表情的名称与别名表，只用数据，不含图片 |
 | 文件 | `app/lib/forum/emoji_data.g.dart`，由 `infra/forum/tools/gen_emoji_table.py` 从 `dist/emojis.json`、`dist/aliases.json` 生成 |
 
+### jQuery 3.7.1（MIT）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | jQuery 3.7.1，https://jquery.com （npm 包 `jquery@3.7.1`） |
+| 版权人 | Copyright OpenJS Foundation and other contributors, https://openjsf.org/ |
+| 许可 | MIT（包内 `LICENSE.txt` 原文） |
+| 用途 | 酒馆整页画布里给卡脚本用的 `$`／`jQuery`，和酒馆助手页面一样预先放好；「不运行卡的脚本」开着时不载入 |
+
+- `app/assets/tavern/jquery-3.7.1.min.js`：包内 `dist/jquery.min.js` 原样，SHA256 `fc9a93dd241f6b045cbff0481cf4e1901becd0e12fb45166a8f17f95823f0b1a`
+- `app/assets/licenses/jquery-3.7.1-LICENSE.txt`：包内 `LICENSE.txt` 原样，SHA256 `d4db9ebe6f29f5168eac45ad713f055623ac5d0dcd5ba92da23d650ae012020d`
+- 来源：npm 镜像 registry.npmmirror.com 的 `jquery-3.7.1.tgz`，与 npm 公布的 integrity `sha512-m4avr8yL8kmFN8psrbFFFmB/If14iN5o9nw/NgnnM+kybDJpRsAynV2BsfpTYrTRysYUdADVD7CkUUizgkpLfg==` 一致（2026-11-12 核对）
+
+### Lodash 4.17.21（MIT）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | Lodash 4.17.21，https://lodash.com （npm 包 `lodash@4.17.21`） |
+| 版权人 | Copyright OpenJS Foundation and other contributors <https://openjsf.org/>；基于 Underscore.js（Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors） |
+| 许可 | MIT（包内 `LICENSE` 原文，含示例代码 CC0 一节） |
+| 用途 | 酒馆整页画布里给卡脚本用的 `_`，同上 |
+
+- `app/assets/tavern/lodash-4.17.21.min.js`：包内 `lodash.min.js` 原样，SHA256 `a9705dfc47c0763380d851ab1801be6f76019f6b67e40e9b873f8b4a0603f7a9`
+- `app/assets/licenses/lodash-4.17.21-LICENSE.txt`：包内 `LICENSE` 原样，SHA256 `f71e8ed126b46346494aad5486874cd8f0aafe95092ed67d2e3cb6110f939abc`
+- 来源：npm 镜像的 `lodash-4.17.21.tgz`，与 npm 公布的 integrity `sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==` 一致（2026-11-12 核对）
 ### DiceBear Critters（CC0 1.0）
 
 | 项 | 内容 |
@@ -250,6 +320,21 @@ DS Bot 的 NOTICE 原文附在文末。
 | flutter_webrtc（pub 包，含 Android 插件代码） | 1.6.3 | MIT；其 NOTICE 另含 react-native-webrtc（MIT，Copyright (c) 2015 Howard Yang）与 `SimulcastVideoEncoderFactoryWrapper.kt`（Apache-2.0，Copyright 2017, Lyo Kato；Copyright 2017-2021, Shiguredo Inc.），原文见文末 | Copyright (c) 2018 湖北捷智云技术有限公司 | DSH Remote 直连（P2P / TURN）的 DataChannel；只用数据通道，不碰麦克风、摄像头和音频会话 |
 | WebRTC Android SDK（`io.github.webrtc-sdk:android`，libwebrtc m150） | 150.7871.04 | BSD-3-Clause，另附 Google 的专利授权（PATENTS） | Copyright (c) 2011, The WebRTC project authors | flutter_webrtc 的原生 WebRTC（`libjingle_peerconnection_so.so`，每个 ABI 一份） |
 | AudioSwitch（`com.github.davidliu:audioswitch`，twilio/audioswitch 的分支） | `039a35aefab7747c557242fa216c9ea11743b604` | Apache-2.0 | Copyright 2020 Twilio, inc. | flutter_webrtc 的音频路由依赖；DSH Go 不建音频轨，不会启用 |
+| mobile_scanner（pub 包，含 Android 插件代码） | 7.5.0 | BSD-3-Clause | Copyright (c) 2022, Julian Steenbakker | Remote「扫码配对电脑」的相机扫码和相册识图 |
+| ML Kit Barcode Scanning（`com.google.mlkit:barcode-scanning`，模型随 APK 打包） | 17.3.0 | [ML Kit 服务条款](https://developers.google.com/ml-kit/terms)（Google 免费分发的二进制，非开源） | Google LLC | mobile_scanner 的二维码识别，在手机本地运行，不需要 Google Play 服务 |
+| CameraX（`androidx.camera:*`，mobile_scanner 的依赖） | 随 mobile_scanner 7.5.0 | Apache-2.0 | The Android Open Source Project | 扫码时的相机预览 |
+| ONNX Runtime（`com.microsoft.onnxruntime:onnxruntime-android`） | 1.23.2 | MIT | Copyright (c) Microsoft Corporation | 语音通话在手机上跑判停模型 |
+| Silero VAD v6.2（模型文件 `assets/speech/silero_vad.onnx`） | `be95df9` | MIT | Copyright (c) 2020-present Silero Team | 语音通话判断有没有在说话 |
+| smart-turn v3.2（模型文件 `assets/speech/smart-turn-v3.2-cpu.onnx`） | `f766f81` | BSD-2-Clause | Copyright (c) 2024–2025, Daily | 语音通话判断一句话说完没有 |
+| sherpa-onnx（pub 包 `sherpa_onnx`、`sherpa_onnx_android`） | 1.12.36 | Apache-2.0 | Xiaomi Corporation 与 k2-fsa 贡献者 | 手机上的流式语音识别；它带的 `libonnxruntime.so` 与上面 ONNX Runtime 1.23.2 相同，只打包一份 |
+| Streaming Zipformer 中英双语模型（不随 APK，按需下载，csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20） | `98590b7` | Apache-2.0 | csukuangfj；上游 pfluo/k2fsa-zipformer-chinese-english-mixed | 实时字幕；许可全文随 APK 的 `assets/licenses/streaming-asr-model-APACHE-2.0.txt` |
+
+### tawcroot（tawc，MIT）
+
+「tawcroot 加速启动」（设置 → 开发者选项，默认关闭）用的 `libtawcroot.so`，由 `runtime/tawcroot/build.py` 从 [tawc](https://github.com/wmww/tawc) 固定提交 `a49a4075228f4801dadc1eee584aed33fe8ea4ce`（源码归档 SHA-256 `74487243bde86c303e786e79cd4a13e98c3279cae4ab7725dcf5fa51c0b530c1`）的 `tawcroot/src`、`tawcroot/include` 原样编译，没有修改上游源码。tawc 的 README 写明 `deps/` 以外的代码都是 MIT（[LICENSE.MIT](https://github.com/wmww/tawc/blob/a49a4075228f4801dadc1eee584aed33fe8ea4ce/LICENSE.MIT)）；整个项目因 `deps/` 里的 GPLv3 代码按 GPLv3 发布，那部分我们不编译、不分发。
+
+- 版权：Copyright (c) 2026 Sophie Winter
+- 许可：MIT（全文见文末「MIT License」），App 内「开源许可」页的 `tawcroot (tawc)` 条目附全文
 
 ### WebRTC 150.7871.04 核对记录（2026-10-30）
 
@@ -312,18 +397,6 @@ PY_APK
 最终 App 的开源许可页还应能打开 `WebRTC` 条目并查看汇编末尾 `zlib` 章节。上述命令和定向测试不代表已经运行最终发行 APK；构建与 UI 检查结果应另记在实际发行验证记录中。默认关闭 P2P 不会移除这些已打包依赖或免除通知收录。
 
 
-### 可选 iOS 端上 XCTest 原生库（实验）
-
-| 项 | 内容 |
-|---|---|
-| 项目 | [jkcoxson/idevice](https://github.com/jkcoxson/idevice) |
-| 固定来源 | `3854a5df4a5a6dee71ffce4d8befc2ea356a8065`，归档摘要见 [source-pins.json](tooling/ios/phone-self-runner/source-pins.json) |
-| 版权 / 许可 | Copyright 2026 Jackson Coxson；MIT |
-| 用途 | 仅显式启用的 iOS 实验构建：本机 RP pairing 隧道、RSD、testmanagerd 与签名 XCTest Runner 启动；默认 App 构建不链接 |
-| 本地修改 | [idevice-rsd-xctest.patch](tooling/ios/phone-self-runner/idevice-rsd-xctest.patch)：增加直接 RSD 会话入口和按本次 PID 的停止确认，移除配对记录明文 debug；不是合入外部 PR |
-
-源代码准备器验证固定归档并保留上游 MIT 文本；原生构建输出 `LICENSE.idevice.txt` 与锁定依赖的 `THIRD_PARTY_CRATES.json`，启用后的 App 把两者放入 `PhoneSelfRunnerNotices/`。清单中的许可证表达式不是完整的传递依赖版权/许可正文汇编；正式分发可选原生库前仍需核对实际链接组件及它们的通知义务，不能把当前实验构建视作许可审计已完成。该实现没有复制 `iphone-use-app` 或外部 self-runner PR 的源码。
-
 ## 四、Linux 运行时组件
 
 APK 内置的 Linux 运行时由 `runtime/build-runtime.sh` 构建，以下组件来自上游二进制或软件包，各自保留许可证；构建会裁剪文件，并为 APK 命名规则修改 proot 的 DT_NEEDED 和 libtalloc 的 DT_SONAME，具体修改记录在构建报告中：原生部分的许可证文本在 APK 的 `assets/runtime/licenses/` 下，Ubuntu 软件包的版权文件保留在运行时的 `/usr/share/doc/`。
@@ -353,31 +426,22 @@ GPL / LGPL 组件的对应源码：proot、libtalloc、libandroid-shmem 的二�
 
 `runtime/lib/rtbuild.py` 保留 Node 发行包的 `LICENSE` 为 `/opt/node/LICENSE`，保留 Ubuntu `/usr/share/doc/*/copyright`，npm 的许可文件不属于常规开发元数据裁剪项。仍须对最终归档检查许可文件和 symlink 目标是否可用，特别是 npm 包未附许可正文的情形。保留许可文本与提供 GPL/LGPL 等组件适用的对应源码是不同检查项；应为具体发行物记录版本、构建配方、修改和可获取的对应源码，不能只用项目主页或一份声明代替。
 
+### Unicode Character Database 15.0.0（Unicode 数据许可）
+
+宠物 ZIP 文件名去重使用从 CPython 3.12 / Unicode 15.0.0 生成的 NFC 与 full casefold 数据表；生成脚本为 `app/tool/generate_pet_validation_data.py`，表为 `app/lib/pets/pet_unicode_data.g.dart`。未复制 CPython 实现代码。
+
+Copyright © 1991-2026 Unicode, Inc.
+
+数据版本来源：https://www.unicode.org/Public/15.0.0/ucd/ReadMe.txt （原始数据通知 © 2022 Unicode®, Inc.）。完整 Unicode 当前许可原文取自 https://www.unicode.org/license.txt ，检索于 2026-11-07；这是当前 V3 通知，不把它冒称为 2022 发布时的许可版本。许可全文原样存于 `app/tool/unicode-15.0-LICENSE.txt`，同字节打包为 `app/assets/licenses/unicode-15.0.txt`，由现有 LicenseRegistry 页面展示。
+
+C710 新增的 `image` 4.12.0 是 MIT 许可 pub 依赖；其原许可由 Flutter 的依赖许可收集流程随包提供。Codex Pet 转换根据公开格式独立实现，不把源码许可当作第三方图集再分发授权。
+
 ## 五、格式兼容与致谢（未复制代码）
 
 - **Clawd on Desk**（https://github.com/rullerzhou-afk/clawd-on-desk，AGPL-3.0）：桌宠的主题包格式、状态名、优先级与时长默认值与它兼容，宠物包可以在两边通用。本项目没有复制它的代码。
 - **Streamdown**（https://github.com/vercel/streamdown）：`app/lib/ui/chat/render/stream_repair.dart` 修补流式 Markdown 末尾的方式参照了它的 `remend`。
 - **DS Bot**：dsh-ui 组件的名称与 DS Bot 一致。
 - **Open-Meteo**（https://open-meteo.com，数据 CC BY 4.0）：示例插件 `examples/plugins/dsh-go-example-weather` 使用它的天气数据，卡片上注明来源。
-
-## 六、OpenHarmony 虚拟进程与构建工具
-
-OpenHarmony 的虚拟 shell / 搜索 / Git 适配使用独立固定依赖。逐包清单、111 份许可、归属与原始元数据摘录、来源文件和 SHA-256 见 [OpenHarmony 第三方通知](runtime/ohos/licenses/README.md) 与 [机器可读清单](runtime/ohos/licenses/manifest.json)。范围从三个固定根沿非可选依赖及非可选 peer 边计算，共 91 个 npm 包路径；可选平台组件不冒充每个发行物的实际内容。
-
-| 组件 | 版本 | 来源 | 许可与核验范围 |
-|---|---|---|---|
-| just-bash | 3.6.0 | npm / vercel-labs/just-bash | 包声明 Apache-2.0；非可选闭包和随包嵌入内容分别登记，不能把全部文件概括为 Apache-2.0 |
-| isomorphic-git | 1.44.9 | npm / isomorphic-git/isomorphic-git | 包声明 MIT；Node 实际入口还含 @zenfs/core/path 的 LGPL-3.0-or-later 片段，原通知与 GNU 条款已单列 |
-| re2js | 1.3.3 | npm / le0pard/re2js | MIT；已补直接依赖声明；OHOS 私有 Unicode 适配的修改说明与可重现构建见 `runtime/ohos/process/M4-1.md`，保留原 MIT 通知 |
-| Angular style_parser 编译副本 | 提交 `92e41e9cb417223d9888a4c23b4c0e73188f87d0` | `@mixmark-io/domino` 2.2.0 及 just-bash 3.6.0 实际捆绑文件 | MIT；Copyright (c) 2010-2022 Google LLC.；精确上游全文与两处原始许可头单独收录，同时保留 domino 的 BSD-2-Clause |
-| 其余非可选依赖 | 见 process/package-lock.json 与逐包索引 | 固定 npm 包 | 包括 TypeScript 5.9.3、sql.js 1.15.2、undici 7.29.0、run 2.1.3 等；完整 ThirdPartyNoticeText、AUTHORS、嵌入 QuickJS/devalue 通知、双许可和原始许可注释均按原文收录 |
-| esbuild / 实际主机 @esbuild/linux-x64 | 0.27.3 / 0.27.3 | npm / evanw/esbuild | MIT，Copyright (c) 2020 Evan Wallace；主机构建工具，不据此声称已打入 HAP |
-
-clean-git-ref 2.0.1 的 Apache-2.0 声明已经由精确 package.json 核实；本目录补入 Apache 官方标准全文，并原样保留其 author/license 字段。实际发行物未附 NOTICE，不能把 Apache §4(d) 的条件改写为必须另造 NOTICE，也没有从 author 字段补写版权人或年份。
-
-**尚未闭合：**minimisted 2.0.1 的 MIT 声明和作者元数据已知且原样保留，但尚未取得精确版本对应的完整版权/许可通知。just-bash 随包 CPython/Emscripten 的三个文件已经与精确发布标签的 Git/LFS 摘要绑定，但 `3.13.2-dirty` 的实际源码修订、工具链和嵌入组件通知尚缺。两项逐条标记 BLOCKED，并写明所缺证据；这不是宣称许可名称未知，当前也不能宣布 HAP 许可检查完成。
-
-isomorphic-git 的 LGPL 片段对应源码已定位到发布提交 `86df2db391962c8690a7550c6887ca0e87798542` 的 `src/utils/join.js`。登记原通知与完整条款，不代替实际发行时适用的对应源码等要求。最终 HAP 尚未构建核验；O2 需核对真实分发文件与通知路径。独立 shadow 裁剪实验支持把 TypeScript/sql.js/CPython 列为当前未启用功能配置下的候选，但未修改共享依赖或打包规则，也未证明最终 HAP 已排除。安卓现有许可资产和界面不在本项改动范围。
 
 ## 许可证全文
 
@@ -390,6 +454,9 @@ Copyright (c) 2026 CikeSeven                                   (PiPilot)
 Copyright (c) 2026 DeepSeek                                    (DeepSeek Harness)
 Copyright (c) 2026 DSH Remote contributors                     (ds-harness-remote)
 Copyright (c) 2026 qiannianhuanxiang                           (DSHA)
+Copyright (c) Microsoft Corporation                            (ONNX Runtime)
+Copyright (c) 2020-present Silero Team                         (Silero VAD)
+Copyright (c) 2026 Jakub Antalik                               (Libraries.dev)
 Copyright (c) 2018 Civilized Discourse Construction Kit, Inc.  (discourse_docker)
 Copyright (c) 2023 Phosphor Icons                              (Phosphor Icons)
 Copyright (c) 2021 RikkaW                                      (Shizuku-API)
@@ -908,3 +975,26 @@ of the date such litigation is filed.
 - SIL Open Font License 1.1：`app/assets/fonts/OFL.txt`
 - GNU LGPL-3.0（spake2-android、libtalloc）：https://www.gnu.org/licenses/lgpl-3.0.txt ；它以 GNU GPL-3.0 为基础，两份全文一并附在 App 内许可页的 spake2-android 条目里：https://www.gnu.org/licenses/gpl-3.0.txt
 - GNU GPL-2.0（proot）：随 APK 附带于 `assets/runtime/licenses/proot-COPYING.txt`
+
+## Google ML Kit Text Recognition (Chinese)
+
+Google ML Kit Text Recognition (Chinese)
+com.google.mlkit:text-recognition-chinese:16.0.1
+
+This bundled Google SDK is subject to the Google ML Kit terms:
+https://developers.google.com/ml-kit/terms
+Android SDK data disclosure:
+https://developers.google.com/ml-kit/android-data-disclosure
+
+Recognition runs on-device. Screenshots and recognized text are not sent to
+Google by this SDK. The SDK collects usage statistics such as device model,
+app version and processing time. Phone control may send screenshots and
+recognized text to the user's configured model.
+
+Local recognition is enabled by default. While off, recognition requests do not
+trigger SDK loading or initialization. Turning it off prevents new recognition,
+but does not uninstall
+the SDK or promise to clear or stop sending previously accumulated SDK statistics.
+The dsh-go anonymous usage statistics switch does not control this SDK.
+The Apache 2.0 license for documentation sample code is not the license for
+this SDK binary. This notice does not replace Google's SDK terms.

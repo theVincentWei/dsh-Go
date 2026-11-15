@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../performance/performance_state.dart';
-import '../../../state/android_features.dart';
 import '../../../state/ask_ai.dart' show askAiAvailableProvider;
 import '../../../state/engine_settings_state.dart';
 import '../../../state/hosts_state.dart';
@@ -154,22 +153,32 @@ class _SettingsSearchPageState extends ConsumerState<SettingsSearchPage> {
     }
   }
 
+  /// Whether [hit] is one of the local-engine entries a phone without the
+  /// engine doesn't list at all — not even as unavailable: the entry itself,
+  /// or a row on a page the engine gate keeps off this phone.
+  bool _withoutLocalEngine(SearchHit hit) {
+    final spot = hit.spot;
+    if (spot == null) return false;
+    if (ref.watch(localEngineAvailableProvider)) return false;
+    final page = spot.isEntry ? spot.opens! : spot.page;
+    return spot.condition == SpotCondition.localEngineOn ||
+        SettingsIndex.page(page).condition == SpotCondition.localEngineOn;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final query = _field.text;
     final extra = ref.watch(_pluginSpotsProvider);
-    final androidFeatures = ref.watch(androidSystemFeaturesProvider);
-    List<SearchHit> search({required bool androidFeatures}) => searchSettings(
-      query,
-      spots: [...SettingsIndex.spots, ...extra],
-      features: ref.watch(featureSectionsProvider),
-      zh: _zh,
-      en: _en,
-      androidFeatures: androidFeatures,
-      ios: ref.watch(operatingSystemProvider) == 'ios',
-    );
-    final hits = query.trim().isEmpty ? const <SearchHit>[] : search(androidFeatures: androidFeatures);
+    final hits = query.trim().isEmpty
+        ? const <SearchHit>[]
+        : searchSettings(
+            query,
+            spots: [...SettingsIndex.spots, ...extra],
+            features: ref.watch(featureSectionsProvider),
+            zh: _zh,
+            en: _en,
+          ).where((hit) => !_withoutLocalEngine(hit)).toList();
     final session = ref.watch(currentSessionProvider);
     return AppPage(
       title: l10n.searchSettingsHint,
@@ -191,7 +200,7 @@ class _SettingsSearchPageState extends ConsumerState<SettingsSearchPage> {
             if (query.trim().isEmpty)
               ..._idle(context)
             else if (hits.isEmpty)
-              _NoResults(query: query.trim(), notHere: !androidFeatures && search(androidFeatures: true).isNotEmpty)
+              _NoResults(query: query.trim())
             else ...[
               for (final (title, group) in [
                 (l10n.commonSettings, hits.where((h) => !h.isFeature).toList()),
@@ -297,15 +306,6 @@ class _SpotResult extends ConsumerWidget {
     final reason =
         unavailableReason(ref, spot.condition, l10n) ??
         (spot.isEntry ? null : unavailableReason(ref, SettingsIndex.page(spot.page).condition, l10n));
-    // route-b（用户拍板 2026-11-12）: 通向不可用功能的入口直接隐藏，连置灰
-    // 都不要——本机引擎/本机主机类条件不满足时整条不出（其余条件保持
-    // foundation 的「置灰+原因」语义）。
-    if (reason != null) {
-      final failed = spot.condition ?? SettingsIndex.page(spot.page).condition;
-      if (failed == SpotCondition.localEngineOn || failed == SpotCondition.localHost) {
-        return const SizedBox.shrink();
-      }
-    }
     return ListPageRow(
       title: spot.title(l10n),
       titleNote: hit.synonym,
@@ -318,12 +318,9 @@ class _SpotResult extends ConsumerWidget {
 /// No settings matched: the question, as typed, for 问 AI (not in 网页模式,
 /// where there is no native chat to take it).
 class _NoResults extends ConsumerWidget {
-  const _NoResults({required this.query, required this.notHere});
+  const _NoResults({required this.query});
 
   final String query;
-
-  /// Android's version would have found it: a feature this one lacks, not a typo.
-  final bool notHere;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -331,7 +328,7 @@ class _NoResults extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FeatureMessage(icon: AppIcons.noResults, title: notHere ? l10n.harmonySearchUnavailable : l10n.searchNoResults),
+        FeatureMessage(icon: AppIcons.noResults, title: l10n.searchNoResults),
         if (ref.watch(askAiAvailableProvider))
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
