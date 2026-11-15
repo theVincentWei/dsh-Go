@@ -12,10 +12,10 @@
   "contentBox": {"x": 4, "y": 8, "w": 23, "h": 24},
   "hitBoxes": {
     "default": {"x": 4, "y": 8, "w": 23, "h": 24},
-    "wide": {"x": 0, "y": 5, "w": 32, "h": 28},
+    "wide": {"x": 0, "y": 8, "w": 32, "h": 25},
     "sleeping": {"x": 5, "y": 16, "w": 22, "h": 16},
     "byAnim": {},
-    "wideAnims": ["pawing", "bonus-love", "compacting", "carrying", "roam-hop", "react-left", "react-right"],
+    "wideAnims": ["pawing", "compacting", "carrying", "roam-hop", "react-left", "react-right"],
     "sleepingAnims": ["sleeping"]
   },
   "animations": {
@@ -93,11 +93,11 @@
       "sheet": "bonus-love.png",
       "frameW": 48,
       "frameH": 64,
-      "cols": 4,
+      "cols": 5,
       "box": {"x": 3, "y": 2, "w": 24, "h": 32},
       "loop": false,
-      "ms": 920,
-      "frames": [{"i": 0, "ms": 220}, {"i": 1, "ms": 220}, {"i": 2, "ms": 220}, {"i": 3, "ms": 260}]
+      "ms": 1050,
+      "frames": [{"i": 0, "ms": 220}, {"i": 1, "ms": 220}, {"i": 2, "ms": 130}, {"i": 3, "ms": 220}, {"i": 4, "ms": 260}]
     },
     "notification": {
       "sheet": "notification.png",
