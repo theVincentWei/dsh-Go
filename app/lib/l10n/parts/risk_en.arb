@@ -25,5 +25,32 @@
   "askAiQuestionAllowForChat": "What does “Allow for chat” let through, and how do I turn it off?",
   "askAiQuestionPlugins": "What can plugins do, and what should I watch for with third-party ones?",
   "askAiQuestionRemote": "How do I connect my own computer or server, and how is that different from this phone?",
-  "askAiQuestionMarket": "The App market is unreachable or empty — how do I set up its backend (the wanqi service) and the plugins it needs on the host?"
+  "askAiQuestionMarket": "The App market is unreachable or empty — how do I set up its backend (the wanqi service) and the plugins it needs on the host?",
+  "askAiMiniappTitle": "Ask AI · {appName}",
+  "@askAiMiniappTitle": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "askAiMiniappContext": "I'm on the '{page}' page of the mini program '{appName}'.",
+  "@askAiMiniappContext": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "askAiMiniappContextNoPage": "I'm in the mini program '{appName}'.",
+  "@askAiMiniappContextNoPage": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  }
 }

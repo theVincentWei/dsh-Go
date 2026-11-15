@@ -134,6 +134,29 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
             override fun onForegrounded(appId: String) = forward("foregrounded", appId)
 
             override fun onRuntimeDestroyed(appId: String) = forward("destroyed", appId)
+
+            // 「问AI浮窗」被点击(2026-11-15 问AI链路):payload 透传给 Dart,
+            // 进场链路(lib/ui/applet/dimina/ask_ai_entry.dart)接管——先推聊天页
+            // 再经 'float' 分支调 floatCurrentMiniProgram 收小程序。浮窗入口的
+            // 显隐由容器自管(dimina_ask_ai_float_enabled,默认开),宿主不注册。
+            // pageTitle/pagePath 容器拿不到时为 null(不强造),Dart 侧容错。
+            override fun onAskAiInvoked(appId: String, appName: String, pageTitle: String?, pagePath: String?) {
+                main.post {
+                    try {
+                        channel.invokeMethod(
+                            "onAskAi",
+                            mapOf(
+                                "appId" to appId,
+                                "appName" to appName,
+                                "pageTitle" to pageTitle,
+                                "pagePath" to pagePath,
+                            ),
+                        )
+                    } catch (_: Throwable) {
+                        // Dart 侧没挂 handler 或引擎正在销毁:静默,只丢这一次。
+                    }
+                }
+            }
         })
     }
 
@@ -333,6 +356,14 @@ class DiminaPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandl
                 }
                 // closeMiniProgram must run on the main thread (Dimina docs).
                 main.post { result.success(Dimina.getInstance().closeMiniProgram(appId)) }
+            }
+            "float" -> {
+                // 问AI进场(2026-11-15 拍板,Dart 侧聊天页推入后调用):把当前前台
+                // 小程序收后台保留运行时——容器 floatCurrentMiniProgram 复用
+                // ⋯菜单「浮窗」的 hideMiniProgram 原语(整栈+运行时保留+
+                // notifyFloated,浮窗球照常出现,但此刻已被聊天页盖住,返回时它
+                // 已就位)。必须主线程;无前台小程序返回 false,Dart 侧忽略。
+                main.post { result.success(Dimina.getInstance().floatCurrentMiniProgram()) }
             }
             "uninstall" -> {
                 val appId = call.argument<String>("appId") ?: run {

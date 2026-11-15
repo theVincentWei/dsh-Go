@@ -1891,6 +1891,17 @@
   "botsPetSize": "大小",
   "botsPetQuiet": "安静模式",
   "botsPetQuietSubtitle": "只做动作，不冒气泡",
+  "botsPetWorkshopAutoUpdate": "自动更新工坊宠物",
+  "botsPetWorkshopAutoUpdateSubtitle": "打开宠物设置时，自动换上创意工坊里的新版本",
+  "botsPetWorkshopAutoUpdated": "{count} 个工坊宠物包已更新",
+  "@botsPetWorkshopAutoUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "botsPetWorkshopAutoUpdateFailed": "工坊宠物包自动更新失败了，稍后再试",
   "botsPetShowNow": "立即显示",
   "botsPetHiddenUntil": "藏到 {time}",
   "@botsPetHiddenUntil": {
@@ -9951,6 +9962,33 @@
   "askAiQuestionPlugins": "插件能做什么？装第三方插件要注意什么？",
   "askAiQuestionRemote": "怎么连接自己的电脑或服务器？和用本机有什么不同？",
   "askAiQuestionMarket": "应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？",
+  "askAiMiniappTitle": "问AI · {appName}",
+  "@askAiMiniappTitle": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "askAiMiniappContext": "我正在看小程序「{appName}」的「{page}」页面。",
+  "@askAiMiniappContext": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "askAiMiniappContextNoPage": "我正在看小程序「{appName}」。",
+  "@askAiMiniappContextNoPage": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
   "phoneRuntimeUpgradeBase": "新引擎与现有 Linux 环境不能确认兼容，更新已停止。原环境和已装工具没有删除。请先完整备份，再联系维护者迁移；不要直接重置或卸载 App。",
   "phoneRuntimeUpgradeManifest": "无法安全识别运行时更新清单，更新已停止，原环境保留。请核对安装包并联系维护者，不要直接重置。",
   "phoneRuntimeUpgradeInterrupted": "运行时升级尚未完成，数据与恢复现场已保留。请重试安装；仍失败时导出诊断并联系维护者，不要重置或删除恢复目录。",

@@ -49,6 +49,24 @@ final class DiminaFloatEvent {
   final Uint8List? iconPng;
 }
 
+/// 「小程序问AI」事件(2026-11-15 拍板):容器问AI浮窗点击 → 宿主原生透传
+/// (DiminaPlugin 的 MiniProgramLifecycleListener.onAskAiInvoked 分支)。
+/// 页面信息可能缺省(容器拿不到当前页标题/路径时为 null),一期轻上下文
+/// 只到页面标题/路径。
+final class DiminaAskAiEvent {
+  const DiminaAskAiEvent({
+    required this.appId,
+    required this.appName,
+    this.pageTitle,
+    this.pagePath,
+  });
+
+  final String appId;
+  final String appName;
+  final String? pageTitle;
+  final String? pagePath;
+}
+
 final class DiminaHost {
   const DiminaHost._();
 
@@ -69,6 +87,13 @@ final class DiminaHost {
   /// 单球语义:再次 floated 直接顶替当前球。
   static Stream<DiminaFloatEvent> get floatEvents => _floatEvents.stream;
 
+  static final StreamController<DiminaAskAiEvent> _askAiEvents =
+      StreamController<DiminaAskAiEvent>.broadcast();
+
+  /// 「小程序问AI」事件广播流(2026-11-15):容器问AI浮窗点击,进场链路
+  /// (ask_ai_entry.dart)订阅它接管整条链。
+  static Stream<DiminaAskAiEvent> get askAiEvents => _askAiEvents.stream;
+
   /// 升级链路事件广播流:市场页/Hub 订阅后按真实状态刷新,不必轮询。
   static Stream<DiminaUpdateEvent> get updateEvents => _updateEvents.stream;
 
@@ -79,7 +104,9 @@ final class DiminaHost {
     // setMethodCallHandler 注册点,新增分支不要覆盖)。分支:
     //  - onUpdateEvent:容器升级里程碑(既有);
     //  - notifyTemplates:宿主订阅面板要的模板名+app 名(原生不知道 appHubBase);
-    //  - notifyConsent:订阅面板结果 → 逐条上报 AppHub /api/v1/notices/consent。
+    //  - notifyConsent:订阅面板结果 → 逐条上报 AppHub /api/v1/notices/consent;
+    //  - onDiminaEvent:浮窗单球状态(floated/foregrounded/destroyed);
+    //  - onAskAi:「小程序问AI」浮窗点击(进场链路见 ask_ai_entry.dart)。
     // (容器 Header 通知铃铛的 openNotificationCenter/fetchUnread 分支随
     //  2026-11-11 拍板「星河容器里不放通知按钮」一并拆除;入口改在宿主的
     //  会话列表 + 「小程序」桌面页头。)
@@ -118,6 +145,18 @@ final class DiminaHost {
               appId: args['appId'] as String? ?? '',
               appName: args['appName'] as String?,
               iconPng: args['iconPng'] is Uint8List ? args['iconPng'] as Uint8List : null,
+            ));
+          }
+        case 'onAskAi':
+          // 「小程序问AI」(2026-11-15):容器问AI浮窗点击透传;页面信息可能缺省,
+          // 缺省字段一律容错成 null,不因坏 payload 丢事件。
+          if (call.arguments is Map) {
+            final Map args = call.arguments as Map;
+            _askAiEvents.add(DiminaAskAiEvent(
+              appId: args['appId'] as String? ?? '',
+              appName: args['appName'] as String? ?? '',
+              pageTitle: args['pageTitle'] as String?,
+              pagePath: args['pagePath'] as String?,
             ));
           }
       }
@@ -244,6 +283,23 @@ final class DiminaHost {
   static Future<bool> close(String appId) async =>
       await _channel.invokeMethod<bool>('close', <String, Object?>{'appId': appId}) ??
       false;
+
+  /// 「小程序问AI」进场的收后台步(2026-11-15 拍板):原生 'float' → 容器
+  /// floatCurrentMiniProgram(主线程,复用 ⋯菜单「浮窗」的 hideMiniProgram
+  /// 链路,整栈+运行时保留;随后的 floated 事件让浮窗球照常出现)。进场次序
+  /// (ask_ai_entry)是先推聊天页再调它;false = 无前台小程序/容器不支持,
+  /// 调用方忽略——聊天页照常用,只是返回时不恢复。
+  static Future<bool> floatCurrentMiniProgram() async {
+    _ensureNativeEventHandler();
+    try {
+      return await _channel.invokeMethod<bool>('float', <String, Object?>{}) ?? false;
+    } on PlatformException catch (error) {
+      debugPrint('[dimina] floatCurrent unsupported: ${error.code}');
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
 
   /// Removes the installed package. [clearUserData] also wipes the mini
   /// program's Storage and persistent files.

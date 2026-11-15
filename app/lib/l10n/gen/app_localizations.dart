@@ -5540,6 +5540,30 @@ abstract class L10n {
   /// **'只做动作，不冒气泡'**
   String get botsPetQuietSubtitle;
 
+  /// No description provided for @botsPetWorkshopAutoUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动更新工坊宠物'**
+  String get botsPetWorkshopAutoUpdate;
+
+  /// No description provided for @botsPetWorkshopAutoUpdateSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开宠物设置时，自动换上创意工坊里的新版本'**
+  String get botsPetWorkshopAutoUpdateSubtitle;
+
+  /// No description provided for @botsPetWorkshopAutoUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个工坊宠物包已更新'**
+  String botsPetWorkshopAutoUpdated(int count);
+
+  /// No description provided for @botsPetWorkshopAutoUpdateFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'工坊宠物包自动更新失败了，稍后再试'**
+  String get botsPetWorkshopAutoUpdateFailed;
+
   /// No description provided for @botsPetShowNow.
   ///
   /// In zh, this message translates to:
@@ -29665,6 +29689,24 @@ abstract class L10n {
   /// In zh, this message translates to:
   /// **'应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？'**
   String get askAiQuestionMarket;
+
+  /// No description provided for @askAiMiniappTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'问AI · {appName}'**
+  String askAiMiniappTitle(String appName);
+
+  /// No description provided for @askAiMiniappContext.
+  ///
+  /// In zh, this message translates to:
+  /// **'我正在看小程序「{appName}」的「{page}」页面。'**
+  String askAiMiniappContext(String appName, String page);
+
+  /// No description provided for @askAiMiniappContextNoPage.
+  ///
+  /// In zh, this message translates to:
+  /// **'我正在看小程序「{appName}」。'**
+  String askAiMiniappContextNoPage(String appName);
 
   /// No description provided for @phoneRuntimeUpgradeBase.
   ///

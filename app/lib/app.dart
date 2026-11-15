@@ -14,6 +14,7 @@ import 'state/hub_desktop_sync.dart' show hubDesktopSyncProvider;
 import 'state/locale_state.dart';
 import 'state/star_prompt.dart' show starPromptGateProvider, starPromptProvider;
 import 'ui/applet/dimina/float_ball.dart';
+import 'ui/applet/dimina/ask_ai_entry.dart' show AskAiEntryHost;
 import 'state/tile_style_state.dart';
 import 'ui/chat/dsh_ui/dsh_ui_model.dart' show DshUiAppAccent;
 import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
@@ -214,7 +215,8 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
                   // 内容只挂一次(child 带着根 Navigator 的 GlobalKey,同一帧
                   // 挂两次会以「Multiple widgets used the same GlobalKey」炸帧):
                   // 浮窗球宿主自己的 Stack 把它垫在底层,球盖在它上面。
-                  DiminaFloatBall(child: MirroredSideInsets(child: child!)),
+                  // 「小程序问AI」进场链路(ask_ai_entry)与球同层常驻。
+                  DiminaFloatBall(child: AskAiEntryHost(child: MirroredSideInsets(child: child!))),
                   const LaunchLayer(),
                 ],
               ),

@@ -25,6 +25,7 @@ import '../../state/streaming_pcm_state.dart';
 import '../../voice/live_words.dart';
 import '../../voice/streaming_pcm.dart';
 import '../../state/agents_state.dart' show selectConversation, subagentParentProvider;
+import '../../state/ask_ai.dart' show askAiSessionTitleProvider;
 import '../../state/attachments.dart';
 import '../../state/balance_state.dart';
 import '../../state/chat_error_text.dart';
@@ -649,6 +650,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
         if (!await _applyOwedSetup(host, sessionId, setup, ownsCreation)) return null;
       }
       if (!ownsCreation() || _draftKey != sessionId || ref.read(currentSessionProvider) != sessionId) return null;
+      // 「小程序问AI」(2026-11-15):进场时预定好的标题「问AI · <appName>」
+      // 在会话建出来这一刻钉上(session/rename,引擎自动起题就此停)。钉题
+      // 不挡发送:失败回落引擎自动起题;问AI页中途退掉时进场链路会清预定,
+      // 无关的新会话不会接手这个标题。
+      final askAiTitle = ref.read(askAiSessionTitleProvider);
+      if (askAiTitle != null) {
+        ref.read(askAiSessionTitleProvider.notifier).clear();
+        unawaited(() async {
+          try {
+            await ref.read(sessionsProvider.notifier).rename(sessionId, askAiTitle);
+          } catch (_) {
+            // 钉题失败(连接抖动等):回落引擎自动起题,不重试。
+          }
+        }());
+      }
       return sessionId;
     } finally {
       if (mounted && identical(_creating, attempt)) setState(() => _creating = null);

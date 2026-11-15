@@ -3171,6 +3171,20 @@ class L10nEn extends L10n {
   String get botsPetQuietSubtitle => 'Animations only, no bubbles';
 
   @override
+  String get botsPetWorkshopAutoUpdate => 'Auto-update workshop pets';
+
+  @override
+  String get botsPetWorkshopAutoUpdateSubtitle => 'Opening pet settings fetches newer workshop releases';
+
+  @override
+  String botsPetWorkshopAutoUpdated(int count) {
+    return '$count workshop pet pack(s) updated';
+  }
+
+  @override
+  String get botsPetWorkshopAutoUpdateFailed => 'Couldn\'t auto-update workshop pets. Try again later';
+
+  @override
   String get botsPetShowNow => 'Show now';
 
   @override
@@ -17067,6 +17081,21 @@ class L10nEn extends L10n {
   @override
   String get askAiQuestionMarket =>
       'The App market is unreachable or empty — how do I set up its backend (the wanqi service) and the plugins it needs on the host?';
+
+  @override
+  String askAiMiniappTitle(String appName) {
+    return 'Ask AI · $appName';
+  }
+
+  @override
+  String askAiMiniappContext(String appName, String page) {
+    return 'I\'m on the \'$page\' page of the mini program \'$appName\'.';
+  }
+
+  @override
+  String askAiMiniappContextNoPage(String appName) {
+    return 'I\'m in the mini program \'$appName\'.';
+  }
 
   @override
   String get phoneRuntimeUpgradeBase =>

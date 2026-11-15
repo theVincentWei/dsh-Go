@@ -160,3 +160,43 @@ Future<ComposeRequest> askAiQuestionRequest(
 /// Whether 「问 AI」 entries show: not in 网页模式, where the home is the web
 /// page and the native composer isn't there to take the question.
 final askAiAvailableProvider = Provider<bool>((ref) => !ref.watch(uiModeProvider.select((s) => s.web)));
+
+// ---- 「小程序问AI」(2026-11-15) ----
+//
+// 容器问AI浮窗 → 聊天页新会话,带上「正在看小程序 X 的 Y 页面」的轻上下文
+// (一期只到页面标题/路径,不抓页面内容)。进场链路在 ui/applet/dimina/
+// ask_ai_entry.dart;这里只有两样共享状态:预填的上下文([askAiMiniappRequest],
+// 走 compose 收件箱与 share-intake 同一条路)和预定的会话标题
+// ([askAiSessionTitleProvider],建会话时由 ChatScreen 钉上)。
+
+/// 「小程序问AI」预定的会话标题「问AI · `appName`」:进场时定好;会话在首次
+/// 发送建出来的那一刻由 ChatScreen 钉上(session/rename,引擎自动起题就此停,
+/// 见 chat_screen._ensureSession)。问AI页没等到发送就退掉时由进场链路清掉
+/// —— 预定只活在那一次进场里,之后的无关新会话不接手这个标题。
+final askAiSessionTitleProvider = NotifierProvider<_AskAiSessionTitle, String?>(_AskAiSessionTitle.new);
+
+class _AskAiSessionTitle extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void arm(String title) => state = title;
+
+  void clear() => state = null;
+}
+
+/// 「小程序问AI」的输入框预填:一行「我正在看小程序 X 的 Y 页面」(页面标题,
+/// 缺了退到路径,都缺就说「在看小程序 X」),问题由人接着写;不自动发送。
+ComposeRequest askAiMiniappRequest({
+  required String appName,
+  String? pageTitle,
+  String? pagePath,
+}) {
+  final String page = switch ((pageTitle?.trim(), pagePath?.trim())) {
+    (final String title, _) when title.isNotEmpty => title,
+    (_, final String path) when path.isNotEmpty => path,
+    _ => '',
+  };
+  return ComposeRequest(
+    text: page.isEmpty ? appL10n.askAiMiniappContextNoPage(appName) : appL10n.askAiMiniappContext(appName, page),
+  );
+}

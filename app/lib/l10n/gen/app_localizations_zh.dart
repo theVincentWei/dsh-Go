@@ -2996,6 +2996,20 @@ class L10nZh extends L10n {
   String get botsPetQuietSubtitle => '只做动作，不冒气泡';
 
   @override
+  String get botsPetWorkshopAutoUpdate => '自动更新工坊宠物';
+
+  @override
+  String get botsPetWorkshopAutoUpdateSubtitle => '打开宠物设置时，自动换上创意工坊里的新版本';
+
+  @override
+  String botsPetWorkshopAutoUpdated(int count) {
+    return '$count 个工坊宠物包已更新';
+  }
+
+  @override
+  String get botsPetWorkshopAutoUpdateFailed => '工坊宠物包自动更新失败了，稍后再试';
+
+  @override
   String get botsPetShowNow => '立即显示';
 
   @override
@@ -16227,6 +16241,21 @@ class L10nZh extends L10n {
 
   @override
   String get askAiQuestionMarket => '应用市场打不开或列表是空的，怎么在主机上装好市场后端（wanqi 服务）和它需要的插件？';
+
+  @override
+  String askAiMiniappTitle(String appName) {
+    return '问AI · $appName';
+  }
+
+  @override
+  String askAiMiniappContext(String appName, String page) {
+    return '我正在看小程序「$appName」的「$page」页面。';
+  }
+
+  @override
+  String askAiMiniappContextNoPage(String appName) {
+    return '我正在看小程序「$appName」。';
+  }
 
   @override
   String get phoneRuntimeUpgradeBase => '新引擎与现有 Linux 环境不能确认兼容，更新已停止。原环境和已装工具没有删除。请先完整备份，再联系维护者迁移；不要直接重置或卸载 App。';
