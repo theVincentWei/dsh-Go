@@ -134,7 +134,7 @@ PACKS = {
         kind='strips', dir='ponkan-cat',
         name='匠匠',
         author='dsh-go 用户提供参考图',
-        license='用户提供的参考图，随 dsh-go 使用',
+        license='LicenseRef-Author-Permission',
         source='用户提供的七动作像素猫参考图，经 piskel-cli 切成序列帧',
         faces='right',
         preview_zoom=3, preview_per_row=8,

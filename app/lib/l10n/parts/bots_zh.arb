@@ -831,6 +831,17 @@
   "botsPetSize": "大小",
   "botsPetQuiet": "安静模式",
   "botsPetQuietSubtitle": "只做动作，不冒气泡",
+  "botsPetWorkshopAutoUpdate": "自动更新工坊宠物",
+  "botsPetWorkshopAutoUpdateSubtitle": "打开宠物设置时，自动换上创意工坊里的新版本",
+  "botsPetWorkshopAutoUpdated": "{count} 个工坊宠物包已更新",
+  "@botsPetWorkshopAutoUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "botsPetWorkshopAutoUpdateFailed": "工坊宠物包自动更新失败了，稍后再试",
   "botsPetShowNow": "立即显示",
   "botsPetHiddenUntil": "藏到 {time}",
   "@botsPetHiddenUntil": {

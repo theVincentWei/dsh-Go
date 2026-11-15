@@ -10,6 +10,7 @@ import '../pets/pet_library.dart';
 import '../pets/pet_prefs.dart';
 import '../pets/pet_sheets.dart';
 import '../pets/pet_signals.dart' show petPackProvider, userPetsProvider;
+import '../workshop/workshop_auto_update.dart';
 import '../workshop/workshop_client.dart';
 import '../workshop/workshop_http.dart';
 import '../workshop/workshop_models.dart';
@@ -103,6 +104,21 @@ void retryWorkshopDependencies(Ref ref, {bool includeLocal = false}) {
 typedef WorkshopPackageChanged = Future<void> Function(
   WorkshopInstalled item, {
   required bool removed,
+});
+
+/// 工坊宠物包自动更新：冷启动 (app.dart) 与宠物设置页各拉起一次，不设定时器。
+/// 没有工坊、偏好还没加载或开关关闭时返回 null，什么都不做；其余错误由调用方
+/// catch 展示，这里不吞。
+final workshopPetAutoUpdateProvider = Provider<Future<WorkshopAutoUpdateResult?> Function()>((ref) {
+  return () async {
+    // Same question as ui/workshop's workshopAvailableProvider, without that
+    // ui import here.
+    if (ref.read(workshopOriginProvider) == null) return null;
+    final prefs = ref.read(petPrefsProvider);
+    if (!prefs.loaded || !prefs.workshopAutoUpdate) return null;
+    final repository = await ref.read(workshopRepositoryProvider.future);
+    return runWorkshopAutoUpdate(repository: repository, installed: await repository.installed());
+  };
 });
 
 Future<void> _waitPetPreferences(Ref ref) async {

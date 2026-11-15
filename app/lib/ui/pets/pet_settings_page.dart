@@ -13,6 +13,8 @@ import '../../pets/pet_pack.dart';
 import '../../pets/pet_prefs.dart';
 import '../../pets/pet_signals.dart';
 import '../../pets/pet_state.dart';
+import '../../state/workshop_dependencies.dart';
+import '../../workshop/workshop_models.dart';
 import '../common/expand_reveal.dart';
 import '../settings/settings_widgets.dart';
 import '../theme/app_icons.dart';
@@ -45,14 +47,45 @@ class PetEntryTile extends ConsumerWidget {
 }
 
 /// 宠物设置.
-class PetSettingsPage extends ConsumerWidget {
+class PetSettingsPage extends ConsumerStatefulWidget {
   const PetSettingsPage({super.key});
 
   static Future<void> open(BuildContext context) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PetSettingsPage()));
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PetSettingsPage> createState() => _PetSettingsPageState();
+}
+
+class _PetSettingsPageState extends ConsumerState<PetSettingsPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoUpdate());
+  }
+
+  /// 进页拉起一次工坊宠物包自动更新：有更新或出错才打扰，安静跳过不打扰。
+  Future<void> _autoUpdate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final run = ref.read(workshopPetAutoUpdateProvider);
+      final result = await run();
+      if (result == null || result.quiet) return;
+      if (!mounted) return;
+      if (result.updated.isNotEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(appL10n.botsPetWorkshopAutoUpdated(result.updated.length))));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(appL10n.botsPetWorkshopAutoUpdateFailed)));
+      }
+    } on WorkshopException {
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(appL10n.botsPetWorkshopAutoUpdateFailed)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final prefs = ref.watch(petPrefsProvider);
     final now = ref.watch(petClockProvider)();
@@ -77,6 +110,14 @@ class PetSettingsPage extends ConsumerWidget {
                 onTap: () => unawaited(
                   Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const WorkshopScreen())),
                 ),
+              ),
+              SettingsSwitchTile(
+                icon: AppIcons.workshop,
+                tinted: false,
+                title: l10n.botsPetWorkshopAutoUpdate,
+                subtitle: l10n.botsPetWorkshopAutoUpdateSubtitle,
+                value: prefs.workshopAutoUpdate,
+                onChanged: (v) => unawaited(notifier.setWorkshopAutoUpdate(v)),
               ),
             ],
           ),

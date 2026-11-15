@@ -124,6 +124,8 @@ for f in "${flavors[@]}"; do
     --build-name "$name" --build-number "$code" "--dart-define=DSH_APP_VERSION=$name+$code")
   [[ -n $target ]] && cmd+=(-t "$target")
   ((beta)) && cmd+=("--dart-define-from-file=$beta_json")
+  # 创意工坊部署域 is opt-in: only a configured DSH_WORKSHOP_ORIGIN reaches the app.
+  [[ -n ${DSH_WORKSHOP_ORIGIN-} ]] && cmd+=("--dart-define=DSH_WORKSHOP_ORIGIN=$DSH_WORKSHOP_ORIGIN")
   cmd+=(${extra[@]+"${extra[@]}"})
   commands+=("$(printf '%q ' "${cmd[@]}")")
 done

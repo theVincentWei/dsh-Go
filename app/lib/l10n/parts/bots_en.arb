@@ -355,6 +355,17 @@
   "botsPetSize": "Size",
   "botsPetQuiet": "Quiet mode",
   "botsPetQuietSubtitle": "Animations only, no bubbles",
+  "botsPetWorkshopAutoUpdate": "Auto-update workshop pets",
+  "botsPetWorkshopAutoUpdateSubtitle": "Opening pet settings fetches newer workshop releases",
+  "botsPetWorkshopAutoUpdated": "{count} workshop pet pack(s) updated",
+  "@botsPetWorkshopAutoUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "botsPetWorkshopAutoUpdateFailed": "Couldn't auto-update workshop pets. Try again later",
   "botsPetShowNow": "Show now",
   "botsPetHiddenUntil": "Hidden until {time}",
   "botsKeyEsc": "Send Esc",

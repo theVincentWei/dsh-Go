@@ -57,6 +57,7 @@ class PetPrefs {
     this.position = defaultPosition,
     this.hiddenUntil,
     this.overlayRenderer = PetOverlayRenderer.pixel,
+    this.workshopAutoUpdate = true,
     this.floatZoom = 0.9,
     this.floatY = 0,
     this.loaded = false,
@@ -80,6 +81,9 @@ class PetPrefs {
   /// 「藏起来 1 小时」 until then.
   final DateTime? hiddenUntil;
   final PetOverlayRenderer overlayRenderer;
+
+  /// 自动更新工坊宠物包 (宠物设置里那行开关).
+  final bool workshopAutoUpdate;
   final double floatZoom;
   final double floatY;
   final bool loaded;
@@ -97,6 +101,7 @@ class PetPrefs {
     DateTime? hiddenUntil,
     bool clearHidden = false,
     PetOverlayRenderer? overlayRenderer,
+    bool? workshopAutoUpdate,
     double? floatZoom,
     double? floatY,
     bool? loaded,
@@ -108,6 +113,7 @@ class PetPrefs {
     position: position ?? this.position,
     hiddenUntil: clearHidden ? null : (hiddenUntil ?? this.hiddenUntil),
     overlayRenderer: overlayRenderer ?? this.overlayRenderer,
+    workshopAutoUpdate: workshopAutoUpdate ?? this.workshopAutoUpdate,
     floatZoom: floatZoom ?? this.floatZoom,
     floatY: floatY ?? this.floatY,
     loaded: loaded ?? this.loaded,
@@ -123,13 +129,14 @@ class PetPrefs {
       other.position == position &&
       other.hiddenUntil == hiddenUntil &&
       other.overlayRenderer == overlayRenderer &&
+      other.workshopAutoUpdate == workshopAutoUpdate &&
       other.floatZoom == floatZoom &&
       other.floatY == floatY &&
       other.loaded == loaded;
 
   @override
   int get hashCode => Object.hash(packId, packExplicit, size, quiet, position, hiddenUntil,
-      overlayRenderer, floatZoom, floatY, loaded);
+      overlayRenderer, workshopAutoUpdate, floatZoom, floatY, loaded);
 }
 
 class PetPrefsController extends Notifier<PetPrefs> {
@@ -141,6 +148,7 @@ class PetPrefsController extends Notifier<PetPrefs> {
     hidden: 'pet.hidden_until',
     renderer: 'pet.overlay_renderer',
     framing: 'pet.overlay_framing',
+    workshopAutoUpdate: 'pet.workshop_auto_update',
   );
 
   late Future<void> _loaded;
@@ -188,6 +196,7 @@ class PetPrefsController extends Notifier<PetPrefs> {
         position: (prefs.getDouble(keys.position) ?? PetPrefs.defaultPosition).clamp(0.0, 1.0),
         hiddenUntil: hidden == null ? null : DateTime.fromMillisecondsSinceEpoch(hidden),
         overlayRenderer: PetOverlayRenderer.fromName(prefs.getString(keys.renderer)),
+        workshopAutoUpdate: prefs.getBool(keys.workshopAutoUpdate) ?? true,
         floatZoom: zoom,
         floatY: y,
         loaded: true,
@@ -235,6 +244,10 @@ class PetPrefsController extends Notifier<PetPrefs> {
   Future<void> setQuiet(bool v) => _save((s) => s.copyWith(quiet: v), (p) => p.setBool(keys.quiet, v));
   Future<void> setOverlayRenderer(PetOverlayRenderer value) =>
       _save((s) => s.copyWith(overlayRenderer: value), (p) => p.setString(keys.renderer, value.name));
+
+  /// 自动更新工坊宠物包.
+  Future<void> setWorkshopAutoUpdate(bool v) =>
+      _save((s) => s.copyWith(workshopAutoUpdate: v), (p) => p.setBool(keys.workshopAutoUpdate, v));
 
   /// Model-relative framing, kept together in one preference. The default is
   /// full-body; it does not inherit the room's camera or gestures.

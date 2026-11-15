@@ -16,6 +16,17 @@ void main() {
     return container;
   }
 
+  test('workshop auto-update is on until it is switched off, and survives reload', () async {
+    expect(const PetPrefs().workshopAutoUpdate, isTrue);
+    final c = await loaded({});
+    await c.read(petPrefsProvider.notifier).setWorkshopAutoUpdate(false);
+    final persisted = await SharedPreferences.getInstance();
+    final second = await loaded({
+      PetPrefsController.keys.workshopAutoUpdate: persisted.getBool(PetPrefsController.keys.workshopAutoUpdate)!,
+    });
+    expect(second.read(petPrefsProvider).workshopAutoUpdate, isFalse);
+  });
+
   test('old or unknown preferences stay pixel, with full-body framing', () async {
     final c = await loaded({PetPrefsController.keys.renderer: 'future-renderer'});
     final prefs = c.read(petPrefsProvider);

@@ -16,6 +16,7 @@ import 'state/star_prompt.dart' show starPromptGateProvider, starPromptProvider;
 import 'ui/applet/dimina/float_ball.dart';
 import 'ui/applet/dimina/ask_ai_entry.dart' show AskAiEntryHost;
 import 'state/tile_style_state.dart';
+import 'state/workshop_dependencies.dart' show workshopPetAutoUpdateProvider;
 import 'ui/chat/dsh_ui/dsh_ui_model.dart' show DshUiAppAccent;
 import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
 import 'ui/common/side_insets.dart';
@@ -68,6 +69,10 @@ class _DshAppState extends ConsumerState<DshApp> with WidgetsBindingObserver {
     if (ref.read(starPromptGateProvider)) ref.read(starPromptProvider);
     // 伙伴小屋: her invitation ledger is read now, so it is known before the room opens.
     ref.read(companionInitiativeProvider);
+    // 工坊宠物包自动更新: this build's deployment, once per launch, in the
+    // background. No workshop, closed switch or unready preferences do nothing;
+    // a failed cold-start pass is left to the next 宠物设置 visit.
+    unawaited(ref.read(workshopPetAutoUpdateProvider)().then((_) {}, onError: (_) {}));
     // 刷新率: some systems cap third-party apps at 60 Hz and then show their per-app
     // switch as an in-app setting; the app answers frames to run at the fastest rate
     // while it is actually drawing (see RefreshRateService).
