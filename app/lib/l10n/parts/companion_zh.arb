@@ -345,5 +345,18 @@
   "@companionAdaptFailed": {"placeholders": {"reason": {"type": "String"}}},
   "companionAdaptUnreadable": "模型的回答看不懂",
   "companionAdaptEmpty": "模型没找到能用的对应",
-  "companionAdaptNetwork": "网络不通"
+  "companionAdaptNetwork": "网络不通",
+  "companionMenuInvite": "主动邀请",
+  "companionMenuInviteHint": "你安静陪着她时，她偶尔会邀你一起歇一会儿",
+  "companionNeedsAttention": "有件事要你确认，点这里去看",
+  "companionTaskApproval": "「{title}」在等你批准。",
+  "@companionTaskApproval": {"placeholders": {"title": {"type": "String"}}},
+  "companionTaskApprovalUntitled": "你那边有件事在等你批准。",
+  "companionTaskDone": "「{title}」那边跑完啦。",
+  "@companionTaskDone": {"placeholders": {"title": {"type": "String"}}},
+  "companionTaskFailed": "「{title}」好像出错了，要去看看吗？",
+  "@companionTaskFailed": {"placeholders": {"title": {"type": "String"}}},
+  "companionTaskQuestion": "「{title}」有事想问你。",
+  "@companionTaskQuestion": {"placeholders": {"title": {"type": "String"}}},
+  "companionTaskQuestionUntitled": "你那边有个问题在等你回答。"
 }

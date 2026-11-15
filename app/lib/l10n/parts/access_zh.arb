@@ -133,5 +133,7 @@
     }
   },
   "accessPageTitle": "系统权限",
-  "accessPageSubtitle": "各项功能用到的系统权限"
+  "accessPageSubtitle": "各项功能用到的系统权限",
+  "accessFeatureAlerts": "回复提醒",
+  "accessFeatureAlertsNeeds": "需要通知权限"
 }

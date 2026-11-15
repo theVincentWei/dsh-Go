@@ -133,5 +133,7 @@
     }
   },
   "accessPageTitle": "System permissions",
-  "accessPageSubtitle": "What each feature needs from Android"
+  "accessPageSubtitle": "What each feature needs from Android",
+  "accessFeatureAlerts": "Reply alerts",
+  "accessFeatureAlertsNeeds": "Needs notifications"
 }

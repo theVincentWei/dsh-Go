@@ -150,5 +150,12 @@
   "apphubInfoVersion": "Version",
   "apphubInfoUpdated": "Updated",
   "apphubInfoDeveloper": "Developer",
-  "apphubInfoLanguage": "Language"
+  "apphubInfoLanguage": "Language",
+  "catalogCurrentChat": "Current chat",
+  "catalogPlanGoal": "Plan and goal",
+  "catalogPlanGoalSummary": "Goals, plans and to-dos",
+  "catalogReference": "Reference files and chats",
+  "catalogReferenceSummary": "Use @ in the composer",
+  "catalogSubagents": "Subagents",
+  "catalogSubagentsSummary": "Lineage and status; tap to chat"
 }

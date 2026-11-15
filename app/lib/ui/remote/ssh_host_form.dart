@@ -7,12 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../remote/ssh/ssh_link.dart';
-import '../../remote/ssh/ssh_tunnel.dart';
+import '../../state/android_features.dart';
 import '../../state/attachments.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../providers/provider_widgets.dart' show FormFieldBlock, FormFieldGroup;
 import '../common/app_dialog.dart';
+import '../settings/credential_recovery_dialog.dart';
 import '../settings/settings_widgets.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -50,10 +51,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
   final _password = TextEditingController();
   final _privateKey = TextEditingController();
   final _passphrase = TextEditingController();
-  final _attachToken = TextEditingController();
-  late final _remotePort = TextEditingController(text: '${widget.existing?.remotePort ?? 3080}');
-  late SshDshMode _dshMode = widget.existing?.dshMode ?? SshDshMode.managed;
-  late bool _compression = widget.existing?.compression ?? true;
 
   late SshAuthMethod _auth = widget.existing?.auth ?? SshAuthMethod.password;
   late SshHostDevice? _device = widget.existing?.icon;
@@ -93,8 +90,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
     _password,
     _privateKey,
     _passphrase,
-    _attachToken,
-    _remotePort,
   ]);
 
   String _signature() => jsonEncode({
@@ -109,10 +104,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
     'privateKey': _privateKey.text,
     'passphrase': _passphrase.text,
     'auth': _auth.name,
-    'dshMode': _dshMode.name,
-    'remotePort': _remotePort.text,
-    'attachToken': _attachToken.text,
-    'compression': _compression,
     'keyType': _keyType,
     'keyFingerprint': _keyFingerprint,
     'keyFor': _keyFor,
@@ -137,7 +128,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
 
   Future<void> _loadSecrets() async {
     final clean = jsonDecode(_clean) as Map<String, dynamic>;
-    final controllers = [_password, _privateKey, _passphrase, _attachToken];
+    final controllers = [_password, _privateKey, _passphrase];
     final initial = {for (final controller in controllers) controller: controller.text};
     final edited = <TextEditingController>{};
     void trackEdits() {
@@ -164,7 +155,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       if (!edited.contains(_password)) _password.text = secrets.password ?? '';
       if (!edited.contains(_privateKey)) _privateKey.text = secrets.privateKey ?? '';
       if (!edited.contains(_passphrase)) _passphrase.text = secrets.passphrase ?? '';
-      if (!edited.contains(_attachToken)) _attachToken.text = secrets.attachToken ?? '';
       // Hydrate only the original secret values in the clean baseline. Other
       // fields may have been edited while secure storage was being read.
       _clean = jsonEncode({
@@ -172,7 +162,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
         'password': secrets.password ?? '',
         'privateKey': secrets.privateKey ?? '',
         'passphrase': secrets.passphrase ?? '',
-        'attachToken': secrets.attachToken ?? '',
       });
     });
   }
@@ -181,7 +170,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
   void dispose() {
     unawaited(_testSub?.cancel());
     unawaited(_test?.close());
-    for (final c in [_name, _host, _port, _user, _command, _cwd, _password, _privateKey, _passphrase, _attachToken, _remotePort]) {
+    for (final c in [_name, _host, _port, _user, _command, _cwd, _password, _privateKey, _passphrase]) {
       c.dispose();
     }
     super.dispose();
@@ -192,7 +181,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
     final host = _host.text.trim();
     final user = _user.text.trim();
     final port = int.tryParse(_port.text.trim());
-    final remotePort = int.tryParse(_remotePort.text.trim());
     final errors = <_F, String>{
       if (host.isEmpty) _F.host: context.l10n.remoteSshAddressRequired,
       if (user.isEmpty) _F.user: context.l10n.remoteSshUsernameRequired,
@@ -201,10 +189,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
         _F.password: context.l10n.remoteSshPasswordRequired,
       if (_auth == SshAuthMethod.privateKey && _privateKey.text.trim().isEmpty)
         _F.key: context.l10n.remoteSshKeyRequired,
-      if (_dshMode == SshDshMode.attachOnly && (remotePort == null || remotePort < 1 || remotePort > 65535))
-        _F.remotePort: '1–65535',
-      if (_dshMode == SshDshMode.attachOnly && _attachToken.text.trim().isEmpty)
-        _F.attachToken: context.l10n.remoteErrAttachSettings,
     };
     setState(() {
       _errors = errors;
@@ -234,9 +218,6 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       port: port!,
       user: user,
       auth: _auth,
-      dshMode: _dshMode,
-      remotePort: remotePort ?? 3080,
-      compression: _compression,
       launchCommand: _command.text.trim().isEmpty ? defaultDshLaunchCommand : _command.text.trim(),
       workingDirectory: _cwd.text.trim().isEmpty ? null : _cwd.text.trim(),
       icon: _device,
@@ -251,12 +232,9 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
   }
 
   SshSecrets get _secrets =>
-      SshSecrets(
-        password: _password.text, privateKey: _privateKey.text, passphrase: _passphrase.text,
-        attachToken: _attachToken.text.trim(),
-      );
+      SshSecrets(password: _password.text, privateKey: _privateKey.text, passphrase: _passphrase.text);
 
-  Future<void> _runTest({bool restart = false}) async {
+  Future<void> _runTest() async {
     FocusManager.instance.primaryFocus?.unfocus();
     final config = _draft();
     if (config == null) return;
@@ -276,11 +254,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
           });
         }
       },
-      tunnel: ref.read(sshTunnelFactoryProvider)(),
-      // A cold remote DSH answers TCP before it answers HTTP; the test flow
-      // reports the first failure, so waiting here is the difference between
-      // 「登录」 hanging for two minutes and a green test.
-      waitReady: remoteDshReadyWait,
+      transportFactory: ref.read(sshTransportFactoryProvider),
       retryFirstOpen: false,
     );
     _test = link;
@@ -289,65 +263,17 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       if (mounted && s.phase != HostLinkPhase.idle) setState(() => _testStatus = s);
     });
     try {
-      if (restart) {
-        await link.restartManaged();
-      } else {
-        await link.open();
-      }
-      // 成功终态与失败终态同一竞速:open() 一回来 finally 就退订,排队中的
-      // connected 事件退订后才轮到投递,卡片会永远停在「登录」。直接读链路
-      // 的同步状态,成功/失败都即时落到进度卡上。
-      final terminal = link.status;
-      if (mounted && terminal.phase == HostLinkPhase.connected && !identical(terminal, _testStatus)) {
-        setState(() => _testStatus = terminal);
-      }
+      await link.open();
     } catch (_) {
-      // Shown in the progress card. The terminal status is read straight off
-      // the link's synchronous state instead of the status stream: the
-      // subscription is cancelled in the same event-loop turn that emits the
-      // failure, so the queued terminal event can lose the race against the
-      // cancellation and never reach the card.
-      final terminal = link.status;
-      if (mounted && terminal.phase == HostLinkPhase.failed && !identical(terminal, _testStatus)) {
-        setState(() => _testStatus = terminal);
-      }
+      // Shown in the progress card.
     } finally {
-      // 订阅退订与链路收尾都不必等:广播流的 done 在事件循环里只是异步收尾,
-      // await 会让「测试中」的转圈永远停不下来(测试的 FakeAsync 区里更是
-      // 永不完成);unawaited 之后按钮立即可点,清理照常完成。
-      unawaited(_testSub?.cancel());
+      await _testSub?.cancel();
       _testSub = null;
-      if (identical(_test, link)) {
-        _test = null;
-        // The terminal status may have painted before async cleanup finished.
-        if (mounted) setState(() {});
-      }
+      if (identical(_test, link)) _test = null;
       // The remote dsh keeps running for the real connection; only our
       // test session closes.
-      unawaited(link.close().catchError((Object _) {}));
+      await link.close();
     }
-  }
-
-  Future<void> _confirmRestart() async {
-    final ok = await showAppDialog<bool>(
-      context: context,
-      builder: (dialog) => AlertDialog(
-        title: Text(context.l10n.remoteRestartManaged),
-        content: Text(context.l10n.remoteRestartManagedWarning),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialog, false), child: Text(context.l10n.commonCancel)),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: DshColors.of(dialog).danger,
-              foregroundColor: DshColors.of(dialog).onDanger,
-            ),
-            onPressed: () => Navigator.pop(dialog, true),
-            child: Text(context.l10n.remoteRestartManaged),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && mounted) await _runTest(restart: true);
   }
 
   Future<void> _save() async {
@@ -364,7 +290,11 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
       }
       Navigator.of(context).pop(config);
     } catch (e) {
-      if (mounted) setState(() => _formError = context.l10n.commonSaveFailed);
+      if (mounted) {
+        setState(() => _formError = context.l10n.commonSaveFailed);
+        // Cleared or not, nothing was saved: the form stays filled in.
+        await offerCredentialRecovery(context, ref, e);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -572,9 +502,12 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
             ),
             SettingsSection(
               title: l10n.remoteAuthentication,
-              footer: Text(
-                _auth == SshAuthMethod.password ? l10n.remotePasswordStorageHelp : l10n.remoteKeyStorageHelp,
-              ),
+              footer: Text(switch ((_auth == SshAuthMethod.password, ref.watch(operatingSystemProvider) == 'ios')) {
+                (true, true) => l10n.remotePasswordStorageHelpIos,
+                (true, false) => l10n.remotePasswordStorageHelp,
+                (false, true) => l10n.remoteKeyStorageHelpIos,
+                (false, false) => l10n.remoteKeyStorageHelp,
+              }),
               children: [
                 FormFieldGroup(
                   children: [
@@ -676,78 +609,22 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
                 FormFieldGroup(
                   children: [
                     FormFieldBlock(
-                      label: l10n.remoteDshMode,
-                      helper: _dshMode == SshDshMode.managed ? l10n.remoteManagedHelp : l10n.remoteAttachOnlyHelp,
-                      child: SegmentedPill<SshDshMode>(
-                        segments: [
-                          PillSegment(SshDshMode.managed, l10n.remoteManaged),
-                          PillSegment(SshDshMode.attachOnly, l10n.remoteAttachOnly),
-                        ],
-                        selected: _dshMode,
-                        onChanged: (v) => setState(() {
-                          _dshMode = v;
-                          _testStatus = null;
-                        }),
-                      ),
+                      label: l10n.remoteStartCommand,
+                      helper: l10n.remoteStartCommandHelp,
+                      child: TextField(controller: _command, autocorrect: false, style: mono),
                     ),
-                    if (_dshMode == SshDshMode.managed)
-                      FormFieldBlock(
-                        label: l10n.remoteStartCommand,
-                        helper: l10n.remoteStartCommandHelp,
-                        child: TextField(controller: _command, autocorrect: false, style: mono),
-                      )
-                    else ...[
-                      FormFieldBlock(
-                        key: _fieldKeys[_F.remotePort],
-                        error: _errors[_F.remotePort],
-                        label: l10n.remoteDshPort,
-                        child: TextField(
-                          controller: _remotePort,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          style: mono,
-                          onChanged: (_) => _edited(_F.remotePort),
-                        ),
-                      ),
-                      FormFieldBlock(
-                        key: _fieldKeys[_F.attachToken],
-                        error: _errors[_F.attachToken],
-                        label: l10n.remoteDshToken,
-                        helper: l10n.remoteDshTokenHelp,
-                        child: TextField(
-                          controller: _attachToken,
-                          obscureText: true,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          enableIMEPersonalizedLearning: false,
-                          onChanged: (_) => _edited(_F.attachToken),
-                        ),
-                      ),
-                    ],
                     FormFieldBlock(
                       label: l10n.remoteWorkingDirectory,
-                      helper: _dshMode == SshDshMode.attachOnly
-                          ? l10n.remoteAttachWorkingDirectoryHelp : l10n.remoteWorkingDirectoryHelp,
+                      helper: l10n.remoteWorkingDirectoryHelp,
                       child: TextField(
                         controller: _cwd,
                         autocorrect: false,
                         style: mono,
-                        decoration: InputDecoration(hintText: _dshMode == SshDshMode.attachOnly ? '/srv/code' : '~/code'),
+                        decoration: const InputDecoration(hintText: '~/code'),
                       ),
                     ),
                   ],
                 ),
-                SettingsSwitchTile(
-                  title: l10n.remoteSshCompression,
-                  subtitle: l10n.remoteSshCompressionHelp,
-                  value: _compression,
-                  onChanged: (v) => setState(() => _compression = v),
-                ),
-                if (_dshMode == SshDshMode.managed)
-                  TextButton(
-                    onPressed: testing || _saving ? null : _confirmRestart,
-                    child: Text(l10n.remoteRestartManaged),
-                  ),
               ],
             ),
             SettingsSection(
@@ -856,7 +733,7 @@ class _SshHostFormPageState extends ConsumerState<SshHostFormPage> {
 }
 
 /// The fields of a form page.
-enum _F { host, user, port, password, key, remotePort, attachToken }
+enum _F { host, user, port, password, key }
 
 /// A compact text action in a field label row; its label ends flush with the
 /// field's edge.

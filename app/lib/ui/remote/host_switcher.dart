@@ -8,7 +8,6 @@ import '../../runtime/local_footprint.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
-import '../../state/onboarding_state.dart' show localEngineAvailableProvider;
 import '../common/app_sheet.dart';
 import '../common/sheet_title_bar.dart';
 import '../common/status_chip.dart';
@@ -99,8 +98,10 @@ class HostSheet extends ConsumerWidget {
     }
 
     // 本机 without its runtime: the row installs it, and switches to it once
-    // installed (leaving the install page keeps the current host).
+    // installed (leaving the install page keeps the current host). A build
+    // without the runtime has no 本机 row at all.
     final localMissing = ref.watch(localRuntimeProvider.select((s) => s.status.runtimeMissing));
+    final localAvailable = ref.watch(localRuntimeProvider.select((s) => s.available));
     void installLocal() {
       final navigator = Navigator.of(context);
       navigator.pop();
@@ -120,11 +121,7 @@ class HostSheet extends ConsumerWidget {
               SheetGroup(
                 margin: const EdgeInsets.fromLTRB(SheetTitleBar.inset, 0, SheetTitleBar.inset, 12),
                 children: [
-                  // iOS has no on-device runtime; a phone that declined the
-                  // engine (first run 「远程主机」, or 卸载运行环境) lists
-                  // no 本机 either — the remote hosts page holds the one
-                  // way to install it back.
-                  if (ref.watch(localEngineAvailableProvider))
+                  if (localAvailable)
                     _HostRow(
                       host: HostRef.local,
                       title: l10n.commonThisPhone,
@@ -139,7 +136,6 @@ class HostSheet extends ConsumerWidget {
                       subtitle: 'SSH · ${h.address}',
                       active: active == HostRef.ssh(h.id),
                       onTap: () => pick(HostRef.ssh(h.id)),
-                      icon: sshDeviceIcon(h.icon),
                     ),
                   for (final h in relayHosts)
                     _HostRow(
@@ -205,7 +201,6 @@ class _HostRow extends ConsumerWidget {
     required this.active,
     required this.onTap,
     this.relay,
-    this.icon,
   });
 
   final HostRef host;
@@ -214,9 +209,6 @@ class _HostRow extends ConsumerWidget {
   final bool active;
   final VoidCallback onTap;
   final RelayHost? relay;
-
-  /// The host's own device glyph (「设备图标」); null falls back to the kind default.
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -234,7 +226,7 @@ class _HostRow extends ConsumerWidget {
       selected: active,
       inMutuallyExclusiveGroup: true,
       child: SettingsTile(
-        icon: icon ?? hostKindIcon(host.kind),
+        icon: hostKindIcon(host.kind),
         tinted: false,
         title: title,
         subtitle: subtitle,

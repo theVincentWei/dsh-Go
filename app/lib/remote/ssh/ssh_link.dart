@@ -3,13 +3,11 @@ import 'dart:async';
 import 'package:dsh_client/dsh_client.dart';
 
 import '../../l10n/l10n.dart';
-import '../../notify/apphub_base.dart' show appHubBase, kAppHubRemotePort, resetAppHubBase;
 import '../link_status.dart';
+import 'local_forward.dart';
 import 'remote_bootstrap.dart';
-import 'remote_shell.dart';
 import 'ssh_host_config.dart';
 import 'ssh_transport.dart';
-import 'ssh_tunnel.dart';
 
 /// What the person is asked on first contact with a host.
 class HostKeyPrompt {
@@ -35,49 +33,6 @@ typedef DshClientConnector = Future<DshClient> Function({
 
 Future<DshClient> _defaultConnector({required Uri baseUri, required String token, required String hostHeader}) =>
     DshClient.connect(baseUri: baseUri, token: token, hostHeader: hostHeader);
-
-/// Waits for the `dsh web` behind the tunnel to actually answer HTTP.
-typedef DshReadyWait = Future<void> Function(Uri baseUri, String hostHeader);
-
-/// The bootstrap reads a pid and a log line, and the tunnel probe only opens
-/// a TCP connection — none of that means the remote app is ready to answer
-/// requests. The first `login` GET would otherwise sit in that gap until the
-/// 120 s request timeout while the progress card stays on 「登录」 ("stuck at
-/// the last step"). Poll the health door first; `unauthorized` passes through,
-/// because a rejected token is exactly what the login step (and its
-/// restart-on-401 path) exists to handle.
-Future<void> waitForRemoteDshReady(
-  DshConnection connection, {
-  Duration budget = const Duration(seconds: 30),
-  Duration probeTimeout = const Duration(seconds: 5),
-  Duration interval = const Duration(milliseconds: 800),
-}) async {
-  final deadline = DateTime.now().add(budget);
-  while (true) {
-    final health = await connection.checkHealth(timeout: probeTimeout);
-    if (health != DshHealth.unreachable) return;
-    if (DateTime.now().isAfter(deadline)) {
-      throw HostLinkError(
-        HostLinkErrorKind.dshTimeout,
-        appL10n.remoteErrDshStartTimeout,
-        detail: 'GET / stayed unreachable for ${budget.inSeconds}s behind the tunnel',
-        retryable: true,
-      );
-    }
-    await Future<void>.delayed(interval);
-  }
-}
-
-/// Production ready-wait. Opt-in at the call sites so the many orchestration
-/// tests (fake connectors, no HTTP behind the tunnel) keep their step flow.
-Future<void> remoteDshReadyWait(Uri baseUri, String hostHeader) {
-  final connection = DshConnection(baseUri, hostHeader: hostHeader);
-  return waitForRemoteDshReady(connection).whenComplete(() => connection.close());
-}
-
-/// No-op for tests that inject a fake connector and have no HTTP behind the
-/// tunnel.
-Future<void> _noWaitReady(Uri baseUri, String hostHeader) async {}
 
 /// Trust-on-first-use check against the pinned fingerprint.
 enum HostKeyVerdict { trusted, unknown, mismatch }
@@ -107,10 +62,8 @@ class SshHostLink implements HostLink {
     required this._loadSecrets,
     this.promptHostKey,
     this.pinHostKey,
-    SshTunnel? tunnel,
     SshTransportFactory? transportFactory,
     DshClientConnector? connectClient,
-    DshReadyWait? waitReady,
     Stream<void>? kicks,
     Backoff? backoff,
     this.remoteEnvironment = const {},
@@ -118,58 +71,19 @@ class SshHostLink implements HostLink {
     this.keepAliveTimeout = const Duration(seconds: 10),
     this.tunnelProbeTimeout = const Duration(seconds: 10),
     this.retryFirstOpen = true,
-    int? appHubLocalPort,
-  }) : _tunnel = tunnel ??
-           // A caller that names a transport factory runs the tunnel engine
-           // in-process (tests with a fake server); without one, production
-           // gets the engine in its own isolate, off the UI thread.
-           (transportFactory != null
-               ? LocalSshTunnel(
-                   SshTunnelEngine(transportFactory: transportFactory, probeTimeout: tunnelProbeTimeout),
-                 )
-               : IsolateSshTunnel()),
+  }) : _transportFactory = transportFactory ?? DartSshTransport.connect,
        _connectClient = connectClient ?? _defaultConnector,
-       _waitReady = waitReady ?? _noWaitReady,
-       // 退避不封顶(null = 永远重试,间隔 30s 封顶):主机卡死/离线一旦超过
-       // 原 8 次预算(约 2-4 分钟),链路就永久躺平,只能杀 App 重连——主机
-       // 恢复后永远等不到。非重试错误(密码/主机钥匙)仍走 _fail 停下等人。
-       _backoff = backoff ?? Backoff(maxAttempts: null),
-       // 小程序硬编码 127.0.0.1:7610(网关是后端唯一对外口),真机侧转发必须
-       // 绑同一个固定口;测试注入别的口,免得占用真 7610。
-       _appHubLocalPort = appHubLocalPort ?? kAppHubRemotePort {
+       _backoff = backoff ?? Backoff() {
     _kickSub = kicks?.listen((_) => kick());
-    _lostSub = _tunnel.lost.listen((_) {
-      if (_closed || _recovering) return;
-      if (_status.phase != HostLinkPhase.connected) return;
-      _lost(
-        HostLinkError(
-          HostLinkErrorKind.unreachable,
-          appL10n.remoteErrSshDisconnected,
-          retryable: true,
-          // 上游同语义:transport 结束时上报诊断码(诊断包保留连接阶段历史);
-          // 本地架构里 transport 结束 = tunnel 引擎的 lost 事件。
-          diagnosticCode: HostLinkDiagnosticCode.sshTransportEnded,
-        ),
-      );
-    });
   }
 
   SshHostConfig _config;
   final Future<SshSecrets> Function() _loadSecrets;
   final HostKeyPrompter? promptHostKey;
   final HostKeyPinner? pinHostKey;
-
-  /// Where dartssh2 and the forward listener run. Production spawns them in
-  /// their own isolate (SSH crypto must not compete with frame rendering);
-  /// tests inject [LocalSshTunnel] with a fake transport factory.
-  final SshTunnel _tunnel;
+  final SshTransportFactory _transportFactory;
   final DshClientConnector _connectClient;
-  final DshReadyWait _waitReady;
   final Backoff _backoff;
-
-  /// 本地绑死的 AppHub 转发口(默认 = kAppHubRemotePort):小程序硬编码
-  /// `http://127.0.0.1:7610`,与仿真器 adb reverse tcp:7610 同款语义。
-  final int _appHubLocalPort;
   final Map<String, String> remoteEnvironment;
   final Duration keepAliveInterval;
   final Duration keepAliveTimeout;
@@ -180,18 +94,17 @@ class SshHostLink implements HostLink {
   /// False for "测试连接": report the first failure instead of retrying.
   final bool retryFirstOpen;
 
-  // 异步派发(默认):曾用 sync:true,_statuses.add 会在 RemoteConnectionController
-  // 的 provider build 期间同步打断 StreamProvider<HostLinkStatus>,riverpod debug
-  // 断言直接炸掉轮询/通知链路(仿真器冷启动必现)。异步派发把通知推迟到 microtask,
-  // _status 同步字段不受影响(retry() 等读的是它)。
-  final _statuses = StreamController<HostLinkStatus>.broadcast();
+  final _statuses = StreamController<HostLinkStatus>.broadcast(sync: true);
   final _clients = StreamController<DshClient>.broadcast();
   final _delay = InterruptibleDelay();
   StreamSubscription<void>? _kickSub;
-  StreamSubscription<void>? _lostSub;
   StreamSubscription<DshConnectionState>? _muxSub;
   HostLinkStatus _status = HostLinkStatus.idle;
 
+  SshTransport? _transport;
+  SshTransport? _connectingTransport;
+  Completer<SshTransport> _ready = Completer<SshTransport>();
+  LocalForwarder? _forwarder;
   RemoteDshEndpoint? _endpoint;
   DshClient? _client;
   Future<DshClient>? _opening;
@@ -218,7 +131,7 @@ class SshHostLink implements HostLink {
   RemoteDshEndpoint? get endpoint => _endpoint;
 
   /// The local forward port (null before the first tunnel).
-  int? get localPort => _tunnel.localPort;
+  int? get localPort => _forwarder?.port;
 
   /// Configured working directory with `~` resolved on the remote.
   String? get resolvedWorkingDirectory => RemoteDshBootstrap.absolutePath(_config.workingDirectory, _endpoint?.home);
@@ -287,8 +200,6 @@ class SshHostLink implements HostLink {
   /// One full attempt. Reuses the forwarder and, when the remote endpoint is
   /// unchanged, the existing DshClient.
   Future<DshClient> _connectOnce() async {
-    final restart = _forceRestart;
-    _forceRestart = false; // One explicit action authorizes only this attempt, even if SSH fails.
     var step = _status.withStep(HostLinkStep.connect);
     void at(HostLinkStep s, {String? detail}) {
       step = step.withStep(s, detail: detail);
@@ -298,7 +209,7 @@ class SshHostLink implements HostLink {
     at(HostLinkStep.connect, detail: _config.address);
     final secrets = await _loadSecrets();
     _checkOpen();
-    await _tunnel.connect(SshConnectParams.of(_config, secrets), (key) async {
+    final transport = await _transportFactory(SshConnectParams.of(_config, secrets), (key) async {
       if (_closed) return false;
       at(HostLinkStep.verifyHostKey, detail: '${key.shortType} ${key.fingerprint}');
       switch (checkHostKey(_config, key)) {
@@ -326,105 +237,82 @@ class SshHostLink implements HostLink {
           return true;
       }
     });
+    if (_closed) {
+      transport.close();
+      throw StateError('link closed');
+    }
     // Own the authenticated connection while bootstrap/probe are pending.
+    _connectingTransport = transport;
     at(HostLinkStep.startDsh, detail: appL10n.remoteCheckingDsh);
     try {
-      final RemoteDshEndpoint endpoint;
-      if (_config.dshMode == SshDshMode.attachOnly) {
-        final token = secrets.attachToken?.trim();
-        if (_config.remotePort < 1 || _config.remotePort > 65535 || token == null || token.isEmpty) {
-          throw HostLinkError(HostLinkErrorKind.loginFailed, appL10n.remoteErrAttachSettings);
-        }
-        // Attach-only never executes a remote command or touches managed state.
-        endpoint = RemoteDshEndpoint(port: _config.remotePort, token: token, reused: true);
-      } else {
-        endpoint = await RemoteDshBootstrap(
-          _WorkerShell(_tunnel),
-          launchCommand: _config.launchCommand,
-          workingDirectory: _config.workingDirectory,
-          environment: remoteEnvironment,
-        ).ensureRunning(
-          forceRestart: restart,
-          onDetail: (d) => at(HostLinkStep.startDsh, detail: d),
-        );
-      }
+      final bootstrap = RemoteDshBootstrap(
+        transport,
+        launchCommand: _config.launchCommand,
+        workingDirectory: _config.workingDirectory,
+        environment: remoteEnvironment,
+      );
+      final endpoint = await bootstrap.ensureRunning(
+        forceRestart: _forceRestart,
+        onDetail: (d) => at(HostLinkStep.startDsh, detail: d),
+      );
       _checkOpen();
+      _forceRestart = false;
 
       at(HostLinkStep.tunnel, detail: '127.0.0.1:${endpoint.port}');
-      final probe = await _tunnel.probeTunnel(endpoint.port, timeout: tunnelProbeTimeout);
-      if (probe.refused || probe.error != null) {
+      try {
+        // Destroy a late channel too: Future.timeout does not cancel the
+        // underlying SSH channel-open request.
+        await transport
+            .openTunnel('127.0.0.1', endpoint.port)
+            .then((channel) => channel.destroy())
+            .timeout(tunnelProbeTimeout);
+      } catch (e) {
         // A reused DSH whose port no longer answers: start a fresh one.
-        if (endpoint.reused && probe.refused) _forceRestart = true;
+        if (endpoint.reused && e is TunnelRefused) _forceRestart = true;
         throw HostLinkError(
           HostLinkErrorKind.tunnelFailed,
           appL10n.remoteErrDshPort,
-          detail: '${probe.error ?? probe.refused}',
+          detail: '$e',
           retryable: true,
-          diagnosticCode: probe.refused
-              ? HostLinkDiagnosticCode.sshTunnelRefused
-              : probe.error is TimeoutException
+          diagnosticCode: e is TimeoutException
               ? HostLinkDiagnosticCode.sshTunnelTimedOut
+              : e is TunnelRefused
+              ? HostLinkDiagnosticCode.sshTunnelRefused
               : HostLinkDiagnosticCode.sshTunnelFailed,
         );
       }
       _checkOpen();
       final previous = _endpoint;
       _endpoint = endpoint;
-      await _tunnel.setEndpoint(endpoint.port);
-      // AppHub: when the host also runs the AppHub server, carry it on the
-      // same SSH session as a second forward. Fire-and-forget — the engine
-      // link proceeds regardless, and a host without AppHub keeps the
-      // loopback default base.
-      unawaited(_ensureAppHubForward());
+      if (_forwarder == null) {
+        final forwarder = await LocalForwarder.bind(_openChannel);
+        if (_closed) {
+          await forwarder.close();
+          throw StateError('link closed');
+        }
+        _forwarder = forwarder;
+      }
+      _connectingTransport = null;
+      _installTransport(transport);
 
-      at(HostLinkStep.login, detail: appL10n.remoteWaitReady);
-      // Port listening ≠ app ready: the health door must answer before the
-      // login GET, or that GET sits out the full request timeout.
-      await _waitReady(Uri(scheme: 'http', host: '127.0.0.1', port: _tunnel.localPort!), endpoint.authority);
+      at(HostLinkStep.login);
       final client = await _ensureClient(endpoint, previous);
       _checkOpen();
       _emit(
         HostLinkStatus(
           HostLinkPhase.connected,
           completed: HostLinkStep.values.toSet(),
-          detail: _config.dshMode == SshDshMode.attachOnly
-              ? appL10n.remoteDshAttached
-              : endpoint.reused ? appL10n.remoteDshReused : appL10n.remoteDshStarted,
+          detail: endpoint.reused ? appL10n.remoteDshReused : appL10n.remoteDshStarted,
         ),
       );
       _startKeepAlive();
       return client;
     } catch (e) {
-      _tunnel.reset();
-      // No live transport: point the AppHub base back at loopback so the
-      // market fails fast instead of queueing on a dead forward listener.
-      resetAppHubBase();
+      transport.close();
+      if (identical(_transport, transport)) _teardownTransport();
       rethrow;
-    }
-  }
-
-  /// Carries the host's AppHub port ([kAppHubRemotePort]) as a second
-  /// loopback forward pinned to the same port locally ([_appHubLocalPort]):
-  /// mini programs hardcode `http://127.0.0.1:7610` — the AppHub gateway is
-  /// the only door to mini-program backends (miniprogram-spec §7) — the same
-  /// way `adb reverse tcp:7610` serves emulators, so the app's own market
-  /// base stays the loopback default. Probe first: a host without AppHub
-  /// keeps the default base. If the pinned local port is taken (another
-  /// linked host bound it first) that existing listener keeps serving —
-  /// first linked AppHub host wins. Never throws into the connect path —
-  /// AppHub is a passenger here, not the cargo.
-  Future<void> _ensureAppHubForward() async {
-    try {
-      final probe = await _tunnel.probeTunnel(kAppHubRemotePort, timeout: tunnelProbeTimeout);
-      if (_closed) return;
-      if (probe.refused || probe.error != null) {
-        resetAppHubBase();
-        return;
-      }
-      await _tunnel.setExtraEndpoint(kAppHubRemotePort, localPort: _appHubLocalPort);
-    } on Object {
-      // 本地口被占或绑定失败:已有监听继续答(首占为主),base 保持默认。
-      resetAppHubBase();
+    } finally {
+      if (identical(_connectingTransport, transport)) _connectingTransport = null;
     }
   }
 
@@ -440,22 +328,23 @@ class SshHostLink implements HostLink {
     final DshClient client;
     try {
       client = await _connectClient(
-        baseUri: Uri(scheme: 'http', host: '127.0.0.1', port: _tunnel.localPort!),
+        baseUri: Uri(scheme: 'http', host: '127.0.0.1', port: _forwarder!.port),
         token: endpoint.token,
         hostHeader: endpoint.authority,
       );
     } on DshHttpException catch (e) {
+      if (e.statusCode == 401 && endpoint.reused) {
+        // Stale log from a process that's gone or restarted: start fresh.
+        _forceRestart = true;
+      }
       throw HostLinkError(
         HostLinkErrorKind.loginFailed,
         e.statusCode == 401 ? appL10n.remoteErrDshTokenRejected : appL10n.remoteErrDshSignIn,
-        detail: e.statusCode == 401 ? null : '$e',
-        retryable: _config.dshMode == SshDshMode.managed && e.statusCode != 401,
+        detail: '$e',
+        retryable: true,
       );
     } on DshException catch (e) {
-      throw HostLinkError(
-        HostLinkErrorKind.tunnelFailed, appL10n.remoteErrDshTunnel, detail: '$e',
-        retryable: _config.dshMode == SshDshMode.managed,
-      );
+      throw HostLinkError(HostLinkErrorKind.tunnelFailed, appL10n.remoteErrDshTunnel, detail: '$e', retryable: true);
     }
     if (_closed) {
       await client.close().catchError((_) {});
@@ -481,26 +370,76 @@ class SshHostLink implements HostLink {
     });
   }
 
-  /// SSH answers but the mux cannot get through: reconnect if the DSH port
-  /// stops answering. Managed mode can replace a dead process; attach-only
-  /// reconnects to the same endpoint without starting anything.
+  /// SSH answers but the mux can't get through: if nothing listens on DSH's
+  /// port any more, reconnect, which starts it again.
   Future<void> _probeDsh() async {
+    final transport = _transport;
     final endpoint = _endpoint;
-    if (endpoint == null || !_status.isConnected) return;
-    final probe = await _tunnel.probeTunnel(endpoint.port, timeout: const Duration(seconds: 5));
-    if (probe.refused || probe.error != null) {
+    if (transport == null || endpoint == null || !_status.isConnected) return;
+    try {
+      // A channel that opens after the timeout is still closed.
+      final probe = transport.openTunnel('127.0.0.1', endpoint.port).then((channel) => channel.destroy());
+      await probe.timeout(const Duration(seconds: 5));
+    } catch (_) {
+      if (!identical(transport, _transport)) return;
       _backoff.reset();
       _lost(HostLinkError(HostLinkErrorKind.dshStartFailed, appL10n.remoteErrDshStopped, retryable: true));
     }
   }
 
+  void _installTransport(SshTransport transport) {
+    _transport = transport;
+    if (!_ready.isCompleted) _ready.complete(transport);
+    unawaited(
+      transport.done.then((_) {
+        if (identical(_transport, transport)) {
+          _lost(
+            HostLinkError(
+              HostLinkErrorKind.unreachable,
+              appL10n.remoteErrSshDisconnected,
+              retryable: true,
+              diagnosticCode: HostLinkDiagnosticCode.sshTransportEnded,
+            ),
+          );
+        }
+      }),
+    );
+  }
+
   void _teardownTransport() {
     _keepAlive?.cancel();
     _keepAlive = null;
-    _tunnel.reset();
-    // The forward listeners stay bound across reconnects, but until a
-    // transport is back the extra forward cannot serve anything: fail fast.
-    resetAppHubBase();
+    final transport = _transport;
+    _transport = null;
+    if (_ready.isCompleted) _ready = Completer<SshTransport>();
+    transport?.close();
+    _forwarder?.dropConnections();
+  }
+
+  /// Channels for the forwarder: waits (bounded) for a live SSH connection.
+  Future<TunnelChannel> _openChannel() async {
+    _checkOpen();
+    final transport = _transport ?? await _ready.future.timeout(const Duration(seconds: 20));
+    _checkOpen();
+    final port = _endpoint?.port;
+    if (port == null) throw StateError('no remote endpoint yet');
+    var abandoned = false;
+    try {
+      return await transport
+          .openTunnel('127.0.0.1', port)
+          .then((channel) {
+            if (abandoned || _closed || !identical(transport, _transport)) {
+              channel.destroy();
+              throw StateError('SSH channel no longer active');
+            }
+            return channel;
+          })
+          .timeout(tunnelProbeTimeout);
+    } catch (_) {
+      // A timeout does not cancel the SSH request: dispose a late success.
+      abandoned = true;
+      rethrow;
+    }
   }
 
   void _startKeepAlive() {
@@ -516,24 +455,26 @@ class SshHostLink implements HostLink {
   }
 
   Future<bool> _ping(Duration timeout) async {
-    if (_closed) return false;
-    final alive = await _tunnel.ping(timeout: timeout);
-    if (alive) {
+    final transport = _transport;
+    if (transport == null || _closed) return false;
+    try {
+      await transport.ping(timeout: timeout);
       _missedPings = 0;
       return true;
+    } catch (_) {
+      _missedPings++;
+      if (_missedPings >= 2 && identical(transport, _transport)) {
+        _lost(
+          HostLinkError(
+            HostLinkErrorKind.unreachable,
+            appL10n.remoteErrSshUnresponsive,
+            retryable: true,
+            diagnosticCode: HostLinkDiagnosticCode.sshKeepaliveMissed,
+          ),
+        );
+      }
+      return false;
     }
-    _missedPings++;
-    if (_missedPings >= 2) {
-      _lost(
-        HostLinkError(
-          HostLinkErrorKind.unreachable,
-          appL10n.remoteErrSshUnresponsive,
-          retryable: true,
-          diagnosticCode: HostLinkDiagnosticCode.sshKeepaliveMissed,
-        ),
-      );
-    }
-    return false;
   }
 
   void _lost(HostLinkError reason) {
@@ -593,21 +534,8 @@ class SshHostLink implements HostLink {
     }
   }
 
-  /// Explicitly replaces the managed process, after the UI has asked for consent.
-  Future<DshClient> restartManaged() {
-    if (_config.dshMode != SshDshMode.managed) {
-      return Future.error(StateError('attach-only cannot restart DSH'));
-    }
-    if (_opening != null || _recovering) return Future.error(StateError('link is busy'));
-    _forceRestart = true;
-    _needsRelogin = true;
-    _teardownTransport();
-    _emit(HostLinkStatus.idle);
-    return open();
-  }
-
   /// Kills the current SSH connection as if the network dropped (live tests).
-  void debugDropTransport() => _tunnel.debugDropTransport();
+  void debugDropTransport() => _transport?.close();
 
   @override
   void kick() {
@@ -661,35 +589,20 @@ class SshHostLink implements HostLink {
     _emit(HostLinkStatus.idle);
     _closed = true;
     _delay.cancel();
+    final connecting = _connectingTransport;
+    _connectingTransport = null;
+    connecting?.close();
     await _kickSub?.cancel();
     await _muxSub?.cancel();
     _teardownTransport();
-    // 先关隧道、再退订 lost:tunnel 引擎的广播流在「订阅者已退订」时 close
-    // 的 done 永不派发(widget 测试的 FakeAsync 下 await 直接挂死——真机
-    // 事件循环无此问题,但测试与生产应同一顺序,不留一处只在真机能跑的路径)。
-    // _lost 本身看 _closed 门禁,晚退订这一瞬不会触发任何恢复。
-    await _tunnel.close();
-    await _lostSub?.cancel();
+    await _forwarder?.close();
+    _forwarder = null;
     final client = _client;
     _client = null;
     if (client != null) await client.close().catchError((_) {});
-    // 广播流的 close() 只是不再收新事件,不必等它的 done 派发:链路已终结,
-    // 残余事件照常异步送达;await 反而会在订阅者已退订时挂住调用方。
-    unawaited(_statuses.close());
-    unawaited(_clients.close());
+    await _statuses.close();
+    await _clients.close();
   }
-}
-
-/// Runs bootstrap and management scripts through the tunnel worker; the
-/// low-rate command path, not the data path.
-class _WorkerShell implements RemoteShell {
-  const _WorkerShell(this._tunnel);
-
-  final SshTunnel _tunnel;
-
-  @override
-  Future<RemoteExecResult> run(String script, {Duration timeout = const Duration(seconds: 30)}) =>
-      _tunnel.run(script, timeout: timeout);
 }
 
 /// Connects just far enough to read the server's host key, without logging

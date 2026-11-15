@@ -286,6 +286,12 @@ class L10nEn extends L10n {
   String get accessPageSubtitle => 'What each feature needs from Android';
 
   @override
+  String get accessFeatureAlerts => 'Reply alerts';
+
+  @override
+  String get accessFeatureAlertsNeeds => 'Needs notifications';
+
+  @override
   String get activityThinkingUntangle => 'Hmm… let me untangle this';
 
   @override
@@ -3935,6 +3941,27 @@ class L10nEn extends L10n {
   String get apphubInfoLanguage => 'Language';
 
   @override
+  String get catalogCurrentChat => 'Current chat';
+
+  @override
+  String get catalogPlanGoal => 'Plan and goal';
+
+  @override
+  String get catalogPlanGoalSummary => 'Goals, plans and to-dos';
+
+  @override
+  String get catalogReference => 'Reference files and chats';
+
+  @override
+  String get catalogReferenceSummary => 'Use @ in the composer';
+
+  @override
+  String get catalogSubagents => 'Subagents';
+
+  @override
+  String get catalogSubagentsSummary => 'Lineage and status; tap to chat';
+
+  @override
   String get chatBackgroundTaskNotice => 'Background task notice';
 
   @override
@@ -6257,6 +6284,41 @@ class L10nEn extends L10n {
 
   @override
   String get companionAdaptNetwork => 'no connection';
+
+  @override
+  String get companionMenuInvite => 'Invitations';
+
+  @override
+  String get companionMenuInviteHint => 'When you sit quietly with her, she may now and then ask you to rest together';
+
+  @override
+  String get companionNeedsAttention => 'Something needs your confirmation. Tap to see it';
+
+  @override
+  String companionTaskApproval(String title) {
+    return '\"$title\" is waiting for your approval.';
+  }
+
+  @override
+  String get companionTaskApprovalUntitled => 'Something over there is waiting for your approval.';
+
+  @override
+  String companionTaskDone(String title) {
+    return '\"$title\" is done over there.';
+  }
+
+  @override
+  String companionTaskFailed(String title) {
+    return '\"$title\" seems to have hit an error. Take a look?';
+  }
+
+  @override
+  String companionTaskQuestion(String title) {
+    return '\"$title\" has a question for you.';
+  }
+
+  @override
+  String get companionTaskQuestionUntitled => 'There\'s a question waiting for you over there.';
 
   @override
   String get systemImeTitle => 'System input-method diagnostics';
@@ -8938,6 +9000,128 @@ class L10nEn extends L10n {
   String get fileUploadFailed => 'Couldn’t send to the computer';
 
   @override
+  String get harmonyUnknownResults =>
+      'Some tool calls never got a result. They may or may not have run. This conversation can\'t call tools until you deal with them.';
+
+  @override
+  String get harmonyUnknownResultsReview => 'Review';
+
+  @override
+  String get harmonyUnknownResultsTitle => 'These tool calls have unknown results';
+
+  @override
+  String harmonyUnknownResultsBody(String tools) {
+    return '$tools\n\nThe app was interrupted while waiting for them, so they may or may not have run. You can check first, for example whether a file changed.\n\nIf you continue, they won\'t run again, and they won\'t be recorded as successful.';
+  }
+
+  @override
+  String get harmonyUnknownResultsContinue => 'Continue this conversation';
+
+  @override
+  String get harmonyUnknownResultsChanged => 'Something changed. Please look again.';
+
+  @override
+  String get harmonyUnknownResultsFailed => 'Couldn\'t confirm that. Try again.';
+
+  @override
+  String get harmonyCallsNotRecorded =>
+      'The local engine can\'t record the state of tool calls, so they\'re paused. Restart the engine and try again.';
+
+  @override
+  String get harmonyAccessSubtitle => 'What each feature needs from HarmonyOS';
+
+  @override
+  String get harmonyNotifyWhy => 'While the app is running, tells you when a reply ends or needs you';
+
+  @override
+  String get harmonyKwSystemAccess => 'permissions,grant,microphone,notification permission,reply alerts,voice input';
+
+  @override
+  String get harmonyBackgroundSubtitle => 'On-device chats pause when the app leaves the screen';
+
+  @override
+  String get harmonyBackgroundAway => 'When the app leaves the screen';
+
+  @override
+  String get harmonyBackgroundLocal =>
+      'The system suspends the app within seconds, and a running conversation pauses with it. It tries to pick up when you come back';
+
+  @override
+  String get harmonyBackgroundRemoteTitle => 'Connected remote host';
+
+  @override
+  String get harmonyBackgroundRemote => 'Replies there keep running';
+
+  @override
+  String get harmonyBackgroundLong => 'Long tasks';
+
+  @override
+  String get harmonyBackgroundStay => 'Keep the app on screen';
+
+  @override
+  String get harmonyBackgroundUseRemote => 'Or run them on a connected remote host';
+
+  @override
+  String get harmonyEngineBackgroundHint => 'The on-device engine pauses when the app leaves the screen';
+
+  @override
+  String get harmonyKwBackground => 'background activity,keep alive,suspended,paused,killed';
+
+  @override
+  String get harmonyPausedInBackground => 'Paused while in the background';
+
+  @override
+  String get harmonyAlertsRequirement =>
+      'Alerts need the app running: the system suspends it seconds after it leaves the screen, and none go out then';
+
+  @override
+  String get harmonyLiveUnavailable => 'Live activities aren\'t available in this version yet';
+
+  @override
+  String get harmonySchedulesLocal =>
+      'Tasks on this phone only fire while the app is running: they won\'t run on time while the system has it suspended';
+
+  @override
+  String get harmonyPageUnavailable => 'This page isn\'t available in this version yet';
+
+  @override
+  String get harmonyNotificationSettingsFailed =>
+      'Couldn’t open system settings. Turn on notifications in Settings → Notifications & status bar → DSH Go.';
+
+  @override
+  String get harmonySearchUnavailable => 'This isn\'t available in this version yet';
+
+  @override
+  String get harmonyCredentialsSection => 'Keys';
+
+  @override
+  String get harmonyCredentialsUnreadable => 'Saved keys can’t be read';
+
+  @override
+  String get harmonyCredentialsUnreadableHint =>
+      'Saved keys can’t be read. Clear them in Settings → Privacy and sharing, then try again.';
+
+  @override
+  String get harmonyCredentialsClear => 'Clear saved keys';
+
+  @override
+  String get harmonyCredentialsClearBody =>
+      'Trying again won’t help. Clearing removes the API keys, DSH Remote sign-in, SSH passwords and private keys, and forum sign-in the app has saved, and you’ll need to enter them or sign in again. Links you’ve already shared stay up, but this phone can no longer delete them. Conversations and the host list stay. This can’t be undone.';
+
+  @override
+  String get harmonyCredentialsClearAction => 'Clear keys';
+
+  @override
+  String get harmonyCredentialsCleared => 'Cleared. Enter them or sign in again.';
+
+  @override
+  String get harmonyCredentialsClearFailed => 'Couldn’t clear. Try again.';
+
+  @override
+  String get harmonyIconChangeFailed =>
+      'Couldn’t change it. The launcher icon can’t change under a custom theme or in an app twin.';
+
+  @override
   String get hostDetailsConnectionType => 'Connection type';
 
   @override
@@ -9577,6 +9761,389 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get hubQuickPanelItems => 'What it lists';
+
+  @override
+  String get iosSaveToFiles => 'Save to Files';
+
+  @override
+  String get iosFilesFolderHint => 'DSH Go folder in the Files app';
+
+  @override
+  String get iosSavingToFiles => 'Saving to Files…';
+
+  @override
+  String get iosCommandExportDescription => 'Export this chat’s full history as a ZIP to share or save to Files';
+
+  @override
+  String get iosEnableBanners => 'Turn on Banners in Settings if they don’t appear';
+
+  @override
+  String get iosNotificationSettingsFailed =>
+      'Couldn’t open system settings. Turn on notifications in Settings → DSH Go → Notifications.';
+
+  @override
+  String get iosVoiceSystemHint => 'Use the system’s speech recognition';
+
+  @override
+  String get iosVoiceAllowSystem => 'Allow speech recognition in Settings';
+
+  @override
+  String get iosPluginsPermissionLocalThirdParty =>
+      'Plugins run with DSH’s permissions: they can read and write files, run commands, and read API keys. They aren’t restricted by the workspace sandbox. Provided by a third party and not reviewed by DSH.';
+
+  @override
+  String get iosPluginsPermissionLocalTrusted =>
+      'Plugins run with DSH’s permissions: they can read and write files, run commands, and read API keys. They aren’t restricted by the workspace sandbox. Only install plugins you trust.';
+
+  @override
+  String get iosIconChanged => 'Icon changed';
+
+  @override
+  String get iosPhotosDenied => 'Couldn’t save. Photos access is off.';
+
+  @override
+  String get iosRelocationOriginUnavailable =>
+      'Found older chats, but not where they used to be. Everything is still here, but these chats can’t continue for now.';
+
+  @override
+  String get iosRelocationSessionIsolated =>
+      'Some chats couldn’t be moved and were set aside. The files and the reason are kept. You can export them from Diagnostics and report it.';
+
+  @override
+  String get iosAccessSubtitle => 'What each feature needs from iOS';
+
+  @override
+  String get iosLinuxTitle => 'Linux environment';
+
+  @override
+  String get iosLinuxIntro =>
+      'Once it\'s installed, commands the virtual shell can\'t run go to Linux, such as Python installed with apk. Approvals stay the same, and it can reach only the workspace and a temporary folder.';
+
+  @override
+  String get iosLinuxInstall => 'Install the Linux environment';
+
+  @override
+  String get iosLinuxDownloadSize => 'About 4 MB';
+
+  @override
+  String get iosLinuxDownloading => 'Downloading';
+
+  @override
+  String get iosLinuxVerifying => 'Checking';
+
+  @override
+  String get iosLinuxExtracting => 'Unpacking';
+
+  @override
+  String get iosLinuxFinishing => 'Finishing';
+
+  @override
+  String get iosLinuxSystem => 'System';
+
+  @override
+  String get iosLinuxStorage => 'Storage used';
+
+  @override
+  String get iosLinuxUninstall => 'Uninstall the Linux environment';
+
+  @override
+  String get iosLinuxUninstallBody =>
+      'This deletes the Linux environment and everything installed in it. Files in your workspaces stay.';
+
+  @override
+  String get iosLinuxUninstallConfirm => 'Uninstall';
+
+  @override
+  String get iosLinuxUninstalling => 'Uninstalling…';
+
+  @override
+  String get iosLinuxRestartEngine => 'Installed. Restart the engine on this phone for commands to use it.';
+
+  @override
+  String get iosLinuxErrorNetwork => 'The download didn\'t work. Check the connection and try again.';
+
+  @override
+  String get iosLinuxErrorDamaged => 'The download was incomplete and has been discarded. Try again.';
+
+  @override
+  String get iosLinuxErrorNoSpace => 'There isn\'t enough storage on this phone.';
+
+  @override
+  String get iosLinuxErrorInUse => 'The Linux environment is in use. Reopen the app to uninstall it.';
+
+  @override
+  String get iosLinuxErrorOther => 'That didn\'t finish. Try again.';
+
+  @override
+  String get iosLinuxState => 'Status';
+
+  @override
+  String get iosLinuxStatePaused => 'Paused';
+
+  @override
+  String get iosLinuxSuspendedBody =>
+      'When the app last closed, a command was still running in Linux, and it may be what made the app crash. So that it doesn\'t happen again, Linux is paused; everything else works as usual. Turn it back on when you want it.';
+
+  @override
+  String get iosLinuxResume => 'Turn Linux back on';
+
+  @override
+  String get iosLinuxResumed => 'Turned back on. Restart the local engine for commands to use it.';
+
+  @override
+  String get iosLinuxErrorBusy => 'Linux is still in use. Try again once the command stops, or reopen the app.';
+
+  @override
+  String get iosPhoneLinkTitle => 'On-device connection';
+
+  @override
+  String get iosPhoneLinkIntro =>
+      'Reads the screen, taps and types through this iPhone\'s own developer services, without staying connected to a computer. Turn on Developer Mode first and keep LocalDevVPN connected. Each phone action still needs your OK.';
+
+  @override
+  String get iosPhoneLinkUnavailable => 'Needs iOS 17 or later.';
+
+  @override
+  String get iosPhoneLinkStepPairing => 'Import a pairing record';
+
+  @override
+  String get iosPhoneLinkPairingHint => 'A remote pairing file (.plist) made on a Mac or Windows computer';
+
+  @override
+  String get iosPhoneLinkPairingDevice => 'Kept on this phone';
+
+  @override
+  String get iosPhoneLinkPairingSession => 'This time only, cleared when the app quits';
+
+  @override
+  String get iosPhoneLinkPairingLocked => 'The saved record can be read once the phone is unlocked';
+
+  @override
+  String get iosPhoneLinkPairingUnreadable => 'The saved record can\'t be read. Import it again.';
+
+  @override
+  String get iosPhoneLinkImport => 'Import';
+
+  @override
+  String get iosPhoneLinkReplace => 'Replace';
+
+  @override
+  String get iosPhoneLinkLegacy => 'A pairing file from an earlier version was found';
+
+  @override
+  String get iosPhoneLinkLegacyHint =>
+      'Moving it saves it the way you choose, then deletes the old file. It isn\'t used until then.';
+
+  @override
+  String get iosPhoneLinkMigrate => 'Move';
+
+  @override
+  String get iosPhoneLinkStepEnable => 'Turn on the developer connection';
+
+  @override
+  String get iosPhoneLinkEnableHint => 'Off by default. Turning it off stops any phone task at once.';
+
+  @override
+  String get iosPhoneLinkStepCheck => 'Check the connection';
+
+  @override
+  String get iosPhoneLinkCheckHint => 'Confirms the VPN, pairing and developer services all work';
+
+  @override
+  String get iosPhoneLinkCheck => 'Check';
+
+  @override
+  String get iosPhoneLinkChecked => 'The connection works';
+
+  @override
+  String get iosPhoneLinkReadOnly =>
+      'Connected for screen reading and opening apps; tapping, scrolling and typing need XCTest enhancement';
+
+  @override
+  String get iosPhoneLinkErrorServices =>
+      'The current developer services do not support this CoreDevice connection. Downloading again may not help if an image is already mounted; use XCTest enhancement or take over manually.';
+
+  @override
+  String get iosPhoneLinkDdi => 'Developer disk image';
+
+  @override
+  String get iosPhoneLinkDdiHint =>
+      'Some features need it. About 17 MB from the third-party DeveloperDiskImage mirror (not Apple\'s download site), checked against fixed hashes, then personalized for this phone by Apple.';
+
+  @override
+  String get iosPhoneLinkDdiPrepare => 'Prepare';
+
+  @override
+  String get iosPhoneLinkDdiMounted => 'Mounted';
+
+  @override
+  String get iosPhoneLinkWorking => 'Working…';
+
+  @override
+  String iosPhoneLinkDownloading(String done, String total) {
+    return 'Downloading $done of $total';
+  }
+
+  @override
+  String get iosPhoneLinkClear => 'Clear the pairing record';
+
+  @override
+  String get iosPhoneLinkClearHint =>
+      'Also turns the developer connection off. Copies on your computer or in Files are yours to delete.';
+
+  @override
+  String get iosPhoneLinkClearConfirm => 'Clear the pairing record?';
+
+  @override
+  String get iosPhoneLinkEnhanceTitle => 'Optional';
+
+  @override
+  String get iosPhoneLinkXctest => 'XCTest enhancement';
+
+  @override
+  String get iosPhoneLinkXctestHint =>
+      'Needs PhoneRunner installed and signed separately; it can read on-screen elements. Some apps may ask you to sign in again or refuse. Without it, the on-device connection is used.';
+
+  @override
+  String get iosPhoneLinkClipboardTitle => 'Restore your clipboard';
+
+  @override
+  String get iosPhoneLinkClipboardHint =>
+      'Typing borrowed the clipboard. Check that the other app has finished or cancelled the paste, then restore it.';
+
+  @override
+  String get iosPhoneLinkClipboardRestore => 'Restore';
+
+  @override
+  String get iosPhoneLinkClipboardOverwrite => 'Restore anyway, replacing what is there now';
+
+  @override
+  String get iosPhoneLinkClipboardDiscard => 'Discard the saved clipboard';
+
+  @override
+  String get iosPhoneLinkErrorBusy => 'Another step is still running. Try again when it finishes.';
+
+  @override
+  String get iosPhoneLinkErrorForeground => 'Do this with the app open and the phone unlocked.';
+
+  @override
+  String get iosPhoneLinkErrorPairingInvalid => 'This file isn\'t a usable remote pairing record.';
+
+  @override
+  String get iosPhoneLinkErrorStorage => 'Saving didn\'t work. \"Kept on this phone\" needs a device passcode.';
+
+  @override
+  String get iosPhoneLinkErrorPairingRequired => 'Import a pairing record first.';
+
+  @override
+  String get iosPhoneLinkErrorTunnel =>
+      'Can\'t reach this phone\'s services. Check that LocalDevVPN is connected and Developer Mode is on, then try again.';
+
+  @override
+  String get iosPhoneLinkErrorPairingRejected =>
+      'The phone didn\'t accept this pairing record. Make a new one and import it.';
+
+  @override
+  String get iosPhoneLinkErrorDdiNeeded => 'The developer disk image needs preparing first.';
+
+  @override
+  String get iosPhoneLinkErrorDdiDownload => 'The download didn\'t work. Check the network and try again.';
+
+  @override
+  String get iosPhoneLinkErrorDdiIntegrity => 'The downloaded image failed its check and was thrown away.';
+
+  @override
+  String get iosPhoneLinkErrorDdiUnsupported => 'There\'s no image for this phone\'s model or iOS version.';
+
+  @override
+  String get iosPhoneLinkErrorDdiMount => 'Mounting didn\'t work. An image already in use isn\'t replaced.';
+
+  @override
+  String get iosPhoneLinkErrorClipboardChanged => 'Something else was copied since, so it wasn\'t restored.';
+
+  @override
+  String get iosPhoneLinkFaulted => 'The last connection didn\'t confirm it closed';
+
+  @override
+  String get iosPhoneLinkFaultedHint =>
+      'So two connections never drive the phone at once, the app won\'t connect for now. If the last connection confirms it closed, this clears by itself; if it doesn\'t, close the app from the app switcher and open it again.';
+
+  @override
+  String iosPhoneLinkErrorOther(String code) {
+    return 'Didn\'t finish ($code).';
+  }
+
+  @override
+  String get iosPetPipTitle => 'Pet picture-in-picture';
+
+  @override
+  String get iosPetPipHint =>
+      'While the phone is operated, your pet stays on screen in picture-in-picture so the app can keep working in the background. It\'s the system\'s picture-in-picture: no recording, no location.';
+
+  @override
+  String get iosPetPipRequired => 'Phone control needs this on';
+
+  @override
+  String get iosPetPipReady => 'Ready; it appears when a phone task starts';
+
+  @override
+  String get iosPetPipKeepingAlive => 'Keeping the app running in the background';
+
+  @override
+  String get iosPetPipAlways => 'Keep it after tasks end';
+
+  @override
+  String get iosPetPipStart => 'Start picture-in-picture';
+
+  @override
+  String get iosPetPipStartHint => 'If picture-in-picture didn\'t appear on its own, open it here';
+
+  @override
+  String get iosPetPipPaused => 'The phone task was paused from picture-in-picture';
+
+  @override
+  String get iosPetPipReview => 'Resume or stop';
+
+  @override
+  String get iosPetPipResume => 'Resume';
+
+  @override
+  String get iosPetPipChoosePet => 'Choose';
+
+  @override
+  String get iosPetPipErrorNoPet => 'Choose a pet first';
+
+  @override
+  String get iosPetPipErrorUnsupported => 'This phone doesn\'t support picture-in-picture';
+
+  @override
+  String get iosPetPipErrorLocked => 'Picture-in-picture stopped when the phone locked';
+
+  @override
+  String get iosPetPipErrorAudio => 'Picture-in-picture stopped while recording, a call or other audio took over';
+
+  @override
+  String get iosPetPipErrorPack => 'This pet\'s artwork has a problem. Try another one.';
+
+  @override
+  String get iosPetPipErrorStart => 'Picture-in-picture couldn\'t open';
+
+  @override
+  String get iosPetPipErrorClosed => 'Picture-in-picture was closed';
+
+  @override
+  String iosPetPipErrorOther(String code) {
+    return 'Picture-in-picture stopped ($code)';
+  }
+
+  @override
+  String get iosPetPipChoosePetHint => 'Pick one in pet settings';
+
+  @override
+  String get iosPetPipReopen => 'Get picture-in-picture ready again';
+
+  @override
   String get launchScreenTitle => 'Launch screen';
 
   @override
@@ -9872,6 +10439,54 @@ class L10nEn extends L10n {
   @override
   String get localEnvGateBody =>
       'This phone doesn\'t run DSH locally, so these settings aren\'t available. To enable them, install the runtime under Remote hosts.';
+
+  @override
+  String get engineCapBackground => 'In the background';
+
+  @override
+  String get engineCapKeepsRunning => 'Keeps running';
+
+  @override
+  String get engineCapMarket => 'Market plugins';
+
+  @override
+  String get engineCapMayFreeze => 'May be paused by the system';
+
+  @override
+  String get engineCapNodeScripts => 'Node scripts';
+
+  @override
+  String get engineCapNone => 'Unavailable';
+
+  @override
+  String get engineCapShell => 'Command line';
+
+  @override
+  String engineCapShellBuiltin(int count) {
+    return '$count built-in commands';
+  }
+
+  @override
+  String get engineCapShellSystem => 'System';
+
+  @override
+  String get engineCapYes => 'Available';
+
+  @override
+  String get engineReopenFailed => 'The engine needs the app reopened before it can start again. Please reopen it.';
+
+  @override
+  String get engineStartReopensApp =>
+      'The engine starts once each time the app opens, so starting it again reopens the app.';
+
+  @override
+  String get localEnvUnavailable => 'DSH can\'t run on this device yet';
+
+  @override
+  String get localEnvUnsupported => 'Not supported';
+
+  @override
+  String get marketInstallRefused => 'This engine can\'t install market plugins';
 
   @override
   String get marketSectionOfficial => 'Official';
@@ -12731,6 +13346,23 @@ class L10nEn extends L10n {
   @override
   String get phoneSkillReplaySendUncertain =>
       'Delivery of the route message was not confirmed. It has not been prepared or replayed again. Check the original conversation.';
+
+  @override
+  String get phoneIosNeedsSetup => 'The runner is not ready. Check the local engine and developer setup.';
+
+  @override
+  String get phoneIosReturnHint =>
+      'Return to this conversation when the task finishes, then stop the phone-control service.';
+
+  @override
+  String get phoneIosServiceHint =>
+      'Starts on demand after approval and stops when the task ends, closing the system’s “Automation Running” indicator.';
+
+  @override
+  String get phoneIosServiceTitle => 'iOS automation service';
+
+  @override
+  String get phoneIosSetupHint => 'Keep LocalDevVPN connected. On first use, allow control for 30 minutes.';
 
   @override
   String get phoneTaskResultReady => 'Task complete · View result';
@@ -16794,6 +17426,13 @@ class L10nEn extends L10n {
   String get searchKwRemoteCompactHistory => 'compact slim lite history tools transfer bandwidth remote';
 
   @override
+  String get remoteKeyStorageHelpIos =>
+      'Saved only on this phone, encrypted by the system keychain. Supports Ed25519, RSA and ECDSA.';
+
+  @override
+  String get remotePasswordStorageHelpIos => 'Saved only on this phone, encrypted by the system keychain';
+
+  @override
   String get remotePairEntry => 'Pair a computer by scanning';
 
   @override
@@ -18700,6 +19339,14 @@ class L10nEn extends L10n {
 
   @override
   String get shellPanelNoPlugins => 'No plugin panels for this chat yet';
+
+  @override
+  String get shellQuickPanel => 'Shortcuts';
+
+  @override
+  String shellQuickPanelHint(String path) {
+    return 'Change these in $path';
+  }
 
   @override
   String get speechReadAloud => 'Read aloud';

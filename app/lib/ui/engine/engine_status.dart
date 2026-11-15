@@ -25,6 +25,7 @@ class EngineStatusView {
 
   factory EngineStatusView.of(LocalRuntimeState state) {
     final status = state.status;
+    if (!state.available) return EngineStatusView(StatusTone.idle, appL10n.localEnvUnsupported);
     final startupFailure = isLocalStartupFailure(status);
     return switch (status.phase) {
       RuntimePhase.notInstalled => EngineStatusView(StatusTone.idle, appL10n.phoneEngineNotInstalled),
@@ -81,15 +82,6 @@ String? humanizeRuntimeError(String? raw) {
   var text = raw.trim();
   for (final prefix in const ['install failed: ', 'start failed: ']) {
     if (text.startsWith(prefix)) text = text.substring(prefix.length);
-  }
-  if (text.startsWith('runtime_upgrade_blocked:')) {
-    return switch (text.substring('runtime_upgrade_blocked:'.length)) {
-      'base' => appL10n.phoneRuntimeUpgradeBase,
-      'running' => appL10n.phoneRuntimeUpgradeRunning,
-      'symlink' => appL10n.phoneRuntimeUpgradeSymlink,
-      'transaction' || 'legacy_interrupted' => appL10n.phoneRuntimeUpgradeInterrupted,
-      _ => appL10n.phoneRuntimeUpgradeManifest,
-    };
   }
   if (text == 'no startup token received within 180s') return appL10n.phoneStartupTokenTimeout;
   if (RegExp(r'^token seen but port [0-9]+ never accepted connections$').hasMatch(text)) {

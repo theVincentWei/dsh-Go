@@ -1,168 +1,208 @@
 import UIKit
 import UniformTypeIdentifiers
 
-/// The share sheet's working end: collects text / URLs / files from the
-/// extension context, writes them into the shared App Group container
-/// (`share-inbox/<id>/manifest.json` + files), then opens the host app with
-/// `dshgo://intake` — the app's share bridge (AppDelegate `DshShareBridge`)
-/// forwards the manifest over `dsh/share` and the router sends it on
-/// (system_entry_host.dart). The intake link itself is swallowed by a
-/// handler registered there.
-class ShareViewController: UIViewController {
-  private static let appGroup = "group.com.yinkuotech.wanqi"
-  private static let maxFiles = 20
+// The share sheet's target, after android/.../share/ShareActivity.kt: no sheet of its
+// own, it copies what was shared into the inbox and brings the app forward. The app
+// finds the inbox again whenever it comes to the front, so a share isn't lost if that
+// last step doesn't happen.
 
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    view.backgroundColor = .clear
+@objc(ShareViewController)
+final class ShareViewController: UIViewController {
+  /// The same limits as SharePlugin.kt.
+  private static let maxItems = 9
+  private static let maxFileBytes: Int64 = 200 * 1024 * 1024
+  private static let maxTotalBytes: Int64 = 400 * 1024 * 1024
+  private static let maxTextCharacters = 200_000
+
+  private let work = DispatchQueue(label: "dsh.share.extension")
+  private var started = false
+  private var manifest = ShareInbox.Manifest()
+  private var texts: [String] = []
+  private var total: Int64 = 0
+
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    guard !started else { return }
+    started = true
+    let items = extensionContext?.inputItems.compactMap { $0 as? NSExtensionItem } ?? []
+    guard let inbox = ShareInbox.folder else { return finish(open: false) }
+    collect(items, in: inbox) { self.finish(open: $0) }
   }
 
-  override func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(animated)
-    Task { await collect() }
-  }
-
-  private func collect() async {
-    let items = extensionContext?.inputItems as? [NSExtensionItem] ?? []
-    var textParts: [String] = []
-    var subject: String?
-    var files: [(name: String, url: URL, mime: String?, size: Int?)] = []
-    var skipped: [(reason: String, name: String?)] = []
-
-    for item in items {
-      if let content = item.attributedContentText?.string, !content.isEmpty {
-        // A page title next to a shared URL, a mail subject.
-        subject = content
+  func collect(_ items: [NSExtensionItem], in inbox: URL, then done: @escaping (Bool) -> Void) {
+    work.async { [self] in
+      let unfinished = inbox.appendingPathComponent(ShareInbox.unfinishedPrefix + UUID().uuidString, isDirectory: true)
+      do {
+        try FileManager.default.createDirectory(at: unfinished, withIntermediateDirectories: true)
+      } catch {
+        return done(false)
       }
-      for provider in item.attachments ?? [] {
-        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-          if files.count < Self.maxFiles, let file = await loadFile(provider) {
-            files.append(file)
-          } else if files.count >= Self.maxFiles {
-            skipped.append(("too_many", provider.suggestedName))
-          } else {
-            skipped.append(("unreadable", provider.suggestedName))
-          }
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-          if let s = await loadURL(provider) { textParts.append(s) }
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
-          if let s = await loadText(provider) { textParts.append(s) }
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
-          if files.count < Self.maxFiles, let file = await loadFile(provider) {
-            files.append(file)
-          } else if files.count >= Self.maxFiles {
-            skipped.append(("too_many", provider.suggestedName))
-          } else {
-            skipped.append(("unreadable", provider.suggestedName))
-          }
+      manifest.subject = Self.trimmed(items.first?.attributedTitle?.string)
+      items.compactMap { Self.trimmed($0.attributedContentText?.string) }.forEach(addText)
+      read(items.flatMap { $0.attachments ?? [] }[...], into: unfinished) { [self] in
+        seal(unfinished, in: inbox, then: done)
+      }
+    }
+  }
+
+  /// One at a time, so the items keep their order and the limits hold.
+  private func read(_ providers: ArraySlice<NSItemProvider>, into folder: URL, then done: @escaping () -> Void) {
+    guard let provider = providers.first else { return done() }
+    let rest = providers.dropFirst()
+    let next = { [self] in
+      work.async { self.read(rest, into: folder, then: done) }
+    }
+    if manifest.files.count >= Self.maxItems {
+      manifest.skipped.append(.init(name: provider.suggestedName, reason: "too_many"))
+      return next()
+    }
+    if let type = Self.textType(provider) {
+      provider.loadItem(forTypeIdentifier: type, options: nil) { [self] value, _ in
+        work.async {
+          self.take(value, from: provider, into: folder)
+          next()
         }
       }
-    }
-
-    writeInbox(
-      text: textParts.isEmpty ? nil : textParts.joined(separator: "\n\n"),
-      subject: subject,
-      files: files,
-      skipped: skipped)
-
-    // Bring the host app forward; the manifest is picked up on `ready`.
-    if let url = URL(string: "dshgo://intake") {
-      extensionContext?.open(url) { _ in
-        self.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
-      }
-    } else {
-      extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
-    }
-  }
-
-  // ── Attachment loading ──
-
-  private func loadText(_ provider: NSItemProvider) async -> String? {
-    await withCheckedContinuation { continuation in
-      _ = provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { item, _ in
-        continuation.resume(returning: item as? String)
-      }
-    }
-  }
-
-  private func loadURL(_ provider: NSItemProvider) async -> String? {
-    await withCheckedContinuation { continuation in
-      _ = provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
-        if let url = item as? URL { continuation.resume(returning: url.absoluteString) }
-        else if let s = item as? String { continuation.resume(returning: s) }
-        else { continuation.resume(returning: nil) }
-      }
-    }
-  }
-
-  /// Copies a shared file into a temp location; the inbox move happens in
-  /// `writeInbox` (representations are deleted when this callback returns).
-  private func loadFile(_ provider: NSItemProvider) async -> (name: String, url: URL, mime: String?, size: Int?)? {
-    let typeId = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
-    let rawName = provider.suggestedName ?? "shared"
-    let type = UTType(typeId)
-    var name = rawName
-    if !name.contains(".") {
-      name += ".\(type?.preferredFilenameExtension ?? "dat")"
-    }
-    let mime = type?.preferredMIMEType ?? "application/octet-stream"
-    let staging = FileManager.default.temporaryDirectory
-      .appendingPathComponent(UUID().uuidString + "-" + name)
-    return await withCheckedContinuation { continuation in
-      _ = provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
-        guard let url else { continuation.resume(returning: nil); return }
-        do {
-          try FileManager.default.copyItem(at: url, to: staging)
-          let size = (try? FileManager.default.attributesOfItem(atPath: staging.path)[.size] as? Int) ?? 0
-          continuation.resume(returning: (name, staging, mime, size))
-        } catch {
-          continuation.resume(returning: nil)
-        }
-      }
-    }
-  }
-
-  // ── Inbox write ──
-
-  private func writeInbox(
-    text: String?, subject: String?,
-    files: [(name: String, url: URL, mime: String?, size: Int?)],
-    skipped outerSkipped: [(reason: String, name: String?)]
-  ) {
-    var skipped = outerSkipped
-    guard let root = FileManager.default.containerURL(
-      forSecurityApplicationGroupIdentifier: Self.appGroup
-    )?.appendingPathComponent("share-inbox", isDirectory: true) else {
-      extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
       return
     }
-    let fm = FileManager.default
-    let dir = root.appendingPathComponent("\(Date().timeIntervalSince1970)-\(UUID().uuidString)", isDirectory: true)
-    try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    guard let type = Self.fileType(provider) else {
+      manifest.skipped.append(.init(name: provider.suggestedName, reason: "unreadable"))
+      return next()
+    }
+    readFile(provider, type: type, into: folder, then: next)
+  }
 
-    var fileEntries: [[String: Any]] = []
-    for file in files {
-      let destination = dir.appendingPathComponent(file.name)
-      do {
-        try fm.copyItem(at: file.url, to: destination)
-        var entry: [String: Any] = ["name": file.name]
-        entry["mime"] = file.mime ?? "application/octet-stream"
-        if let size = file.size { entry["size"] = size }
-        fileEntries.append(entry)
-      } catch {
-        skipped.append(("unreadable", file.name))
+  /// A web address or plain text; a file offered under those types is still a file.
+  private func take(_ value: NSSecureCoding?, from provider: NSItemProvider, into folder: URL) {
+    switch value {
+    case let url as URL where url.isFileURL:
+      copy(url, name: provider.suggestedName, type: nil, into: folder)
+    case let url as URL: addText(url.absoluteString)
+    case let text as String: addText(text)
+    case let data as Data:
+      if let text = String(data: data, encoding: .utf8) {
+        addText(text)
+      } else {
+        manifest.skipped.append(.init(name: provider.suggestedName, reason: "unreadable"))
       }
-      try? fm.removeItem(at: file.url)
+    default: manifest.skipped.append(.init(name: provider.suggestedName, reason: "unreadable"))
     }
+  }
 
-    var manifest: [String: Any] = [:]
-    if let text, !text.isEmpty { manifest["text"] = text }
-    if let subject, !subject.isEmpty { manifest["subject"] = subject }
-    manifest["files"] = fileEntries
-    manifest["skipped"] = skipped.map { ["reason": $0.reason, "name": $0.name ?? ""] }
-
-    if let data = try? JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted]) {
-      try? data.write(to: dir.appendingPathComponent("manifest.json"))
+  private func readFile(
+    _ provider: NSItemProvider,
+    type: String,
+    into folder: URL,
+    then next: @escaping () -> Void
+  ) {
+    // The file is only there during this call: copied here, not on the work queue.
+    provider.loadFileRepresentation(forTypeIdentifier: type) { [self] url, _ in
+      work.sync {
+        if let url {
+          copy(url, name: provider.suggestedName, type: type, into: folder)
+        } else {
+          manifest.skipped.append(.init(name: provider.suggestedName, reason: "unreadable"))
+        }
+      }
+      next()
     }
+  }
+
+  private func copy(_ url: URL, name suggested: String?, type: String?, into folder: URL) {
+    let manager = FileManager.default
+    let scoped = url.startAccessingSecurityScopedResource()
+    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+    let name = Self.fileName(url, suggested: suggested, type: type)
+    guard let size = (try? manager.attributesOfItem(atPath: url.path)[.size]) as? Int64 else {
+      return manifest.skipped.append(.init(name: name, reason: "unreadable"))
+    }
+    guard size <= Self.maxFileBytes, total + size <= Self.maxTotalBytes else {
+      return manifest.skipped.append(.init(name: name, reason: "too_large"))
+    }
+    let target = ShareInbox.unique(name, in: folder)
+    do {
+      try manager.copyItem(at: url, to: target)
+      total += size
+      let content = type.flatMap { UTType($0) } ?? UTType(filenameExtension: url.pathExtension)
+      manifest.files.append(.init(name: target.lastPathComponent, mime: content?.preferredMIMEType))
+    } catch {
+      manifest.skipped.append(.init(name: name, reason: "unreadable"))
+    }
+  }
+
+  private func addText(_ text: String) {
+    guard !text.isEmpty, !texts.contains(text) else { return }
+    texts.append(text)
+  }
+
+  private func seal(_ unfinished: URL, in inbox: URL, then done: (Bool) -> Void) {
+    manifest.text = texts.isEmpty ? nil : String(texts.joined(separator: "\n\n").prefix(Self.maxTextCharacters))
+    let finished = inbox.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    do {
+      let data = try JSONEncoder().encode(manifest)
+      try data.write(to: unfinished.appendingPathComponent(ShareInbox.manifestName), options: .atomic)
+      try FileManager.default.moveItem(at: unfinished, to: finished)
+      done(true)
+    } catch {
+      try? FileManager.default.removeItem(at: unfinished)
+      done(false)
+    }
+  }
+
+  private func finish(open: Bool) {
+    DispatchQueue.main.async { [self] in
+      guard open else { return complete() }
+      bringAppForward { self.complete() }
+    }
+  }
+
+  /// A share extension has no API for this and must build with extension-safe APIs
+  /// only, so UIApplication's method is found on the responder chain at run time. If
+  /// it isn't there or does nothing, the share still waits in the inbox.
+  private func bringAppForward(then done: @escaping () -> Void) {
+    typealias Open = @convention(c) (AnyObject, Selector, NSURL, NSDictionary, @convention(block) (Bool) -> Void) -> Void
+    let selector = NSSelectorFromString("openURL:options:completionHandler:")
+    var responder: UIResponder? = self
+    while let current = responder, !current.responds(to: selector) {
+      responder = current.next
+    }
+    guard let application = responder else { return done() }
+    let open = unsafeBitCast(application.method(for: selector), to: Open.self)
+    open(application, selector, ShareInbox.wakeUp as NSURL, NSDictionary()) { _ in done() }
+  }
+
+  private func complete() {
+    extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+  }
+
+  private static func trimmed(_ text: String?) -> String? {
+    guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+    return text
+  }
+
+  /// The type to read as text, for an item with no file of its own to offer.
+  private static func textType(_ provider: NSItemProvider) -> String? {
+    if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) { return UTType.url.identifier }
+    let files = provider.registeredTypeIdentifiers.compactMap { UTType($0) }.filter { !$0.conforms(to: .text) }
+    if files.isEmpty, provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+      return UTType.plainText.identifier
+    }
+    return nil
+  }
+
+  private static func fileType(_ provider: NSItemProvider) -> String? {
+    provider.registeredTypeIdentifiers.first { UTType($0)?.conforms(to: .data) == true }
+      ?? provider.registeredTypeIdentifiers.first
+  }
+
+  /// The sender's name without any folders, with the extension its type calls for.
+  private static func fileName(_ url: URL, suggested: String?, type: String?) -> String {
+    let own = url.lastPathComponent
+    let base = suggested.map { ($0 as NSString).lastPathComponent } ?? own
+    let name = base.isEmpty ? "file" : base
+    guard (name as NSString).pathExtension.isEmpty else { return name }
+    let fallback = url.pathExtension.isEmpty
+      ? type.flatMap { UTType($0)?.preferredFilenameExtension } : url.pathExtension
+    return fallback.map { "\(name).\($0)" } ?? name
   }
 }

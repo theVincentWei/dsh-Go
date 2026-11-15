@@ -13,6 +13,7 @@ import '../../pets/pet_pack.dart';
 import '../../pets/pet_prefs.dart';
 import '../../pets/pet_signals.dart';
 import '../../pets/pet_state.dart';
+import '../../state/android_features.dart';
 import '../../state/workshop_dependencies.dart';
 import '../../workshop/workshop_models.dart';
 import '../common/expand_reveal.dart';
@@ -150,8 +151,8 @@ class _PetSettingsPageState extends ConsumerState<PetSettingsPage> {
                     ),
                 ],
               ),
-              // App 外显示 (the overlay).
-              const PetOverlaySettingsSection(),
+              // App 外显示 (the overlay), Android's own.
+              if (ref.watch(androidSystemFeaturesProvider)) const PetOverlaySettingsSection(),
             ],
           ),
         ),

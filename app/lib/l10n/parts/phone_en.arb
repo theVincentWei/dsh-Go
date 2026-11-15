@@ -650,5 +650,10 @@
   "@phoneSkillReplayStartText": {"placeholders": {"request": {"type": "String"}}},
   "phoneSkillReplayQueue": "Send route (queue)",
   "phoneSkillReplayQueued": "The route message was accepted or queued. This does not mean the route has executed successfully.",
-  "phoneSkillReplaySendUncertain": "Delivery of the route message was not confirmed. It has not been prepared or replayed again. Check the original conversation."
+  "phoneSkillReplaySendUncertain": "Delivery of the route message was not confirmed. It has not been prepared or replayed again. Check the original conversation.",
+  "phoneIosNeedsSetup": "The runner is not ready. Check the local engine and developer setup.",
+  "phoneIosReturnHint": "Return to this conversation when the task finishes, then stop the phone-control service.",
+  "phoneIosServiceHint": "Starts on demand after approval and stops when the task ends, closing the system’s “Automation Running” indicator.",
+  "phoneIosServiceTitle": "iOS automation service",
+  "phoneIosSetupHint": "Keep LocalDevVPN connected. On first use, allow control for 30 minutes."
 }

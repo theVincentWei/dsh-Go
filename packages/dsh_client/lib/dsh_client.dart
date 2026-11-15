@@ -17,9 +17,6 @@ export 'src/agents_api.dart';
 export 'src/carrier.dart';
 export 'src/client_inventory_api.dart';
 export 'src/companion_api.dart';
-export 'src/companion_recall_api.dart';
-export 'src/companion_signals.dart';
-export 'src/companion_signals_api.dart';
 export 'src/connection.dart';
 export 'src/cordis_api.dart';
 export 'src/cot_translation_api.dart';
@@ -42,6 +39,7 @@ export 'src/plugins_api.dart';
 export 'src/providers_api.dart';
 export 'src/references_api.dart';
 export 'src/rpc.dart';
+export 'src/runtime_capabilities.dart';
 export 'src/schedule_list_api.dart';
 export 'src/session_api.dart';
 export 'src/session_deletion_api.dart';
@@ -54,3 +52,9 @@ export 'src/transcript.dart';
 export 'src/workspace_api.dart';
 export 'src/workspace_upload.dart';
 export 'src/workspaces_api.dart';
+
+export 'src/lifecycle_api.dart';
+
+export 'src/companion_recall_api.dart';
+export 'src/companion_signals.dart';
+export 'src/companion_signals_api.dart';

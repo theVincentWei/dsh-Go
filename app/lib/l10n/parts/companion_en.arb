@@ -272,5 +272,14 @@
   "companionAdaptFailed": "That didn't work ({reason}). You can try again from Fit this model in the menu.",
   "companionAdaptUnreadable": "the model's answer made no sense",
   "companionAdaptEmpty": "the model found nothing to match",
-  "companionAdaptNetwork": "no connection"
+  "companionAdaptNetwork": "no connection",
+  "companionMenuInvite": "Invitations",
+  "companionMenuInviteHint": "When you sit quietly with her, she may now and then ask you to rest together",
+  "companionNeedsAttention": "Something needs your confirmation. Tap to see it",
+  "companionTaskApproval": "\"{title}\" is waiting for your approval.",
+  "companionTaskApprovalUntitled": "Something over there is waiting for your approval.",
+  "companionTaskDone": "\"{title}\" is done over there.",
+  "companionTaskFailed": "\"{title}\" seems to have hit an error. Take a look?",
+  "companionTaskQuestion": "\"{title}\" has a question for you.",
+  "companionTaskQuestionUntitled": "There's a question waiting for you over there."
 }

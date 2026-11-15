@@ -59,5 +59,21 @@
   "localEnvPhoneNeedsRuntime": "安装本机运行环境后可用",
   "localEnvSignInNeedsRuntime": "需要本机运行环境",
   "localEnvSignInInstallFirst": "安装后即可登录",
-  "localEnvGateBody": "这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。"
+  "localEnvGateBody": "这台手机没有启用本机引擎，这些设置不可用。要启用，去「远程主机」里安装本机运行环境。",
+  "engineCapBackground": "切到后台时",
+  "engineCapKeepsRunning": "继续运行",
+  "engineCapMarket": "安装市场插件",
+  "engineCapMayFreeze": "可能被系统暂停",
+  "engineCapNodeScripts": "Node 脚本",
+  "engineCapNone": "不可用",
+  "engineCapShell": "命令行",
+  "engineCapShellBuiltin": "内置 {count} 个命令",
+  "@engineCapShellBuiltin": {"placeholders": {"count": {"type": "int"}}},
+  "engineCapShellSystem": "系统",
+  "engineCapYes": "可以",
+  "engineReopenFailed": "引擎要重新打开 App 才能再启动，请手动重开一次。",
+  "engineStartReopensApp": "引擎每次打开 App 只能启动一次，再启动会重新打开 App。",
+  "localEnvUnavailable": "这台设备暂时不能在本机运行 DSH",
+  "localEnvUnsupported": "暂不支持",
+  "marketInstallRefused": "这个引擎不能安装市场插件"
 }

@@ -1,13 +1,12 @@
 // Whether this build can run the on-device Linux runtime at all.
 //
-// iOS cannot: an app bundle may not carry executables or unpack a rootfs, so
-// there is no runtime to install, unpack or start. Every 「本机」 entry point
-// stays hidden there ([RuntimeChoiceView], HostSwitcher, RemoteScreen's
-// 「切回本机」) and the app is remote-host only — the same shape as an Android
-// phone whose person picked 远程主机 at first run.
+// Every platform this app ships on can: Android unpacks a rootfs, and the
+// foundation iOS line carries the NodeMobile engine in-process
+// (EngineChannel.swift). Availability itself is dynamic — watch
+// [localRuntimeProvider] (engine present and startable) and
+// [localEngineAvailableProvider] (the person hasn't declined it) — this
+// getter only gates what no build can ever do.
 //
-// Widget tests run on the macOS host, so they keep exercising the Android
-// (runtime-capable) behaviour.
-import 'dart:io' show Platform;
-
-bool get localRuntimeSupported => !Platform.isIOS;
+// Kept as an indirection so the「远程主机-only」shape stays expressible for
+// future stripped builds (e.g. a pure-remote App Store variant).
+bool get localRuntimeSupported => true;

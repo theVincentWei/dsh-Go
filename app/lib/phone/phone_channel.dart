@@ -382,6 +382,7 @@ class PhoneTaskStatus {
     this.interrupted,
     this.stopSource,
     this.waived = false,
+    this.ownerSessionId,
   });
 
   factory PhoneTaskStatus.fromMap(Map<Object?, Object?> m) => PhoneTaskStatus(
@@ -409,6 +410,7 @@ class PhoneTaskStatus {
     interrupted: m.containsKey('interrupted') ? _flag(m['interrupted']) : null,
     stopSource: m.containsKey('stopSource') ? (_text(m['stopSource']) ?? 'UNKNOWN') : null,
     waived: _flag(m['waived']),
+    ownerSessionId: _text(m['ownerSessionId']),
   );
 
   final String? sessionId;
@@ -453,6 +455,9 @@ class PhoneTaskStatus {
 
   /// 本任务免确认 was granted: the rest of this task asks nothing.
   final bool waived;
+
+  /// Explicit owner supplied by the authenticated iOS engine bridge.
+  final String? ownerSessionId;
 }
 
 List<PhoneTaskStatus> _phoneTasks(Map<Object?, Object?> m) => m['taskProtocol'] == 1 && m['tasks'] is List

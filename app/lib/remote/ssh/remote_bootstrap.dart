@@ -68,8 +68,8 @@ class RemoteProbe {
 /// * `web.pid` — pid of the `dsh web` process dsh-app started;
 /// * `web.log` — its stdout/stderr, truncated on every start, so the last
 ///   `token=` line always belongs to the running process;
-/// * `web.cmd` — the launch command it was started with; a live instance with
-///   another command requires an explicit restart.
+/// * `web.cmd` — the launch command it was started with (a different command
+///   means restart).
 ///
 /// The server is started as `<command> --host 127.0.0.1 --port 0 --no-open`
 /// under `nohup`, so it outlives the SSH session and is reused by the next
@@ -111,10 +111,9 @@ class RemoteDshBootstrap {
           home: probe.home,
         );
       }
-      if (probe.pid != null) throw _sharedInstanceError();
     }
     onDetail?.call(appL10n.remoteBootstrapStarting);
-    return start(forceRestart: forceRestart);
+    return start();
   }
 
   Future<RemoteProbe> probe() async {
@@ -123,12 +122,12 @@ class RemoteDshBootstrap {
     return parseProbe(result.stdout);
   }
 
-  Future<RemoteDshEndpoint> start({bool forceRestart = false}) async {
+  Future<RemoteDshEndpoint> start() async {
     final runner = shell;
     final timeout = startTimeout + const Duration(seconds: 20);
     final result = runner is RemoteBootstrapShell
-        ? await runner.runBootstrap(startScript(forceRestart: forceRestart), timeout: timeout)
-        : await runner.run(startScript(forceRestart: forceRestart), timeout: timeout);
+        ? await runner.runBootstrap(startScript(), timeout: timeout)
+        : await runner.run(startScript(), timeout: timeout);
     if (_missingShell(result)) throw _noShell(result);
     return parseStart(result, customCommand: !_defaultCommand, command: launchCommand);
   }
@@ -229,21 +228,14 @@ if ! command -v dsh >/dev/null 2>&1; then printf 'DSHAPP nodsh\n'; exit 127; fi
 printf 'DSHAPP dsh %s\n' "$(command -v dsh)"
 ''';
 
-  String startScript({bool forceRestart = false}) {
+  String startScript() {
     final seconds = startTimeout.inSeconds.clamp(5, 600);
     final cwd = workingDirectory?.trim();
     final b = StringBuffer(_prelude())
       ..writeln('printf \'$_tag home %s\\n\' "\$HOME"')
       ..writeln('mkdir -p "\$D" || { printf \'$_tag nodir\\n\'; exit 70; }')
-      ..writeln('chmod 700 "\$D" 2>/dev/null');
-    if (forceRestart) {
-      b.write(_stopOld());
-    } else {
-      b.writeln(r'''if [ -f "$D/web.pid" ]; then
-  P=$(cat "$D/web.pid" 2>/dev/null)
-  if [ -n "$P" ] && ours "$P"; then printf 'DSHAPP shared\n'; exit 73; fi
-fi''');
-    }
+      ..writeln('chmod 700 "\$D" 2>/dev/null')
+      ..write(_stopOld());
     if (_defaultCommand) b.write(_dshSearch);
     if (cwd != null && cwd.isNotEmpty) {
       b.writeln('cd ${remotePathExpr(cwd)} 2>/dev/null || printf \'$_tag nocwd\\n\'');
@@ -329,8 +321,6 @@ fi''');
           pid = int.tryParse(value.trim());
         case 'url':
           url = value.trim();
-        case 'shared':
-          throw _sharedInstanceError();
         case 'nodsh':
           noDsh = true;
         case 'exited':
@@ -382,11 +372,6 @@ fi''');
       ].join('\n'),
     );
   }
-
-  static HostLinkError _sharedInstanceError() => HostLinkError(
-    HostLinkErrorKind.dshStartFailed,
-    appL10n.remoteErrSharedInstance,
-  );
 
   static bool _looksNotFound(String log) => RegExp(
     r'command not found|not found|No such file or directory|can.t open|ENOENT',

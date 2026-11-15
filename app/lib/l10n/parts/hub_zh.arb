@@ -370,5 +370,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "hubQuickPanelItems": "显示的入口"
 }

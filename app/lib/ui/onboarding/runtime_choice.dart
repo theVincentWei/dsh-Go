@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../performance/performance_state.dart';
 import '../../runtime/local_footprint.dart';
-import '../../runtime/local_runtime_supported.dart';
+import '../../runtime/runtime_state.dart';
 import '../common/pressable.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -36,7 +36,8 @@ enum RuntimeOption { local, remote }
 ///
 /// The figures come from the device and the bundled manifest
 /// ([localFootprintProvider]). The suggested card starts chosen until the
-/// person picks one.
+/// person picks one. A build without the native runtime
+/// ([LocalRuntimeState.available]) greys 本机 out and goes on with 远程主机.
 class RuntimeChoiceView extends ConsumerStatefulWidget {
   const RuntimeChoiceView({super.key, required this.onLocal, required this.onRemote, this.leading});
 
@@ -58,17 +59,18 @@ class _RuntimeChoiceViewState extends ConsumerState<RuntimeChoiceView> {
     final l10n = context.l10n;
     final footprint = ref.watch(localFootprintProvider).value;
     final light = ref.watch(performanceDefaultsProvider).recommendRemote;
-    // iOS never offers 本机: no runtime exists there (local_runtime_supported.dart).
-    final allowLocal = localRuntimeSupported;
-    final suggested = allowLocal && (light || footprint?.suggestRemote == true)
+    final available = ref.watch(localRuntimeProvider.select((s) => s.available));
+    final suggested = !available || light || footprint?.suggestRemote == true
         ? RuntimeOption.remote
         : RuntimeOption.local;
-    final selected = allowLocal ? (_picked ?? suggested) : RuntimeOption.remote;
+    final selected = available ? _picked ?? suggested : RuntimeOption.remote;
     final colors = DshColors.of(context);
 
     final String localDetail;
     var localWarn = false;
-    if (footprint != null && footprint.lowStorage) {
+    if (!available) {
+      localDetail = l10n.localEnvUnavailable;
+    } else if (footprint != null && footprint.lowStorage) {
       localDetail = l10n.localEnvLowStorage(footprint.requiredRoundedMb!);
       localWarn = true;
     } else if (footprint?.unpackedMb case final unpacked?) {
@@ -87,7 +89,9 @@ class _RuntimeChoiceViewState extends ConsumerState<RuntimeChoiceView> {
           message: l10n.localEnvChooseMessage,
         ),
         const SizedBox(height: 28),
-        if (allowLocal) ...[
+        // 「本机」卡片按能力显隐（用户拍板 2026-11-12：纯远程包彻底隐藏，不置灰）——
+        // 本机运行环境可用时自然回归显示（引擎入包里程碑无需回改）。
+        if (available) ...[
           RuntimeOptionCard(
             key: const ValueKey('runtime-option-local'),
             icon: AppIcons.thisPhone,
@@ -104,7 +108,7 @@ class _RuntimeChoiceViewState extends ConsumerState<RuntimeChoiceView> {
           icon: AppIcons.computer,
           title: l10n.commonRemoteHost,
           detail: light ? l10n.performanceRemoteHint : l10n.localEnvRemoteDetail,
-          recommended: suggested == RuntimeOption.remote,
+          recommended: available && suggested == RuntimeOption.remote,
           selected: selected == RuntimeOption.remote,
           onTap: () => setState(() => _picked = RuntimeOption.remote),
         ),
@@ -130,7 +134,7 @@ class RuntimeOptionCard extends StatelessWidget {
     required this.title,
     required this.detail,
     required this.selected,
-    required this.onTap,
+    this.onTap,
     this.recommended = false,
     this.detailColor,
   });
@@ -140,7 +144,9 @@ class RuntimeOptionCard extends StatelessWidget {
   final String detail;
   final bool selected;
   final bool recommended;
-  final VoidCallback onTap;
+
+  /// Null: shown but not choosable, dimmed.
+  final VoidCallback? onTap;
   final Color? detailColor;
 
   static const pad = 16.0;
@@ -162,12 +168,14 @@ class RuntimeOptionCard extends StatelessWidget {
     final fill = dark ? Colors.white.withValues(alpha: 0.05) : scheme.onSurface.withValues(alpha: 0.04);
     return Semantics(
       button: true,
+      enabled: onTap != null,
       selected: selected,
       inMutuallyExclusiveGroup: true,
       label: [title, if (recommended) l10n.localEnvRecommended, detail].join(', '),
       excludeSemantics: true,
       child: Pressable(
         onTap: onTap,
+        enabled: onTap != null,
         child: AnimatedContainer(
           duration: duration,
           curve: AppMotion.std,
@@ -186,52 +194,58 @@ class RuntimeOptionCard extends StatelessWidget {
               ),
             ),
           ),
-          child: Row(
-            children: [
-              DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: dark ? Colors.white.withValues(alpha: 0.07) : scheme.onSurface.withValues(alpha: 0.06),
-                  shape: Squircle.border(AppShape.sm),
+          child: Opacity(
+            opacity: onTap == null ? 0.45 : 1,
+            child: Row(
+              children: [
+                DecoratedBox(
+                  decoration: ShapeDecoration(
+                    color: dark ? Colors.white.withValues(alpha: 0.07) : scheme.onSurface.withValues(alpha: 0.06),
+                    shape: Squircle.border(AppShape.sm),
+                  ),
+                  child: SizedBox.square(
+                    dimension: glyph,
+                    child: Icon(icon, size: 22, color: scheme.onSurfaceVariant),
+                  ),
                 ),
-                child: SizedBox.square(
-                  dimension: glyph,
-                  child: Icon(icon, size: 22, color: scheme.onSurfaceVariant),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium,
+                            ),
                           ),
-                        ),
-                        if (recommended) ...[const SizedBox(width: 8), _Tag(l10n.localEnvRecommended)],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(detail, style: theme.textTheme.bodySmall?.copyWith(color: detailColor ?? colors.textTertiary)),
-                  ],
+                          if (recommended) ...[const SizedBox(width: 8), _Tag(l10n.localEnvRecommended)],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        detail,
+                        style: theme.textTheme.bodySmall?.copyWith(color: detailColor ?? colors.textTertiary),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              AnimatedSwitcher(
-                duration: duration,
-                child: Icon(
-                  selected ? AppIcons.radioOn : AppIcons.radioOff,
-                  key: ValueKey(selected),
-                  size: mark,
-                  color: selected ? scheme.primary : colors.textTertiary,
+                const SizedBox(width: 12),
+                AnimatedSwitcher(
+                  duration: duration,
+                  child: Icon(
+                    selected ? AppIcons.radioOn : AppIcons.radioOff,
+                    key: ValueKey(selected),
+                    size: mark,
+                    color: selected ? scheme.primary : colors.textTertiary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
