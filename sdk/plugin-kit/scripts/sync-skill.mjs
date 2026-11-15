@@ -33,7 +33,12 @@ export function render() {
   const map = {}
   for (const [target, src] of Object.entries(sources())) {
     const name = assetName(target)
-    files[name] = readFileSync(src, 'utf8')
+    let text = readFileSync(src, 'utf8')
+    // App Store upload validation rejects shebang asset files as unsigned code
+    // objects; the in-app JS engine reads content directly, so the copy runs
+    // fine without it while the repo's bin/check.mjs keeps its CLI shebang.
+    if (text.startsWith('#!')) text = text.slice(text.indexOf('\n') + 1)
+    files[name] = text
     map[name] = target
   }
   files['manifest.json'] = `${JSON.stringify({ name: 'dsh-go-plugin', files: map }, null, 2)}\n`
