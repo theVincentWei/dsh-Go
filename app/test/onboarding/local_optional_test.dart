@@ -323,6 +323,37 @@ void main() {
       expect(runtime.calls, isEmpty);
     });
 
+    testWidgets('a host saved on a remote-only package is used at once', (tester) async {
+      // iOS 纯远程包:没捆运行时,bundledVersion 为空,runtimeMissing 不成立——
+      // 保存过的第一台主机仍要直接用上,不能要求再点一下。
+      const status = RuntimeStatus(phase: RuntimePhase.notInstalled);
+      final (runtime, container) = await pumpGate(tester, status: status);
+      await chooseRemote(tester);
+      expect(find.byType(RemoteScreen), findsOneWidget);
+
+      await tester.tap(find.text('添加 SSH 主机'));
+      await _frames(tester);
+      await tester.enterText(find.byType(TextField).at(0), '书房电脑');
+      await tester.enterText(find.byType(TextField).at(1), '10.0.0.8');
+      await tester.enterText(find.byType(TextField).at(2), 'me');
+      await tester.enterText(find.byType(TextField).at(4), 's3cret');
+      await tester.ensureVisible(find.text('保存'));
+      await _frames(tester);
+      await tester.tap(find.text('保存'));
+      await _frames(tester);
+      expect(find.text('信任这台主机？'), findsOneWidget);
+      await tester.tap(find.text('信任并连接'));
+      await _frames(tester);
+
+      expect(find.byType(RemoteScreen), findsNothing);
+      expect(find.text('home'), findsOneWidget);
+      final saved = container.read(hostsProvider).ssh.firstWhere((h) => h.name == '书房电脑');
+      expect(container.read(activeHostProvider), HostRef.ssh(saved.id));
+      expect(container.read(hostsProvider).sshById(saved.id)!.hostKeyFingerprint, server.hostKey.fingerprint);
+      expect(container.read(onboardingPrefsProvider).localDeclined, isTrue);
+      expect(runtime.calls, isEmpty);
+    });
+
     testWidgets('back from the host list without a host: the choice again', (tester) async {
       final (runtime, container) = await pumpGate(tester);
       await chooseRemote(tester);

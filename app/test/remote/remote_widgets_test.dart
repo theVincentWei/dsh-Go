@@ -253,6 +253,29 @@ void main() {
     expect(prefs.getString(HostsController.prefsKey), isNot(contains('s3cret')));
   });
 
+  testWidgets('a running local engine keeps a newly saved host unselected', (tester) async {
+    // 本机引擎好好的,存一台主机备用不该把当前主机拽走。假后端置为未登录:
+    // 已登录+恰好一台 relay 主机会触发引导的「登录自动返回」,弹信任框盖住本测试。
+    relay.user = null;
+    final c = await pump(tester, const RemoteScreen());
+    await frames(tester, 3);
+    await tester.tap(find.text('添加 SSH 主机'));
+    await frames(tester);
+    await tester.enterText(find.byType(TextField).at(0), '书房电脑');
+    await tester.enterText(find.byType(TextField).at(1), '10.0.0.8');
+    await tester.enterText(find.byType(TextField).at(2), 'me');
+    await tester.enterText(find.byType(TextField).at(4), 's3cret');
+    await tester.ensureVisible(find.text('保存'));
+    await frames(tester);
+    await tester.tap(find.text('保存'));
+    await frames(tester);
+
+    expect(find.byType(RemoteScreen), findsOneWidget);
+    expect(c.read(activeHostProvider), HostRef.local);
+    final saved = c.read(hostsProvider).ssh.firstWhere((h) => h.name == '书房电脑');
+    expect(saved.hostKeyFingerprint, isNull, reason: '没有激活,也就没有取过指纹');
+  });
+
   testWidgets('moving a host to another address drops its pinned key', (tester) async {
     secrets.values[SshSecrets.passwordKey(sampleSsh.id)] = 'pw';
     final c = await pump(tester, const SshHostFormPage(existing: sampleSsh));
