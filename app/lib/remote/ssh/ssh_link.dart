@@ -73,6 +73,7 @@ class SshHostLink implements HostLink {
     this.keepAliveInterval = const Duration(seconds: 15),
     this.keepAliveTimeout = const Duration(seconds: 10),
     this.tunnelProbeTimeout = const Duration(seconds: 10),
+    this.appHubReprobeInterval = const Duration(seconds: 45),
     this.retryFirstOpen = true,
     int? appHubLocalPort,
   }) : _tunnel = tunnel ??
@@ -115,6 +116,15 @@ class SshHostLink implements HostLink {
   /// 本地绑死的 AppHub 转发口(默认 = kAppHubRemotePort):小程序硬编码
   /// `http://127.0.0.1:7610`,与仿真器 adb reverse tcp:7610 同款语义。
   final int _appHubLocalPort;
+
+  /// AppHub 周期补探间隔(默认 45s):建链探测只在链路建立那一刻跑一次,
+  /// 「货架后起」的主机(新机冷启动:App 先连、`wanqi service start` 后到)
+  /// 靠 keepalive tick 按此间隔补探把转发补上。补到即停;本地口被占即弃
+  /// (首占为主,别家监听继续答),不无限撞墙。
+  final Duration appHubReprobeInterval;
+  bool _appHubForwardLive = false;
+  bool _appHubForwardAbandoned = false;
+  DateTime? _lastAppHubAttempt;
   final Map<String, String> remoteEnvironment;
   final Duration keepAliveInterval;
   final Duration keepAliveTimeout;
@@ -334,23 +344,44 @@ class SshHostLink implements HostLink {
   /// the only door to mini-program backends (miniprogram-spec §7) — the same
   /// way `adb reverse tcp:7610` serves emulators, so the app's own market
   /// base stays the loopback default. Probe first: a host without AppHub
-  /// keeps the default base. If the pinned local port is taken (another
-  /// linked host bound it first) that existing listener keeps serving —
-  /// first linked AppHub host wins. Never throws into the connect path —
-  /// AppHub is a passenger here, not the cargo.
+  /// keeps the default base — and, since the probe only runs at link time,
+  /// a shelf that starts *after* the link came up is picked up by the
+  /// periodic re-probe ([_maybeReprobeAppHub], every [appHubReprobeInterval])
+  /// until it binds once. If the pinned local port is taken (another linked
+  /// host bound it first) that existing listener keeps serving — first
+  /// linked AppHub host wins, and re-probing gives up for good. Never
+  /// throws into the connect path — AppHub is a passenger here, not the
+  /// cargo.
   Future<void> _ensureAppHubForward() async {
+    if (_closed || _appHubForwardLive || _appHubForwardAbandoned) return;
+    _lastAppHubAttempt = DateTime.now();
     try {
       final probe = await _tunnel.probeTunnel(kAppHubRemotePort, timeout: tunnelProbeTimeout);
       if (_closed) return;
       if (probe.refused || probe.error != null) {
+        // 主机还没起货架:base 保持默认,下一轮补探接着试。
         resetAppHubBase();
         return;
       }
       await _tunnel.setExtraEndpoint(kAppHubRemotePort, localPort: _appHubLocalPort);
+      _appHubForwardLive = true;
     } on Object {
-      // 本地口被占或绑定失败:已有监听继续答(首占为主),base 保持默认。
+      // 本地口被占或绑定失败:已有监听继续答(首占为主),base 保持默认,
+      // 补探永久放弃——不每轮 tick 都去撞一个绑不上的口。
+      _appHubForwardAbandoned = true;
       resetAppHubBase();
     }
+  }
+
+  /// 建链探测错过「货架后起」的窗口时的自愈:keepalive tick 里按
+  /// [appHubReprobeInterval] 节流补跑 [_ensureAppHubForward]。只在链路健康
+  /// 且转发未定时补;成功/弃权后的重入都在 [_ensureAppHubForward] 处短路。
+  void _maybeReprobeAppHub() {
+    if (_closed || _appHubForwardLive || _appHubForwardAbandoned) return;
+    if (_recovering || _status.phase != HostLinkPhase.connected) return;
+    final DateTime? last = _lastAppHubAttempt;
+    if (last != null && DateTime.now().difference(last) < appHubReprobeInterval) return;
+    unawaited(_ensureAppHubForward());
   }
 
   Future<DshClient> _ensureClient(RemoteDshEndpoint endpoint, RemoteDshEndpoint? previous) async {
@@ -438,6 +469,7 @@ class SshHostLink implements HostLink {
     if (!await _ping(keepAliveTimeout)) return;
     final mux = _client?.mux.state;
     if (mux == DshConnectionState.connecting || mux == DshConnectionState.reconnecting) await _probeDsh();
+    _maybeReprobeAppHub();
   }
 
   Future<bool> _ping(Duration timeout) async {
