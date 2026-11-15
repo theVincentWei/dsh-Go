@@ -4,7 +4,9 @@
 ///   以吸附形态贴边出现;
 /// - 形态两态:吸附态(贴屏侧直角、方块延伸到屏幕边缘,外露侧圆角 14)与
 ///   自由态(停在原地、全圆角 14);两者都是深色半透明毛玻璃方块
-///   (BackdropFilter blur 5 + 细白描边 + 投影),图标 28dp 居中(四周 14dp);
+///   (BackdropFilter blur 5 + 细白描边 + 投影),图标 28dp 居中(四周 6dp;
+///   2026-11-15 二轮:方块 56→40 缩外框,描边贴屏侧改直角——上/下描边直线
+///   延伸到屏幕边缘,不再有拐进屏内的圆角弧);
 /// - 松手吸附判定:距左/右屏缘 < 48dp(snapThreshold)吸附该边,否则停在
 ///   原地;纵向位置=松手位置(clamp 在安全区内);
 /// - 吸附态/自由态点击都直接 `DiminaHost.open` 原地恢复(容器
@@ -33,8 +35,8 @@ enum DiminaDockSide { left, right }
 
 /// 浮窗球几何常量(全应用唯一事实来源,测试也按这套断言)。
 abstract final class DiminaFloatBallMetrics {
-  /// 方块边长(也是手势热区边长)。
-  static const double size = 56;
+  /// 方块边长(也是手势热区边长)。2026-11-15 二轮:56→40 缩外框(图标不变)。
+  static const double size = 40;
 
   /// 外露侧圆角(吸附态贴屏侧直角=0)。
   static const double cornerOuter = 14;
@@ -42,8 +44,8 @@ abstract final class DiminaFloatBallMetrics {
   /// 图标边长(方块内四周各留 [iconPadding])。
   static const double iconSize = 28;
 
-  /// 图标与方块边缘的间距。
-  static const double iconPadding = 14;
+  /// 图标与方块边缘的间距(2026-11-15 二轮:14→6,留白贴图标)。
+  static const double iconPadding = 6;
 
   /// 应用图标圆角裁切半径。
   static const double iconCornerRadius = 7;
@@ -388,8 +390,9 @@ class _DiminaFloatBallState extends State<DiminaFloatBall> {
             sigmaX: DiminaFloatBallMetrics.blurSigma,
             sigmaY: DiminaFloatBallMetrics.blurSigma,
           ),
-          // 吸附态描边由外层 CustomPaint 的前景 painter 画三条线(贴屏侧无线,「直接
-          // 延伸到屏幕边缘」);分边 Border 与 borderRadius 同框是 Flutter 非法组合。
+          // 吸附态描边由外层 CustomPaint 的前景 painter 画(外露侧圆角弧 +
+          // 上/下直线通到屏边,贴屏侧直角无线,「直接延伸到屏幕边缘」);
+          // 分边 Border 与 borderRadius 同框是 Flutter 非法组合。
           child: CustomPaint(
             foregroundPainter: (!_dragging && _side != null)
                 ? _SnapEdgeBorderPainter(
@@ -500,9 +503,11 @@ class _StarSkyIconPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// 吸附态描边 painter:画 top/bottom/外露侧三条 1dp 细线,贴屏侧无线——
-/// 视觉上方块「直接延伸到屏幕边缘」。分边 Border + borderRadius 是 Flutter
-/// 非法组合(BoxDecoration 断言 uniform),故吸附态描边走前景 painter。
+/// 吸附态描边 painter:外露侧圆角弧 + 上/下直线通到屏边,贴屏侧直角无线——
+/// 视觉上方块「直接延伸到屏幕边缘」(2026-11-15 二轮:描边不再含贴屏侧圆角弧,
+/// 旧均匀 R14 描边会让弧线拐进屏内,看起来右边是圆角)。分边 Border +
+/// borderRadius 是 Flutter 非法组合(BoxDecoration 断言 uniform),故吸附态
+/// 描边走前景 painter。
 class _SnapEdgeBorderPainter extends CustomPainter {
   const _SnapEdgeBorderPainter({required this.side, required this.color});
 
@@ -511,10 +516,22 @@ class _SnapEdgeBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 完整 RRect 描边(含圆角弧):方块向屏外探 snapPokeOut,贴屏侧那段描边
-    // 自然落在屏幕外被裁掉,不需要再单独省略。
+    // 只圆外露侧两角,贴屏侧两角半径 0:上/下描边直线通到方块边缘,方块向屏外
+    // 探 snapPokeOut,贴屏侧那条竖线自然落在屏幕外被裁掉。
+    final outer = Radius.circular(DiminaFloatBallMetrics.cornerOuter);
+    final rrect = side == DiminaDockSide.left
+        ? RRect.fromRectAndCorners(
+            Offset.zero & size,
+            topRight: outer,
+            bottomRight: outer,
+          )
+        : RRect.fromRectAndCorners(
+            Offset.zero & size,
+            topLeft: outer,
+            bottomLeft: outer,
+          );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)),
+      rrect,
       Paint()
         ..color = color
         ..style = PaintingStyle.stroke

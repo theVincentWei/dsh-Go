@@ -1,5 +1,5 @@
 // 浮窗单球(2026-11-12,2026-11-15 方块毛玻璃+吸附直角形态)逻辑与交互测试:
-// - Metrics 纯几何:定稿常量(56 方块/外露圆角 14/吸附阈值 48/图标 48+padding 4)
+// - Metrics 纯几何:定稿常量(40 方块/外露圆角 14/吸附阈值 48/图标 28+padding 6)
 //   与 snapSide(松手吸附判定)/clampTop/yFractionFromTop/fullLeft/shapeFor;
 // - floated 事件出球(默认右缘吸附)、foregrounded/destroyed 收球、单球顶替;
 // - 松手距边<48dp 吸附(贴屏侧直角延伸到屏幕边缘)、距边≥48dp 停原地全圆角;
@@ -21,12 +21,12 @@ void main() {
   const defaultIconKey = ValueKey('dimina_float_default_icon');
 
   group('DiminaFloatBallMetrics', () {
-    test('定稿几何:56 方块/外露圆角 14/吸附阈值 48/图标 48+padding4/毛玻璃 sigma 5', () {
-      expect(DiminaFloatBallMetrics.size, 56);
+    test('定稿几何:40 方块/外露圆角 14/吸附阈值 48/图标 28+padding 6/毛玻璃 sigma 5', () {
+      expect(DiminaFloatBallMetrics.size, 40);
       expect(DiminaFloatBallMetrics.cornerOuter, 14);
       expect(DiminaFloatBallMetrics.snapThreshold, 48);
       expect(DiminaFloatBallMetrics.iconSize, 28);
-      expect(DiminaFloatBallMetrics.iconPadding, 14);
+      expect(DiminaFloatBallMetrics.iconPadding, 6);
       expect(DiminaFloatBallMetrics.iconCornerRadius, 7);
       expect(DiminaFloatBallMetrics.blurSigma, 5);
     });
@@ -34,10 +34,16 @@ void main() {
     test('snapSide:距左/右屏缘<48 吸附该边,否则 null 停原地', () {
       expect(DiminaFloatBallMetrics.snapSide(0, 400), DiminaDockSide.left);
       expect(DiminaFloatBallMetrics.snapSide(10, 400), DiminaDockSide.left);
-      expect(DiminaFloatBallMetrics.snapSide(400 - 56 - 10, 400), DiminaDockSide.right);
+      expect(
+        DiminaFloatBallMetrics.snapSide(400 - DiminaFloatBallMetrics.size - 10, 400),
+        DiminaDockSide.right,
+      );
       // 恰好 48:不吸附(阈值是「小于」)。
       expect(DiminaFloatBallMetrics.snapSide(48, 400), isNull);
-      expect(DiminaFloatBallMetrics.snapSide(400 - 56 - 48, 400), isNull);
+      expect(
+        DiminaFloatBallMetrics.snapSide(400 - DiminaFloatBallMetrics.size - 48, 400),
+        isNull,
+      );
       // 屏幕中间:自由停原地。
       expect(DiminaFloatBallMetrics.snapSide(100, 400), isNull);
       expect(DiminaFloatBallMetrics.snapSide(200, 400), isNull);
@@ -68,7 +74,10 @@ void main() {
 
     test('吸附 left:方块向屏外探 2dp(贴屏侧描边藏进屏幕外)', () {
       expect(DiminaFloatBallMetrics.fullLeft(DiminaDockSide.left, 400), -2);
-      expect(DiminaFloatBallMetrics.fullLeft(DiminaDockSide.right, 400), 346);
+      expect(
+        DiminaFloatBallMetrics.fullLeft(DiminaDockSide.right, 400),
+        400 - DiminaFloatBallMetrics.size + 2,
+      );
     });
 
     test('clampTop 限制在上下界内', () {
@@ -322,7 +331,7 @@ void main() {
       await pumpFloated(tester);
 
       final size = MediaQuery.sizeOf(tester.element(find.byType(Scaffold)));
-      // 拖到屏幕中间:落点 left=200(距左 200、距右 544,均 ≥48)。
+      // 拖到屏幕中间:落点 left=200(距左 200、距右 160,均 ≥48)。
       const freeLeft = 200.0;
       final gesture = await tester.startGesture(Offset(centerX(size), centerY(size)));
       await gesture.moveBy(Offset(-(centerX(size) - (freeLeft + DiminaFloatBallMetrics.size / 2)), -10));

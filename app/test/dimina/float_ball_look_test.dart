@@ -74,7 +74,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1) 吸附右缘(默认可动区 62% 高度处):贴屏侧直角、方块延伸到屏幕边缘,
-    //    外露侧圆角 14,毛玻璃底、图标 44dp 居中(四周 6dp)。
+    //    外露侧圆角 14,毛玻璃底、图标 28dp 居中(四周 6dp,方块 40dp)。
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/ball_docked_right.png'),
