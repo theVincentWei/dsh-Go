@@ -73,6 +73,25 @@ versionCode = (年 - 2026) × 10^8 + MMDDhhmm      时钟固定按 UTC+8
 - **绕过脚本时**（`flutter run`、IDE）：`build.gradle.kts` 发现 versionCode 还是占位的 `1`，就按同一公式现算。否则装到已有新号的设备上会被当成降级，`flutter run` 会先卸载旧版再装，数据全清。
 - 测试：`python3 -m unittest discover -s tooling -p 'test_*.py'`。
 
+## 发版基线
+
+发版默认基线是**本地 `main` 最新提交**（APK、TestFlight 同一规则，不特意说明时就是它）。发版产物只允许包含已提交内容：主工作树带着未提交改动时，不要等、更不能扫进包里——iOS 用 `tooling/ios/release-testflight.sh`（脚本内部 `git archive <ref>` 导出干净快照构建，见下节）；Android 参照同一机制，在临时快照检出里跑 `tooling/build-apk.sh`。
+
+## iOS TestFlight 发版
+
+```sh
+PATH="$HOME/dev/flutter/bin:$PATH" \
+ASC_KEY_ID=<key-id> ASC_ISSUER_ID=<issuer> \
+  tooling/ios/release-testflight.sh --build-name 1.0.18
+```
+
+- 基线默认本地 `main` HEAD；主工作树有未提交改动也照常发（脚本内部走 `git archive` 快照，任何未提交内容不进包）。要出别的提交用 `--ref`。
+- 构建号缺省构建分钟，与 Android versionCode 同一条序列；覆盖用 `--build-number`。
+- 纯远程包（无内置引擎）：**不要**先跑 `tooling/ios/prepare-engine.sh`；要带引擎另行准备再说。
+- ASC API key：`.p8` 放 `~/.appstoreconnect/private_keys/AuthKey_<key-id>.p8`，key 角色需 Admin（Developer 报 Cloud signing permission error）；账号有未签协议时 altool 全线 403 `REQUIRED_AGREEMENTS`，去 App Store Connect 网页签完即通。
+- 环境硬要求：真 `HOME`（fakehome 丢默认钥匙串，证书错误 -25307）；DerivedData 在 `~/Library/Caches`（workspace 内文件会被 File Provider 盖 fpfs 元数据，codesign 报 resource fork detritus）；提权跑（写 SDK 缓存、调真钥匙串）。
+- 上传后 ASC 处理约 20–40 分钟，邮件与 ASC 构建列表可查状态。
+
 ## 发版步骤
 
 1. **改版本名**：`app/pubspec.yaml` 的 `version:`，版本名按 semver 升；`+1` 不动。之后打的开发包也带新版本名，不会被提示「更新」到这一版。

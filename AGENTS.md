@@ -81,6 +81,10 @@ CI（`.github/workflows/ci.yml`）在 PR 上跑通用检查和改动涉及的部
 - 弃案用 `sh tooling/wt rm <分支>`，盘点用 `sh tooling/wt ls`。
 - 兜底：post-merge 钩子自动清理「已并入 main 且无未提交改动」的工作树；换机器/新 clone 后先跑 `sh tooling/cleanup-merged-worktrees.sh --install`（钩子+常驻脚本副本一起装，旧检出的工作树里 merge 也能触发）。
 
+### 发版基线（APK/TestFlight 通用）
+
+- 发版默认基线=**本地 `main` 最新提交**，不特意说明就是它。产物只允许包含已提交内容：主工作树带未提交改动时，iOS 走 `tooling/ios/release-testflight.sh`（内置 `git archive` 快照），Android 在临时快照检出里跑 `build-apk.sh`。详见 `docs/release.md`「发版基线」。
+
 ### 真机验证
 
 - Flutter widget 测试需要对应架构的 Flutter 引擎；只有桌面端（x86_64）而设备是 arm64 时，明确写"未运行"及原因。
