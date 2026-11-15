@@ -18,7 +18,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/l10n.dart';
@@ -283,32 +282,10 @@ class ThisChatCard extends ConsumerStatefulWidget {
 }
 
 class _ThisChatCardState extends ConsumerState<ThisChatCard> {
-  /// Asked for and not yet in the log (a switch mid-turn lands at the next
-  /// step); null follows the log.
-  bool? _plan;
-  bool _busy = false;
-
-  Future<void> _togglePlan(bool next) async {
-    if (_busy) return;
-    HapticFeedback.selectionClick();
-    setState(() {
-      _busy = true;
-      _plan = next;
-    });
-    final ok = await ref.read(chatProvider(widget.sessionId).notifier).runCommand(next ? '/plan' : '/plan off');
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      if (!ok) _plan = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final modes = ref.watch(sessionModesProvider(widget.sessionId));
-    if (_plan == modes.plan) _plan = null;
-    final plan = _plan ?? modes.plan;
     return ListPageCard(
       title: l10n.nearbyThisChat,
       margin: const EdgeInsets.symmetric(horizontal: PlusPanelMetrics.side),
@@ -323,13 +300,6 @@ class _ThisChatCardState extends ConsumerState<ThisChatCard> {
             context,
             title: l10n.nearbyPermissionTitle,
             page: (_) => SessionPermissionPage(sessionId: widget.sessionId),
-          ),
-        ),
-        MergeSemantics(
-          child: ListPageRow(
-            title: l10n.hubSessionPlanMode,
-            onTap: _busy ? null : () => unawaited(_togglePlan(!plan)),
-            trailing: Switch(value: plan, onChanged: _busy ? null : (v) => unawaited(_togglePlan(v))),
           ),
         ),
       ],
