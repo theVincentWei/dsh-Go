@@ -19,6 +19,9 @@ import '../../notify/apphub_base.dart' show appHubBase;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/auto_sync_state.dart' show autoSyncProvider;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
+import '../../state/hosts_state.dart' show activeHostProvider;
+import '../common/ask_ai.dart' show askAiQuestion;
+import 'apphub_install_guide.dart' show apphubInstallPrompt;
 import 'hub_apps_group.dart' show hubInstalledProvider;
 import '../common/list_page_row.dart';
 import '../theme/theme.dart';
@@ -65,7 +68,21 @@ class _HubApp {
 }
 
 class ApphubMarketPage extends ConsumerStatefulWidget {
-  const ApphubMarketPage({super.key});
+  const ApphubMarketPage({
+    super.key,
+    this.retryInterval = _defaultRetryInterval,
+    this.fetchApps,
+  });
+
+  /// 「未连接」补拉周期(测试注入短周期:失败态走真实时区,构造器注入才能让
+  /// 真定时器在 runAsync 窗口里被驱动——SshHostLink.keepAliveInterval 同款)。
+  final Duration retryInterval;
+
+  /// 市场目录拉取(测试注入:先失败后成功即可确定性验证「自愈转亮」;缺省
+  /// 走真 http.get,同 SshHostLink.connectClient 的注入惯例)。
+  final Future<http.Response> Function(Uri uri)? fetchApps;
+
+  static const Duration _defaultRetryInterval = Duration(seconds: 20);
 
   @override
   ConsumerState<ApphubMarketPage> createState() => _ApphubMarketPageState();
@@ -79,6 +96,11 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
   bool _loaded = false;
   bool _failed = false;
   StreamSubscription<DiminaUpdateEvent>? _updateSub;
+
+  /// 「未连接」态的自动补拉:agent 在主机上装好货架后(隧道侧 45s 补探已把
+  /// 转发补上),本页最迟一个周期内自己转亮,不用下拉刷新/重进。
+  Timer? _retry;
+
   final Map<String, Map<String, Object?>?> _installed = <String, Map<String, Object?>?>{};
 
   @override
@@ -91,6 +113,7 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
 
   @override
   void dispose() {
+    _retry?.cancel();
     _updateSub?.cancel();
     _search.dispose();
     super.dispose();
@@ -109,9 +132,9 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
 
   Future<void> _load() async {
     try {
-      final http.Response response = await http
-          .get(Uri.parse('$appHubBase/api/v1/apps'))
-          .timeout(const Duration(seconds: 8));
+      final Uri uri = Uri.parse('$appHubBase/api/v1/apps');
+      final http.Response response =
+          await (widget.fetchApps ?? _defaultGet)(uri).timeout(const Duration(seconds: 8));
       final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
       if (body is! Map || body['apps'] is! List) throw StateError('bad body');
       final List<_HubApp> apps = <_HubApp>[
@@ -124,6 +147,8 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
         _loaded = true;
         _failed = false;
       });
+      _retry?.cancel();
+      _retry = null;
       await _queryInstalled();
       // autoSync 静默同步:市场目录刚刷新,正是检查「没装→静默装、落后→静默升」
       // 的时机(单飞+冷却在 runner 内;总开关设置 → 通用 → 静默同步)。
@@ -137,9 +162,14 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
           _loaded = true;
           _failed = true;
         });
+        // 失败态下周期补拉:货架后起(一键安装流程)时页面自愈。
+        _retry ??= Timer.periodic(widget.retryInterval, (_) => unawaited(_load()));
       }
     }
   }
+
+  /// 缺省拉取:真 http GET(测试经 fetchApps 注入替身,避免真实 IO 的时区坑)。
+  Future<http.Response> _defaultGet(Uri uri) => http.get(uri);
 
   /// 逐应用查本机已装版本(Dimina 沙盒;查询失败视为未装)。
   Future<void> _queryInstalled() async {
@@ -276,14 +306,35 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
                     child: Builder(
                       builder: (BuildContext context) {
                         if (_failed && _apps.isEmpty) {
+                          // 远程主机上没装货架 → 行动卡:「问AI」通道把安装引导词
+                          // 填进主机会话(填好等确认,用户可改可看再发);本机模式
+                          // 没有可装货架的远端,保持纯文案。
+                          final bool remoteHost = !ref.read(activeHostProvider).isLocal;
                           return ListView(
                             children: <Widget>[
                               Padding(
                                 padding: const EdgeInsets.all(28),
-                                child: Text(
-                                  l10n.apphubNoMarket,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                                child: Column(
+                                  children: <Widget>[
+                                    Text(
+                                      l10n.apphubNoMarket,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      l10n.apphubInstallMissingBody,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                    if (remoteHost) ...<Widget>[
+                                      const SizedBox(height: 16),
+                                      FilledButton(
+                                        onPressed: () => unawaited(askAiQuestion(context, apphubInstallPrompt)),
+                                        child: Text(l10n.apphubInstallCta),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ],
