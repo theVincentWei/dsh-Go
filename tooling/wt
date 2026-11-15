@@ -1,0 +1,180 @@
+#!/bin/sh
+# 工作树流程的唯一入口(固定流程约定见 AGENTS.md「工作树流程」):
+#
+#   tooling/wt new <名字>        # 开工:从 main 最新提交拉 feat/<名字> 分支+新工作树
+#   tooling/wt done              # 合入:在功能工作树里跑,merge 进 main 并当场删树删分支
+#   tooling/wt rm <分支|路径> [--force]   # 弃案:不合入直接删工作树+分支
+#   tooling/wt ls                # 盘点:每棵树的分支/是否已并入/是否有未提交改动
+#
+# 新工作树目录 = $DSH_WT_ROOT(默认 ~/Code)/dsh-go-<短名>。
+# 与 post-merge 钩子(tooling/cleanup-merged-worktrees.sh --install)的关系:
+# 本命令管标准路径;钩子兜底清理「在主工作树手工 merge 后漏删」的树。
+
+set -u
+
+MAIN_BRANCH=main
+WT_ROOT="${DSH_WT_ROOT:-$HOME/Code}"
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'wt: %s\n' "$*" >&2; exit 1; }
+
+usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; }
+
+need_repo() {
+  git rev-parse --git-common-dir >/dev/null 2>&1 ||
+    die "不在 dsh-Go 仓库里(在任意一棵工作树里跑都行)"
+}
+
+# 主工作树 = 共享 .git 目录的上一级
+main_wt() { dirname "$(git rev-parse --path-format=absolute --git-common-dir)"; }
+
+branch_of() {
+  case "$1" in
+    feat/*|fix/*|chore/*|sync/*|test/*) printf '%s' "$1" ;;
+    *) printf 'feat/%s' "$1" ;;
+  esac
+}
+
+short_of() { printf '%s' "${1##*/}"; }
+
+cmd_new() {
+  [ $# -ge 1 ] || die "用法: tooling/wt new <名字>"
+  name=$1
+  case "$name" in
+    *[!A-Za-z0-9._-]*) die "名字只允许字母/数字/./_/- : $name" ;;
+  esac
+  branch=$(branch_of "$name")
+  [ "$branch" = "$MAIN_BRANCH" ] && die "不能占用 $MAIN_BRANCH 这个名字"
+  short=$(short_of "$name")
+  dir="$WT_ROOT/dsh-go-$short"
+  git show-ref --verify --quiet "refs/heads/$branch" &&
+    die "分支已存在: $branch (要续做就: git worktree add $dir $branch)"
+  [ -e "$dir" ] && die "目录已存在: $dir"
+  tip=$(git rev-parse --short "$MAIN_BRANCH" 2>/dev/null) ||
+    die "找不到 $MAIN_BRANCH 分支"
+  if git show-ref --verify --quiet refs/remotes/origin/main; then
+    [ "$(git rev-parse "$MAIN_BRANCH")" = "$(git rev-parse refs/remotes/origin/main)" ] ||
+      say "注意: 本地 $MAIN_BRANCH 落后/领先 origin/main,按 Git 安全规则建议先在主工作树拉平再开工"
+  fi
+  git worktree add "$dir" -b "$branch" "$MAIN_BRANCH" >/dev/null ||
+    die "创建工作树失败(见上方 git 报错)"
+  say "已开工: $branch ← $MAIN_BRANCH@$tip"
+  say "目录:   $dir"
+  say "合入:   cd $dir && sh tooling/wt done   (merge 进 main 并当场删树删分支)"
+}
+
+cmd_done() {
+  need_repo
+  wt=$(git rev-parse --path-format=absolute --show-toplevel)
+  mw=$(main_wt)
+  [ "$wt" = "$mw" ] && die "这是主工作树:请到功能工作树的目录里跑 tooling/wt done"
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  [ -n "$branch" ] && [ "$branch" != "HEAD" ] ||
+    die "detached HEAD,没有分支可合入"
+  [ "$branch" != "$MAIN_BRANCH" ] || die "当前就在 $MAIN_BRANCH 上,没有可合入的分支"
+  dirty=$(git status --porcelain --untracked-files=no | head -8)
+  [ -z "$dirty" ] || die "本树有未提交的已跟踪改动,先 commit 再合入:
+$dirty"
+  main_dirty=$(git -C "$mw" status --porcelain --untracked-files=no | head -8)
+  [ -z "$main_dirty" ] || die "主工作树($mw)有未提交改动,先处理再合入:
+$main_dirty"
+  untracked=$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')
+  say "合入 $branch → $MAIN_BRANCH (--no-ff) ..."
+  if ! git -C "$mw" merge --no-ff --no-edit "$branch"; then
+    git -C "$mw" merge --abort 2>/dev/null
+    die "合并冲突,已回滚主工作树。需手工处理: cd $mw && git merge --no-ff $branch"
+  fi
+  if ! git -C "$mw" worktree remove "$wt" 2>/dev/null; then
+    git -C "$mw" worktree remove --force "$wt" ||
+      die "合入已完成,但删工作树失败,请手工: git worktree remove --force $wt"
+  fi
+  if ! git -C "$mw" branch -d "$branch" >/dev/null 2>&1; then
+    die "工作树已删,但分支 $branch 删除失败(手工: git branch -d $branch)"
+  fi
+  head=$(git -C "$mw" rev-parse --short HEAD)
+  say "已合入并清理: $branch(未跟踪文件 $untracked 个随树删除)"
+  say "$MAIN_BRANCH 现在: $mw @$head"
+}
+
+cmd_rm() {
+  need_repo
+  [ $# -ge 1 ] || die "用法: tooling/wt rm <分支|路径> [--force]"
+  t=$1; FORCE=0
+  [ "${2:-}" = "--force" ] && FORCE=1
+  mw=$(main_wt)
+  branch=""; path=""
+  if git show-ref --verify --quiet "refs/heads/$t"; then
+    branch=$t
+    path=$(git worktree list --porcelain | awk -v b="refs/heads/$branch" '
+      $1=="worktree"{p=substr($0,10)}
+      $1=="branch" && $2==b {print p; exit}')
+  elif [ -d "$t" ]; then
+    path=$(cd "$t" && git rev-parse --path-format=absolute --show-toplevel 2>/dev/null) ||
+      die "目录不是本仓库的工作树: $t"
+    branch=$(git -C "$path" rev-parse --abbrev-ref HEAD)
+  else
+    die "$t 既不是分支也不是目录"
+  fi
+  [ -n "$path" ] || die "分支 $branch 没有工作树(直接: git branch -d $branch)"
+  [ "$path" = "$mw" ] && die "不能删主工作树"
+  [ "$branch" != "$MAIN_BRANCH" ] || die "不能删 $MAIN_BRANCH"
+  dirty=$(git -C "$path" status --porcelain --untracked-files=no | head -8)
+  if [ -n "$dirty" ] && [ "$FORCE" != 1 ]; then
+    die "有未提交改动,确认丢弃请加 --force:
+$dirty"
+  fi
+  git -C "$mw" worktree remove "$path" 2>/dev/null ||
+    git -C "$mw" worktree remove --force "$path" ||
+    die "删工作树失败: $path"
+  if git -C "$mw" branch -d "$branch" >/dev/null 2>&1; then
+    say "已删: $branch ($path)"
+  else
+    git -C "$mw" branch -D "$branch" >/dev/null 2>&1 ||
+      die "工作树已删,分支删除失败: $branch"
+    say "已删(分支未合入,强制): $branch ($path)"
+  fi
+}
+
+cmd_ls() {
+  need_repo
+  mw=$(main_wt)
+  cur=$(pwd -P)
+  git worktree list --porcelain | awk '
+    /^worktree /{p=substr($0,10); b=""; d=0}
+    /^branch /  {b=substr($0,8); sub(/^refs\/heads\//, "", b)}
+    /^detached/ {d=1}
+    /^$/        {if (p != "") print p "\t" b "\t" d; p=""}
+    END         {if (p != "") print p "\t" b "\t" d}' |
+  while IFS="	" read -r p b d; do
+    mark=" "
+    [ "$p" = "$mw" ] && mark="*"
+    [ "$p" = "$cur" ] && mark=">"
+    disp=${p#"$HOME"}
+    disp="~$disp"
+    if [ "$d" = 1 ] || [ -z "$b" ]; then
+      merged="detached"; b="(无)"
+    elif git merge-base --is-ancestor "refs/heads/$b" "$MAIN_BRANCH" 2>/dev/null; then
+      merged="已并入"
+    else
+      merged="未并入"
+    fi
+    if [ -n "$(git -C "$p" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+      clean="有未提交改动"
+    else
+      clean="干净"
+    fi
+    printf '%s %-34s %-32s %-8s %s\n' "$mark" "$disp" "$b" "$merged" "$clean"
+  done
+  say "(对比顺序: 工作树 / 分支 / 是否已并入 $MAIN_BRANCH / 是否干净; * = 主工作树, > = 当前所在)"
+}
+
+[ $# -ge 1 ] || { usage; exit 0; }
+cmd=$1; shift
+case "$cmd" in
+  new) cmd_new "$@" ;;
+  done) cmd_done "$@" ;;
+  rm) cmd_rm "$@" ;;
+  ls) cmd_ls "$@" ;;
+  -h|--help|help) usage ;;
+  *) die "未知子命令: $cmd (可用: new / done / rm / ls)" ;;
+esac

@@ -42,20 +42,27 @@ GIT_COMMON=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
 MAIN_WT=$(cd "$GIT_COMMON/.." && pwd -P) || exit 0
 
 if [ "$MODE" = install ]; then
-  hook="$GIT_COMMON/hooks/post-merge"
-  # 主工作树之外也认脚本:钩子里用当前工作树根定位。
-  cat > "$hook" <<'HOOK'
+  hooks="$GIT_COMMON/hooks"
+  mkdir -p "$hooks"
+  # 常驻脚本副本:旧检出的功能工作树里可能没有 tooling/(它们从更早的 main 拉出),
+  # 钩子此时退回跑这份,保证在任何工作树里 merge 都不静默失效。
+  cp "$0" "$hooks/cleanup-merged-worktrees.sh" || warn "常驻脚本副本复制失败"
+  chmod +x "$hooks/cleanup-merged-worktrees.sh"
+  cat > "$hooks/post-merge" <<'HOOK'
 #!/bin/sh
 # 合入后自动清理已合并的工作树(规则见 tooling/cleanup-merged-worktrees.sh)。
 # 合入动作本身已成功;清理出任何问题都只提示,不影响退出码。
 root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-script="$root/tooling/cleanup-merged-worktrees.sh"
-[ -f "$script" ] || exit 0
-sh "$script" --quiet
+if [ -f "$root/tooling/cleanup-merged-worktrees.sh" ]; then
+  sh "$root/tooling/cleanup-merged-worktrees.sh" --quiet
+else
+  fallback="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/hooks/cleanup-merged-worktrees.sh"
+  [ -f "$fallback" ] && sh "$fallback" --quiet
+fi
 exit 0
 HOOK
-  chmod +x "$hook"
-  printf '已安装钩子: %s\n' "$hook"
+  chmod +x "$hooks/post-merge"
+  printf '已安装: %s/post-merge + 常驻副本 %s/cleanup-merged-worktrees.sh\n' "$hooks" "$hooks"
   exit 0
 fi
 

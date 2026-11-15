@@ -74,6 +74,13 @@ CI（`.github/workflows/ci.yml`）在 PR 上跑通用检查和改动涉及的部
 - 未经要求不 commit、不 push、不打 tag、不发布。
 - 不 force push `main` 或重写共享历史，除非用户在当前对话里明确要求；重写后必须重建受影响的分支与 PR。
 
+### 工作树流程（功能开发的固定入口）
+
+- 开工一律 `sh tooling/wt new <名字>`：从 main 最新提交拉 `feat/<名字>` 分支 + 新工作树（`~/Code/dsh-go-<名字>`）。禁止从非 main 分支叠新分支；禁止在主工作树里直接改功能代码。开工前按「Git 安全」先拉平基线。
+- 用户说「合入」就在功能工作树里跑 `sh tooling/wt done`：merge 进 main 并**当场删除工作树与分支**；不要手工 merge 后留树。
+- 弃案用 `sh tooling/wt rm <分支>`，盘点用 `sh tooling/wt ls`。
+- 兜底：post-merge 钩子自动清理「已并入 main 且无未提交改动」的工作树；换机器/新 clone 后先跑 `sh tooling/cleanup-merged-worktrees.sh --install`（钩子+常驻脚本副本一起装，旧检出的工作树里 merge 也能触发）。
+
 ### 真机验证
 
 - Flutter widget 测试需要对应架构的 Flutter 引擎；只有桌面端（x86_64）而设备是 arm64 时，明确写"未运行"及原因。
