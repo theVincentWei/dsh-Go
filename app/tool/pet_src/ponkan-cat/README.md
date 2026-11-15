@@ -7,6 +7,10 @@
 - 美术：用户提供的「七个动作像素猫」参考图（sitting / walking / running /
   jumping / attacking / damaged / sleeping），由 `tools/` 侧的 piskel-cli 管线切成
   64×64 单帧，再按 `strips/` 规格编排成若干段动画。
+- `attention` 段是另一张用户提供的动图（举爪指向「DONE」气泡的橘猫，
+  原图为 1260×1096 的 28 帧 GIF 动效）：按包内 64×88 艺术像素重采样成 20 帧
+  （70ms，1.4s 一轮 = attention 的 4200ms 显示 3 轮），猫身 47 艺术像素高、
+  脚踩 baseline、水平质心对齐 anchor，与其它段同一显示尺寸。
 - 作者与授权由包内 `pack.json` 的 `author`、`license`、`source` 如实标注，
   宠物页底部原样展示（见 `docs/design/pets.md` §9）。修改这两项前先跟用户确认。
 
@@ -42,7 +46,7 @@ cd app && python3 tool/make_pet_pack.py --only ponkan-cat
 | idle | idle | 4 帧呼吸 |
 | thinking | thinking | 头顶「…」 |
 | working / juggling | pawing | 双爪快拍 |
-| attention | happy | 蹦一下 |
+| attention | attention | 举爪指向 DONE 气泡的小跳（20 帧 70ms，1.4s 一轮） |
 | attention 彩蛋 | bonus-love | 20% 概率，冒爱心，一次性 |
 | notification | notification | 头顶「!」脉动 |
 | sweeping | compacting | 扑打扫，带尘土 |

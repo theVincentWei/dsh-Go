@@ -104,11 +104,28 @@
     180
    ]
   },
-  "happy": {
+  "attention": {
    "durs": [
-    180,
-    180,
-    180
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70,
+    70
    ]
   },
   "compacting": {
@@ -185,7 +202,7 @@
    "error"
   ],
   "attention": [
-   "happy"
+   "attention"
   ],
   "notification": [
    "notification"

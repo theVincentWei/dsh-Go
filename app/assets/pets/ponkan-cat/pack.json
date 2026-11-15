@@ -82,15 +82,15 @@
       "ms": 420,
       "frames": [{"i": 0, "ms": 140}, {"i": 1, "ms": 140}, {"i": 2, "ms": 140}]
     },
-    "happy": {
-      "sheet": "happy.png",
-      "frameW": 98,
-      "frameH": 106,
-      "cols": 2,
-      "box": {"x": 7, "y": 35, "w": 49, "h": 53},
+    "attention": {
+      "sheet": "attention.png",
+      "frameW": 106,
+      "frameH": 104,
+      "cols": 20,
+      "box": {"x": 6, "y": 35, "w": 53, "h": 52},
       "loop": true,
-      "ms": 540,
-      "frames": [{"i": 0, "ms": 180}, {"i": 1, "ms": 180}, {"i": 0, "ms": 180}]
+      "ms": 1400,
+      "frames": [{"i": 0, "ms": 70}, {"i": 1, "ms": 70}, {"i": 2, "ms": 70}, {"i": 3, "ms": 70}, {"i": 4, "ms": 70}, {"i": 5, "ms": 70}, {"i": 6, "ms": 70}, {"i": 7, "ms": 70}, {"i": 8, "ms": 70}, {"i": 9, "ms": 70}, {"i": 10, "ms": 70}, {"i": 11, "ms": 70}, {"i": 12, "ms": 70}, {"i": 13, "ms": 70}, {"i": 14, "ms": 70}, {"i": 15, "ms": 70}, {"i": 16, "ms": 70}, {"i": 17, "ms": 70}, {"i": 18, "ms": 70}, {"i": 19, "ms": 70}]
     },
     "bonus-love": {
       "sheet": "bonus-love.png",
@@ -216,7 +216,7 @@
     "working": ["pawing"],
     "juggling": ["pawing"],
     "error": ["error"],
-    "attention": ["happy"],
+    "attention": ["attention"],
     "notification": ["notification"],
     "sweeping": ["compacting"],
     "carrying": ["carrying"],
