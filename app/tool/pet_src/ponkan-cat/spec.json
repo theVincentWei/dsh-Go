@@ -208,8 +208,8 @@
     ]
   },
   "reactions": {
-    "tapLeft": "react-left",
-    "tapRight": "react-right",
+    "tapLeft": "bonus-love",
+    "tapRight": "bonus-love",
     "tickle": "react-tickle",
     "drag": "react-drag"
   },

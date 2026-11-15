@@ -159,26 +159,6 @@
       "ms": 520,
       "frames": [{"i": 0, "ms": 130}, {"i": 1, "ms": 130}, {"i": 0, "ms": 130}, {"i": 0, "ms": 130}]
     },
-    "react-left": {
-      "sheet": "react-left.png",
-      "frameW": 56,
-      "frameH": 46,
-      "cols": 2,
-      "box": {"x": 2, "y": 11, "w": 28, "h": 23},
-      "loop": false,
-      "ms": 400,
-      "frames": [{"i": 0, "ms": 200}, {"i": 1, "ms": 200}]
-    },
-    "react-right": {
-      "sheet": "react-right.png",
-      "frameW": 58,
-      "frameH": 46,
-      "cols": 2,
-      "box": {"x": 1, "y": 11, "w": 29, "h": 23},
-      "loop": false,
-      "ms": 400,
-      "frames": [{"i": 0, "ms": 200}, {"i": 1, "ms": 200}]
-    },
     "react-tickle": {
       "sheet": "react-tickle.png",
       "frameW": 50,
@@ -198,6 +178,26 @@
       "loop": false,
       "ms": 440,
       "frames": [{"i": 0, "ms": 220}, {"i": 1, "ms": 220}]
+    },
+    "react-left": {
+      "sheet": "react-left.png",
+      "frameW": 56,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 2, "y": 11, "w": 28, "h": 23},
+      "loop": false,
+      "ms": 400,
+      "frames": [{"i": 0, "ms": 200}, {"i": 1, "ms": 200}]
+    },
+    "react-right": {
+      "sheet": "react-right.png",
+      "frameW": 58,
+      "frameH": 46,
+      "cols": 2,
+      "box": {"x": 1, "y": 11, "w": 29, "h": 23},
+      "loop": false,
+      "ms": 400,
+      "frames": [{"i": 0, "ms": 200}, {"i": 1, "ms": 200}]
     }
   },
   "idlePool": {
@@ -237,8 +237,8 @@
     "wakeMs": 750
   },
   "reactions": {
-    "tapLeft": "react-left",
-    "tapRight": "react-right",
+    "tapLeft": "bonus-love",
+    "tapRight": "bonus-love",
     "tickle": "react-tickle",
     "drag": "react-drag"
   },
