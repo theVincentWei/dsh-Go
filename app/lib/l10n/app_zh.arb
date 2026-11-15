@@ -2276,6 +2276,8 @@
   "apphubUninstallPurge": "同时清除主机数据(账本等不可恢复)",
   "apphubUninstallHostFailed": "主机命令未成功,已仅卸载本机;主机后端可能仍在运行,可稍后重试。",
   "apphubNoMarket": "AppHub 未连接",
+  "apphubInstallMissingBody": "这台主机上还没装 App Hub 货架。装好并启动后,小程序市场会自动出现在这里。",
+  "apphubInstallCta": "一键安装 App Hub",
   "apphubEmpty": "暂无应用",
   "apphubGet": "获取",
   "apphubKindMiniProgram": "小程序",

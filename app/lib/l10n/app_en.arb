@@ -1123,6 +1123,8 @@
   "apphubUninstallPurge": "Also wipe host data (ledgers etc. cannot be recovered)",
   "apphubUninstallHostFailed": "Host command did not succeed; uninstalled locally only. The host backend may still be running — retry later.",
   "apphubNoMarket": "AppHub unreachable",
+  "apphubInstallMissingBody": "App Hub isn't installed on this host yet. Once it is set up and running, the mini program market appears here automatically.",
+  "apphubInstallCta": "Install App Hub",
   "apphubEmpty": "No apps yet",
   "apphubGet": "Get",
   "apphubKindMiniProgram": "Mini program",

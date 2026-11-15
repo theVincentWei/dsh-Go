@@ -174,9 +174,59 @@ void main() {
     await l.close();
     await expectLater(roundTrip(pinned, 'x'), throwsA(anything));
   });
+
+  test('link: a shelf starting after connect gets picked up by the periodic re-probe', () async {
+    final FakeSshServer server = FakeSshServer(); // extraPort 为 null:建链时货架还没起
+    final int pinned = await grabFreePort();
+    final SshHostLink l = link(
+      server,
+      appHubLocalPort: pinned,
+      appHubReprobeInterval: const Duration(milliseconds: 60),
+    );
+    await l.open();
+
+    // 建链探测已经打到 7610 且被拒:base 不动,转发也没绑。
+    await waitUntil(
+      () => server.last.tunnels.any((t) => t.$2 == kAppHubRemotePort),
+      what: '建链时的首次探测',
+    );
+    await expectLater(roundTrip(pinned, 'x'), throwsA(anything));
+
+    // 货架后起(新机冷启动场景):下一轮补探把转发补上,不再需要重连。
+    server.last.extraPort = kAppHubRemotePort;
+    await waitRoundTrip(pinned, 'apphub');
+    expect(appHubBase, kAppHubDefaultBase);
+  });
+
+  test('link: a taken local port stops the re-probe for good (first binder wins)', () async {
+    final FakeSshServer server = FakeSshServer();
+    server.extraPort = kAppHubRemotePort;
+    final int pinned = await grabFreePort();
+    final ServerSocket occupier = await ServerSocket.bind(InternetAddress.loopbackIPv4, pinned);
+    addTearDown(occupier.close);
+
+    // 补探间隔压到 40ms:若弃权逻辑失效,400ms 内必然出现新的探测记录。
+    final SshHostLink l = link(
+      server,
+      appHubLocalPort: pinned,
+      appHubReprobeInterval: const Duration(milliseconds: 40),
+    );
+    await l.open();
+
+    // 建链探测成功但绑定失败(口被占):链路稳定后探测记录不再增长。
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    final int settled = server.last.tunnels.where((t) => t.$2 == kAppHubRemotePort).length;
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    expect(
+      server.last.tunnels.where((t) => t.$2 == kAppHubRemotePort).length,
+      settled,
+      reason: '本地口被占后补探应永久放弃,不再反复探测',
+    );
+    expect(appHubBase, kAppHubDefaultBase);
+  });
 }
 
-SshHostLink link(FakeSshServer server, {int? appHubLocalPort}) {
+SshHostLink link(FakeSshServer server, {int? appHubLocalPort, Duration? appHubReprobeInterval}) {
   final connector = FakeConnector();
   final SshHostLink l = SshHostLink(
     config: sampleSsh,
@@ -184,6 +234,8 @@ SshHostLink link(FakeSshServer server, {int? appHubLocalPort}) {
     transportFactory: server.connect,
     connectClient: connector.call,
     appHubLocalPort: appHubLocalPort,
+    // 不传 = 生产默认 45s:既有用例仍是「建链探一次」的语义,不受补探干扰。
+    appHubReprobeInterval: appHubReprobeInterval ?? const Duration(seconds: 45),
     backoff: Backoff(
       initial: const Duration(milliseconds: 10),
       max: const Duration(milliseconds: 40),
