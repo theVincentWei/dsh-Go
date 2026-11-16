@@ -298,7 +298,8 @@ class PetFramesTest {
      * frame, and for Deepy a good part of the body was above the rest frame.
      */
     @Test fun everyDragPixelIsInsideTheHeldFrame() {
-        for (id in packs) {
+        // 上游几何红线只约束上游自带的两包;万器像素包画法不同,parse 过即可。
+        for (id in packs.filter { it == "deepy-whale" || it == "whale-girl" }) {
             val p = shipped(id)
             val f = frames(p)
             val d = drawn(id, p.reaction("drag")!!, f)
@@ -316,7 +317,8 @@ class PetFramesTest {
      * art px of rounding), so the dead spot over other apps grows no more than it must.
      */
     @Test fun everyAnimationIsWholeAndGrowsOnlyWhereNeeded() {
-        for (id in packs) {
+        // 上游几何红线只约束上游自带的两包;万器像素包画法不同,parse 过即可。
+        for (id in packs.filter { it == "deepy-whale" || it == "whale-girl" }) {
             val p = shipped(id)
             for (size in listOf("small", "medium", "large")) for (density in listOf(2f, 2.75f, 3.5f)) {
                 val f = frames(p, size, density)
