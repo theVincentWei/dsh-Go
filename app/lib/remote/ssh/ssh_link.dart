@@ -71,9 +71,15 @@ Future<void> waitForRemoteDshReady(
 
 /// Production ready-wait. Opt-in at the call sites so the many orchestration
 /// tests (fake connectors, no HTTP behind the tunnel) keep their step flow.
-Future<void> remoteDshReadyWait(Uri baseUri, String hostHeader) {
+Future<void> remoteDshReadyWait(
+  Uri baseUri,
+  String hostHeader, {
+  Duration budget = const Duration(seconds: 30),
+  Duration probeTimeout = const Duration(seconds: 5),
+}) {
   final connection = DshConnection(baseUri, hostHeader: hostHeader);
-  return waitForRemoteDshReady(connection).whenComplete(() => connection.close());
+  return waitForRemoteDshReady(connection, budget: budget, probeTimeout: probeTimeout)
+      .whenComplete(() => connection.close());
 }
 
 /// No-op for tests that inject a fake connector and have no HTTP behind the
@@ -113,6 +119,7 @@ class SshHostLink implements HostLink {
     DshClientConnector? connectClient,
     DshReadyWait? waitReady,
     Stream<void>? kicks,
+    this.backgroundGap,
     Backoff? backoff,
     this.remoteEnvironment = const {},
     this.keepAliveInterval = const Duration(seconds: 15),
@@ -168,6 +175,17 @@ class SshHostLink implements HostLink {
   final DshClientConnector _connectClient;
   final DshReadyWait _waitReady;
   final Backoff _backoff;
+
+  /// How long the app was hidden right before the newest resume kick; null
+  /// when unknown (tests, first launch). A gap past [_assumeDeadAfter] lets
+  /// the kick skip probing: after a long freeze the socket is dead, so
+  /// reconnect right away instead of paying the probe wait first.
+  final Duration? Function()? backgroundGap;
+
+  /// Background length past which a resume kick assumes the link died. Below
+  /// it the kick probes first: on a quick app switch the sockets usually
+  /// survive, and a 2s probe keeps them without any reconnect churn.
+  static const _assumeDeadAfter = Duration(seconds: 15);
 
   /// 本地绑死的 AppHub 转发口(默认 = kAppHubRemotePort):小程序硬编码
   /// `http://127.0.0.1:7610`,与仿真器 adb reverse tcp:7610 同款语义。
@@ -646,28 +664,38 @@ class SshHostLink implements HostLink {
   /// Kills the current SSH connection as if the network dropped (live tests).
   void debugDropTransport() => _tunnel.debugDropTransport();
 
+  /// Treats the current transport as killed by the environment and goes
+  /// straight into the reconnect loop; the kick's fast path for links it
+  /// already knows are dead.
+  void _kickReconnect() {
+    _backoff.reset();
+    _lost(
+      HostLinkError(
+        HostLinkErrorKind.unreachable,
+        appL10n.remoteErrSshNetworkChanged,
+        retryable: true,
+        diagnosticCode: HostLinkDiagnosticCode.sshKickProbeFailed,
+      ),
+    );
+  }
+
   @override
   void kick() {
     if (_closed) return;
     switch (_status.phase) {
       case HostLinkPhase.connected:
-        // Network changed under us: a quick ping tells whether the socket
-        // survived; a dead one triggers reconnect without waiting for the
-        // regular keepalive.
-        unawaited(() async {
-          final alive = await _ping(const Duration(seconds: 5));
-          if (!alive) {
-            _backoff.reset();
-            _lost(
-              HostLinkError(
-                HostLinkErrorKind.unreachable,
-                appL10n.remoteErrSshNetworkChanged,
-                retryable: true,
-                diagnosticCode: HostLinkDiagnosticCode.sshKickProbeFailed,
-              ),
-            );
-          }
-        }());
+        // 长后台(进程冻结/网络掉线,socket 基本必死)不探活,直接重连——
+        // 探活只是把必然发生的重连往后推一个超时;短后台先 2s 快探,把还
+        // 活着的链路保住,免得每次快速切 App 都白重建一遍(Discord 网关
+        // 同一语义:僵尸连接立即终止重连,活连接不折腾)。
+        final gap = backgroundGap?.call();
+        if (gap != null && gap >= _assumeDeadAfter) {
+          _kickReconnect();
+        } else {
+          unawaited(() async {
+            if (!await _ping(const Duration(seconds: 2))) _kickReconnect();
+          }());
+        }
       case HostLinkPhase.reconnecting:
         _backoff.reset();
         _delay.skip();

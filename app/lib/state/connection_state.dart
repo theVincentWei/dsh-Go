@@ -205,11 +205,22 @@ final sshLinkFactoryProvider = Provider<SshLinkFactory>(
       tunnel: ref.read(sshTunnelFactoryProvider)(),
       // A cold remote DSH answers TCP before it answers HTTP; without this the
       // first login GET sits out the full request timeout on 「登录」.
-      waitReady: remoteDshReadyWait,
+      // attach 的远端引擎本来就在跑:就绪预算收窄,回前台重建把时间花在
+      // SSH 握手上,而不是等一个必然成功的 health;managed 保留长预算等冷启动。
+      waitReady: (baseUri, hostHeader) {
+        final attach = config.dshMode == SshDshMode.attachOnly;
+        return remoteDshReadyWait(
+          baseUri,
+          hostHeader,
+          budget: attach ? const Duration(seconds: 8) : const Duration(seconds: 30),
+          probeTimeout: attach ? const Duration(milliseconds: 1500) : const Duration(seconds: 5),
+        );
+      },
       // No prompt here: a host becomes active only after its key was
       // confirmed in the UI (test connection / host sheet), so an unknown key
       // at this point fails closed.
       kicks: ref.read(networkKicksProvider),
+      backgroundGap: backgroundGap,
     );
   },
 );
