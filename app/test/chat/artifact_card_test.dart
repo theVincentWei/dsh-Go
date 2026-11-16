@@ -12,7 +12,9 @@ import 'package:dsh_app/state/artifacts.dart';
 import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/download_tasks.dart';
 import 'package:dsh_app/state/hosts_state.dart';
+import 'package:dsh_app/ui/chat/artifact_preview.dart';
 import 'package:dsh_app/ui/chat/widgets/artifact_card.dart';
+import 'package:dsh_app/ui/chat/widgets/image_gallery.dart';
 import 'package:dsh_app/ui/share/share_card.dart';
 import 'package:dsh_app/ui/share/share_content.dart';
 import 'package:dsh_app/ui/share/share_image_page.dart';
@@ -264,6 +266,35 @@ void main() {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(android.methods.last, 'pdfClose');
+  });
+
+  testWidgets('交付卡里点开一张图,同清单的位图组成画廊,可左右换图', (tester) async {
+    usePhoneView(tester);
+    const html = Artifact(path: '/home/me/out/flow.html', origin: ArtifactOrigin.delivered, turn: 1);
+    const flow = Artifact(path: '/home/me/out/flow.png', origin: ArtifactOrigin.delivered, turn: 1);
+    const mockA = Artifact(path: '/home/me/out/mock-a-answers.png', origin: ArtifactOrigin.delivered, turn: 1);
+    const mockB = Artifact(path: '/home/me/out/mock-b-review.png', origin: ArtifactOrigin.delivered, turn: 1);
+    await tester.pumpWidget(_card([html, flow, mockA, mockB]));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('mock-a-answers.png'));
+    await pumpFrames(tester, 4);
+    // 页 = 清单里的位图(html 不算),起点是被点的这张。
+    final page = tester.widget<ArtifactPreviewPage>(find.byType(ArtifactPreviewPage));
+    expect(page.gallery, [flow, mockA, mockB]);
+    expect(page.initial, 1);
+    await tester.drag(find.byType(ImagePager), const Offset(-300, 0));
+    await pumpFrames(tester, 30);
+    expect(find.byKey(const ValueKey('image-gallery-page')), findsOneWidget);
+    expect(find.text('3 / 3'), findsOneWidget);
+
+    // 点的不是位图清单里唯一的位图时保持单文件预览,不带画廊。
+    await tester.tap(find.byTooltip('返回'));
+    await pumpFrames(tester, 4);
+    await tester.pumpWidget(_card([html, flow]));
+    await pumpFrames(tester, 4);
+    await tester.tap(find.text('flow.png'));
+    await pumpFrames(tester, 4);
+    expect(tester.widget<ArtifactPreviewPage>(find.byType(ArtifactPreviewPage)).gallery, isNull);
   });
 
   testWidgets('an Office file previews as the Host\'s PDF; apps stay a tap away', (tester) async {

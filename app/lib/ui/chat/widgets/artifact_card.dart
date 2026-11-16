@@ -67,8 +67,12 @@ class _ArtifactCardState extends State<ArtifactCard> {
         ? l10n.chatDeliveredFiles(files.length)
         : l10n.chatGeneratedFiles(files.length);
 
-    ArtifactTile tile(Artifact file) =>
-        ArtifactTile(key: ValueKey(file.path), sessionId: widget.sessionId, artifact: file);
+    ArtifactTile tile(Artifact file) => ArtifactTile(
+      key: ValueKey(file.path),
+      sessionId: widget.sessionId,
+      artifact: file,
+      gallery: files,
+    );
 
     return ChatCard(
       icon: widget.group.delivered ? AppIcons.artifacts : AppIcons.generating,
@@ -106,13 +110,23 @@ enum _Busy { fetching, opening, saving }
 /// 动作的进度和结果写在说明那一行:成功的提示停 5 秒后恢复(官方同款),
 /// 失败的留到下一次尝试。
 class ArtifactTile extends ConsumerStatefulWidget {
-  const ArtifactTile({super.key, required this.sessionId, required this.artifact, this.dense = false});
+  const ArtifactTile({
+    super.key,
+    required this.sessionId,
+    required this.artifact,
+    this.dense = false,
+    this.gallery,
+  });
 
   final String sessionId;
   final Artifact artifact;
 
   /// 会话详情的清单里用:左右留白小一些。
   final bool dense;
+
+  /// 这份文件所在的清单(交付卡/会话清单)。预览位图文件时,同清单的其他
+  /// 位图文件一起进画廊,点左右就能换着看;清空或不传则只看这一张。
+  final List<Artifact>? gallery;
 
   @override
   ConsumerState<ArtifactTile> createState() => _ArtifactTileState();
@@ -195,11 +209,26 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
 
   void _tap() {
     final files = ref.read(artifactFilesProvider);
-    if (artifactPreviewable(_artifact, officeToPdf: files.canConvertOffice)) {
-      Navigator.of(context).push(ArtifactPreviewPage.route(sessionId: widget.sessionId, artifact: _artifact));
-    } else {
+    if (!artifactPreviewable(_artifact, officeToPdf: files.canConvertOffice)) {
       _open();
+      return;
     }
+    // 交付卡/清单里点开一张图:同清单的位图文件一起进画廊(非位图和被点的
+    // 这张不算页),没有第二张时保持单文件预览。
+    List<Artifact>? pages;
+    if (widget.gallery case final siblings?) {
+      pages = [for (final artifact in siblings) if (previewModeOf(artifact.path) == PreviewMode.image) artifact];
+    }
+    final initial = pages?.indexOf(_artifact) ?? -1;
+    final gallery = initial >= 0 && pages!.length > 1 ? pages : null;
+    Navigator.of(context).push(
+      ArtifactPreviewPage.route(
+        sessionId: widget.sessionId,
+        artifact: _artifact,
+        gallery: gallery,
+        initial: gallery == null ? 0 : initial,
+      ),
+    );
   }
 
   Future<void> _menu() async {

@@ -86,7 +86,8 @@ class SessionArtifactsSection extends ConsumerWidget {
                   ),
                 ),
               ),
-              for (final file in shown) ArtifactTile(key: ValueKey(file.path), sessionId: sessionId, artifact: file),
+              for (final file in shown)
+                ArtifactTile(key: ValueKey(file.path), sessionId: sessionId, artifact: file, gallery: files),
               const SizedBox(height: 4),
             ],
           ),
@@ -142,6 +143,7 @@ class SessionArtifactsPage extends ConsumerWidget {
                       sessionId: sessionId,
                       artifact: file,
                       dense: true,
+                      gallery: group.files,
                     ),
                 ],
               ),
