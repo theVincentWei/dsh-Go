@@ -26,8 +26,13 @@ class BuildApkRuntimeTest(unittest.TestCase):
         self.root = Path(temporary.name)
         (self.root / "tooling").mkdir()
         (self.root / "app").mkdir()
-        for name in ("build-apk.sh", "build_number.py", "check_runtime_bundle.py"):
+        for name in ("build-apk.sh", "build_number.py", "check_runtime_bundle.py", "companion_pack.sh"):
             shutil.copy2(ROOT / "tooling" / name, self.root / "tooling" / name)
+        # Release builds must carry the companion pack (companion_pack.sh);
+        # point the env var at a stand-in zip and make the fake APK carry it.
+        pack = self.root / "companion" / "whale-girl.zip"
+        pack.parent.mkdir(parents=True)
+        pack.write_bytes(b"stand-in companion pack")
         (self.root / "app/pubspec.yaml").write_text("version: 1.0.0+1\n")
         # Stand-in for runtime/tawcroot/build.py: TAWCROOT_EXIT decides whether it "builds".
         tawcroot = self.root / "runtime/tawcroot"
@@ -47,7 +52,14 @@ flavor = args[args.index('--flavor') + 1]
 mode = next((arg[2:] for arg in reversed(args) if arg in ('--release', '--debug', '--profile')), 'release')
 apk = pathlib.Path('build/app/outputs/flutter-apk') / f'app-{flavor}-{mode}.apk'
 apk.parent.mkdir(parents=True, exist_ok=True)
-apk.write_bytes(b'fake APK: shell flow only')
+if mode == 'release':
+    # A real release APK is a zip carrying the companion pack; verification reads it.
+    import zipfile
+    with zipfile.ZipFile(apk, 'w') as z:
+        z.write(os.environ['DSH_COMPANION_PACK_FILE'],
+                'assets/flutter_assets/assets/companion/whale-girl.zip')
+else:
+    apk.write_bytes(b'fake APK: shell flow only')
 ''')
         flutter.chmod(0o755)
         aapt = tools / "aapt2"
@@ -55,7 +67,8 @@ apk.write_bytes(b'fake APK: shell flow only')
 ''')
         aapt.chmod(0o755)
         self.env = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ["PATH"],
-                        RUNTIME_GATE_TEST_CALLS=str(self.calls_file))
+                        RUNTIME_GATE_TEST_CALLS=str(self.calls_file),
+                        DSH_COMPANION_PACK_FILE=str(pack))
 
     def run_script(self, *args, keep_daemon=True):
         self.calls_file.unlink(missing_ok=True)

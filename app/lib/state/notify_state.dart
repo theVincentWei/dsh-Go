@@ -774,6 +774,9 @@ class ChatAlertsController extends Notifier<ChatAlert?> {
     // from switching away again on a cold start.
     ref.read(activeHostProvider.notifier).select(host);
     ref.read(currentSessionProvider.notifier).select(sessionId);
+    // 打开即撤该会话的通知组:点了 banner 就是去看它,不必等会话页挂载后
+    // 再经 viewedChat 回报(_seen)才撤。
+    _clearSessionNotifications(host, sessionId);
   }
 }
 

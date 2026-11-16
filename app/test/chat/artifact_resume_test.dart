@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:dsh_app/state/artifact_files.dart';
@@ -79,7 +78,7 @@ class Ok extends QueueItem {
 
   @override
   Future<RpcResult> complete(int offset, int total) {
-    if (_hold != null) return _hold!.future.then((_) => _respond(offset, total));
+    if (_hold != null) return _hold.future.then((_) => _respond(offset, total));
     return Future.value(_respond(offset, total));
   }
 

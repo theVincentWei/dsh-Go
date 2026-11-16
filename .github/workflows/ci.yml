@@ -178,8 +178,6 @@ jobs:
     if: needs.changes.outputs.packages == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      PUB_HOSTED_URL: https://pub.flutter-io.cn # The registry these two lockfiles were resolved from.
     steps:
       - *checkout
       - *flutter
@@ -297,6 +295,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
+      # DiminaPlugin talks to the wanqi dimina fork's APIs (onAskAi bridge,
+      # syncMiniProgram, lifecycle listeners), which stock dimina 1.8.1 lacks.
+      # Locally the fork is published to mavenLocal and resolved ahead of
+      # JitPack; on CI we do the same from the fork's GitHub main.
+      - name: Publish the wanqi dimina fork to mavenLocal
+        run: |
+          git clone --depth 1 https://github.com/theVincentWei/dimina.git "$RUNNER_TEMP/dimina"
+          (cd "$RUNNER_TEMP/dimina/android" && ./gradlew --console=plain -q :dimina:publishToMavenLocal)
       - working-directory: app/android
         run: gradle --stacktrace :app:testArm64DebugUnitTest
 

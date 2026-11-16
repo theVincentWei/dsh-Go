@@ -26,7 +26,6 @@ import 'package:dsh_app/ui/chat/widgets/whale_tail.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 import 'package:dsh_app/ui/theme/theme.dart';
 import 'package:dsh_client/dsh_client.dart';
-import 'package:dsh_app/ui/chat/model_sheet.dart' show ModelChip;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

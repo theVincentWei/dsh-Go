@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,7 +19,6 @@ import 'state/tile_style_state.dart';
 import 'state/workshop_dependencies.dart' show workshopPetAutoUpdateProvider;
 import 'ui/chat/dsh_ui/dsh_ui_model.dart' show DshUiAppAccent;
 import 'ui/applet/dimina/dimina_host.dart' show DiminaHost;
-import 'ui/common/keyboard_motion.dart';
 import 'ui/common/side_insets.dart';
 import 'ui/launch/launch_overlay.dart';
 import 'ui/shell/root_navigator_key.dart' show rootNavigatorKey;

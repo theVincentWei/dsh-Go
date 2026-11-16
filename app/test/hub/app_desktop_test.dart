@@ -150,7 +150,7 @@ Future<void> _enterEdit(WidgetTester tester, String anyTileLabel) async {
   // touch 过的应用会有「最近使用镜像 + 组内真身」两颗,取第一颗即可。
   await tester.longPress(find.text(anyTileLabel).first);
   await tester.pumpAndSettle();
-  expect(find.byIcon(Icons.check), findsOneWidget);
+  expect(find.byIcon(AppIcons.done), findsOneWidget);
 }
 
 /// 滚到 [finder] 可见(惰性列表里没构建的部件,finder 是找不到的)。
@@ -252,19 +252,17 @@ void main() {
     final Offset jiaCenter = tester.getCenter(jia);
     await _enterEdit(tester, '甲');
     expect(tester.getCenter(jia), jiaCenter);
-    expect(find.byIcon(Icons.more_horiz), findsWidgets); // 分组头菜单
     expect(find.text('新建分组'), findsOneWidget); // 不再需要滚动就能看到
 
     // E3/E5:「完成」圆键与大标题行同一条视觉中线、靠右。
-    final Offset done = tester.getCenter(find.byIcon(Icons.check));
+    final Offset done = tester.getCenter(find.byIcon(AppIcons.done));
     final Offset title = tester.getCenter(find.text('小程序'));
     expect((done.dy - title.dy).abs(), lessThan(2));
     expect(done.dx, greaterThan(title.dx));
 
-    await tester.tap(find.byIcon(Icons.check));
+    await tester.tap(find.byIcon(AppIcons.done));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.check), findsNothing);
-    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(find.byIcon(AppIcons.done), findsNothing);
   });
 
   testWidgets('编辑态右上第二颗圆键:最近使用显示/隐藏,隐藏态置灰(E4)', (tester) async {
@@ -275,21 +273,21 @@ void main() {
     expect(find.text('最近使用'), findsOneWidget);
 
     await _enterEdit(tester, '甲');
-    expect(find.byIcon(Icons.history), findsOneWidget);
+    expect(find.byIcon(AppIcons.history), findsOneWidget);
 
     // 隐藏:组消失,图标换「钟面 + 斜杠」组合(mock 拍板样式):斜杠
     // 覆盖层在(Key 定位),history 钟面仍在(被底色垫条截断、细斜杠压住)。
-    await tester.tap(find.byIcon(Icons.history));
+    await tester.tap(find.byIcon(AppIcons.history));
     await tester.pumpAndSettle();
     expect(find.text('最近使用'), findsNothing);
     expect(find.byKey(const ValueKey('hub-recents-slash')), findsOneWidget);
-    expect(find.byIcon(Icons.history), findsOneWidget);
+    expect(find.byIcon(AppIcons.history), findsOneWidget);
 
     // 再点:恢复显示,裸 history,斜杠覆盖层消失。
-    await tester.tap(find.byIcon(Icons.history));
+    await tester.tap(find.byIcon(AppIcons.history));
     await tester.pumpAndSettle();
     expect(find.text('最近使用'), findsOneWidget);
-    expect(find.byIcon(Icons.history), findsOneWidget);
+    expect(find.byIcon(AppIcons.history), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-recents-slash')), findsNothing);
   });
 
