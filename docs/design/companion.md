@@ -54,7 +54,7 @@ Flutter CompanionPage
 
 ## 3. 素材包
 
-**随包带一份**（owner 2026-11-06 的决定）：把 zip 放在 `app/assets/companion/whale-girl.zip` 再打包，App 里就带着它。第一次进小屋时自动解压（走和导入一样的校验，她「游过来」的画面里完成）；用户在菜单里移除后不再自己回来，设置页的主按钮变成「接她回家」，「导入别的素材包」退到第二。模型授权 owner 已在 2026-11-08 拿到（署名见 §7），1.0.14 起正式版也带它。zip 仍被 `.gitignore` 挡在仓库外，CI 打的包没有：发版机打包前要把它放进 `app/assets/companion/`，并确认 zip 里的 `character/character.json` 和 `tooling/companion/whale-girl.character.json` 一致（署名在里面；旧 zip 是空的，直接替换这一个文件即可，运行库摘要不变），打完确认 APK 里有它。以后要不要提交进仓库另定。
+**随包带一份**（owner 2026-11-06 的决定）：把 zip 放在 `app/assets/companion/whale-girl.zip` 再打包，App 里就带着它。第一次进小屋时自动解压（走和导入一样的校验，她「游过来」的画面里完成）；用户在菜单里移除后不再自己回来，设置页的主按钮变成「接她回家」，「导入别的素材包」退到第二。模型授权 owner 已在 2026-11-08 拿到（署名见 §7），1.0.14 起正式版也带它。zip 仍被 `.gitignore` 挡在仓库外，CI 打的包没有：出包脚本自动从本机取——树里已有的一份优先，否则从 `DSH_COMPANION_PACK_FILE`（默认 `~/keys/dshgo-companion-pack.zip`）拷进树/快照，release 构建找不到就拒绝出包，打完自动确认 APK/ipa 里带着它（`tooling/companion_pack.sh`）。2026-11-16 那份 zip 曾随发版机磁盘清理丢失、官方 1.1.0 因此漏带，后从官方 1.0.14 包提取找回（runtime 摘要与 `companionRuntimeDigest` 一致，`character.json` 与 `tooling/companion/whale-girl.character.json` 相同）。以后要不要提交进仓库另定。
 
 ```
 pack.zip

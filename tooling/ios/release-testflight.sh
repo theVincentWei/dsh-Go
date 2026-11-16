@@ -16,6 +16,10 @@
 # 基线规则:发版永远出某个「已提交状态」,默认=本地 main 最新提交。主工作树带未提交
 # 改动也照常发——脚本用 `git archive` 导出干净快照构建,任何未提交内容不进包。
 #
+# 伙伴小屋素材包(whale-girl.zip)不在仓库:快照天生不带它,由 tooling/companion_pack.sh
+# 从本机拷入(DSH_COMPANION_PACK_FILE,默认 ~/keys/dshgo-companion-pack.zip),打完
+# 验证 ipa 里真带着;缺失即停发——1.1.0 那次就是这样把空包发出去的。
+#
 # ASC API key:.p8 放 ~/.appstoreconnect/private_keys/AuthKey_<key-id>.p8,
 # key 角色需 Admin(Developer 角色报 Cloud signing permission error)。
 #
@@ -30,6 +34,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+source "$ROOT/tooling/companion_pack.sh"
 build_name='' build_number='' ref='main' upload=1
 out_dir="$HOME/Library/Caches/dsh-ios-release"
 team="${ASC_TEAM:-J6576Q7A3U}"
@@ -76,6 +81,9 @@ snap="$out_dir/snapshot"
 rm -rf "$snap" "$out_dir/archive-$build_name.log"
 mkdir -p "$snap"
 git -C "$ROOT" archive "$commit" | tar -x -C "$snap"
+
+echo "== 伙伴小屋素材包进快照 =="
+companion_pack_place "$snap/app"
 
 echo "== [1/4] flutter config-only $build_name($build_number) =="
 (cd "$snap/app" && flutter build ios --release --no-codesign --config-only \
@@ -126,6 +134,9 @@ xcodebuild -exportArchive -archivePath "$archive" -exportOptionsPlist "$out_dir/
 ipa="$(find "$ipa_dir" -name '*.ipa' -maxdepth 1 | head -1)"
 [ -n "$ipa" ] || { echo "导出目录没有 ipa: $ipa_dir" >&2; exit 1; }
 echo "✓ ipa: $ipa ($(du -h "$ipa" | cut -f1))"
+
+# 上传前最后一道闸:ipa 里必须真带着素材包(Payload/…/flutter_assets/ 下)。
+companion_pack_verify "$ipa"
 
 if [ "$upload" -eq 1 ]; then
   echo "== [4/4] altool 上传 =="
