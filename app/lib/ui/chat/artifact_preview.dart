@@ -1,9 +1,9 @@
 // In-app previews of chat artifacts and workspace files: text and code page by
 // page with syntax colours, Markdown rendered (front matter as fields), images
-// zoomable, PDFs and the Office documents the Host converts as natively
-// rendered pages, CSV / TSV / XLSX as tables. The preview follows its file
-// (`workspaceFiles/changes`) and reloads when it changes. Anything else opens
-// in an Android app.
+// and vector drawings (SVG) zoomable, PDFs and the Office documents the Host
+// converts as natively rendered pages, CSV / TSV / XLSX as tables. The preview
+// follows its file (`workspaceFiles/changes`) and reloads when it changes.
+// Anything else opens in an Android app.
 
 import 'dart:async';
 import 'dart:io';
@@ -13,9 +13,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/l10n.dart';
-import '../../media/gallery.dart' show imageProviderBytes;
+import '../../media/gallery.dart' show GallerySaveException, imageProviderBytes;
+import '../../media/svg.dart' show SvgRasterException, isSvgPath, rasterizeSvg;
 import '../../state/artifact_files.dart';
 import '../../state/artifacts.dart';
 import '../../state/sheet_files.dart';
@@ -95,7 +97,7 @@ PreviewMode previewModeOf(String path, {bool officeToPdf = false}) {
     return officeToPdf ? PreviewMode.office : PreviewMode.unsupported;
   }
   return switch (artifactKindOf(path)) {
-    ArtifactKind.image => ext == 'svg' ? PreviewMode.text : PreviewMode.image,
+    ArtifactKind.image => PreviewMode.image,
     ArtifactKind.pdf => PreviewMode.pdf,
     ArtifactKind.markdown => PreviewMode.markdown,
     ArtifactKind.text || ArtifactKind.web || ArtifactKind.other => PreviewMode.text,
@@ -133,9 +135,9 @@ bool isTextLikePath(String path) {
 bool artifactPreviewable(Artifact artifact, {bool officeToPdf = false}) {
   final mode = previewModeOf(artifact.path, officeToPdf: officeToPdf);
   if (mode == PreviewMode.unsupported) return false;
-  // A web page or a drawing made for the user reads better in an app that
-  // renders it than as its source.
-  if (artifact.kind == ArtifactKind.web || artifact.kind == ArtifactKind.image && mode == PreviewMode.text) {
+  // A web page made for the user reads better in an app that renders it than
+  // as its source.
+  if (artifact.kind == ArtifactKind.web) {
     return false;
   }
   if (mode == PreviewMode.text && artifact.kind == ArtifactKind.other) {
@@ -452,7 +454,15 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
               final file = await ref
                   .read(artifactFilesProvider)
                   .materialize(widget.sessionId, await _absolute(ref, widget.sessionId, artifact));
-              return file.readAsBytes();
+              final bytes = await file.readAsBytes();
+              // The system gallery takes bitmaps only: an SVG goes in as the
+              // PNG it draws as; one that cannot be rendered says so.
+              if (!isSvgPath(artifact.path)) return bytes;
+              try {
+                return await rasterizeSvg(bytes);
+              } on SvgRasterException {
+                throw const GallerySaveException('unsupported');
+              }
             },
           ),
           ..._actions,
@@ -1439,8 +1449,26 @@ class _ImagePreviewState extends ConsumerState<_ImagePreview> {
     final l10n = context.l10n;
     final file = _file;
     if (file != null) {
-      final image = _viewerImage(context, FileImage(file), widget.artifact.description ?? widget.artifact.name);
-      return widget.zoomable ? ZoomableImage(key: ValueKey(_shown), child: image) : image;
+      final label = widget.artifact.description ?? widget.artifact.name;
+      // A vector drawing is drawn as vectors; a paper backing keeps
+      // transparent (or dark-stroked) canvases visible on the black frame.
+      // The backing starts below the floating title bar so its white text
+      // stays on black.
+      final Widget content = isSvgPath(file.path)
+          ? Padding(
+              padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 56),
+              child: ColoredBox(
+                color: Colors.white,
+                child: SvgPicture.file(
+                  file,
+                  fit: BoxFit.contain,
+                  semanticsLabel: label,
+                  errorBuilder: (_, _, _) => _ImageViewerFrame.message(l10n.viewArtifactImageFailed),
+                ),
+              ),
+            )
+          : _viewerImage(context, FileImage(file), label);
+      return widget.zoomable ? ZoomableImage(key: ValueKey(_shown), child: content) : content;
     }
     if (_error case final error?) {
       final problem = _problemOf(error);

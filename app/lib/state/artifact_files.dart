@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/l10n.dart';
+import '../media/svg.dart' show SvgRasterException, isSvgPath, rasterizeSvg;
 import 'artifacts.dart';
 import 'connection_state.dart';
 import 'download_tasks.dart';
@@ -315,10 +316,11 @@ class ArtifactFiles {
   }
 
   /// A small image of [artifact] for its card; null when it is not an image
-  /// Flutter can draw, or too big to fetch just for this.
+  /// Flutter can draw, or too big to fetch just for this. An SVG is rasterized
+  /// to a PNG sibling once per version of the source.
   Future<ImageProvider?> thumbnail(String sessionId, String path) async {
     final artifact = Artifact(path: path, origin: ArtifactOrigin.linked, turn: 0);
-    if (artifact.kind != ArtifactKind.image || path.toLowerCase().endsWith('.svg')) {
+    if (artifact.kind != ArtifactKind.image) {
       return null;
     }
     final conn = connection;
@@ -331,7 +333,34 @@ class ArtifactFiles {
     }
     final file = await materialize(sessionId, artifact, maxBytes: maxThumbnailBytes);
     if (await file.length() > maxThumbnailBytes) return null;
+    if (isSvgPath(path)) {
+      final raster = await _svgThumbnail(file);
+      if (raster == null) return null;
+      return FileImage(raster);
+    }
     return FileImage(file);
+  }
+
+  /// The rasterized PNG standing in for an SVG thumbnail, redrawn when the
+  /// source is newer; null when the drawing itself cannot be rendered.
+  Future<File?> _svgThumbnail(File svg) async {
+    final png = File('${svg.path}.thumb.png');
+    final DateTime sourceStamp;
+    try {
+      sourceStamp = await svg.lastModified();
+      if (await png.exists() && !sourceStamp.isAfter(await png.lastModified())) {
+        return png;
+      }
+      final raster = await rasterizeSvg(await svg.readAsBytes());
+      await png.writeAsBytes(raster, flush: true);
+      return png;
+    } on SvgRasterException {
+      return null;
+    } on FileSystemException {
+      // The cache line vanished under us (a newer version materialized);
+      // the caller just falls back to the kind icon.
+      return null;
+    }
   }
 }
 
