@@ -1,7 +1,7 @@
 {
  "canvas": {
   "w": 64,
-  "h": 88
+  "h": 100
  },
  "scale": 2,
  "baseIdle": "idle",
@@ -104,28 +104,11 @@
     180
    ]
   },
-  "attention": {
+  "happy": {
    "durs": [
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70,
-    70
+    180,
+    180,
+    180
    ]
   },
   "compacting": {
@@ -202,7 +185,7 @@
    "error"
   ],
   "attention": [
-   "attention"
+   "happy"
   ],
   "notification": [
    "notification"
