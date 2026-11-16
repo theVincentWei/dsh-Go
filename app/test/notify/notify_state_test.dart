@@ -316,6 +316,8 @@ void main() {
         make(active: fakeHostConnection(local: false, kind: kind, hostId: 'lab'));
         container.read(activeHostProvider.notifier).select(host);
         container.read(currentSessionProvider.notifier).select('r1');
+        // 会话页替身在顶:viewedChat 要求「正在看的页」而不只是选中。
+        container.read(chatPageOnScreenProvider.notifier).set(true);
         await settle();
         expect(container.read(viewedChatProvider), (host: host, sessionId: 'r1'));
         remote.emit(approval('e9', 'r1'));
@@ -376,6 +378,7 @@ void main() {
     test('a terminal outcome seen in the current chat stays quiet after leaving', () async {
       make();
       container.read(currentSessionProvider.notifier).select('s1');
+      container.read(chatPageOnScreenProvider.notifier).set(true);
       await settle();
       local.outcomes['s1'] = outcome(8, 'completed');
       local.emit(const SessionStatusEvent('s1', true));

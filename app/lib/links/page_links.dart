@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../ui/companion/companion_page.dart';
 import '../ui/features/feature_catalog.dart';
 import '../ui/settings/index/settings_pages.dart';
+import '../state/android_features.dart' show androidSystemFeaturesProvider, operatingSystemProvider;
 import 'app_links.dart';
 
 /// The host of page links: `dshgo://open/<page>`.
@@ -80,8 +81,16 @@ Widget? pageForId(String id, String? sessionId) {
 
 typedef PageResolver = Widget? Function(String id, String? sessionId);
 
-/// [pageForId] (tests swap in light pages).
-final pageLinkResolverProvider = Provider<PageResolver>((ref) => pageForId);
+/// [pageForId] (tests swap in light pages); on HarmonyOS, Android's own pages
+/// lead to its form of them ([SettingsIndex.ohosLink]) or have none. Android
+/// and iOS have nothing of HarmonyOS's own; iOS lacks what it has no form of
+/// yet ([SettingsIndex.androidOnlyLink] says so).
+final pageLinkResolverProvider = Provider<PageResolver>((ref) {
+  final os = ref.watch(operatingSystemProvider);
+  final android = ref.watch(androidSystemFeaturesProvider);
+  return (id, sessionId) =>
+      !android && SettingsIndex.androidOnlyLink(id, ios: os == 'ios') ? null : pageForId(id, sessionId);
+});
 
 /// Routes `dshgo://open/…` to its page, pushed over the home route. [session]
 /// reads the conversation open in the chat. Returns the unregister function.

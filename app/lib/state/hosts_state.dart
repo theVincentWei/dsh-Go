@@ -9,6 +9,7 @@ import '../l10n/l10n.dart';
 import '../remote/link_status.dart';
 import '../remote/relay/dsh_remote_backend.dart';
 import 'app_info.dart';
+import 'android_features.dart' show webRtcAvailableProvider;
 import '../remote/relay/relay_backend.dart';
 import '../remote/relay/webrtc_peer.dart';
 import '../remote/secret_store.dart';
@@ -177,7 +178,6 @@ class HostsController extends Notifier<HostsState> {
       }
     }
 
-    await put(SshSecrets.attachTokenKey(id), config.dshMode == SshDshMode.attachOnly ? secrets.attachToken?.trim() : null);
     if (config.auth == SshAuthMethod.password) {
       await put(SshSecrets.passwordKey(id), secrets.password);
       await _secrets.delete(SshSecrets.privateKeyKey(id));
@@ -187,6 +187,12 @@ class HostsController extends Notifier<HostsState> {
       await put(SshSecrets.passphraseKey(id), secrets.passphrase);
       await _secrets.delete(SshSecrets.passwordKey(id));
     }
+    // A failure writing the credential the person just entered must be
+    // reported as that failure, not hidden behind unrelated token cleanup.
+    await put(
+      SshSecrets.attachTokenKey(id),
+      config.dshMode == SshDshMode.attachOnly ? secrets.attachToken?.trim() : null,
+    );
   }
 
   Future<SshSecrets> loadSecrets(String id) async {
@@ -473,7 +479,9 @@ final relayBackendProvider = Provider<RelayBackend>((ref) {
     secrets: ref.watch(secretStoreProvider),
     serverUrl: ref.watch(relayServerProvider),
     clientVersion: AppInfo.version.split('+').first,
-    peerConnector: flutterPeerConnector,
+    // flutter_webrtc has no HarmonyOS implementation: straight to the relay,
+    // not two handshakes that fail on the way there.
+    peerConnector: ref.watch(webRtcAvailableProvider) ? flutterPeerConnector : null,
     loadCompactHistory: () async {
       await history.ready;
       return ref.read(remoteCompactHistoryProvider);

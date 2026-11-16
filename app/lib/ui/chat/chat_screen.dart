@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:dsh_client/dsh_client.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -136,6 +137,10 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObserver {
+  /// iOS's status-bar tap: the Scaffold animates the nearest primary scroll
+  /// controller to 0; this one forwards that to the conversation's own list.
+  final _toTop = defaultTargetPlatform == TargetPlatform.iOS ? StatusBarTop() : null;
+
   void Function()? _endInteraction;
   bool _routeCurrent = true;
   ModalRoute<Object?>? _interactionRoute;
@@ -572,6 +577,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     _focus.dispose();
     _scrolledUnder.dispose();
     _veilHeight.dispose();
+    _toTop?.dispose();
     super.dispose();
   }
 
@@ -1827,7 +1833,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     );
     final headerHeight = typing ? MediaQuery.paddingOf(context).top + AppSpace.sm : ChatHeader.heightOf(context);
 
-    Widget backdrop(Widget child) => widget.backdrop ? WallpaperBackdrop(child: child) : child;
+    Widget backdrop(Widget child) {
+      final framed = widget.backdrop ? WallpaperBackdrop(child: child) : child;
+      return _toTop == null ? framed : PrimaryScrollController(controller: _toTop, child: framed);
+    }
     final screen = AnnotatedRegion<SystemUiOverlayStyle>(
       value: dshSystemOverlay(Theme.of(context).brightness),
       child: backdrop(
@@ -1937,6 +1946,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                       onQuote: readOnly ? null : (passage) => _quote(sessionId, passage),
                                       onToast: _composerToast,
                                       onSwitchModel: readOnly ? null : _switchModel,
+                                      toTop: _toTop,
                                     ),
                                   ),
                                 ),

@@ -48,25 +48,38 @@ class RemoteScreen extends ConsumerStatefulWidget {
 }
 
 class _RemoteScreenState extends ConsumerState<RemoteScreen> {
+  /// 登录成功(false→true)后等主机列表的轮询;[dispose] 里取消,不留过期的
+  /// Timer(测试的 fake clock 对跨树存活的 Timer 零容忍)。
+  Timer? _signedInWait;
+
+  @override
+  void dispose() {
+    _signedInWait?.cancel();
+    super.dispose();
+  }
+
   /// 登录成功(false→true):等主机列表落定(≤6s),恰好一台直接激活再返回
   /// (直达已连接的主页);多台/拉取失败也先回引导选择页,引导按「已登录」
   /// 继续,主机回主页后用底栏主机钥匙补选。
-  Future<void> _onSignedIn() async {
-    for (var i = 0; i < 12; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      final s = ref.read(relayAccountProvider).value;
-      if (s == null || !s.signedIn) return;
-      if (s.hosts.isNotEmpty || s.hostsFailed) break;
-    }
+  void _onSignedIn() {
+    _signedInWait?.cancel();
+    _signedInWait = Timer(const Duration(milliseconds: 500), _pollRelayHosts);
+  }
+
+  void _pollRelayHosts({int round = 0}) {
     if (!mounted) return;
     final s = ref.read(relayAccountProvider).value;
-    if (s != null && s.hosts.length == 1 && ref.read(activeHostProvider).isLocal) {
-      final host = s.hosts.single;
-      await _use(context, ref, HostRef.relay(host.id, name: host.name));
+    if (s == null || !s.signedIn) return;
+    if (s.hosts.isEmpty && !s.hostsFailed && round < 11) {
+      _signedInWait = Timer(const Duration(milliseconds: 500), () => _pollRelayHosts(round: round + 1));
       return;
     }
-    if (mounted) Navigator.of(context).maybePop();
+    if (s.hosts.length == 1 && ref.read(activeHostProvider).isLocal) {
+      final host = s.hosts.single;
+      unawaited(_use(context, ref, HostRef.relay(host.id, name: host.name)));
+      return;
+    }
+    Navigator.of(context).maybePop();
   }
 
   void _openConsole(BuildContext context) {
@@ -128,7 +141,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     final signedIn = ref.watch(relayAccountProvider.select((a) => a.value?.signedIn ?? false));
     // 登录成功(false→true)即回引导,见 [_onSignedIn]。
     ref.listen(relayAccountProvider.select((a) => a.value?.signedIn ?? false), (prev, now) {
-      if (prev == false && now) unawaited(_onSignedIn());
+      if (prev == false && now) _onSignedIn();
     });
     void push(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
     return AppPage.list(

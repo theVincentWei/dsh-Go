@@ -89,6 +89,7 @@ class LocalRuntimeState {
 
 class LocalRuntimeController extends Notifier<LocalRuntimeState> {
   StreamSubscription<RuntimeEvent>? _sub;
+  var _statusRevision = 0;
 
   /// Said once per launch of the app: the engine repeats these at every start.
   final _relocationSaid = <RelocationIssue>{};
@@ -107,20 +108,23 @@ class LocalRuntimeController extends Notifier<LocalRuntimeState> {
 
   Future<void> _refresh() async {
     final r = ref;
+    // A later query or status event retires this in-flight snapshot.
+    final revision = ++_statusRevision;
     try {
       final status = await _bridge.status();
-      if (!r.mounted) return;
+      if (!r.mounted || revision != _statusRevision) return;
       state = state.copyWith(status: status, loaded: true, clearProgress: status.phase != RuntimePhase.installing);
     } on MissingPluginException {
-      if (r.mounted) state = state.copyWith(loaded: true, available: false);
+      if (r.mounted && revision == _statusRevision) state = state.copyWith(loaded: true, available: false);
     } catch (_) {
-      if (r.mounted) state = state.copyWith(loaded: true);
+      if (r.mounted && revision == _statusRevision) state = state.copyWith(loaded: true);
     }
   }
 
   void _onEvent(RuntimeEvent event) {
     switch (event) {
       case RuntimeStatusEvent(:final status):
+        _statusRevision++;
         if (status.phase == RuntimePhase.starting && state.relocation.isNotEmpty) {
           state = state.copyWith(relocation: const {});
         }

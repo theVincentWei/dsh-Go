@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:dsh_app/state/artifact_files.dart';
 import 'package:dsh_app/state/artifacts.dart' show FilesChannel;
 import 'package:dsh_app/state/connection_state.dart' show HostConnection;
-import 'package:dsh_app/ui/chat/artifact_preview.dart';
 import 'package:dsh_app/ui/session/workspace_files.dart';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';

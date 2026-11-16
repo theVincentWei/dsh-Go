@@ -89,8 +89,10 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Open remote'));
+
+    tester.widget<TextButton>(find.byType(TextButton)).onPressed!();
     await tester.pumpAndSettle();
+
     await tester.tap(find.byTooltip('问 AI'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));

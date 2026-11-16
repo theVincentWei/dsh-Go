@@ -148,33 +148,35 @@ class _VoiceSettingsPageState extends ConsumerState<VoiceSettingsPage> {
         SettingsSection(
           title: l10n.voiceModeSection,
           children: [
-            for (final mode in VoiceMode.values)
-              Semantics(
-                checked: selected == mode,
-                inMutuallyExclusiveGroup: true,
-                child: SettingsTile(
-                  key: ValueKey('voice-mode-${mode.name}'),
-                  title: voiceModeLabel(l10n, mode),
-                  subtitle: switch (mode) {
-                    VoiceMode.auto => l10n.voiceModeAutoHint,
-                    VoiceMode.deepseek => l10n.voiceModeDeepseekHint,
-                    VoiceMode.system => l10n.voiceModeSystemHint,
-                    VoiceMode.engine => l10n.voiceModeEngineHint,
-                    VoiceMode.cloud => l10n.voiceModeCloudHint,
-                  },
-                  trailing: SizedBox.square(
-                    dimension: 32,
-                    child: Icon(selected == mode ? AppIcons.radioOn : AppIcons.radioOff, size: 24),
+            if (wordsForIos) SettingsTile(title: voiceModeLabel(l10n, VoiceMode.system), subtitle: l10n.iosVoiceSystemHint),
+            if (!wordsForIos)
+              for (final mode in VoiceMode.values)
+                Semantics(
+                  checked: selected == mode,
+                  inMutuallyExclusiveGroup: true,
+                  child: SettingsTile(
+                    key: ValueKey('voice-mode-${mode.name}'),
+                    title: voiceModeLabel(l10n, mode),
+                    subtitle: switch (mode) {
+                      VoiceMode.auto => l10n.voiceModeAutoHint,
+                      VoiceMode.deepseek => l10n.voiceModeDeepseekHint,
+                      VoiceMode.system => l10n.voiceModeSystemHint,
+                      VoiceMode.engine => l10n.voiceModeEngineHint,
+                      VoiceMode.cloud => l10n.voiceModeCloudHint,
+                    },
+                    trailing: SizedBox.square(
+                      dimension: 32,
+                      child: Icon(selected == mode ? AppIcons.radioOn : AppIcons.radioOff, size: 24),
+                    ),
+                    onTap: () => unawaited(ref.read(voiceSettingsProvider.notifier).setMode(mode)),
                   ),
-                  onTap: () => unawaited(ref.read(voiceSettingsProvider.notifier).setMode(mode)),
-                ),
               ),
           ],
         ),
         if (selected == VoiceMode.cloud) const _CloudAsrForm(),
         // The SenseVoice model lives on this phone's engine: gone without it.
         // 引擎模式 stays above — a remote engine can provide the voice model.
-        if (localEngine)
+        if (localEngine && !wordsForIos)
           SettingsSection(
             title: l10n.voiceModelSection,
             footer: Text(l10n.voiceModelFooter),

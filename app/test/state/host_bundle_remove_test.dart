@@ -3,7 +3,6 @@
 // 复刻 terminal 协议的快照/序列门性价比过低。
 library;
 
-import 'dart:async';
 
 import 'package:dsh_app/state/host_bundle_remove.dart';
 import 'package:flutter_test/flutter_test.dart';

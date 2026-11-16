@@ -1,5 +1,6 @@
 import 'package:dsh_app/state/chat_state.dart';
 import 'package:dsh_app/ui/chat/chat_screen.dart';
+import 'package:dsh_app/ui/chat/widgets/notice_row.dart' show ErrorBanner;
 import 'package:dsh_app/ui/chat/empty_state.dart';
 import 'package:dsh_app/ui/chat/widgets/user_bubble.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
@@ -188,7 +189,11 @@ void main() {
     );
     await pumpScreen(tester, harness);
     expect(find.textContaining('只能读文字'), findsOneWidget);
-    expect(find.byIcon(AppIcons.info), findsOneWidget);
+    // The header's 信息 button shares the glyph; scope to the notice banner.
+    expect(
+      find.descendant(of: find.byType(ErrorBanner), matching: find.byIcon(AppIcons.info)),
+      findsOneWidget,
+    );
     expect(find.byIcon(AppIcons.error), findsNothing);
 
     await tester.tap(find.byTooltip('关闭'));

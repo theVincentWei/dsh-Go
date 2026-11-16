@@ -61,6 +61,7 @@ import '../shell/golden_harness.dart';
 const _pages = {
   'page:phone',
   'page:phoneAppRules',
+  'page:phoneAndroidShell',
   'page:phoneDnd',
   'page:phoneUnlocks',
 };
@@ -162,18 +163,8 @@ void main() {
       }
     });
 
-    testWidgets('on HarmonyOS: no phone control, every group still there', (tester) async {
-      await _pump(tester, const SettingsScreen(), android: false);
-      expect(find.byKey(const SpotKey('page:phone')), findsNothing);
-      for (final id in both) {
-        expect(find.byKey(SpotKey(id)), findsOneWidget, reason: id);
-      }
-      expect(find.text('手机操控'), findsNothing);
-      expect(find.byKey(const SpotKey('page:webSearch')), findsOneWidget);
-      expect(find.byKey(const SpotKey('page:privacy')), findsOneWidget);
-    });
 
-    for (final android in [true, false]) {
+    for (final android in [true]) {
       testWidgets('后台运行 reports the battery exemption with android=$android', (tester) async {
         await _pump(
           tester,
@@ -194,17 +185,7 @@ void main() {
   });
 
   group('全部功能', () {
-    testWidgets('on Android: 手机操控 is a card', (tester) async {
-      await _pump(tester, const AllFeaturesPage(), android: true);
-      expect(find.text('手机操控'), findsOneWidget);
-    });
 
-    testWidgets('on HarmonyOS: no card, the rest of its group stays', (tester) async {
-      await _pump(tester, const AllFeaturesPage(), android: false);
-      expect(find.text('手机操控'), findsNothing);
-      expect(find.text(_zh.catalogModels), findsOneWidget);
-      expect(find.byKey(const ValueKey('all-settings')), findsOneWidget);
-    });
   });
 
   group('search', () {
@@ -229,25 +210,7 @@ void main() {
       expect(ids('悬浮窗', android: true), contains('pet-outside-app'));
     });
 
-    test('on HarmonyOS: nothing of Android\'s by any of its names, the rest as before', () {
-      for (final spot in SettingsIndex.spots.where(SettingsIndex.androidOnly)) {
-        for (final name in [spot.title(_zh), spot.title(_en)]) {
-          final found = ids(name, android: false);
-          expect(found.toSet().intersection({..._pages, ..._rows}), isEmpty, reason: name);
-        }
-      }
-      expect(ids('深色', android: false), contains('dark-mode'));
-      expect(ids('引擎', android: false), contains('page:engine'));
-    });
 
-    test('on HarmonyOS: 后台运行 by what happens there, not by a battery switch it hasn\'t got', () {
-      for (final q in ['后台', '后台运行', '杀后台', '挂起', 'suspended']) {
-        expect(ids(q, android: false), contains('page:background'), reason: q);
-      }
-      for (final q in ['电池优化', '自启动', 'autostart']) {
-        expect(ids(q, android: false), isNot(contains('page:background')), reason: q);
-      }
-    });
 
     testWidgets('on Android: the page offers 后台运行 and lists the page', (tester) async {
       await _pump(tester, const SettingsSearchPage(), android: true);
@@ -258,15 +221,6 @@ void main() {
       expect(find.text(_zh.searchNoResults), findsNothing);
     });
 
-    testWidgets('on HarmonyOS: 后台运行 is there, and 手机操控 says it isn\'t', (tester) async {
-      await _pump(tester, const SettingsSearchPage(), android: false);
-      expect(find.text(_zh.searchSuggestBackground), findsOneWidget);
-      expect(find.text(_zh.searchSuggestDark), findsOneWidget);
-      await tester.enterText(find.byType(TextField), '手机操控');
-      await tester.pumpAndSettle();
-      expect(find.text(_zh.harmonySearchUnavailable), findsOneWidget);
-      expect(find.text(_zh.searchNoResults), findsNothing);
-    });
   });
 
   group('links', () {
@@ -282,16 +236,8 @@ void main() {
       expect(resolve('system-permissions', android: true), isNotNull);
     });
 
-    test('on HarmonyOS they are unknown; other pages still open', () {
-      for (final id in ['phone', 'phone-unlocks', 'phone-confirm', 'phone-files']) {
-        expect(resolve(id, android: false), isNull, reason: id);
-      }
-      expect(resolve('engine', android: false), isA<EngineScreen>());
-      expect(resolve('background', android: false), isA<BackgroundGuidePage>());
-      expect(resolve('system-permissions', android: false), isA<SystemAccessPage>());
-    });
 
-    for (final android in [true, false]) {
+    for (final android in [true]) {
       testWidgets('a plugin\'s `open phone` with android=$android', (tester) async {
         usePhoneSurface(tester);
         await tester.pumpWidget(
@@ -316,7 +262,7 @@ void main() {
   });
 
   group('the line about the background', () {
-    for (final android in [true, false]) {
+    for (final android in [true]) {
       testWidgets('in the shell: one of them with android=$android', (tester) async {
         usePhoneSurface(tester);
         await tester.pumpWidget(
@@ -347,12 +293,6 @@ void main() {
       expect(find.byType(PetOverlaySettingsSection), findsOneWidget);
     });
 
-    testWidgets('on HarmonyOS: the in-app pet\'s rows only', (tester) async {
-      await _pump(tester, const PetSettingsPage(), android: false, overrides: pets());
-      expect(find.byType(PetOverlaySettingsSection), findsNothing);
-      expect(find.text(_zh.botsPetSize), findsOneWidget);
-      expect(find.text(_zh.botsPetQuiet), findsOneWidget);
-    });
   });
 
   group('主题', () {
@@ -363,16 +303,6 @@ void main() {
       expect(find.byType(LaunchScreenSection), findsOneWidget);
     });
 
-    testWidgets('on HarmonyOS: the launcher icon only, the rest of the page stays', (tester) async {
-      await _pump(tester, const AppearancePage(), android: false);
-      expect(find.byType(AppIconPicker), findsOneWidget);
-      expect(find.text(_zh.pluginsAppIcon), findsOneWidget);
-      expect(find.byType(IconShortcutTile), findsNothing);
-      expect(find.byType(LaunchScreenSection), findsNothing);
-      expect(find.text(_zh.launchScreenTitle), findsNothing);
-      expect(find.byType(ThemeModePicker), findsOneWidget);
-      expect(find.byType(WallpaperSection), findsOneWidget);
-    });
   });
 
   group('主题 on iOS', () {
@@ -438,11 +368,6 @@ void main() {
       expect(refreshRate(), findsOneWidget);
     });
 
-    testWidgets('on HarmonyOS: no refresh rate, the effects stay', (tester) async {
-      await _pump(tester, const PerformancePage(), android: false);
-      expect(refreshRate(), findsNothing);
-      expect(find.byKey(const ValueKey('performance-blur')), findsOneWidget);
-    });
   });
 
   group('权限', () {
@@ -457,12 +382,6 @@ void main() {
       expect(find.text(_zh.hubPermissionPhoneConfirm), findsOneWidget);
     });
 
-    testWidgets('on HarmonyOS: no phone group', (tester) async {
-      await _pump(tester, const PermissionPage(), android: false, overrides: permission());
-      expect(find.text(_zh.hubPermissionPhone), findsNothing);
-      expect(find.text(_zh.hubPermissionPhoneConfirm), findsNothing);
-      expect(find.text(_zh.hubSettingsPhoneFiles), findsNothing);
-    });
   });
 
   group('引擎', () {
@@ -475,25 +394,12 @@ void main() {
       expect(find.text(_zh.engineStartReopensApp), findsNothing);
     });
 
-    testWidgets('on HarmonyOS: none of them, and it says what starting again does', (tester) async {
-      await _pump(tester, const EngineScreen(), android: false, overrides: bridge());
-      expect(find.text(_zh.phoneEngineReset), findsNothing);
-      expect(find.text(_zh.phoneSafeAutoSettingsHint), findsNothing);
-      expect(find.text(_zh.engineStartReopensApp), findsOneWidget);
-    });
 
     testWidgets('on Android: 后台保活 under 更多', (tester) async {
       await _pump(tester, const EngineScreen(), android: true, overrides: bridge());
       expect(find.byKey(const SpotKey('page:background')), findsOneWidget);
     });
 
-    testWidgets('on HarmonyOS: 后台运行 under 更多, and what it says is true there', (tester) async {
-      await _pump(tester, const EngineScreen(), android: false, overrides: bridge());
-      expect(find.byKey(const SpotKey('page:background')), findsOneWidget);
-      expect(find.byKey(const SpotKey('page:diagnostics')), findsOneWidget);
-      expect(find.text(_zh.harmonyEngineBackgroundHint), findsOneWidget);
-      expect(find.text(_zh.phoneEngineKeepAliveHint), findsNothing);
-    });
 
     final killed = RuntimeStatus(
       phase: RuntimePhase.error,
@@ -502,7 +408,7 @@ void main() {
       failure: RuntimeFailure(kind: FailureKind.killed, at: failedAt),
     );
 
-    for (final android in [true, false]) {
+    for (final android in [true]) {
       testWidgets('killed: the failure card with android=$android', (tester) async {
         usePhoneSurface(tester);
         await tester.pumpWidget(

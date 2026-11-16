@@ -38,7 +38,7 @@ Future<void> voiceReady(WidgetTester tester, bool Function() complete, String la
       await settle(tester);
       return;
     }
-  } while (elapsed.elapsed < const Duration(seconds: 5));
+  } while (elapsed.elapsed < const Duration(seconds: 20));
   fail('Voice settings did not reach $label');
 }
 

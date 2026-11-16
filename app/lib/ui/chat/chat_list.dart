@@ -97,6 +97,7 @@ class ChatList extends ConsumerStatefulWidget {
     this.onQuote,
     this.onToast,
     this.onSwitchModel,
+    this.toTop,
   });
 
   final String sessionId;
@@ -142,6 +143,10 @@ class ChatList extends ConsumerStatefulWidget {
   /// 「换模型」 on a turn the engine refused for its model; the screen opens
   /// the model sheet for this conversation. Null leaves the action out.
   final VoidCallback? onSwitchModel;
+
+  /// iOS's status-bar tap lands here (the screen hands its controller in);
+  /// null leaves the platform default alone.
+  final StatusBarTop? toTop;
 
   @override
   ConsumerState<ChatList> createState() => _ChatListState();
@@ -359,7 +364,40 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
       ref.read(chatProvider(widget.sessionId).notifier).rejectQuestion(request);
 
   @override
+  void initState() {
+    super.initState();
+    widget.toTop?.onTap = _goToTop;
+  }
+
+  void _goToTop() => unawaited(_runToTop());
+
+  /// 前面的行都是边滚边量的,顶部的真实位置要到了才知道:到了就停,还差就
+  /// 再来一轮。手指一落就归用户。
+  Future<void> _runToTop() async {
+    if (!_scroll.hasClients) return;
+    _stopGlide();
+    _pinned = false;
+    _goingUp = true;
+    final position = _scroll.position;
+    final duration = AppMotion.of(context, AppMotion.emphasized);
+    void stopAtTop() {
+      if (position.pixels < position.minScrollExtent) position.jumpTo(position.minScrollExtent);
+    }
+
+    _scroll.addListener(stopAtTop);
+    for (
+      var tries = 0;
+      tries < 3 && mounted && _fingers == 0 && position.pixels > position.minScrollExtent + 1;
+      tries++
+    ) {
+      await position.animateTo(position.minScrollExtent, duration: duration, curve: Curves.easeOutCubic);
+    }
+    if (mounted) _scroll.removeListener(stopAtTop);
+  }
+
+  @override
   void dispose() {
+    if (widget.toTop?.onTap == _goToTop) widget.toTop?.onTap = null;
     // This conversation's calls leave the tool summary caches with it.
     forgetToolSummaries({
       for (final item in _builtState?.items ?? const <ChatItem>[])
@@ -375,6 +413,10 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
   @override
   void didUpdateWidget(ChatList oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.toTop != widget.toTop) {
+      if (oldWidget.toTop?.onTap == _goToTop) oldWidget.toTop?.onTap = null;
+      widget.toTop?.onTap = _goToTop;
+    }
     if (oldWidget.bottomInset != widget.bottomInset && _pinned) _follow();
     // Rows call the callbacks through `widget` when tapped; only whether
     // each is there shapes what they show.
@@ -1736,4 +1778,17 @@ class _TopBoundedScrollPosition extends ScrollPositionWithSingleContext {
     }
     return super.applyContentDimensions(minScrollExtent, maxScrollExtent);
   }
+}
+
+/// A tap on iOS's status bar: the framework's Scaffold asks the nearest primary
+/// scroll controller to go to 0, and this one hands that to the conversation,
+/// whose list has its own top.
+class StatusBarTop extends ScrollController {
+  VoidCallback? onTap;
+
+  @override
+  bool get hasClients => true;
+
+  @override
+  Future<void> animateTo(double offset, {required Duration duration, required Curve curve}) async => onTap?.call();
 }

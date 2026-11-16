@@ -14,6 +14,12 @@ import 'squircle.dart';
 import 'surfaces.dart';
 import 'typography.dart';
 
+/// What Material should behave as on [os]. HarmonyOS is meant to feel like the
+/// Android app: page transitions, ink, dialogs and text limits all read this.
+/// Written as the Android value because stock Flutter has no `TargetPlatform.ohos`.
+@visibleForTesting
+TargetPlatform? themePlatformFor(String os) => os == 'ohos' ? TargetPlatform.android : null;
+
 /// 浅色主题。
 ///
 /// [accent] 是整套配色(强调色 + 中性色的色调),见 `accent.dart`。

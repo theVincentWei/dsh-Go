@@ -441,21 +441,6 @@ final class IsolateSshTunnel implements SshTunnel {
     }
   }
 
-  /// The isolate terminated on its own (system kill, crash): fail every
-  /// pending operation, signal the link, and let the next operation respawn.
-  void _onWorkerDeath() {
-    _alive = false;
-    _inbox = null;
-    _starting = null;
-    _isolate = null;
-    for (final completer in _pending.values) {
-      completer.completeError(const _WorkerGone());
-    }
-    _pending.clear();
-    _death?.close();
-    if (!_closed) _lostController.add(null);
-  }
-
   Completer<SendPort>? _startingHandshake;
 
   void _onMessage(Object? message) {

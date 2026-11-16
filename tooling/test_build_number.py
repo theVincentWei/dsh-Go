@@ -8,6 +8,7 @@ import os
 import pathlib
 import re
 import subprocess
+import sys
 import unittest
 
 from build_number import MAX_VERSION_CODE, UTC_OFFSET, build_number, check, decode
@@ -89,15 +90,41 @@ class BuildNumberTest(unittest.TestCase):
 
 
 class BuildApkDryRunTest(unittest.TestCase):
+    def setUp(self):
+        # The dry run resolves the toolchain (flutter on PATH) and the companion
+        # pack even though nothing is built; stand both in for a hermetic run.
+        import shutil
+        import tempfile
+        self.home = pathlib.Path(tempfile.mkdtemp(prefix="build-apk-dryrun-"))
+        self.addCleanup(shutil.rmtree, self.home, True)
+        bin_dir = self.home / "bin"
+        bin_dir.mkdir()
+        (bin_dir / "flutter").write_text(f"#!{sys.executable}\nprint('flutter stub')\n")
+        (bin_dir / "flutter").chmod(0o755)
+        self.pack = self.home / "companion" / "whale-girl.zip"
+        self.pack.parent.mkdir()
+        self.pack.write_bytes(b"stand-in companion pack")
+
     def run_script(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(["bash", str(SCRIPT), "--dry-run", *args], capture_output=True, text=True)
+        env = dict(
+            os.environ,
+            PATH=str(self.home / "bin") + os.pathsep + os.environ["PATH"],
+            DSH_COMPANION_PACK_FILE=str(self.pack),
+        )
+        return subprocess.run(["bash", str(SCRIPT), "--dry-run", *args], capture_output=True, text=True, env=env)
 
     def test_relative_script_ignores_exported_cdpath(self):
         expected = self.run_script("-n", "10251234")
         self.assertEqual(expected.returncode, 0, expected.stderr)
+        env = dict(
+            os.environ,
+            PATH=str(self.home / "bin") + os.pathsep + os.environ["PATH"],
+            DSH_COMPANION_PACK_FILE=str(self.pack),
+            CDPATH=".",
+        )
         result = subprocess.run(
             ["bash", "tooling/build-apk.sh", "--dry-run", "-n", "10251234"],
-            cwd=ROOT, env=dict(os.environ, CDPATH="."), capture_output=True, text=True,
+            cwd=ROOT, env=env, capture_output=True, text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, expected.stdout)
