@@ -77,6 +77,8 @@ versionCode = (年 - 2026) × 10^8 + MMDDhhmm      时钟固定按 UTC+8
 
 发版默认基线是**本地 `main` 最新提交**（APK、TestFlight 同一规则，不特意说明时就是它）。发版产物只允许包含已提交内容：主工作树带着未提交改动时，不要等、更不能扫进包里——iOS 用 `tooling/ios/release-testflight.sh`（脚本内部 `git archive <ref>` 导出干净快照构建，见下节）；Android 参照同一机制，在临时快照检出里跑 `tooling/build-apk.sh`。
 
+例外是**伙伴小屋素材包**（`whale-girl.zip`）：它因授权条款不在仓库，release 包却必须带着（owner 2026-11-06 的决定）。脚本从本机取——树里已有的一份优先，否则拷 `DSH_COMPANION_PACK_FILE`（默认 `~/keys/dshgo-companion-pack.zip`）进树/快照，并在打完的 APK/ipa 里验证；缺失时正式包直接拒打（`tooling/companion_pack.sh`）。
+
 ## iOS TestFlight 发版
 
 ```sh

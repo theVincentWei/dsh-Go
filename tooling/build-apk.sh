@@ -26,11 +26,15 @@
 # ~/keys/dshgo-beta-channel.token (mode 600), DSH_BETA_TOKEN_FILE points
 # elsewhere. Never printed, never part of a public release.
 # This script takes no machine locks; callers add their own.
+# Release builds carry the companion room's pack (tooling/companion_pack.sh):
+# copied from this machine, verified inside each APK. Missing = refuse to build.
 set -euo pipefail
 
 ROOT=$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 APP="$ROOT/app"
 OUT="$APP/build/app/outputs/flutter-apk"
+
+source "$ROOT/tooling/companion_pack.sh"
 
 usage() { sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 die() { echo "build-apk: $*" >&2; exit 1; }
@@ -131,6 +135,16 @@ for f in "${flavors[@]}"; do
 done
 
 echo "dsh-go $name ($code, $when) · $mode · ${flavors[*]}$( ((beta)) && echo ' · beta channel')"
+
+# A release without her is how 1.1.0 shipped: resolve the pack even for
+# --dry-run (missing = die here), copy it into the tree for real builds,
+# verify it inside each APK further down.
+if [[ $mode == release ]]; then
+  pack_from=$(companion_pack_source "$APP") ||
+    die "companion pack: none in the tree, no ~/keys/dshgo-companion-pack.zip, no \$DSH_COMPANION_PACK_FILE"
+  ((dry)) && echo "(companion pack: would place ${pack_from#"$ROOT"/} into the tree)" || companion_pack_place "$APP"
+fi
+
 if ((dry)); then
   for c in "${commands[@]}"; do echo "(cd app && ${c% })"; done
   ((keep_daemon)) || echo "(cd app/android && ./gradlew --stop)"
@@ -218,6 +232,9 @@ for i in "${!flavors[@]}"; do
     badge=$("$aapt2" dump badging "$apk" 2>/dev/null | sed -n '/^package:/p' || true)
     [[ $badge == *"versionCode='$code'"* && $badge == *"versionName='$name'"* ]] ||
       die "$f: APK says ${badge:-nothing}; expected versionName '$name' versionCode '$code'"
+  fi
+  if [[ $mode == release ]]; then
+    companion_pack_verify "$apk"
   fi
   built+=("$apk")
 done
