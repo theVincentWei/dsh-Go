@@ -8,6 +8,16 @@ import 'package:flutter/widgets.dart';
 /// Android may have frozen sockets for a while.
 ///
 /// Emits nothing for the initial connectivity state.
+DateTime? _hiddenSince;
+Duration? _lastBackgroundGap;
+
+/// How long the app had been hidden right before the most recent resume.
+/// A quick app switch stays short (the sockets usually survive); a long
+/// background almost certainly killed them. Null until a hide→resume cycle
+/// has been observed — tests override the kick stream, so links see null
+/// there and fall back to probing.
+Duration? backgroundGap() => _lastBackgroundGap;
+
 Stream<void> networkKicks() {
   late final StreamController<void> controller;
   StreamSubscription<List<ConnectivityResult>>? connectivity;
@@ -28,7 +38,14 @@ Stream<void> networkKicks() {
       } catch (_) {
         // No plugin (tests, desktop without NetworkManager): resume-only.
       }
-      lifecycle = AppLifecycleListener(onResume: () => controller.add(null));
+      lifecycle = AppLifecycleListener(
+        onHide: () => _hiddenSince = DateTime.now(),
+        onResume: () {
+          final hidden = _hiddenSince;
+          _lastBackgroundGap = hidden == null ? null : DateTime.now().difference(hidden);
+          controller.add(null);
+        },
+      );
     },
     onCancel: () {
       try {
