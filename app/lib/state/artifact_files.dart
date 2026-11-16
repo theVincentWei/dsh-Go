@@ -73,16 +73,15 @@ class ArtifactFiles {
   ArtifactFiles({
     required this.connection,
     required this.channel,
-    DownloadTasksController? tasks,
+    this.tasks,
     Future<void> Function(ShareParams params)? share,
     Future<Directory> Function()? cacheRoot,
-  }) : _tasks = tasks,
-       _share = share ?? _systemShare,
+  }) : _share = share ?? _systemShare,
        _cacheRoot = cacheRoot ?? getTemporaryDirectory;
 
   final HostConnection? connection;
   final FilesChannel channel;
-  final DownloadTasksController? _tasks;
+  final DownloadTasksController? tasks;
   final Future<void> Function(ShareParams params) _share;
   final Future<Directory> Function() _cacheRoot;
 
@@ -159,7 +158,7 @@ class ArtifactFiles {
     final inflight = _inFlight[key];
     if (inflight != null) {
       // 等待者共享第一份的结果;首份失败时自行重试(续传让代价很小)。
-      Future<File> retry(Object _, StackTrace __) => materialize(sessionId, artifact, onProgress: onProgress, maxBytes: maxBytes);
+      Future<File> retry(Object _, StackTrace _) => materialize(sessionId, artifact, onProgress: onProgress, maxBytes: maxBytes);
       return inflight.then((_) => materialize(sessionId, artifact, onProgress: onProgress, maxBytes: maxBytes), onError: retry);
     }
     final future = _materializeRemote(sessionId, artifact, key, maxBytes, onProgress, taskLabel);
@@ -210,7 +209,7 @@ class ArtifactFiles {
 
     final task = taskLabel == null
         ? null
-        : _tasks?.begin(
+        : tasks?.begin(
             key: key,
             label: taskLabel,
             path: artifact.path,
@@ -237,7 +236,7 @@ class ArtifactFiles {
             await sink.writeFrom(chunk);
             received += chunk.length;
             // 必须走控制器(样本+节流通知),只改 task 字段 UI 永远看不到。
-            _tasks?.progress(key: key, received: received);
+            tasks?.progress(key: key, received: received);
           },
           onProgress: onProgress == null
               ? null
@@ -251,7 +250,7 @@ class ArtifactFiles {
       part.renameSync(target.path);
       marker.writeAsStringSync(stat.version);
       partVersion.deleteSync(); // 分片已发布,续传标记完成使命
-      _tasks?.finish(key: key);
+      tasks?.finish(key: key);
       _cleanupLegacyStaging(dir);
       return target;
     } on Object catch (error) {
@@ -267,7 +266,7 @@ class ArtifactFiles {
         if (part.existsSync()) part.deleteSync();
         if (partVersion.existsSync()) partVersion.deleteSync();
       }
-      _tasks?.finish(key: key);
+      tasks?.finish(key: key);
       rethrow;
     }
   }

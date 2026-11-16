@@ -328,7 +328,7 @@ final class IsolateSshTunnel implements SshTunnel {
     // points at; the extra listener's port comes straight from the worker.
     final port = await _ask('extraEndpoint', {
       'port': remotePort,
-      if (localPort != null) 'localPort': localPort,
+      'localPort': ?localPort,
     });
     return port as int;
   }

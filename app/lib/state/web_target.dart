@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dsh_client/dsh_client.dart' show PluginBundle;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-import 'package:flutter/material.dart' show TargetPlatform;
 import '../l10n/l10n.dart';
 
 /// A page of the official DSH Web client the app can land on.

@@ -70,7 +70,8 @@ sealed class QueueItem {
 }
 
 class Ok extends QueueItem {
-  Ok(this.bytes, {this.version = 'v1', this.eof = true, Completer<void>? hold}) : _hold = hold;
+  Ok(this.bytes, {this.version = 'v1', this.eof = true, Completer<void>? hold})
+    : _hold = hold; // ignore: prefer_initializing_formals
   final List<int> bytes;
   final String version;
   final bool eof;
