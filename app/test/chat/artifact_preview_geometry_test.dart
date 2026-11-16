@@ -1,5 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:dsh_app/state/artifact_files.dart';
+import 'package:dsh_app/state/artifacts.dart' show FilesChannel;
+import 'package:dsh_app/state/connection_state.dart' show HostConnection;
+import 'package:dsh_app/ui/chat/artifact_preview.dart';
 import 'package:dsh_app/ui/session/workspace_files.dart';
+import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/harness.dart';
@@ -49,4 +59,72 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('an SVG previews as a drawing on paper, not as its source', (tester) async {
+    usePhoneView(tester);
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 5">'
+        '<rect width="10" height="5" fill="#f00"/></svg>';
+    final ws = sampleWorkspace()..write('out/logo.svg', svg);
+    final path = '${ws.root}/out/logo.svg';
+    final cache = Directory.systemTemp.createTempSync('svg-preview');
+    addTearDown(() => cache.deleteSync(recursive: true));
+    final remote = HostConnection(
+      client: DshClient.withCarrier(_SvgCarrier(Uint8List.fromList(utf8.encode(svg)), path)),
+      label: '工作站',
+      isLocal: false,
+      hostId: 'h1',
+    );
+    await tester.pumpWidget(
+      filesApp(
+        _pushed(FilePreviewPage(sessionId: 's1', path: path, bytes: svg.length)),
+        ws,
+        connection: remote,
+        overrides: [
+          artifactFilesProvider.overrideWithValue(
+            ArtifactFiles(connection: remote, channel: const FilesChannel(), cacheRoot: () async => cache),
+          ),
+        ],
+      ),
+    );
+    // materialize writes a real cache file: give its IO real event-loop turns.
+    await tester.runAsync(() async {
+      for (var i = 0; i < 50 && find.byType(SvgPicture).evaluate().isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
+    });
+    await pumpFrames(tester, 8);
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+/// A remote Host that serves one SVG document for every stat / readBytes.
+class _SvgCarrier extends DshCarrier {
+  _SvgCarrier(this.content, this.absolutePath);
+
+  final Uint8List content;
+  final String absolutePath;
+
+  @override
+  String get kind => 'memory';
+
+  @override
+  DshTracer? get tracer => null;
+
+  @override
+  Future<RpcResult> call(String endpoint, Map<String, Object?> args, {Duration? timeout}) async {
+    final stat = {'absolutePath': absolutePath, 'version': 'v1', 'bytes': content.length};
+    return switch (endpoint) {
+      'workspaceFiles/stat' => RpcOk(stat),
+      'workspaceFiles/readBytes' => RpcOk({...stat, 'offset': 0, 'data': base64Encode(content), 'eof': true}),
+      _ => const RpcError(DshRemoteException('gateway/not-found', 'missing')),
+    };
+  }
+
+  @override
+  Future<DshMuxLink> openLink(MuxOptions options) => throw UnsupportedError('no streams');
+
+  @override
+  Future<void> close() async {}
 }

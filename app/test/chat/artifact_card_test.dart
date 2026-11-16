@@ -88,6 +88,10 @@ const _zip = Artifact(path: '/root/workspace/素材.zip', origin: ArtifactOrigin
 
 const _docx = Artifact(path: '/home/me/out/纪要.docx', origin: ArtifactOrigin.linked, turn: 1);
 
+/// A minimal drawing the SVG renderer can actually rasterize.
+const _tinySvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 5">'
+    '<rect width="10" height="5" fill="#f00"/></svg>';
+
 Widget _card(List<Artifact> files, {HostConnection? connection}) => testApp(
   Scaffold(
     body: Padding(
@@ -268,24 +272,25 @@ void main() {
     expect(android.methods.last, 'pdfClose');
   });
 
-  testWidgets('交付卡里点开一张图,同清单的位图组成画廊,可左右换图', (tester) async {
+  testWidgets('交付卡里点开一张图,同清单的位图和 SVG 组成画廊,可左右换图', (tester) async {
     usePhoneView(tester);
     const html = Artifact(path: '/home/me/out/flow.html', origin: ArtifactOrigin.delivered, turn: 1);
     const flow = Artifact(path: '/home/me/out/flow.png', origin: ArtifactOrigin.delivered, turn: 1);
     const mockA = Artifact(path: '/home/me/out/mock-a-answers.png', origin: ArtifactOrigin.delivered, turn: 1);
     const mockB = Artifact(path: '/home/me/out/mock-b-review.png', origin: ArtifactOrigin.delivered, turn: 1);
-    await tester.pumpWidget(_card([html, flow, mockA, mockB]));
+    const diag = Artifact(path: '/home/me/out/diagram.svg', origin: ArtifactOrigin.delivered, turn: 1);
+    await tester.pumpWidget(_card([html, flow, mockA, mockB, diag]));
     await tester.pumpAndSettle();
     await tester.tap(find.text('mock-a-answers.png'));
     await pumpFrames(tester, 4);
-    // 页 = 清单里的位图(html 不算),起点是被点的这张。
+    // 页 = 清单里的位图 + 矢量图(html 源码不算),起点是被点的这张。
     final page = tester.widget<ArtifactPreviewPage>(find.byType(ArtifactPreviewPage));
-    expect(page.gallery, [flow, mockA, mockB]);
+    expect(page.gallery, [flow, mockA, mockB, diag]);
     expect(page.initial, 1);
     await tester.drag(find.byType(ImagePager), const Offset(-300, 0));
     await pumpFrames(tester, 30);
     expect(find.byKey(const ValueKey('image-gallery-page')), findsOneWidget);
-    expect(find.text('3 / 3'), findsOneWidget);
+    expect(find.text('3 / 4'), findsOneWidget);
 
     // 点的不是位图清单里唯一的位图时保持单文件预览,不带画廊。
     await tester.tap(find.byTooltip('返回'));
@@ -452,10 +457,19 @@ void main() {
       expect(utf8.decode(again.readAsBytesSync()), '%PDF-1.7 v2');
     });
 
-    test('thumbnails skip big remote images and SVGs', () async {
-      expect(await files.thumbnail('s1', '/home/me/out/a.svg'), isNull);
+    test('thumbnails: bitmaps as they are, SVGs as their PNG, rest skipped', () async {
+      carrier.content = Uint8List.fromList(utf8.encode(_tinySvg));
+      carrier.version = 'svg';
+      final svgThumb = await files.thumbnail('s1', '/home/me/out/a.svg');
+      expect(svgThumb, isA<FileImage>());
+      // Same version: the rasterized PNG sibling is reused as it is.
+      final again = await files.thumbnail('s1', '/home/me/out/a.svg');
+      expect((again! as FileImage).file.path, (svgThumb! as FileImage).file.path);
+      // A drawing that cannot be rendered: no thumbnail.
+      carrier.content = Uint8List.fromList(utf8.encode('<svg><unclosed>'));
+      carrier.version = 'svgbad';
+      expect(await files.thumbnail('s1', '/home/me/out/broken.svg'), isNull);
       expect(await files.thumbnail('s1', '/home/me/out/a.pdf'), isNull);
-      expect(await files.thumbnail('s1', image.path), isA<FileImage>());
       carrier.content = Uint8List(maxThumbnailBytes + 1);
       carrier.version = 'big';
       expect(await files.thumbnail('s1', image.path), isNull);

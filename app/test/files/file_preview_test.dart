@@ -192,7 +192,7 @@ void main() {
 
   test('which preview a path gets', () {
     expect(previewModeOf('a/b.png'), PreviewMode.image);
-    expect(previewModeOf('a/b.svg'), PreviewMode.text);
+    expect(previewModeOf('a/b.svg'), PreviewMode.image);
     expect(previewModeOf('r.pdf'), PreviewMode.pdf);
     expect(previewModeOf('r.docx'), PreviewMode.unsupported);
     expect(previewModeOf('r.docx', officeToPdf: true), PreviewMode.office);
