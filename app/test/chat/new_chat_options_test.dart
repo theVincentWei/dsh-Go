@@ -74,12 +74,23 @@ Future<void> _pump(WidgetTester tester, ChatHarness harness, _Host host) async {
 ProviderContainer _container(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(ChatScreen)), listen: false);
 
-Future<void> _pick(WidgetTester tester, String chip, String row) async {
-  await tester.tap(find.text(chip));
+/// The chip's own key, so finders do not trip over the composer's permission
+/// pill (which shows the same name beside the model pill).
+const _presetChip = ValueKey('new-chat-preset');
+const _permissionChip = ValueKey('new-chat-permission');
+
+Future<void> _pick(WidgetTester tester, Key chip, String label, String row) async {
+  await tester.tap(find.descendant(of: find.byKey(chip), matching: find.text(label)));
   await pumpFrames(tester, 6);
   await tester.tap(find.text(row).last);
   await pumpFrames(tester, 6);
 }
+
+Future<void> _pickPreset(WidgetTester tester, String label, String row) =>
+    _pick(tester, _presetChip, label, row);
+
+Future<void> _pickPermission(WidgetTester tester, String label, String row) =>
+    _pick(tester, _permissionChip, label, row);
 
 Future<void> _send(WidgetTester tester, String text) async {
   await tester.enterText(find.byType(TextField), text);
@@ -100,7 +111,10 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('new-chat-preset')), findsOneWidget);
     expect(find.text('标准模式'), findsOneWidget);
-    expect(find.text('工作区内修改'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(_permissionChip), matching: find.text('工作区内修改')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('标准模式'));
     await pumpFrames(tester, 6);
@@ -109,19 +123,44 @@ void main() {
     expect(find.text('Companion'), findsNothing);
   });
 
+  testWidgets('the pill beside the model picks for a chat that does not exist yet', (tester) async {
+    final host = _Host();
+    final harness = ChatHarness(created: 'fresh', newChatCatalogs: true);
+    await _pump(tester, harness, host);
+
+    // The pill lives in the open composer, beside the model pill.
+    await tester.tap(find.byType(TextField));
+    await pumpFrames(tester, 6);
+    await tester.tap(find.byKey(const ValueKey('composer-permission')));
+    await pumpFrames(tester, 6);
+    expect(find.text('这次对话的权限'), findsOneWidget);
+    await tester.tap(find.text('仅可查看').last);
+    await pumpFrames(tester, 6);
+    expect(_container(tester).read(pendingNewChatModesProvider).permission, 'read-only');
+    expect(host.calls('commands/execute'), isEmpty, reason: 'nothing is applied before a session exists');
+  });
+
   testWidgets('a pick holds until the first send, which applies it before the prompt', (tester) async {
     final host = _Host();
     final harness = ChatHarness(created: 'fresh', newChatCatalogs: true);
     await _pump(tester, harness, host);
 
-    await _pick(tester, '标准模式', '极简模式');
-    await _pick(tester, '工作区内修改', '仅可查看');
+    await _pickPreset(tester, '标准模式', '极简模式');
+    await _pickPermission(tester, '工作区内修改', '仅可查看');
     expect(
       _container(tester).read(pendingNewChatModesProvider),
       const NewChatModes(preset: 'minimal', permission: 'read-only'),
     );
     expect(find.text('极简模式'), findsOneWidget);
-    expect(find.text('仅可查看'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(_permissionChip), matching: find.text('仅可查看')),
+      findsOneWidget,
+    );
+    // The composer's pill mirrors the pick.
+    expect(
+      find.descendant(of: find.byKey(const ValueKey('composer-permission')), matching: find.text('仅可查看')),
+      findsOneWidget,
+    );
     expect(host.calls('agentPresets/select'), isEmpty, reason: 'nothing is applied before a session exists');
 
     await _send(tester, '你好');
@@ -138,8 +177,8 @@ void main() {
     final host = _Host();
     final harness = ChatHarness(created: 'fresh', newChatCatalogs: true);
     await _pump(tester, harness, host);
-    await _pick(tester, '标准模式', '极简模式');
-    await _pick(tester, '极简模式', '标准模式');
+    await _pickPreset(tester, '标准模式', '极简模式');
+    await _pickPreset(tester, '极简模式', '标准模式');
     expect(_container(tester).read(pendingNewChatModesProvider).isEmpty, isTrue);
 
     await _send(tester, '你好');
@@ -154,8 +193,8 @@ void main() {
     final host = _Host()..failPermission = true;
     final harness = ChatHarness(created: 'fresh', newChatCatalogs: true);
     await _pump(tester, harness, host);
-    await _pick(tester, '标准模式', '极简模式');
-    await _pick(tester, '工作区内修改', '仅可查看');
+    await _pickPreset(tester, '标准模式', '极简模式');
+    await _pickPermission(tester, '工作区内修改', '仅可查看');
 
     await _send(tester, '你好');
     expect(harness.controllers['fresh']?.sent ?? const <String>[], isEmpty, reason: 'never under the default');
@@ -180,7 +219,7 @@ void main() {
     final host = _Host()..failPermission = true;
     final harness = ChatHarness(created: 'fresh', newChatCatalogs: true);
     await _pump(tester, harness, host);
-    await _pick(tester, '工作区内修改', '仅可查看');
+    await _pickPermission(tester, '工作区内修改', '仅可查看');
     _container(tester).read(pendingModelProvider.notifier).select(_flash);
     await tester.pump();
 
@@ -204,7 +243,7 @@ void main() {
     addTearDown(() => SharedPreferences.setMockInitialValues({}));
     final host = _Host()..failPermission = true;
     await _pump(tester, ChatHarness(created: 'fresh', newChatCatalogs: true), host);
-    await _pick(tester, '工作区内修改', '仅可查看');
+    await _pickPermission(tester, '工作区内修改', '仅可查看');
     await _send(tester, '你好');
     expect(host.calls('commands/execute'), hasLength(1));
     await tester.pump(const Duration(seconds: 5));
@@ -239,7 +278,7 @@ void main() {
     final host = _Host()..presets.add({'id': 'ptc'});
     final harness = ChatHarness(created: 'fresh', newChatCatalogs: true);
     await _pump(tester, harness, host);
-    await _pick(tester, '标准模式', '极简模式');
+    await _pickPreset(tester, '标准模式', '极简模式');
     host.presets = [
       for (final preset in host.presets)
         if (preset['id'] != 'minimal') preset,

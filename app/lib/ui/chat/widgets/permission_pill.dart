@@ -7,11 +7,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../runtime/runtime_state.dart' show localRuntimeProvider;
+import '../../../state/connection_state.dart' show activeConnectionProvider;
+import '../../../state/features_state.dart' show permissionStateProvider;
+import '../../../state/new_chat_modes.dart' show pendingNewChatModesProvider;
+import '../../../state/session_modes.dart' show sessionModesProvider;
+import '../../../state/settings_state.dart' show settingsProvider;
 import '../../features/feature_format.dart' show permissionName;
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
+import '../new_chat_options.dart' show effectiveNewChatPermission, showNewChatPermissionSheet;
+import 'plus_panel.dart' show showPermissionSheet;
 
 export 'auto_approve_pill.dart' show AutoApprovePill;
 
@@ -89,6 +98,96 @@ class PermissionPill extends StatelessWidget {
                 ),
         ),
       ),
+    );
+  }
+}
+
+/// The permission in a phone's open composer: beside the model pill
+/// (model_sheet.dart `ComposerModelPill`), the same weight, saying what this
+/// conversation may do. A tap opens the permission sheet — a chat that does
+/// not exist yet edits the pick it will start with
+/// (new_chat_options.dart), an open one its own (plus_panel.dart). Hidden
+/// until the current preset is known.
+class ComposerPermissionPill extends ConsumerWidget {
+  const ComposerPermissionPill({super.key, required this.sessionId});
+
+  /// Null on the new-chat screen: the pill shows (and edits) the pending pick.
+  final String? sessionId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final preset = _current(ref);
+    if (preset == null) return const SizedBox.shrink();
+    final name = permissionName(preset);
+    void open() {
+      final id = sessionId;
+      if (id == null) {
+        unawaited(showNewChatPermissionSheet(context, ref));
+      } else {
+        unawaited(showPermissionSheet(context, id));
+      }
+    }
+
+    return Semantics(
+      button: true,
+      label: context.l10n.nearbyPermissionPill(name),
+      excludeSemantics: true,
+      onTap: open,
+      child: InkResponse(
+        key: const ValueKey('composer-permission'),
+        onTap: open,
+        highlightShape: BoxShape.rectangle,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: ShapeDecoration(color: colors.onSurface.withValues(alpha: 0.06), shape: const StadiumBorder()),
+          // As wide as its words: the row's free space stays between it and the keys.
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(AppIcons.permissions, size: 14, color: colors.onSurfaceVariant),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontSize: 12.5,
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The preset to show: the conversation's own, from its log; for a chat
+  /// that does not exist yet, the pending pick or the effective default
+  /// (new_chat_options.dart `effectiveNewChatPermission`).
+  String? _current(WidgetRef ref) {
+    final id = sessionId;
+    if (id != null) return ref.watch(sessionModesProvider(id).select((m) => m.preset));
+    final pending = ref.watch(pendingNewChatModesProvider).permission;
+    if (pending != null) return pending;
+    final state = ref.watch(permissionStateProvider(null)).value;
+    if (state == null || state.options.isEmpty) return null;
+    return effectiveNewChatPermission(
+      state,
+      local: ref.watch(activeConnectionProvider.select((c) => c.value?.isLocal ?? false)),
+      autoApprove: ref.watch(settingsProvider.select((s) => s.autoApproveCommands)),
+      safeMode: ref.watch(localRuntimeProvider.select((s) => s.status.inSafeMode)),
     );
   }
 }

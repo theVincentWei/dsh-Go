@@ -94,6 +94,50 @@ String _readEffectivePermission(WidgetRef ref, PermissionState state) => effecti
   safeMode: ref.read(localRuntimeProvider).status.inSafeMode,
 );
 
+/// A pick belongs to the screen it was made on: the same host/connection
+/// and still no session.
+bool Function() _pickOwner(WidgetRef ref) {
+  final scope = ref.read(modelSelectionScopeProvider);
+  return () => identical(ref.read(modelSelectionScopeProvider), scope) && ref.read(currentSessionProvider) == null;
+}
+
+/// The new chat's permission picker (the empty state's item, the composer's
+/// permission pill): the Host's options; a pick is held in
+/// [pendingNewChatModesProvider] and applied when the first message creates
+/// the session (chat_screen.dart `_ensureSession`), before the prompt.
+Future<void> showNewChatPermissionSheet(BuildContext context, WidgetRef ref) async {
+  final current = _pickOwner(ref);
+  final state = ref.read(permissionStateProvider(null)).value;
+  if (state == null || state.options.isEmpty) return;
+  final fallback = _readEffectivePermission(ref, state);
+  final selected = ref.read(pendingNewChatModesProvider).permission ?? fallback;
+  final pick = await showAppSheet<String>(
+    context,
+    isScrollControlled: true,
+    builder: (sheet) => _ChoiceSheet(
+      title: sheet.l10n.viewNewChatPermissionTitle,
+      rows: [
+        for (final option in state.options)
+          _Choice(
+            value: option.value,
+            icon: option.value == 'danger-full-access' || option.value == 'auto'
+                ? AppIcons.securityWarning
+                : AppIcons.permissions,
+            title: permissionName(option.value, option.name),
+            subtitle: permissionHint(option.value, option.description),
+            meta: option.value == fallback ? sheet.l10n.viewNewChatDefault : null,
+          ),
+      ],
+      selected: selected,
+    ),
+  );
+  if (pick == null || pick == selected || !context.mounted || !current()) return;
+  // Full access and auto review ask once, as on the 权限 page.
+  if (pick != fallback && !await confirmPermission(context, pick)) return;
+  if (!context.mounted || !current()) return;
+  ref.read(pendingNewChatModesProvider.notifier).selectPermission(pick == fallback ? null : pick);
+}
+
 /// The options row: the agent preset, the permissions and (with folders) the
 /// drawer folder this new chat starts with — light items in one centred line.
 /// The preset and permission items appear once the Host has said what it
@@ -162,7 +206,7 @@ class NewChatOptions extends ConsumerWidget {
           AppIcons.permissions,
           permissionLabel,
           l10n.featuresPermissions,
-          () => unawaited(_pickPermission(context, ref)),
+          () => unawaited(showNewChatPermissionSheet(context, ref)),
         ),
       if (folderLabel != null && onFolder != null)
         item(const ValueKey('new-chat-folder'), AppIcons.folder, folderLabel!, l10n.viewNewChatFolder, onFolder!),
@@ -171,15 +215,8 @@ class NewChatOptions extends ConsumerWidget {
     return Wrap(alignment: WrapAlignment.center, spacing: 2, children: items);
   }
 
-  /// A pick belongs to the screen it was made on: the same host/connection
-  /// and still no session.
-  static bool Function() _owner(WidgetRef ref) {
-    final scope = ref.read(modelSelectionScopeProvider);
-    return () => identical(ref.read(modelSelectionScopeProvider), scope) && ref.read(currentSessionProvider) == null;
-  }
-
   Future<void> _pickPreset(BuildContext context, WidgetRef ref) async {
-    final current = _owner(ref);
+    final current = _pickOwner(ref);
     final presets = newChatPresets(ref.read(agentPresetsProvider).value);
     final fallback = defaultPreset(presets);
     if (presets.isEmpty || fallback == null) return;
@@ -206,39 +243,6 @@ class NewChatOptions extends ConsumerWidget {
     // The options may be gone by now (a session opened): `ref` with them.
     if (pick == null || !context.mounted || !current()) return;
     ref.read(pendingNewChatModesProvider.notifier).selectPreset(pick == fallback.id ? null : pick);
-  }
-
-  Future<void> _pickPermission(BuildContext context, WidgetRef ref) async {
-    final current = _owner(ref);
-    final state = ref.read(permissionStateProvider(null)).value;
-    if (state == null || state.options.isEmpty) return;
-    final fallback = _readEffectivePermission(ref, state);
-    final selected = ref.read(pendingNewChatModesProvider).permission ?? fallback;
-    final pick = await showAppSheet<String>(
-      context,
-      isScrollControlled: true,
-      builder: (sheet) => _ChoiceSheet(
-        title: sheet.l10n.viewNewChatPermissionTitle,
-        rows: [
-          for (final option in state.options)
-            _Choice(
-              value: option.value,
-              icon: option.value == 'danger-full-access' || option.value == 'auto'
-                  ? AppIcons.securityWarning
-                  : AppIcons.permissions,
-              title: permissionName(option.value, option.name),
-              subtitle: permissionHint(option.value, option.description),
-              meta: option.value == fallback ? sheet.l10n.viewNewChatDefault : null,
-            ),
-        ],
-        selected: selected,
-      ),
-    );
-    if (pick == null || pick == selected || !context.mounted || !current()) return;
-    // Full access and auto review ask once, as on the 权限 page.
-    if (pick != fallback && !await confirmPermission(context, pick)) return;
-    if (!context.mounted || !current()) return;
-    ref.read(pendingNewChatModesProvider.notifier).selectPermission(pick == fallback ? null : pick);
   }
 }
 

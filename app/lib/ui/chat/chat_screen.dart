@@ -2291,9 +2291,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                                         leading: AttachButton(onPressed: connected ? _attach : null),
                                         keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
                                         footer: _composerOpens(context) && !isChild
-                                            ? ComposerModelPill(
-                                                selection: sessionId == null ? pendingModel : chat?.model,
-                                                onSelected: _modelTarget(),
+                                            ? Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Flexible(
+                                                    child: ComposerModelPill(
+                                                      selection: sessionId == null ? pendingModel : chat?.model,
+                                                      onSelected: _modelTarget(),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  // The session's permission, in the model pill's
+                                                  // form: picks on a new chat, edits mid-chat.
+                                                  Flexible(child: ComposerPermissionPill(sessionId: sessionId)),
+                                                ],
                                               )
                                             : null,
                                         tray: ComposerTrayStack.maybe(
