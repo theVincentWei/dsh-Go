@@ -1,6 +1,6 @@
 # App market
 
-The **App market** tile on the desktop lists the mini programs published on the host's market; installing and upgrading happen there. The page is a storefront only: the list comes from the market service on the engine host (AppHub, the wanqi project's server). When the host doesn't have it, or it isn't running, the page shows **AppHub unreachable**.
+The **App market** on the desktop has two tabs. **Installed** lists the **Mini program**s on this phone — they are all installed in the background: packages published on the host with the wanqi CLI are silently synced onto the phone, and **Open** launches one. The **Apps** tab is the storefront for external mini programs, coming later; for now it shows **App market under development**. The page reads from the market service on the engine host (AppHub, the wanqi project's server); when it can't, the page shows **AppHub unreachable**.
 
 ## Where the market service runs
 
@@ -37,6 +37,6 @@ Handy commands: `wanqi service status` for the health table, `wanqi service logs
 1. Check on the host first: `curl -s http://127.0.0.1:7610/api/v1/apps` should return the app list; if not, the server isn't up — run `wanqi service doctor`.
 2. SSH host: reconnect the host (the port forwards only while the link is up), then pull to refresh the market page.
 3. DSH Remote relay: install the market relay plugin on that host first, then reconnect.
-4. Connected but the list is empty: install at least one package with `wanqi bundle install` on the host — an empty market has nothing to show.
+4. Connected but **Installed** is empty: install at least one package with `wanqi bundle install` on the host — the phone picks it up automatically.
 
 See [Engine and remote hosts](03-engine-hosts.md) for choosing a connection, and [Plugins](08-plugins.md) for DSH plugins and the plugin market.

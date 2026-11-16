@@ -1,288 +1,109 @@
-/// 「应用市场」页:AppHub 上的小程序市场(宫格「应用市场」入口进入)。
+/// 「应用市场」页(宫格「应用市场」入口进入)。
 ///
-/// 最大复用:SearchCapsule(搜索)、SegmentedPill(应用/已安装胶囊)、
-/// showAppSheet(详情弹层)、AppIcons(单色线性图标,与自带应用同风格;
-/// 小程序元数据的 icon 字段 → AppIcons 常量映射)。数据源:AppHub
-/// `/api/v1/apps`(市场列表)+ DiminaHost.installed(本机已装版本)。
+/// 语义(2026-11-17 拍板):应用市场留给后续接入外部小程序,当前处于开发中,
+/// 「应用」页只给「敬请期待」占位;小程序一律由后台(万器 CLI)安装,APP 侧
+/// 静默同步落地,所以用户能看到的小程序都在「已安装」——数据源与桌面同一份
+/// [hubInstalledProvider](市场目录 × 本机已装核对 × 快照档案兜底),本页不再
+/// 提供「获取/更新」。目录请求异常(网络层抛错)时是旧的「AppHub 未连接」
+/// 行动卡:远程主机给「一键安装 App Hub」,本机模式纯文案;自愈交给 Riverpod
+/// 的失败自动重试 + 下拉刷新,页面不另挂定时器。
+///
+/// 复用:SearchCapsule(搜索已装)、SegmentedPill(已安装/应用胶囊)、
+/// ListPageRow(列表行)、HubBundleIcon(包内图标,回落图标库/万能字形)。
 library;
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 import '../../l10n/l10n.dart';
-import '../../notify/apphub_base.dart' show appHubBase;
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
-import '../../state/auto_sync_state.dart' show autoSyncProvider;
-import '../../state/hub_layout_state.dart' show hubLayoutProvider;
-import '../../state/hosts_state.dart' show activeHostProvider;
-import '../common/ask_ai.dart' show askAiQuestion;
-import 'apphub_install_guide.dart' show apphubInstallPrompt;
-import 'hub_apps_group.dart' show hubInstalledProvider;
-import '../common/ask_ai.dart' show askAi, AskAiTopic;
 import '../../state/ask_ai.dart' show askAiAvailableProvider;
+import '../../state/hosts_state.dart' show activeHostProvider;
+import '../../state/hub_layout_state.dart' show hubLayoutProvider;
+import '../common/ask_ai.dart' show AskAiTopic, askAi, askAiQuestion;
 import '../common/list_page_row.dart';
+import '../common/search_capsule.dart' show SearchCapsule;
+import '../common/segmented_pill.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import '../common/search_capsule.dart'
-    show SearchCapsule;
-import '../common/segmented_pill.dart';
-import 'apphub_app_detail_page.dart' show ApphubAppDetailPage, HubAppRef;
+import 'apphub_install_guide.dart' show apphubInstallPrompt;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
-import 'hub_app_permissions.dart';
-import 'hub_apps_group.dart' show hubAppGlyph;
+import 'hub_apps_group.dart' show HubInstalledApp, hubAppGlyph, hubInstalledProvider;
 import 'hub_icon_cache.dart' show HubBundleIcon, hubIconCache;
 
-enum _MarketTab { apps, installed }
-
-/// 市场里的一条应用(AppHub `/api/v1/apps` 行)。
-class _HubApp {
-  _HubApp.fromJson(Map<String, Object?> json)
-      : appId = json['appId'] as String? ?? '',
-        name = json['name'] as String? ?? '',
-        description = json['description'] as String? ?? '',
-        category = json['category'] as String? ?? '',
-        changelog = json['changelog'] as String? ?? '',
-        iconKey = json['icon'] as String?,
-        iconUrl = json['iconUrl'] as String?,
-        versionCode = (json['versionCode'] as num?)?.toInt(),
-        versionName = json['versionName'] as String? ?? '',
-        autoSync = json['autoSync'] == true,
-        permissions = HubAppPermissions.fromJson(json['permissions']);
-
-  final String appId;
-  final String name;
-  final String description;
-  final String category;
-  final String changelog;
-  final String? iconKey;
-
-  /// bundle 图标(包内 main/icon.png)的下载地址;空 = 没带图,渲染回落键。
-  final String? iconUrl;
-  final int? versionCode;
-  final String versionName;
-
-  /// autoSync 静默同步(bundle.json 顶层字段,缺省 false):true = open 时
-  /// 升级跳过确认弹窗直接激活。
-  final bool autoSync;
-
-  /// 权限声明(市场列表行新形态,契约 v1 §5;null=无声明,空模型)。
-  final HubAppPermissions permissions;
-}
+enum _MarketTab { installed, apps }
 
 class ApphubMarketPage extends ConsumerStatefulWidget {
-  const ApphubMarketPage({
-    super.key,
-    this.retryInterval = _defaultRetryInterval,
-    this.fetchApps,
-  });
-
-  /// 「未连接」补拉周期(测试注入短周期:失败态走真实时区,构造器注入才能让
-  /// 真定时器在 runAsync 窗口里被驱动——SshHostLink.keepAliveInterval 同款)。
-  final Duration retryInterval;
-
-  /// 市场目录拉取(测试注入:先失败后成功即可确定性验证「自愈转亮」;缺省
-  /// 走真 http.get,同 SshHostLink.connectClient 的注入惯例)。
-  final Future<http.Response> Function(Uri uri)? fetchApps;
-
-  static const Duration _defaultRetryInterval = Duration(seconds: 20);
+  const ApphubMarketPage({super.key});
 
   @override
   ConsumerState<ApphubMarketPage> createState() => _ApphubMarketPageState();
 }
 
 class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
-  _MarketTab _tab = _MarketTab.apps;
+  _MarketTab _tab = _MarketTab.installed;
   String _query = '';
   final TextEditingController _search = TextEditingController();
-  List<_HubApp> _apps = const <_HubApp>[];
-  bool _loaded = false;
-  bool _failed = false;
-  StreamSubscription<DiminaUpdateEvent>? _updateSub;
-
-  /// 「未连接」态的自动补拉:agent 在主机上装好货架后(隧道侧 45s 补探已把
-  /// 转发补上),本页最迟一个周期内自己转亮,不用下拉刷新/重进。
-  Timer? _retry;
-
-  final Map<String, Map<String, Object?>?> _installed = <String, Map<String, Object?>?>{};
-
-  @override
-  void initState() {
-    super.initState();
-    // 容器升级链路事件(installed/applied/declined/failed/ready)→ 按真实状态刷新。
-    _updateSub = DiminaHost.updateEvents.listen(_onUpdateEvent);
-    unawaited(_load());
-  }
 
   @override
   void dispose() {
-    _retry?.cancel();
-    _updateSub?.cancel();
     _search.dispose();
     super.dispose();
   }
 
-  /// 升级里程碑回传后重查该应用的真实已装版本:升级确认/生效在容器弹窗里完成,
-  /// Flutter 只认 config.json 的事实,不做乐观推断。
-  Future<void> _onUpdateEvent(DiminaUpdateEvent event) async {
+  Future<void> _refresh() async {
+    ref.invalidate(hubInstalledProvider);
     try {
-      _installed[event.appId] = await DiminaHost.installed(event.appId);
+      await ref.read(hubInstalledProvider.future);
     } catch (_) {
-      // 查询失败保留旧值,下一次页面加载/定时刷新兜底。
-    }
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _load() async {
-    try {
-      final Uri uri = Uri.parse('$appHubBase/api/v1/apps');
-      final http.Response response =
-          await (widget.fetchApps ?? _defaultGet)(uri).timeout(const Duration(seconds: 8));
-      final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
-      if (body is! Map || body['apps'] is! List) throw StateError('bad body');
-      final List<_HubApp> apps = <_HubApp>[
-        for (final dynamic app in body['apps'] as List<dynamic>)
-          if (app is Map<String, Object?>) _HubApp.fromJson(app),
-      ];
-      if (!mounted) return;
-      setState(() {
-        _apps = apps;
-        _loaded = true;
-        _failed = false;
-      });
-      _retry?.cancel();
-      _retry = null;
-      await _queryInstalled();
-      // autoSync 静默同步:市场目录刚刷新,正是检查「没装→静默装、落后→静默升」
-      // 的时机(单飞+冷却在 runner 内;总开关设置 → 通用 → 静默同步)。
-      ref.read(autoSyncProvider.notifier).runIfDue(onApplied: () {
-        if (!mounted) return;
-        unawaited(_queryInstalled());
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _loaded = true;
-          _failed = true;
-        });
-        // 失败态下周期补拉:货架后起(一键安装流程)时页面自愈。
-        _retry ??= Timer.periodic(widget.retryInterval, (_) => unawaited(_load()));
-      }
+      // 失败态由列表的错误分支呈现,下拉只负责重试。
     }
   }
 
-  /// 缺省拉取:真 http GET(测试经 fetchApps 注入替身,避免真实 IO 的时区坑)。
-  Future<http.Response> _defaultGet(Uri uri) => http.get(uri);
-
-  /// 逐应用查本机已装版本(Dimina 沙盒;查询失败视为未装)。
-  Future<void> _queryInstalled() async {
-    for (final _HubApp app in _apps) {
-      if (_installed.containsKey(app.appId)) continue;
-      try {
-        _installed[app.appId] = await DiminaHost.installed(app.appId);
-      } catch (_) {
-        _installed[app.appId] = null;
-      }
-    }
-    if (mounted) setState(() {});
-  }
-
-  bool _isInstalled(_HubApp app) => _installed[app.appId]?['installed'] == true;
-
-  bool _hasUpdate(_HubApp app) {
-    if (!_isInstalled(app)) return false;
-    final int? local = (_installed[app.appId]?['versionCode'] as num?)?.toInt();
-    return local != null && app.versionCode != null && app.versionCode! > local;
-  }
-
-  bool _matches(_HubApp app) =>
-      _query.isEmpty ||
-      app.name.toLowerCase().contains(_query) ||
-      app.appId.contains(_query) ||
-      app.description.toLowerCase().contains(_query);
-
-  Future<void> _open(_HubApp app) async {
+  Future<void> _open(HubInstalledApp app) async {
     // async gap 前取齐主题值,免 BuildContext 跨 await。
     final Color iconColor = Theme.of(context).colorScheme.primary;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
     // bundle 图标优先直通原生;没有再按 key 栅格化。
     final Uint8List? bundlePng =
-        await hubIconCache.load(app.appId, app.versionCode, app.iconUrl);
+        await hubIconCache.load(app.appId, app.installedVersionCode, app.iconUrl);
     final bool ok = await DiminaHost.open(
       appId: app.appId,
-      name: app.name,
+      name: app.name.isEmpty ? app.appId : app.name,
       dark: dark,
-      // 菜单弹层头部图标:与市场格子同款(bundle 图标或图标库栅格)。
+      // 菜单弹层头部图标:与桌面/列行同款(bundle 图标或图标库栅格)。
       iconKey: app.iconKey,
       iconColor: iconColor,
       iconPng: bundlePng,
-      // 未装 = manifest 首装;已装旧版 = 后台拉新包自动升级。必须走固定端口
-      // 反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被重连换掉。
+      // 固定端口反代:原生容器拿到 URL 后才发请求,动态隧道端口可能已被
+      // 重连换掉。已装包只做后台检查,新版本 Code 就绪即自动升级。
       updateManifestUrl: '$appHubProxyBase/apps/${app.appId}/manifest.json',
-      // 升级全自动(2026-11-11):一律跳过容器「发现新版本」确认弹窗。
       autoUpdate: true,
     );
-    // 装完即把状态置为已装;版本号不做乐观改写——升级生效的 versionCode
-    // 由升级事件回传/定时核对拿到真实值(全自动下通常秒级,无确认环节)。
     if (ok && mounted) {
       ref.read(hubLayoutProvider.notifier).touch('mini:${app.appId}');
-      setState(() {
-        _installed[app.appId] = <String, Object?>{
-          ...?_installed[app.appId],
-          'installed': true,
-        };
-      });
-      // 桌面的已装清单是另一个 provider(带缓存):装/升后让它重查,
-      // 否则重装的图标不回桌面。落沙盒要一点时间,稍后再复核一次。
+      // 打开可能触发静默升级,回来后按真实安装态重查一次。
       ref.invalidate(hubInstalledProvider);
-      Timer(const Duration(seconds: 6), () {
-        if (mounted) ref.invalidate(hubInstalledProvider);
-      });
     }
-    // 首装/升级落沙盒需要一点时间,稍后刷新已装状态。
-    Timer(const Duration(seconds: 6), () {
-      if (mounted) unawaited(_queryInstalled());
-    });
   }
 
-  Future<void> _showDetail(_HubApp app) async {
-    // App Store 式整页详情:服务端从包内 store.json 抽取的元数据(截图/简介/
-    // 权限/版本历史)由详情页自己拉取渲染;卸载入口在详情页AppBar。
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ApphubAppDetailPage(
-          app: HubAppRef(
-            appId: app.appId,
-            name: app.name.isEmpty ? app.appId : app.name,
-            description: app.description,
-            category: app.category,
-            changelog: app.changelog,
-            iconKey: app.iconKey,
-            iconUrl: app.iconUrl,
-            versionCode: app.versionCode,
-            versionName: app.versionName,
-            autoSync: app.autoSync,
-            permissions: app.permissions,
-          ),
-        ),
-      ),
-    );
-    // 从详情页回来后已装状态可能变了(详情页里装/卸/升),重查一次。
-    if (mounted) unawaited(_queryInstalled());
-  }
+  bool _matches(HubInstalledApp app) =>
+      _query.isEmpty ||
+      app.name.toLowerCase().contains(_query) ||
+      app.appId.contains(_query);
 
   @override
   Widget build(BuildContext context) {
     final L10n l10n = context.l10n;
+    final ThemeData theme = Theme.of(context);
+    final bool installedTab = _tab == _MarketTab.installed;
     return Scaffold(
-      // 右上角「问 AI」：只装了 App、没装市场后端（wanqi 服务）或相关插件的
-      // 人，点一下就把「怎么装」的问题填进新对话的输入框，agent 照随包的
-      // dsh-go-guide 应用市场页回答（lib/state/ask_ai.dart；网页模式不显示）。
+      // 右上角「问 AI」:只装了 App、没装市场后端(wanqi 服务)的人,点一下就把
+      // 「怎么装」的问题填进新对话的输入框(网页模式不显示)。
       appBar: AppBar(
         title: Text(l10n.catalogAppHubMarket),
         actions: <Widget>[
@@ -296,157 +117,185 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       ),
       body: Column(
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SearchCapsule(
-              controller: _search,
-              hint: l10n.apphubSearchHint,
-              onChanged: (String text) => setState(() => _query = text.trim().toLowerCase()),
-              onClear: () {
-                _search.clear();
-                setState(() => _query = '');
-              },
+          if (installedTab)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: SearchCapsule(
+                controller: _search,
+                hint: l10n.apphubSearchHint,
+                onChanged: (String text) => setState(() => _query = text.trim().toLowerCase()),
+                onClear: () {
+                  _search.clear();
+                  setState(() => _query = '');
+                },
+              ),
             ),
-          ),
           Padding(
-            // tab 底部留间隙,列表卡片不再贴死胶囊(与插件/定时页同款 16)。
+            // tab 底部留间隙,列表卡片不再贴死胶囊。
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: SegmentedPill<_MarketTab>(
               segments: <PillSegment<_MarketTab>>[
-                PillSegment<_MarketTab>(_MarketTab.apps, l10n.apphubTabApps),
                 PillSegment<_MarketTab>(_MarketTab.installed, l10n.apphubTabInstalled),
+                PillSegment<_MarketTab>(_MarketTab.apps, l10n.apphubTabApps),
               ],
               selected: _tab,
               onChanged: (_MarketTab tab) => setState(() => _tab = tab),
             ),
           ),
           Expanded(
-            child: !_loaded
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: Builder(
-                      builder: (BuildContext context) {
-                        if (_failed && _apps.isEmpty) {
-                          // 远程主机上没装货架 → 行动卡:「问AI」通道把安装引导词
-                          // 填进主机会话(填好等确认,用户可改可看再发);本机模式
-                          // 没有可装货架的远端,保持纯文案。
-                          final bool remoteHost = !ref.read(activeHostProvider).isLocal;
-                          return ListView(
-                            children: <Widget>[
-                              Padding(
-                                padding: const EdgeInsets.all(28),
-                                child: Column(
-                                  children: <Widget>[
-                                    Text(
-                                      l10n.apphubNoMarket,
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.titleMedium,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.apphubInstallMissingBody,
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.bodyMedium,
-                                    ),
-                                    if (remoteHost) ...<Widget>[
-                                      const SizedBox(height: 16),
-                                      FilledButton(
-                                        onPressed: () => unawaited(askAiQuestion(context, apphubInstallPrompt)),
-                                        child: Text(l10n.apphubInstallCta),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                        final Iterable<_HubApp> apps = _apps
-                            .where((app) => _tab == _MarketTab.apps || _isInstalled(app))
-                            .where(_matches);
-                        if (apps.isEmpty) {
-                          return ListView(
-                            children: <Widget>[
-                              Padding(
-                                padding: const EdgeInsets.all(28),
-                                child: Text(
-                                  l10n.apphubEmpty,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                        return ListView(
-                          children: <Widget>[
-                            ListPageCard(
-                              children: <Widget>[
-                                for (final _HubApp app in apps)
-                                  ListPageRow(
-                                    leading: HubBundleIcon(
-                                      appId: app.appId,
-                                      versionCode: app.versionCode,
-                                      url: app.iconUrl,
-                                      size: 32,
-                                      fallback: hubAppHasIcon(app.iconKey)
-                                          ? HubAppIcon(iconKey: app.iconKey, size: 32)
-                                          : Icon(hubAppGlyph(app.iconKey), size: 20),
-                                    ),
-                                    leadingWidth: 40,
-                                    title: app.name.isEmpty ? app.appId : app.name,
-                                    subtitle: _rowSubtitle(app),
-                                    trailing: _action(app),
-                                    onTap: () => unawaited(_showDetail(app)),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+            child: installedTab ? _installedView(l10n, theme) : _comingSoonView(l10n, theme),
           ),
         ],
       ),
     );
   }
 
-  String _rowSubtitle(_HubApp app) {
-    final List<String> parts = <String>[
-      if (app.description.isNotEmpty) app.description,
-      if (app.category.isNotEmpty) app.category,
-    ];
-    if (parts.isEmpty) return app.appId;
-    return parts.join(' · ');
+  Widget _installedView(L10n l10n, ThemeData theme) {
+    final AsyncValue<List<HubInstalledApp>> installed = ref.watch(hubInstalledProvider);
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: installed.when(
+        loading: () => ListView(
+          children: const <Widget>[
+            SizedBox(height: 120),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+        error: (Object error, StackTrace stack) => _notConnectedView(l10n),
+        data: (List<HubInstalledApp> apps) {
+          final List<HubInstalledApp> shown = <HubInstalledApp>[
+            for (final HubInstalledApp app in apps)
+              if (_matches(app)) app,
+          ];
+          if (shown.isEmpty) {
+            return _hintView(
+              icon: AppIcons.allFeatures,
+              title: l10n.apphubInstalledEmptyTitle,
+              body: l10n.apphubInstalledEmptyBody,
+              theme: theme,
+            );
+          }
+          return ListView(
+            children: <Widget>[
+              ListPageCard(
+                children: <Widget>[
+                  for (final HubInstalledApp app in shown) _row(app, l10n, theme),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
-  Widget _action(_HubApp app) {
-    final L10n l10n = context.l10n;
-    final ThemeData theme = Theme.of(context);
-    final bool installed = _isInstalled(app);
-    final bool update = _hasUpdate(app);
-    // 应用商店胶囊(与插件市场 PluginInstallButton 同款视觉):
-    // 未装=获取底、已装=透明+次级字,更新=获取底,都开详情/直接打开。
-    final String label = update
-        ? l10n.apphubUpdate
-        : (installed ? l10n.apphubOpen : l10n.apphubInstall);
-    return FilledButton.tonal(
-      style: FilledButton.styleFrom(
-        backgroundColor:
-            installed ? Colors.transparent : theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        foregroundColor: installed ? DshColors.of(context).textTertiary : theme.colorScheme.primary,
-        minimumSize: const Size(68, 30),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-        shape: const StadiumBorder(),
-        elevation: 0,
-        textStyle: theme.textTheme.labelLarge?.copyWith(fontSize: 13.5),
+  Widget _row(HubInstalledApp app, L10n l10n, ThemeData theme) {
+    final int? version = app.installedVersionCode;
+    return ListPageRow(
+      leading: HubBundleIcon(
+        appId: app.appId,
+        versionCode: version,
+        url: app.iconUrl,
+        size: 32,
+        fallback: hubAppHasIcon(app.iconKey)
+            ? HubAppIcon(iconKey: app.iconKey, size: 32)
+            : Icon(hubAppGlyph(app.iconKey), size: 20),
       ),
-      onPressed: () => unawaited(_open(app)),
-      child: Text(label),
+      leadingWidth: 40,
+      title: app.name.isEmpty ? app.appId : app.name,
+      subtitle: version != null ? '${l10n.apphubVersionPrefix} $version' : app.appId,
+      trailing: FilledButton.tonal(
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: DshColors.of(context).textTertiary,
+          minimumSize: const Size(68, 30),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          shape: const StadiumBorder(),
+          elevation: 0,
+          textStyle: theme.textTheme.labelLarge?.copyWith(fontSize: 13.5),
+        ),
+        onPressed: () => unawaited(_open(app)),
+        child: Text(l10n.apphubOpen),
+      ),
+      onTap: () => unawaited(_open(app)),
+    );
+  }
+
+  /// 「应用」页:市场还没接外部小程序,先给占位,别再让目录行冒充可用市场。
+  Widget _comingSoonView(L10n l10n, ThemeData theme) => _hintView(
+        icon: AppIcons.working,
+        title: l10n.apphubMarketComingSoonTitle,
+        body: l10n.apphubMarketComingSoonBody,
+        theme: theme,
+      );
+
+  /// 列表读不到(目录请求异常)时的旧行动卡:远程主机上没装货架 → 「问 AI」通道
+  /// 把安装引导词填进主机会话;本机模式没有可装货架的远端,保持纯文案。
+  Widget _notConnectedView(L10n l10n) {
+    final bool remoteHost = !ref.read(activeHostProvider).isLocal;
+    return ListView(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            children: <Widget>[
+              Text(
+                l10n.apphubNoMarket,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.apphubInstallMissingBody,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              if (remoteHost) ...<Widget>[
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => unawaited(askAiQuestion(context, apphubInstallPrompt)),
+                  child: Text(l10n.apphubInstallCta),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _hintView({
+    required IconData icon,
+    required String title,
+    required String body,
+    required ThemeData theme,
+  }) {
+    final DshColors colors = DshColors.of(context);
+    return ListView(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 64, 28, 28),
+          child: Column(
+            children: <Widget>[
+              Icon(icon, size: 52, color: colors.textTertiary),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: colors.textTertiary),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

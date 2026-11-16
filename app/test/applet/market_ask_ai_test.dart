@@ -1,8 +1,8 @@
 // 市场页的「问 AI」（apphub_market_page.dart 的 AppBar actions）：点一下就把
 // 「市场后端怎么装」的问题填进新对话的输入框（本机引擎走 /dsh-go-guide
-// skill 问法，lib/state/ask_ai.dart 的 AskAiTopic.market）。市场目录请求在
-// 测试里被 flutter_test 的 HttpClient 替身拦成 400 → 页面走 _failed 分支
-// 显示「AppHub 未连接」，属预期（没有真的市场后端可连）。
+// skill 问法，lib/state/ask_ai.dart 的 AskAiTopic.market）。测试里目录请求被
+// flutter_test 的 HttpClient 替身拦成 400 → 已装清单按空处理，页面落空态
+// （没有真的市场后端可连）。
 
 import 'package:dsh_app/state/compose_inbox.dart';
 import 'package:dsh_app/state/connection_state.dart';
@@ -47,8 +47,9 @@ void main() {
     await tester.tap(find.text('打开应用市场'));
     await tester.pump();
     await tester.pumpAndSettle();
-    // 没有市场后端：目录请求失败 → 未连接文案，属预期。
-    expect(find.text('AppHub 未连接'), findsOneWidget);
+    // 没有市场后端/没有已装小程序：「已安装」页落空态（2026-11-17 起市场页
+    // 默认就是已安装），断言用空态文案。
+    expect(find.text('还没有已安装的小程序'), findsOneWidget);
     expect(find.byTooltip('问 AI'), findsOneWidget);
 
     await tester.tap(find.byTooltip('问 AI'));

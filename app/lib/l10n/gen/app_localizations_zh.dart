@@ -3693,7 +3693,16 @@ class L10nZh extends L10n {
   String get apphubInstallCta => '一键安装 App Hub';
 
   @override
-  String get apphubEmpty => '暂无应用';
+  String get apphubInstalledEmptyTitle => '还没有已安装的小程序';
+
+  @override
+  String get apphubInstalledEmptyBody => '小程序由后台自动安装，装好后会出现在这里。';
+
+  @override
+  String get apphubMarketComingSoonTitle => '应用市场开发中，敬请期待';
+
+  @override
+  String get apphubMarketComingSoonBody => '应用市场后续会接入外部小程序。现在的小程序都由后台自动安装，已经装好的都在「已安装」里。';
 
   @override
   String get apphubGet => '获取';
