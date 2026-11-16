@@ -278,7 +278,10 @@ void main() {
 
     testWidgets('a tap opens this chat\'s permissions', (tester) async {
       await pumpChat(tester, const SessionModes(preset: 'auto'));
-      expect(find.text('自动审查'), findsOneWidget);
+      // The ⚠ pill above the composer names the preset, and so does the
+      // permission pill inside the composer.
+      expect(find.descendant(of: find.byType(PermissionPill), matching: find.text('自动审查')), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const ValueKey('composer-permission')), matching: find.text('自动审查')), findsOneWidget);
       await tester.tap(find.byType(PermissionPill));
       await pumpFrames(tester);
       expect(find.text('本对话的权限'), findsOneWidget);
