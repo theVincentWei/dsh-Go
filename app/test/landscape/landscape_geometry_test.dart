@@ -48,10 +48,7 @@ Rect _key(WidgetTester tester, String key) => tester.getRect(find.byKey(ValueKey
 /// Secondary pages are pushed pages: a blank page underneath keeps
 /// `Navigator.canPop` true, so [AppPage] renders its back key.
 Widget _pushed(Widget page) => Navigator(
-  onPopPage: (route, result) {
-    if (!route.didPop(result)) return false;
-    return true;
-  },
+  onDidRemovePage: (page) {},
   pages: [
     MaterialPage<void>(child: const SizedBox.shrink()),
     MaterialPage<void>(child: page),

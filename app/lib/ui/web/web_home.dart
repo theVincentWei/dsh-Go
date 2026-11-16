@@ -31,6 +31,7 @@ import '../../links/launcher_entries.dart';
 import '../../links/share_intake.dart';
 import '../../pets/overlay_channel.dart' show petOverlayChannelProvider;
 import '../../pets/pet_overlay_bridge.dart';
+import '../../state/android_features.dart' show operatingSystemProvider;
 import '../../state/compose_inbox.dart';
 import '../../state/hosts_state.dart';
 import '../../state/sessions_state.dart';
@@ -297,9 +298,15 @@ class _WebEntryHostState extends ConsumerState<WebEntryHost> {
 
   Future<void> _onEntry(LauncherEntry entry) async {
     switch (entry) {
-      case NewChatEntry():
-        // Dictation is the native composer's; the page starts a conversation.
-        if (mounted) await _compose(null);
+      case NewChatEntry(:final text):
+        // Dictation is the native composer's; Siri's supplied text still
+        // belongs in the web composer, without sending it.
+        if (mounted) {
+          final request = ref.read(operatingSystemProvider) == 'ios' && text.isNotEmpty
+              ? ComposeRequest(text: text)
+              : null;
+          await _compose(request);
+        }
       case ScreenshotEntry(:final path):
         await _onShare(
           IncomingShare(

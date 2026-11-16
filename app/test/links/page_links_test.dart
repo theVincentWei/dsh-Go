@@ -5,9 +5,7 @@
 import 'package:dsh_app/links/app_links.dart';
 import 'package:dsh_app/ui/theme/app_theme.dart';
 import '../support/test_fonts.dart';
-import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/links/page_links.dart';
-import 'package:dsh_app/state/android_features.dart';
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/ui/features/feature_catalog.dart';
 import 'package:dsh_app/ui/phone/phone_control_screen.dart';

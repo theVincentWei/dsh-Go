@@ -60,6 +60,11 @@ Future<void> loadTestFonts() async {
   // box font for part of CJK. Give those names real glyphs too.
   await family('monospace', cjk);
   await family('Noto Sans Mono CJK SC', cjk);
+  // The CI box gets Noto Color Emoji from /usr/share/fonts (see ci.yml); here
+  // the same file is registered explicitly, so goldens draw the same emoji
+  // everywhere instead of falling back to the OS's own emoji font.
+  final emoji = '$fontDir/NotoColorEmoji.ttf';
+  if (File(emoji).existsSync()) await family('Noto Color Emoji', [emoji]);
 }
 
 /// [theme] with a family named on every component text style built from the
