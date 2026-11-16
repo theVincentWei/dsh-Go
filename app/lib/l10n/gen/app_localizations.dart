@@ -6842,11 +6842,29 @@ abstract class L10n {
   /// **'一键安装 App Hub'**
   String get apphubInstallCta;
 
-  /// No description provided for @apphubEmpty.
+  /// No description provided for @apphubInstalledEmptyTitle.
   ///
   /// In zh, this message translates to:
-  /// **'暂无应用'**
-  String get apphubEmpty;
+  /// **'还没有已安装的小程序'**
+  String get apphubInstalledEmptyTitle;
+
+  /// No description provided for @apphubInstalledEmptyBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序由后台自动安装，装好后会出现在这里。'**
+  String get apphubInstalledEmptyBody;
+
+  /// No description provided for @apphubMarketComingSoonTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用市场开发中，敬请期待'**
+  String get apphubMarketComingSoonTitle;
+
+  /// No description provided for @apphubMarketComingSoonBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用市场后续会接入外部小程序。现在的小程序都由后台自动安装，已经装好的都在「已安装」里。'**
+  String get apphubMarketComingSoonBody;
 
   /// No description provided for @apphubGet.
   ///

@@ -3879,7 +3879,18 @@ class L10nEn extends L10n {
   String get apphubInstallCta => 'Install App Hub';
 
   @override
-  String get apphubEmpty => 'No apps yet';
+  String get apphubInstalledEmptyTitle => 'No mini programs installed yet';
+
+  @override
+  String get apphubInstalledEmptyBody =>
+      'Mini programs are installed in the background and show up here once they land.';
+
+  @override
+  String get apphubMarketComingSoonTitle => 'App market under development';
+
+  @override
+  String get apphubMarketComingSoonBody =>
+      'The app market will host external mini programs later. For now mini programs are installed in the background; everything installed is under Installed.';
 
   @override
   String get apphubGet => 'Get';
