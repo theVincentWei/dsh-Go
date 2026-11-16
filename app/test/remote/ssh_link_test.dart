@@ -253,7 +253,7 @@ void main() {
     final gate = Completer<void>();
     var readyReturned = false;
     final l = link(
-      waitReady: (_, _) async {
+      waitReady: (_, __) async {
         await gate.future;
         readyReturned = true;
       },
@@ -271,7 +271,7 @@ void main() {
   test('a test connection (no retry) fails on a ready-wait timeout', () async {
     final l = link(
       retryFirstOpen: false,
-      waitReady: (_, _) => Future.error(const HostLinkError(HostLinkErrorKind.dshTimeout, 'never answered', retryable: true)),
+      waitReady: (_, __) => Future.error(const HostLinkError(HostLinkErrorKind.dshTimeout, 'never answered', retryable: true)),
     );
     await expectLater(l.open(), throwsA(isA<HostLinkError>()));
     expect(l.status.phase, HostLinkPhase.failed);

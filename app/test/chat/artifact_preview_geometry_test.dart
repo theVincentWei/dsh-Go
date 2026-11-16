@@ -17,7 +17,10 @@ import '../files/support/files_harness.dart';
 /// The preview is a pushed page: a blank page underneath keeps
 /// `Navigator.canPop` true, so the page's back key renders.
 Widget _pushed(Widget page) => Navigator(
-  onDidRemovePage: (page) {},
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
   pages: [
     MaterialPage<void>(child: const SizedBox.shrink()),
     MaterialPage<void>(child: page),

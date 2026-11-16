@@ -56,7 +56,10 @@ List<Override> _chrome() => [
 /// `Navigator.canPop` true, so [AppPage] keeps its floating bar — with the
 /// actions on it (the plugins refresh key) and the 56dp inset.
 Widget _pushed(Widget page) => Navigator(
-  onDidRemovePage: (page) {},
+  onPopPage: (route, result) {
+    if (!route.didPop(result)) return false;
+    return true;
+  },
   pages: [
     MaterialPage<void>(child: const SizedBox.shrink()),
     MaterialPage<void>(child: page),
