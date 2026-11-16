@@ -8,16 +8,21 @@
 /// DiminaActivity 在 prepare 的 catch 里 finish(),表现为小程序「一打开就
 /// 闪退」,而市场页(Dart 侧发请求)一切正常,极具迷惑性(2026-11-09 真机)。
 ///
-/// 修法:原生容器永远只认这个固定端口;代理在每个请求到达时用「当下」的
-/// [appHubBase] 转发字节,隧道怎么重连都无所谓。转发刻意保留代理自己的
-/// Host 头——AppHub 按 Host 拼 packageUrl,于是包下载地址也稳定指向代理。
-/// 链路断了代理回 502:后台升级检查静默失败(no-update),不崩容器。
+/// 修法:原生容器永远只认这个固定端口;代理在每个请求到达时经当下的上游
+/// ([AppHubUpstream])把字节转出去——SSH/本地是 [TcpAppHubUpstream],转发
+/// 刻意保留代理自己的 Host 头,AppHub 按 Host 拼 packageUrl,于是包下载
+/// 地址也稳定指向代理;relay 链路(`remote.apphub.proxy.v1`)是
+/// `RemoteAppHubUpstream`,经加密 RPC 直达引擎主机上的 AppHub 网关,主机
+/// 侧 AppHub 没有动态端口问题。链路断了代理回 502:后台升级检查静默失败
+/// (no-update),不崩容器。
 library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'apphub_base.dart';
+import 'apphub_upstream.dart';
 
 /// 代理固定端口起点;被占则顺延(最多 20 个),避开 adb reverse 之类。
 const int kAppHubProxyPort = 7619;
@@ -31,11 +36,20 @@ class AppHubProxy {
   AppHubProxy._();
 
   static HttpServer? _server;
-  static HttpClient? _client;
   static int _port = kAppHubProxyPort;
+
+  /// 当前上游。relay 链路建链且 Host 声明 `remote.apphub.proxy.v1` 时,
+  /// `RelayHostLink` 把它切成 `RemoteAppHubUpstream`(市场/容器流量经
+  /// relay RPC 到引擎主机);链路断开/关闭时经 [resetUpstream] 回 Tcp。
+  static AppHubUpstream upstream = TcpAppHubUpstream();
 
   static bool get started => _server != null;
   static int get port => _port;
+
+  /// 回到默认 Tcp 上游(断链/链路关闭时;relay_backend 负责调用)。
+  static void resetUpstream() {
+    upstream = TcpAppHubUpstream(proxyPort: started ? _port : null);
+  }
 
   /// 进程内只绑一次;main() 里 await,保证任何 open 之前端口已就绪。
   /// 全部端口都被占时静默放弃(消费方经 [appHubProxyBase] 回退旧行为)。
@@ -48,6 +62,9 @@ class AppHubProxy {
           _port,
         );
         _server = server;
+        // 绑定成功才带代理端口:Host 头 = 代理自身端口,AppHub 按它拼
+        // packageUrl,包下载地址稳定指回代理。
+        upstream = TcpAppHubUpstream(proxyPort: _port);
         server.listen(
           (request) {
             unawaited(_forward(request).catchError((_) {
@@ -72,41 +89,45 @@ class AppHubProxy {
   }
 
   static Future<void> _forward(HttpRequest request) async {
-    final HttpClient client = _client ??= HttpClient();
     try {
-      // 目标 = 当下的 appHubBase + 原样路径/查询;Host 保持代理端口,
-      // 让服务端把 packageUrl 也拼回代理(下载链路同样稳定)。
-      final Uri live = Uri.parse(appHubBase);
-      final Uri target = live.replace(
-        path: request.uri.path,
-        query: request.uri.query.isEmpty ? null : request.uri.query,
-      );
-      final HttpClientRequest upstream = await client.openUrl(
-        request.method,
-        target,
-      );
-      upstream.headers.set(HttpHeaders.hostHeader, '127.0.0.1:$_port');
+      // 剥掉 hop-by-hop 与 host 后原样透传;Host 头由上游按自己的路数
+      // 设置(Tcp 指回代理端口,Remote 交 RPC 侧定夺)。
+      final stripped = <String, List<String>>{};
       request.headers.forEach((String name, List<String> values) {
-        if (_hopByHop.contains(name.toLowerCase()) ||
-            name.toLowerCase() == HttpHeaders.hostHeader.toLowerCase()) {
+        final String lower = name.toLowerCase();
+        if (_hopByHop.contains(lower) ||
+            lower == HttpHeaders.hostHeader.toLowerCase()) {
           return;
         }
-        for (final String value in values) {
-          upstream.headers.add(name, value);
-        }
+        stripped[name] = List.of(values);
       });
-      await request.drain<void>();
-      final HttpClientResponse upstreamResponse = await upstream.close();
-      final dynamic response = request.response;
-      response.statusCode = upstreamResponse.statusCode;
-      upstreamResponse.headers.forEach((String name, List<String> values) {
+      // 代理缓冲全量请求体再交上游:容器流量(GET/HEAD manifest/包)无体,
+      // 零开销;relay 模式下 Dart 侧的 POST 通知(notices)体小,必须完整
+      // 到达上游。
+      final builder = BytesBuilder(copy: false);
+      await request.forEach(builder.add);
+      final List<int> body = builder.takeBytes();
+      final AppHubUpstreamResponse response = await upstream.send(
+        AppHubUpstreamRequest(
+          method: request.method,
+          path: request.uri.path,
+          query: request.uri.query,
+          headers: stripped,
+          body: body.isEmpty ? null : body,
+        ),
+      );
+      final dynamic sink = request.response;
+      sink.statusCode = response.status;
+      response.headers.forEach((String name, List<String> values) {
         if (_hopByHop.contains(name.toLowerCase())) return;
         for (final String value in values) {
-          response.headers.add(name, value);
+          sink.headers.add(name, value);
         }
       });
-      await upstreamResponse.pipe(response);
+      await response.body.pipe(sink);
     } on Object {
+      // 上游失败(断链/不支持/连不上/上游错)统一 502:后台升级检查静默
+      // 失败(no-update),市场页报未连接,容器不闪退。
       try {
         request.response.statusCode = HttpStatus.badGateway;
         request.response.headers.contentType = ContentType.text;

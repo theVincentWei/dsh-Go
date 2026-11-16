@@ -33,6 +33,7 @@ export 'src/account/remote_account.dart'
         RemotePairing,
         RemoteUser;
 export 'src/account/secret_store.dart';
+export 'src/apphub/remote_apphub_client.dart';
 export 'src/carrier/tunnel_carrier.dart';
 export 'src/channel/rpc_client.dart';
 export 'src/channel/secure_channel.dart';

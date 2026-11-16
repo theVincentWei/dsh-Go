@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:dsh_client/dsh_client.dart';
 
 import '../../l10n/l10n.dart';
+import '../../notify/apphub_base.dart';
+import '../../notify/apphub_proxy.dart';
+import '../../notify/apphub_upstream.dart';
 import '../link_status.dart';
+import 'apphub_upstream_remote.dart';
 
 /// A sign-in provider the Server offers for browser sign-in
 /// (`github`, `zhihu`, `google`, ...). IDs are Server-owned and opaque.
@@ -226,6 +230,7 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
     required this.resolveHost,
     Stream<void>? kicks,
     Backoff? backoff,
+    this.remoteAppHubUpstream,
   }) : _backoff = backoff ?? Backoff() {
     _kickSub = kicks?.listen((_) => kick());
   }
@@ -236,6 +241,10 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
   /// Looks the host up in the account's (refreshed) list.
   final Future<RelayHost?> Function() resolveHost;
   final Backoff _backoff;
+
+  /// 建链后探测 `remote.apphub.proxy.v1` 并构造 Remote 上游的工厂;省略时
+  /// 用 [defaultRemoteAppHubUpstream](测试注入 fake)。
+  final AppHubUpstream? Function(DshClient client)? remoteAppHubUpstream;
 
   final _statuses = StreamController<HostLinkStatus>.broadcast(sync: true);
   final _clients = StreamController<DshClient>.broadcast();
@@ -337,6 +346,10 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
       throw StateError('link closed');
     }
     _client = client;
+    // AppHub over relay(契约 §6.2):建链即探测能力并切上游——支持时
+    // 市场与容器流量改走 7619 代理 → Remote 上游 → 引擎主机;不支持时
+    // 回默认 Tcp + loopback(relay 下市场维持「未连接」的现状语义)。
+    _syncAppHub(client);
     // Ready may have been followed by a loss before this continuation ran.
     if (latestState case (final state, final error)
         when state == RelayConnectionState.reconnecting ||
@@ -349,6 +362,27 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
     if (_published) _clients.add(client);
     _published = true;
     return client;
+  }
+
+  /// 把 AppHub 代理的基座与上游对齐到「当下这条链路」的真相:
+  /// * Host 支持 remote.apphub.proxy.v1 → 上游切 Remote,base 指回代理
+  ///   固定口(7619),小程序市场/容器/通知全部经 relay RPC 可用;
+  /// * 不支持或链路断了 → 回默认 Tcp 上游 + loopback base,消费方快速
+  ///   失败而不是挂在死链路上等超时(与 SshHostLink 的 reset 语义对称)。
+  /// 上游请求失败时代理层转 502,容器静默 no-update 不闪退。
+  void _syncAppHub(DshClient client) {
+    final AppHubUpstream? remote = (remoteAppHubUpstream ?? defaultRemoteAppHubUpstream)(client);
+    if (remote == null) {
+      _detachAppHub();
+      return;
+    }
+    AppHubProxy.upstream = remote;
+    appHubBase = appHubProxyBase;
+  }
+
+  void _detachAppHub() {
+    AppHubProxy.resetUpstream();
+    resetAppHubBase();
   }
 
   /// States from the relay client. Before [open] resolves they only move the
@@ -376,9 +410,13 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
               error: error ?? HostLinkError(HostLinkErrorKind.other, appL10n.remoteConnectionStopped),
             ),
           );
+          // 客户端已终端停止,等人工「重新连接」:AppHub 先回本地默认,
+          // 避免请求挂在死链路上(重连成功时 _syncAppHub 会重新接上)。
+          _detachAppHub();
         }
       case RelayConnectionState.disconnected:
         _client = null;
+        _detachAppHub();
         _emit(HostLinkStatus.idle);
     }
     if (state == RelayConnectionState.connected) _reconnects = 0;
@@ -465,6 +503,7 @@ class RelayHostLink implements HostLink, NetworkInspectableHostLink {
     if (_closed) return;
     _closed = true;
     _delay.cancel();
+    _detachAppHub();
     await _kickSub?.cancel();
     final client = _client;
     _client = null;

@@ -702,6 +702,12 @@ class FakeHostConnection {
   final SecureMessageCodec outgoing = SecureMessageCodec();
   final Map<String, FakeHostStream> streams = {};
   final Map<String, Map<String, Object?>> transfers = {};
+
+  /// AppHub uplink bodies already committed, pending the main RPC's body
+  /// reference (contract apphub-proxy.v1.md, dart-dev implementation
+  /// appendix §1a). Kept apart from [transfers] so the client's
+  /// `transfer.close` cleanup cannot release them early.
+  final Map<String, List<int>> apphubBodies = {};
   bool ready = false;
   int eventsGeneration = 0;
 
@@ -728,6 +734,26 @@ class FakeHostConnection {
   }
 
   void event(String name, Object? data) => send(RemoteMessage('event', {'event': name, 'data': data}));
+}
+
+/// One decoded AppHub proxy request at the fake Host (contract §2.1).
+class FakeAppHubRequest {
+  FakeAppHubRequest(this.method, this.path, this.query, this.headers, this.body);
+
+  final String method;
+  final String path;
+  final String? query;
+  final Map<String, String> headers;
+  final List<int> body;
+}
+
+/// An `rpc.error` the fake Host answers an AppHub proxy request with.
+class FakeAppHubRpcError implements Exception {
+  const FakeAppHubRpcError(this.code, this.message, {this.retryable = false});
+
+  final String code;
+  final String message;
+  final bool retryable;
 }
 
 /// Fake Host plugin: registers, keeps a Control socket, answers clients.
@@ -818,6 +844,23 @@ class FakeRemoteHost {
 
   /// Independent top-level workspace upload RPCs (plugin 0.6.2).
   Future<Object?> Function(String method, Map<String, Object?> params)? workspaceUpload;
+
+  /// Fake AppHub upstream (contract apphub-proxy.v1 §2, the Host's
+  /// `127.0.0.1:7610`). Returns `(status, headers, bodyBytes)`; a body above
+  /// 64 KiB is encoded as a transfer descriptor automatically.
+  Future<(int, Map<String, String>, List<int>)> Function(FakeAppHubRequest request)? appHub;
+
+  /// Overrides the whole AppHub response value (malformed descriptors,
+  /// custom shapes): the return value becomes the `rpc.response` result;
+  /// throw [FakeAppHubRpcError] to answer `rpc.error` instead.
+  Future<Object?> Function(FakeAppHubRequest request)? appHubValue;
+
+  /// Every decoded AppHub proxy request, in order.
+  final List<FakeAppHubRequest> appHubCalls = [];
+
+  /// Every `harness.remote.apphub.request` params map, verbatim, in order
+  /// (used to assert the four-field body reference shape directly).
+  final List<Map<String, Object?>> appHubParams = [];
 
   /// Optional connection-scoped history configuration and its exact requests.
   Future<Object?> Function(Map<String, Object?> params)? configureHistory;
@@ -1082,8 +1125,8 @@ class FakeRemoteHost {
     rpcMethods.add(method);
     void respond(Object? result) =>
         connection.send(RemoteMessage('rpc.response', {'requestId': message.id, 'result': result}));
-    void reject(String code, String text) => connection.send(
-      RemoteMessage('rpc.error', {'requestId': message.id, 'code': code, 'message': text, 'retryable': false}),
+    void reject(String code, String text, {bool retryable = false}) => connection.send(
+      RemoteMessage('rpc.error', {'requestId': message.id, 'code': code, 'message': text, 'retryable': retryable}),
     );
     switch (method) {
       case 'harness.transport.describe':
@@ -1099,6 +1142,8 @@ class FakeRemoteHost {
         final upload = workspaceUpload;
         if (upload == null) return reject('FEATURE_NOT_SUPPORTED', 'No workspace upload handler.');
         respond(await upload(method, params));
+      case 'harness.remote.apphub.request':
+        await _handleAppHub(connection, message, params, respond, reject);
       case 'harness.remote.call':
         final endpoint = params['endpoint']! as String;
         if (!harnessRemoteAllowlist.contains(endpoint)) {
@@ -1161,19 +1206,43 @@ class FakeRemoteHost {
       case 'harness.remote.transfer.commit':
         final transfer = connection.transfers.remove(params['transferId'])!;
         final bytes = (transfer['chunks']! as List<List<int>>).expand((c) => c).toList();
-        final request = (jsonDecode(utf8.decode(bytes)) as Map).cast<String, Object?>();
-        final result = _dispatch(connection, request['endpoint']! as String, request['payload']);
-        final encoded = utf8.encode(jsonEncode(result));
-        if (encoded.length <= 2 * 1024 * 1024) {
-          respond({'kind': 'inline', 'response': result});
+        // A Harness Gateway upload commits a whole `{endpoint, payload}`
+        // request JSON and executes it (existing behaviour); an AppHub
+        // uplink commits the raw HTTP body, which the main AppHub RPC then
+        // consumes through its four-field body reference (contract
+        // apphub-proxy.v1.md, dart-dev implementation appendix §1a).
+        Object? gatewayRequest;
+        try {
+          final decoded = jsonDecode(utf8.decode(bytes));
+          if (decoded is Map && decoded['endpoint'] is String && decoded['payload'] != null) {
+            gatewayRequest = decoded;
+          }
+        } on FormatException {
+          // Not a Gateway request JSON: AppHub uplink bytes (raw body).
+        }
+        if (gatewayRequest != null) {
+          final request = (gatewayRequest as Map).cast<String, Object?>();
+          final result = _dispatch(connection, request['endpoint']! as String, request['payload']);
+          final encoded = utf8.encode(jsonEncode(result));
+          if (encoded.length <= 2 * 1024 * 1024) {
+            respond({'kind': 'inline', 'response': result});
+          } else {
+            final total = (encoded.length + 512 * 1024 - 1) ~/ (512 * 1024);
+            connection.transfers[params['transferId']! as String] = {'out': encoded};
+            respond({
+              'kind': 'chunked',
+              'transferId': params['transferId'],
+              'totalBytes': encoded.length,
+              'totalChunks': total,
+            });
+          }
         } else {
-          final total = (encoded.length + 512 * 1024 - 1) ~/ (512 * 1024);
-          connection.transfers[params['transferId']! as String] = {'out': encoded};
+          connection.apphubBodies[params['transferId']! as String] = bytes;
           respond({
-            'kind': 'chunked',
+            'kind': 'transfer',
             'transferId': params['transferId'],
-            'totalBytes': encoded.length,
-            'totalChunks': total,
+            'totalBytes': bytes.length,
+            'totalChunks': (bytes.length + 512 * 1024 - 1) ~/ (512 * 1024),
           });
         }
       case 'harness.remote.transfer.read':
@@ -1206,6 +1275,89 @@ class FakeRemoteHost {
       };
     }
     return handler(args);
+  }
+
+  /// AppHub proxy RPC (contract §2): resolves the body (none | inline |
+  /// transfer reference), hands the request to [appHub]/[appHubValue] and
+  /// encodes responses; bodies above 64 KiB go out as transfer descriptors.
+  Future<void> _handleAppHub(
+    FakeHostConnection connection,
+    RemoteMessage message,
+    Map<String, Object?> params,
+    void Function(Object? result) respond,
+    void Function(String code, String text, {bool retryable}) reject,
+  ) async {
+    final method = asString(params['method']);
+    final path = asString(params['path']);
+    final bodyMap = asMap(params['body']);
+    if (method == null || path == null || bodyMap == null) {
+      return reject('INVALID_MESSAGE', 'Invalid AppHub proxy request.');
+    }
+    final List<int> body;
+    switch (bodyMap['kind']) {
+      case 'none':
+        body = const <int>[];
+      case 'inline':
+        body = base64Decode(asString(bodyMap['data']) ?? '');
+      case 'transfer':
+        final id = asString(bodyMap['transferId']);
+        final stored = id == null ? null : connection.apphubBodies.remove(id);
+        if (stored == null) return reject('INVALID_MESSAGE', 'Unknown AppHub transfer reference.');
+        body = stored;
+      default:
+        return reject('INVALID_MESSAGE', 'Unknown AppHub body kind.');
+    }
+    appHubParams.add(params);
+    final rawHeaders = asMap(params['headers']) ?? const {};
+    final request = FakeAppHubRequest(
+      method,
+      path,
+      asString(params['query']),
+      rawHeaders.map((key, value) => MapEntry(key, asString(value) ?? '')),
+      body,
+    );
+    appHubCalls.add(request);
+    try {
+      if (appHubValue != null) {
+        respond(await appHubValue!(request));
+        return;
+      }
+      final handler = appHub;
+      if (handler == null) {
+        return reject('APPHUB_UNREACHABLE', 'No fake AppHub upstream.', retryable: true);
+      }
+      final (status, headers, bodyBytes) = await handler(request);
+      respond(_encodeAppHubValue(connection, status, headers, bodyBytes));
+    } on FakeAppHubRpcError catch (error) {
+      reject(error.code, error.message, retryable: error.retryable);
+    }
+  }
+
+  /// Encodes an AppHub response value (contract §2.2): an empty body stays
+  /// `kind:"none"`, up to 64 KiB goes inline, anything larger registers a
+  /// transfer the client pulls with indexed reads.
+  Map<String, Object?> _encodeAppHubValue(
+    FakeHostConnection connection,
+    int status,
+    Map<String, String> headers,
+    List<int> body,
+  ) {
+    final Object? bodyField;
+    if (body.isEmpty) {
+      bodyField = {'kind': 'none'};
+    } else if (body.length <= 64 * 1024) {
+      bodyField = {'kind': 'inline', 'data': base64Encode(body)};
+    } else {
+      final id = uuidV7();
+      connection.transfers[id] = {'out': body};
+      bodyField = {
+        'kind': 'transfer',
+        'transferId': id,
+        'totalBytes': body.length,
+        'totalChunks': (body.length + 512 * 1024 - 1) ~/ (512 * 1024),
+      };
+    }
+    return {'status': status, 'headers': headers, 'body': bodyField};
   }
 
   /// Pushes a `$events` item to every connected client.
