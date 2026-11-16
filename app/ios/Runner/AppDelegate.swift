@@ -59,6 +59,7 @@ import UserNotifications
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "DshPlugin") {
       DshPlugin.register(with: registrar)
+      DiminaPlugin.register(with: registrar)
       IOSPhoneControl.shared.register(messenger: registrar.messenger())
       IOSPhoneLink.shared.register(messenger: registrar.messenger(), presenter: { topViewController() })
       IOSPetOverlay.shared.register(registrar: registrar)
