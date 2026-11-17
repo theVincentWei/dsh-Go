@@ -205,22 +205,23 @@ final sshLinkFactoryProvider = Provider<SshLinkFactory>(
       tunnel: ref.read(sshTunnelFactoryProvider)(),
       // A cold remote DSH answers TCP before it answers HTTP; without this the
       // first login GET sits out the full request timeout on 「登录」.
-      // attach 的远端引擎本来就在跑:就绪预算收窄,回前台重建把时间花在
-      // SSH 握手上,而不是等一个必然成功的 health;managed 保留长预算等冷启动。
+      // attach 的远端引擎本来就在跑:就绪预算比 managed 短,回前台重建把
+      // 时间花在 SSH 握手上;但预算只是上限——health 秒回时立刻放行,真正
+      // 等满预算的只有慢网络/远端忙,预算太紧反而把「慢」误判成「死」进
+      // 退避循环(Android 真机实测 8s/1.5s 不够,15s/3s 才稳)。
       waitReady: (baseUri, hostHeader) {
         final attach = config.dshMode == SshDshMode.attachOnly;
         return remoteDshReadyWait(
           baseUri,
           hostHeader,
-          budget: attach ? const Duration(seconds: 8) : const Duration(seconds: 30),
-          probeTimeout: attach ? const Duration(milliseconds: 1500) : const Duration(seconds: 5),
+          budget: attach ? const Duration(seconds: 15) : const Duration(seconds: 30),
+          probeTimeout: attach ? const Duration(seconds: 3) : const Duration(seconds: 5),
         );
       },
       // No prompt here: a host becomes active only after its key was
       // confirmed in the UI (test connection / host sheet), so an unknown key
       // at this point fails closed.
       kicks: ref.read(networkKicksProvider),
-      backgroundGap: backgroundGap,
     );
   },
 );
