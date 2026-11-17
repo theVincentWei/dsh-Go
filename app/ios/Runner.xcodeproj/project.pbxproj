@@ -1471,7 +1471,7 @@
 			repositoryURL = "https://github.com/theVincentWei/dimina.git";
 			requirement = {
 				kind = revision;
-				revision = d689edd5bd6b79f6afb6f7e26586f936a78a7768;
+				revision = d7fb97ce3bdc99845e60768b3f35e07b9f75f6c3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
