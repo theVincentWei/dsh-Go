@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../notify/apphub_proxy.dart' show appHubProxyBase;
 import '../../state/ask_ai.dart' show askAiAvailableProvider;
+import '../../state/auto_sync_state.dart' show autoSyncProvider;
 import '../../state/hosts_state.dart' show activeHostProvider;
 import '../../state/hub_layout_state.dart' show hubLayoutProvider;
 import '../common/ask_ai.dart' show AskAiTopic, askAi, askAiQuestion;
@@ -48,6 +49,25 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
   _MarketTab _tab = _MarketTab.installed;
   String _query = '';
   final TextEditingController _search = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // autoSync 静默同步触发(契约:市场页加载即触发一轮)。桌面端在
+    // app_desktop/hub_desktop_sync 里挂了同样的点;手机端此前漏挂,链路
+    // 就绪晚于启动触发时(重启后 SSH 才连上)自动安装就一直不跑。单飞与
+    // 冷却在 runner 内,页面反复进出无害;装/升成功后重查已装清单。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(autoSyncProvider.notifier).runIfDue(onApplied: () {
+        if (!mounted) return;
+        ref.invalidate(hubInstalledProvider);
+        Timer(const Duration(seconds: 6), () {
+          if (mounted) ref.invalidate(hubInstalledProvider);
+        });
+      });
+    });
+  }
 
   @override
   void dispose() {

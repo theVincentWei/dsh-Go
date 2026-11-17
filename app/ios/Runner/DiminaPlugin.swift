@@ -14,9 +14,13 @@ import Dimina
 /// - float: real float via the public `DMPApp.hideMiniProgram()` primitive
 ///   (整栈收起 + 运行时保留,保活由 DMPRetentionPolicy 30 分钟兜底),followed
 ///   by a `floated` event carrying the icon captured at open time.
-/// - sync: still UNSUPPORTED — the kit has no public silent-download primitive
-///   (DMPRemoteUpdateManager is module-internal); message spells out what's
-///   missing.
+/// - install: autoSync 静默安装的落地点。kit 没有 syncMiniProgram 静默原语
+///   (DMPRemoteUpdateManager module-internal),所以「清单拉取/下载/包处理」在
+///   Dart 侧完成(archive/crypto 解包注入 config.json 后重打包,对齐 kit
+///   preparePackage 语义),这里只吃本地 zip 走公开
+///   installMiniProgram(appId:packagePath:)(自动关掉在跑的旧版再换包)。
+///   outcome(installed/updated)由 Dart 按 baseline 判;里程碑经 onUpdateEvent
+///   广播,市场页照常刷新。
 /// - getPermissionState / setPermission: host-side UserDefaults store (per-appId
 ///   scope→bool table), same JSON shape as Android PermissionStoreGateway's
 ///   stateMap; supported=true.
@@ -115,15 +119,10 @@ final class DiminaPlugin: NSObject {
     case "installed": installed(call: call, result: result)
     case "getPermissionState": getPermissionState(call: call, result: result)
     case "setPermission": setPermission(call: call, result: result)
-    case "sync":
-      // autoSync 静默同步:iOS kit 没有「无 UI 静默下载+安装」的公开原语——下载/
-      // 装包都在 DiminaKit 内部类 DMPRemoteUpdateManager(宿主不可见),公开面只有
-      // 带 UI 的 DMPApp.launch(无底包首装内联在启动里)和本地 zip 的
-      // installMiniProgram(appId:packagePath:)。缺的原语 = kit 公开
-      // syncMiniProgram(appId:manifestUrl:) 形状的 API(installInitialPackageIfNeeded
-      // + checkForUpdate + activatePendingUpdate 的无 UI 组合)。在此之前保留
-      // UNSUPPORTED;Dart 侧按 failed 处理,下次触发重试,市场 open 路径不受影响。
-      result(FlutterError(code: "UNSUPPORTED", message: "silent sync needs a public kit primitive (syncMiniProgram over updateManifestUrl); DMPRemoteUpdateManager is module-internal", details: nil))
+    case "install":
+      // autoSync 静默安装落地点:Dart 已备好本地 zip(见文件头 install 注释),
+      // 这里公开原语安装即可。
+      install(call: call, result: result)
     default: result(FlutterMethodNotImplemented)
     }
   }
@@ -360,6 +359,39 @@ final class DiminaPlugin: NSObject {
       }
     } catch {
       result(FlutterError(code: "QUERY_FAILED", message: error.localizedDescription, details: nil))
+    }
+  }
+
+  // MARK: - install(autoSync 静默安装落地点)
+
+  /// Dart 侧已把清单/下载/包处理做完(config.json 注入见 dimina_host 的
+  /// _syncViaPreparedPackage),这里只负责公开原语安装+里程碑广播。
+  private func install(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let args = call.arguments as? [String: Any],
+      let appId = args["appId"] as? String, !appId.isEmpty,
+      let packagePath = args["packagePath"] as? String, !packagePath.isEmpty
+    else {
+      result(FlutterError(
+        code: "BAD_ARGS", message: "appId/packagePath are required", details: nil))
+      return
+    }
+    let manager = DMPAppManager.sharedInstance()
+    let baseline = (try? manager.getAppVersionInfo(appId: appId)) ?? nil
+    let baselineCode = (baseline?["versionCode"] as? NSNumber)?.intValue ?? -1
+    Task { @MainActor in
+      do {
+        let config = try await manager.installMiniProgram(appId: appId, packagePath: packagePath)
+        let code = (config["versionCode"] as? NSNumber)?.intValue ?? 0
+        let vname = (config["versionName"] as? String) ?? ""
+        let outcome = baselineCode >= 0 ? "updated" : "installed"
+        sendUpdateEvent(
+          event: outcome == "installed" ? "installed" : "applied",
+          appId: appId, versionCode: code, versionName: vname, message: nil)
+        result(["outcome": outcome, "versionCode": code, "versionName": vname])
+      } catch {
+        result(FlutterError(
+          code: "INSTALL_FAILED", message: error.localizedDescription, details: nil))
+      }
     }
   }
 

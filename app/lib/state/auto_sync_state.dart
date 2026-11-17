@@ -248,16 +248,16 @@ class AutoSyncRunner {
       final http.Response response = await http
           .get(Uri.parse('$appHubBase/api/v1/apps'))
           .timeout(const Duration(seconds: 8));
-      final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
+        final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
       if (body is! Map || body['apps'] is! List) {
-        return const <AutoSyncOutcome>[];
+            return const <AutoSyncOutcome>[];
       }
       catalog = <Map<String, Object?>>[
         for (final dynamic app in body['apps'] as List<dynamic>)
           if (app is Map<String, Object?>) app,
       ];
     } catch (error) {
-      debugPrint('[autoSync] catalog fetch failed: $error');
+        debugPrint('[autoSync] catalog fetch failed: $error');
       return const <AutoSyncOutcome>[];
     }
 
@@ -294,11 +294,13 @@ class AutoSyncRunner {
       attempted: attempted,
       excluded: excluded,
     );
-    if (actions.isEmpty) return const <AutoSyncOutcome>[];
+    if (actions.isEmpty) {
+        return const <AutoSyncOutcome>[];
+    }
 
     final List<AutoSyncOutcome> outcomes = <AutoSyncOutcome>[];
     for (final AutoSyncAction action in actions) {
-      _attemptedAt[action.appId] =
+        _attemptedAt[action.appId] =
           _Attempt(action.targetVersionCode, DateTime.now());
       try {
         final Map<String, Object?>? result = await DiminaHost.sync(
@@ -319,7 +321,7 @@ class AutoSyncRunner {
           detail: outcome,
         ));
         debugPrint('[autoSync] $action → $outcome v$version');
-        if (ok) {
+            if (ok) {
           _attemptedAt.remove(action.appId); // 成功清冷却:下次目录对账无事可做
           if (action.kind == AutoSyncActionKind.install) {
             _installApplied.add(AutoSyncOutcome(
@@ -332,7 +334,7 @@ class AutoSyncRunner {
           }
         }
       } catch (error) {
-        outcomes.add(AutoSyncOutcome(
+            outcomes.add(AutoSyncOutcome(
           appId: action.appId,
           kind: action.kind,
           ok: false,
@@ -362,6 +364,7 @@ class AutoSyncSettings {
 }
 
 const String _autoSyncEnabledKey = 'autosync.enabled';
+
 
 /// 总开关 provider;`runIfDue` 是触发器(市场页加载/桌面目录落定时调用)。
 final autoSyncProvider =
