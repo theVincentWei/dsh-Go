@@ -7,6 +7,8 @@
 //   核对 × 快照档案兜底);目录请求异常(网络层抛错)时仍是旧的「AppHub 未
 //   连接」行动卡:远程主机给「一键安装 App Hub」,本机模式纯文案;自愈交给
 //   Riverpod 的失败自动重试 + 下拉刷新。
+// - 行点击进整页详情(ApphubAppDetailPage,截图/简介/权限/版本历史),不再
+//   直接拉起小程序;直开语义收在行内「打开」按钮上。
 //
 // 测试注记:已装清单经 HubInstalledController.fetcher 替身注入(与桌面已装
 // 清单测试同一注入点);默认替身命中 flutter_test 的 HttpClient 替身(400),
@@ -16,6 +18,7 @@ import 'package:dsh_app/state/ask_ai.dart';
 import 'package:dsh_app/state/compose_inbox.dart';
 import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/hosts_state.dart';
+import 'package:dsh_app/ui/applet/apphub_app_detail_page.dart';
 import 'package:dsh_app/ui/applet/apphub_install_guide.dart';
 import 'package:dsh_app/ui/applet/apphub_market_page.dart';
 import 'package:dsh_app/ui/applet/hub_apps_group.dart'
@@ -96,6 +99,27 @@ void main() {
     expect(find.text('获取'), findsNothing);
     expect(find.text('安装'), findsNothing);
     expect(find.text('更新'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('tapping an installed row opens the detail page, not the mini program', (tester) async {
+    HubInstalledController.fetcher = () async => <HubInstalledApp>[
+          _installed('wx5c7d8e9f1a2b3c4d', '刷题本'),
+        ];
+    await pumpMarket(tester);
+
+    await tester.tap(find.text('刷题本'));
+    await tester.pumpAndSettle();
+
+    // 行点击 = 详情页;市场页还在路由栈下(opaque 路由下层 offstage,
+    // finder 要显式带上),返回即回清单。
+    expect(find.byType(ApphubAppDetailPage), findsOneWidget);
+    expect(find.byType(ApphubMarketPage, skipOffstage: false), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(ApphubAppDetailPage), findsNothing);
+    expect(find.text('刷题本'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

@@ -4,7 +4,9 @@
 /// 「应用」页只给「敬请期待」占位;小程序一律由后台(万器 CLI)安装,APP 侧
 /// 静默同步落地,所以用户能看到的小程序都在「已安装」——数据源与桌面同一份
 /// [hubInstalledProvider](市场目录 × 本机已装核对 × 快照档案兜底),本页不再
-/// 提供「获取/更新」。目录请求异常(网络层抛错)时是旧的「AppHub 未连接」
+/// 提供「获取/更新」。点行进 [ApphubAppDetailPage] 详情页(截图/简介/权限/
+/// 版本历史,打开与卸载都收在详情页里),行内「打开」按钮才直接拉起小程序。
+/// 目录请求异常(网络层抛错)时是旧的「AppHub 未连接」
 /// 行动卡:远程主机给「一键安装 App Hub」,本机模式纯文案;自愈交给 Riverpod
 /// 的失败自动重试 + 下拉刷新,页面不另挂定时器。
 ///
@@ -30,6 +32,7 @@ import '../common/search_capsule.dart' show SearchCapsule;
 import '../common/segmented_pill.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
+import 'apphub_app_detail_page.dart' show ApphubAppDetailPage, HubAppRef;
 import 'apphub_install_guide.dart' show apphubInstallPrompt;
 import 'dimina/dimina_host.dart';
 import 'hub_app_icon.dart' show HubAppIcon, hubAppHasIcon;
@@ -109,6 +112,29 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
       // 打开可能触发静默升级,回来后按真实安装态重查一次。
       ref.invalidate(hubInstalledProvider);
     }
+  }
+
+  /// 点行进详情页(App Store 式整页:截图/简介/权限/版本历史,打开与卸载
+  /// 都收在详情页)。从详情页回来已装状态可能变了(详情页里装/升/卸),
+  /// 失效已装清单按真实状态重查。
+  Future<void> _showDetail(HubInstalledApp app) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ApphubAppDetailPage(
+          app: HubAppRef(
+            appId: app.appId,
+            name: app.name.isEmpty ? app.appId : app.name,
+            iconKey: app.iconKey,
+            iconUrl: app.iconUrl,
+            // 目录版本优先:详情端点拉不到时头部/信息卡也先有数;本机已装
+            // 版本只在目录缺失(档案兜底条目)时顶上。
+            versionCode: app.marketVersionCode ?? app.installedVersionCode,
+            autoSync: app.autoSync,
+          ),
+        ),
+      ),
+    );
+    if (mounted) ref.invalidate(hubInstalledProvider);
   }
 
   bool _matches(HubInstalledApp app) =>
@@ -239,7 +265,7 @@ class _ApphubMarketPageState extends ConsumerState<ApphubMarketPage> {
         onPressed: () => unawaited(_open(app)),
         child: Text(l10n.apphubOpen),
       ),
-      onTap: () => unawaited(_open(app)),
+      onTap: () => unawaited(_showDetail(app)),
     );
   }
 
