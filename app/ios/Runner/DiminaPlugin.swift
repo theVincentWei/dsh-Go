@@ -102,6 +102,7 @@ final class DiminaPlugin: NSObject {
 
   private init(channel: FlutterMethodChannel) {
     self.channel = channel
+    super.init()
     observeContainerEvents()
   }
 
