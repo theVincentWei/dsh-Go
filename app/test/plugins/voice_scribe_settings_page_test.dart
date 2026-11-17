@@ -38,7 +38,7 @@ Future<void> voiceReady(WidgetTester tester, bool Function() complete, String la
       await settle(tester);
       return;
     }
-  } while (elapsed.elapsed < const Duration(seconds: 20));
+  } while (elapsed.elapsed < const Duration(seconds: 5));
   fail('Voice settings did not reach $label');
 }
 
@@ -208,13 +208,26 @@ void main() {
       if (mode == 'plugin-restart') {
         final reads = server.requests.where((request) => request['action'] == 'get-settings').length;
         carrier.pluginChanged();
-        await voiceReady(
-          tester,
-          () =>
-              server.requests.where((request) => request['action'] == 'get-settings').length > reads &&
-              refreshEnabled(),
-          'plugin-change refresh',
-        );
+        final probe = Stopwatch()..start();
+        var probed = false;
+        do {
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+          await tester.pump(const Duration(milliseconds: 50));
+          final reqs = server.requests.where((request) => request['action'] == 'get-settings').length;
+          if (!probed && probe.elapsed > const Duration(seconds: 6)) {
+            // ignore: avoid_print
+            print('PROBE plugin-restart: reqs=$reqs reads=$reads refresh=${refreshEnabled()}');
+            probed = true;
+          }
+          if (reqs > reads && refreshEnabled()) {
+            await settle(tester);
+            break;
+          }
+        } while (probe.elapsed < const Duration(seconds: 20));
+        if (!(server.requests.where((request) => request['action'] == 'get-settings').length > reads &&
+            refreshEnabled())) {
+          fail('Voice settings did not reach plugin-change refresh');
+        }
       } else {
         container.read(selectedVoiceHost.notifier).state = mode == 'loading-with-old-data'
             // Model Riverpod retaining prior data during a pending host rebuild.
