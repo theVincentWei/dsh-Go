@@ -79,8 +79,19 @@ jobs:
           GOLDEN_PATHS: ${{ inputs.paths }}
         run: |
           python3 - <<'PY'
-          import os, shlex, subprocess, sys
-          paths = shlex.split(os.environ['GOLDEN_PATHS']) or ['test']
+          import os, pathlib, shlex, subprocess, sys
+          paths = shlex.split(os.environ['GOLDEN_PATHS'])
+          if not paths or paths == ['test']:
+              # Only golden-bearing test files: the full suite OOM-kills on the
+              # runner (runtime_logs_test) and non-golden failures must not
+              # block re-rendering anyway. matchesGoldenFile is the only golden
+              # API in this repo.
+              root = pathlib.Path('test')
+              paths = sorted(
+                  str(p) for p in root.rglob('*_test.dart')
+                  if 'matchesGoldenFile' in p.read_text(encoding='utf-8', errors='ignore')
+              )
+              print(f'rendering {len(paths)} golden-bearing test files')
           sys.exit(subprocess.call(['flutter', 'test', '--no-pub', '--update-goldens',
                                    '--concurrency=4', '--reporter', 'github', *paths]))
           PY
