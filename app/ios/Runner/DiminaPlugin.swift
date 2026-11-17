@@ -27,11 +27,16 @@ import Dimina
 ///   updateManifestUrl starts a bounded versionCode poll as a fallback
 ///   (installed/applied); ready/declined/failed are unobservable and never
 ///   fabricated. 完整里程碑需要 kit 暴露宿主钩子(Android listener 同形状)。
-/// - onDiminaEvent: floated / foregrounded / destroyed, driven by the host
-///   (no kit hook): floated on float, foregrounded when open() hits a retained
-///   background app, destroyed on close/uninstall of a tracked app.
-/// - onAskAi: skipped — the iOS kit has no Ask-AI menu tile at all (Android-side
-///   feature; nothing in DiminaKit to hook).
+/// - onDiminaEvent: floated / foregrounded / destroyed. Host-driven paths (no
+///   kit hook): floated on float, foregrounded when open() hits a retained
+///   background app, destroyed on close/uninstall of a tracked app. The
+///   container's own ⋯-menu float tile is a second floated source: kit posts
+///   `dimina.miniProgramFloated` after a successful hide and the host realigns
+///   the foreground/floated slots before forwarding the event.
+/// - onAskAi: the container's Ask-AI floating ball posts
+///   `dimina.miniProgramAskAiInvoked` on tap; the host forwards it verbatim to
+///   Dart as {appId, appName, pageTitle?, pagePath?} — the ask_ai_entry.dart
+///   chain subscribes onDiminaHost.askAiEvents and takes it from there.
 ///
 /// Mini programs render inside a host-presented UINavigationController
 /// ([navController]); the container pushes its pages onto it (DMPNavigator).
@@ -46,13 +51,19 @@ final class DiminaPlugin: NSObject {
   private var initialized = false
   private var lastDark: Bool?
   private var navController: UINavigationController?
+  /// 容器自治入口的系统通知观察者 token:NotificationCenter 对 block 观察者
+  /// 按 token 存活期回收,必须挂在实例上;插件是进程级单例(见 register(with:)),
+  /// 观察者与它同生命周期,不做反注册。
+  private var containerObservers: [NSObjectProtocol] = []
 
   // 前台/浮窗归属记账(单球语义、单导航栈:Dart 驱动的真实流是 float/close
   // 之后才 open 下一个)。floated 槽保留最近一次收后台的应用,供 resume 判定
-  // 与回收后的 destroyed 补发。
+  // 与回收后的 destroyed 补发。图标按 appId 记账:宿主 float() 与容器菜单
+  // 瓦片自行收栈(dimina.miniProgramFloated)两条路都取得到;离开前台不清
+  // (浮窗态还要用),应用销毁时随手清。
   private var foregroundApp: DMPApp?
   private var foregroundAppName: String?
-  private var foregroundIconPng: Data?
+  private var iconPngs: [String: Data] = [:]
   private var floatedApp: DMPApp?
 
   /// 升级里程碑兜底轮询(见 startUpdatePolling)。
@@ -61,6 +72,13 @@ final class DiminaPlugin: NSObject {
   /// 与 Dimina 小程序侧 `module` 参数一致(契约 §5.3 / 平台权限契约 v1 §6)。
   private static let notifyExtModule = "dsh-notify"
   private static let permissionsExtModule = "dsh-permissions"
+
+  /// 容器自治入口(⋯菜单「浮窗」瓦片/问AI悬浮球)成功后 POST 的系统通知;
+  /// 名字与 userInfo key 与容器侧 kit 一字不差,容器不经宿主通道自己发。
+  private static let miniProgramFloatedNotification =
+    Notification.Name("dimina.miniProgramFloated")
+  private static let miniProgramAskAiInvokedNotification =
+    Notification.Name("dimina.miniProgramAskAiInvoked")
 
   /// **订阅总闸(照 Android NotifyExtModule.AUTO_ACCEPT_WITHOUT_PANEL,2026-11-11
   /// 拍板:整套权限系统尚无设计,先全关、接口保留)**。true = 面板短路:不弹框、
@@ -84,6 +102,7 @@ final class DiminaPlugin: NSObject {
 
   private init(channel: FlutterMethodChannel) {
     self.channel = channel
+    observeContainerEvents()
   }
 
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -132,8 +151,15 @@ final class DiminaPlugin: NSObject {
     config.isDebugMode = false
     let appName = (args["name"] as? String) ?? appId
     // 宿主侧图标(bundle 图标/栅格 PNG):float 收后台时随 floated 事件回 Dart
-    // 画浮窗球(Android onFloated 的 iconPng 同源)。
+    // 画浮窗球(Android onFloated 的 iconPng 同源),按 appId 记账(容器菜单
+    // 瓦片自行收栈的通知路径也取得到)。同时落沙盒稳定路径交给 config.icon,
+    // 容器菜单头部按文件路径加载真图标。
     let iconPng = (args["iconPng"] as? FlutterStandardTypedData)?.data
+    if let iconPng {
+      // 写盘在 appWithConfig 前;失败返回 nil = config.icon 不动(容器按无
+      // 图标兜底),浮窗事件的内存记账不受影响。
+      config.icon = storeIconFile(appId: appId, png: iconPng)
+    }
 
     let manager = DMPAppManager.sharedInstance()
     let app = manager.appWithConfig(appConfig: config)
@@ -148,6 +174,7 @@ final class DiminaPlugin: NSObject {
       // 浮窗应用已被运行时回收/销毁(kit 无回收钩子,宿主只能在下次 open 时
       // 事后察觉):补一条 destroyed 让 Dart 收球,再走全新启动。
       clearFloatedState(appId: appId)
+      iconPngs[appId] = nil
       sendDiminaEvent(type: "destroyed", appId: appId, appName: nil, iconPng: nil)
     }
 
@@ -191,7 +218,7 @@ final class DiminaPlugin: NSObject {
       }
       foregroundApp = app
       foregroundAppName = appName
-      foregroundIconPng = iconPng
+      iconPngs[appId] = iconPng
       if resuming {
         clearFloatedState(appId: appId)
         sendDiminaEvent(type: "foregrounded", appId: appId, appName: nil, iconPng: nil)
@@ -242,6 +269,7 @@ final class DiminaPlugin: NSObject {
         teardownHostNavIfIdle()
         if foregroundApp?.getAppId() == appId { clearForegroundState() }
         clearFloatedState(appId: appId)
+        iconPngs[appId] = nil
         sendDiminaEvent(type: "destroyed", appId: appId, appName: nil, iconPng: nil)
       }
       result(ok)
@@ -273,7 +301,7 @@ final class DiminaPlugin: NSObject {
         return
       }
       let name = foregroundAppName ?? appId
-      let icon = foregroundIconPng
+      let icon = iconPngs[appId]
       floatedApp = app
       clearForegroundState()
       sendDiminaEvent(type: "floated", appId: appId, appName: name, iconPng: icon)
@@ -300,6 +328,7 @@ final class DiminaPlugin: NSObject {
           teardownHostNavIfIdle()
           clearForegroundState()
           clearFloatedState(appId: appId)
+          iconPngs[appId] = nil
           sendDiminaEvent(type: "destroyed", appId: appId, appName: nil, iconPng: nil)
         }
         result(true)
@@ -432,12 +461,91 @@ final class DiminaPlugin: NSObject {
   private func clearForegroundState() {
     foregroundApp = nil
     foregroundAppName = nil
-    foregroundIconPng = nil
+    // 图标不在这里清:per-appId 记账要跨前台→浮窗存活,销毁路径单独清。
   }
 
   private func clearFloatedState(appId: String) {
     guard floatedApp?.getAppId() == appId else { return }
     floatedApp = nil
+  }
+
+  // MARK: - 容器自治入口事件(⋯菜单瓦片/问AI悬浮球 → NotificationCenter 转发)
+
+  /// 容器 ⋯ 菜单「浮窗」瓦片收栈成功(kit 自 hide,不经宿主 float 通道):
+  /// 对齐宿主浮窗记账(语义照 float() 成功分支——前台归属让位给浮窗槽)后
+  /// 回 floated 事件让 Dart 挂球。宿主前台槽不指向该应用时不脏写槽位(单栈
+  /// 语义下只可能是记账漂移,下次 open/close 会校正),事件照发。
+  private func handleContainerFloated(appId: String, appName: String?) {
+    guard !appId.isEmpty else { return }
+    if let foreground = foregroundApp, foreground.getAppId() == appId {
+      floatedApp = foreground
+      clearForegroundState()
+    }
+    sendDiminaEvent(type: "floated", appId: appId, appName: appName, iconPng: iconPngs[appId])
+  }
+
+  /// 容器问AI悬浮球点击 → onAskAi 原样透传(app_ai 进场链路在 Dart
+  /// ask_ai_entry.dart)。appName 用前台记账的名字,拿不到落 appId;
+  /// pageTitle/pagePath 可缺省,缺省键不上报(Dart 侧按 null 容错)。
+  private func forwardAskAi(appId: String, pageTitle: String?, pagePath: String?) {
+    guard !appId.isEmpty else { return }
+    var payload: [String: Any] = [
+      "appId": appId,
+      "appName": foregroundAppName ?? appId,
+    ]
+    if let pageTitle { payload["pageTitle"] = pageTitle }
+    if let pagePath { payload["pagePath"] = pagePath }
+    channel.invokeMethod("onAskAi", arguments: payload)
+  }
+
+  /// 观察者与插件单例同生命周期(不做反注册);kit 可能在任意线程 POST,
+  /// 统一跳主线程再碰 UI/channel(与 ext-module 回调同一跳法)。
+  private func observeContainerEvents() {
+    let center = NotificationCenter.default
+    containerObservers.append(center.addObserver(
+      forName: Self.miniProgramFloatedNotification, object: nil, queue: nil
+    ) { [weak self] notification in
+      guard let self else { return }
+      let userInfo = notification.userInfo ?? [:]
+      let appId = userInfo["appId"] as? String ?? ""
+      let appName = userInfo["appName"] as? String
+      Task { @MainActor in
+        self.handleContainerFloated(appId: appId, appName: appName)
+      }
+    })
+    containerObservers.append(center.addObserver(
+      forName: Self.miniProgramAskAiInvokedNotification, object: nil, queue: nil
+    ) { [weak self] notification in
+      guard let self else { return }
+      let userInfo = notification.userInfo ?? [:]
+      let appId = userInfo["appId"] as? String ?? ""
+      let pageTitle = userInfo["pageTitle"] as? String
+      let pagePath = userInfo["pagePath"] as? String
+      Task { @MainActor in
+        self.forwardAskAi(appId: appId, pageTitle: pageTitle, pagePath: pagePath)
+      }
+    })
+  }
+
+  /// open 带来的图标 png 落 app 沙盒稳定路径,返回给 DMPAppConfig.icon 的
+  /// 绝对路径(kit 按文件路径加载 png);目录不存在则创建,写盘失败返回 nil,
+  /// 调用方不设 config.icon。
+  private func storeIconFile(appId: String, png: Data) -> String? {
+    guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+      return nil
+    }
+    let url = documents
+      .appendingPathComponent("Dimina", isDirectory: true)
+      .appendingPathComponent(".icons", isDirectory: true)
+      .appendingPathComponent("\(appId).png")
+    do {
+      try FileManager.default.createDirectory(
+        at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try png.write(to: url, options: .atomic)
+      return url.path
+    } catch {
+      return nil
+    }
   }
 
   /// 关闭/卸载成功后清理宿主导航栈:仍呈现 → 收模态并弃用(回到 Flutter 界面);
