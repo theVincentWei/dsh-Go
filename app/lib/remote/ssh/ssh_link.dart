@@ -119,7 +119,6 @@ class SshHostLink implements HostLink {
     DshClientConnector? connectClient,
     DshReadyWait? waitReady,
     Stream<void>? kicks,
-    this.backgroundGap,
     Backoff? backoff,
     this.remoteEnvironment = const {},
     this.keepAliveInterval = const Duration(seconds: 15),
@@ -175,17 +174,6 @@ class SshHostLink implements HostLink {
   final DshClientConnector _connectClient;
   final DshReadyWait _waitReady;
   final Backoff _backoff;
-
-  /// How long the app was hidden right before the newest resume kick; null
-  /// when unknown (tests, first launch). A gap past [_assumeDeadAfter] lets
-  /// the kick skip probing: after a long freeze the socket is dead, so
-  /// reconnect right away instead of paying the probe wait first.
-  final Duration? Function()? backgroundGap;
-
-  /// Background length past which a resume kick assumes the link died. Below
-  /// it the kick probes first: on a quick app switch the sockets usually
-  /// survive, and a 2s probe keeps them without any reconnect churn.
-  static const _assumeDeadAfter = Duration(seconds: 15);
 
   /// 本地绑死的 AppHub 转发口(默认 = kAppHubRemotePort):小程序硬编码
   /// `http://127.0.0.1:7610`,与仿真器 adb reverse tcp:7610 同款语义。
@@ -587,17 +575,23 @@ class SshHostLink implements HostLink {
     return false;
   }
 
-  void _lost(HostLinkError reason) {
+  void _lost(HostLinkError reason, {bool immediateReconnect = false}) {
     if (_closed || _recovering || _status.phase == HostLinkPhase.failed) return;
     if (_status.phase != HostLinkPhase.connected) return;
     _teardownTransport();
-    unawaited(_recover(reason).then((_) {}, onError: (_) {}));
+    unawaited(
+      _recover(reason, immediate: immediateReconnect).then((_) {}, onError: (_) {}),
+    );
   }
 
   /// Reconnect loop with backoff. Resolves with the (possibly new) client.
-  Future<DshClient> _recover(HostLinkError reason) async {
+  /// [immediate] skips the first backoff wait — the caller already confirmed
+  /// the link is dead (kick probe failed), so sleeping before attempt #1 is
+  /// pure added latency; backoff still applies from attempt #2 on.
+  Future<DshClient> _recover(HostLinkError reason, {bool immediate = false}) async {
     _recovering = true;
     var last = reason;
+    var skipFirstWait = immediate;
     try {
       while (!_closed) {
         if (_backoff.exhausted) {
@@ -611,7 +605,13 @@ class SshHostLink implements HostLink {
           _fail(error);
           throw error;
         }
-        final delay = _backoff.next();
+        // 免等待只给第一跳,且照常计入 attempt:首连失败后第二轮起必须
+        // 回到正常退避,否则会退化成零间隔的紧密重试循环。
+        final delay = skipFirstWait ? Duration.zero : _backoff.next();
+        if (skipFirstWait) {
+          skipFirstWait = false;
+          _backoff.attempt++;
+        }
         _emit(
           HostLinkStatus(
             HostLinkPhase.reconnecting,
@@ -666,7 +666,8 @@ class SshHostLink implements HostLink {
 
   /// Treats the current transport as killed by the environment and goes
   /// straight into the reconnect loop; the kick's fast path for links it
-  /// already knows are dead.
+  /// already knows are dead. The death was just confirmed by a failed probe,
+  /// so the first reconnect attempt skips the backoff wait entirely.
   void _kickReconnect() {
     _backoff.reset();
     _lost(
@@ -676,6 +677,7 @@ class SshHostLink implements HostLink {
         retryable: true,
         diagnosticCode: HostLinkDiagnosticCode.sshKickProbeFailed,
       ),
+      immediateReconnect: true,
     );
   }
 
@@ -684,18 +686,14 @@ class SshHostLink implements HostLink {
     if (_closed) return;
     switch (_status.phase) {
       case HostLinkPhase.connected:
-        // 长后台(进程冻结/网络掉线,socket 基本必死)不探活,直接重连——
-        // 探活只是把必然发生的重连往后推一个超时;短后台先 2s 快探,把还
-        // 活着的链路保住,免得每次快速切 App 都白重建一遍(Discord 网关
-        // 同一语义:僵尸连接立即终止重连,活连接不折腾)。
-        final gap = backgroundGap?.call();
-        if (gap != null && gap >= _assumeDeadAfter) {
-          _kickReconnect();
-        } else {
-          unawaited(() async {
-            if (!await _ping(const Duration(seconds: 2))) _kickReconnect();
-          }());
-        }
+        // 探活优先,断连/没断连都快:活链路 ping 一个 RTT 就回,零打扰不
+        // 重建(Android 真机后台 NAT 常几分钟内不掉,盲拆会白断一次);
+        // 死链路要么立即报错(接口消失/RST),要么最多等 2s 超时,然后
+        // 首跳零等待直连重连。旧「长后台必死」盲拆 + 过期 gap 已删——
+        // 那条路在 Android 上把每次亮屏都变成断线。
+        unawaited(() async {
+          if (!await _ping(const Duration(seconds: 2))) _kickReconnect();
+        }());
       case HostLinkPhase.reconnecting:
         _backoff.reset();
         _delay.skip();
