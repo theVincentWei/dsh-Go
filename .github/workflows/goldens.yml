@@ -10,7 +10,7 @@ on:
         default: test
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: goldens-${{ github.ref }}
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          persist-credentials: false
+          persist-credentials: true
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -99,6 +99,18 @@ jobs:
           sys.exit(subprocess.call(['flutter', 'test', '--no-pub', '--update-goldens',
                                    '--concurrency=4', '--reporter', 'github', *paths]))
           PY
+      - name: Commit rendered baselines to this branch
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "goldens-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- app/test
+          if git diff --cached --quiet; then
+            echo 'No golden changes; nothing to commit'
+          else
+            git commit -m "test(goldens): CI Linux 全量重录(${GITHUB_SHA:0:8} 渲染)"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
       - name: Collect changed golden images
         if: always() && steps.render.outcome != 'skipped'
         env:
