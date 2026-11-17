@@ -10,3 +10,9 @@
 "Opens a new conversation and starts dictating." = "新建对话并开始听写。";
 "New Conversation" = "新建对话";
 "Opens a new conversation." = "新建对话。";
+/* 小程序订阅通知面板(dsh-notify,文案与 Android dsh_notify_* 同源) */
+"Subscribe to notifications" = "订阅通知";
+"“%@” would like to send you notifications after you act. Each subscription covers one message." = "「%@」想在你操作后给你发通知。一次订阅只发一条，发完就结束。";
+"Notification %lld" = "通知 %lld";
+"Allow" = "允许";
+"Reject" = "拒绝";

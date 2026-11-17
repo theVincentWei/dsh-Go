@@ -10,5 +10,7 @@
 "NSSpeechRecognitionUsageDescription" = "把语音输入转成文字。手机不能在本机识别时，音频会交给 Apple 的语音服务处理。";
 "NSPhotoLibraryUsageDescription" = "选择图片作为附件发给 DSH。";
 "NSPhotoLibraryAddUsageDescription" = "把生成的图片存到相册。";
+"NSBluetoothAlwaysUsageDescription" = "允许小程序连接蓝牙设备。";
+"NSMotionUsageDescription" = "允许小程序读取运动数据，例如步数。";
 "New chat" = "新对话";
 "Voice input" = "语音输入";
