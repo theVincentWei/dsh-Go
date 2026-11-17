@@ -5,8 +5,11 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Directory, File, Platform;
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:archive/archive.dart' show Archive, ArchiveFile, ZipDecoder, ZipEncoder;
+import 'package:crypto/crypto.dart' show sha256;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
@@ -365,6 +368,16 @@ final class DiminaHost {
     String? updateManifestUrl,
   }) async {
     _ensureNativeEventHandler();
+    // iOS:kit 没有 syncMiniProgram 静默原语,清单/下载/包处理在 Dart 完成
+    // (公开面只有 installMiniProgram 吃本地 zip),原生只装。Android 原生直接 sync。
+    if (!kIsWeb && Platform.isIOS) {
+      return _syncViaPreparedPackage(
+        appId: appId,
+        name: name,
+        versionCode: versionCode,
+        updateManifestUrl: updateManifestUrl,
+      );
+    }
     try {
       return await _channel.invokeMapMethod<String, Object?>('sync', <String, Object?>{
         'appId': appId,
@@ -376,6 +389,113 @@ final class DiminaHost {
       // 老原生没有 'sync':notImplemented → PlatformException(unimplemented)。
       debugPrint('[dimina] sync unsupported: ${error.code}');
       return null;
+    }
+  }
+
+  /// iOS 静默同步:按 kit preparePackage 的语义在 Dart 侧完成——拉清单 →
+  /// 版本闸(已装 ≥ 清单 = noupdate)→ 下载 zip(清单带 sha256 才验)→ 注入
+  /// config.json 重打包(公开 installMiniProgram 期望包根带 config.json;货架
+  /// wanqi 包没有,kit 对内置包也是宿主写)→ 原生 installMiniProgram 装本地包
+  /// (自动关掉在跑的旧版)。四态 outcome 与 Android syncMiniProgram 同形状。
+  static Future<Map<String, Object?>?> _syncViaPreparedPackage({
+    required String appId,
+    required String name,
+    int versionCode = 0,
+    String? updateManifestUrl,
+  }) async {
+    Map<String, Object?> failed([int? code]) => <String, Object?>{
+      'outcome': 'failed',
+      'versionCode': code ?? versionCode,
+      'versionName': '',
+    };
+    try {
+      final String manifestUrl = updateManifestUrl ?? '';
+      if (manifestUrl.isEmpty) return failed();
+      // 1. 清单(形状=kit RemoteUpdateManifest:root['data'] ?? root)。
+      final http.Response manifestRes =
+          await http.get(Uri.parse(manifestUrl)).timeout(const Duration(seconds: 8));
+      if (manifestRes.statusCode != 200) {
+        return failed();
+      }
+      final Object? manifestBody = jsonDecode(utf8.decode(manifestRes.bodyBytes));
+      final Object? manifestPayload =
+          manifestBody is Map && manifestBody['data'] is Map ? manifestBody['data'] : manifestBody;
+      if (manifestPayload is! Map) return failed();
+      final String manifestAppId = manifestPayload['appId'] as String? ?? '';
+      final int manifestVersion =
+          (manifestPayload['versionCode'] as num?)?.toInt() ?? 0;
+      final String packageUrl = manifestPayload['packageUrl'] as String? ?? '';
+      final String manifestPath = manifestPayload['path'] as String? ?? '';
+      final String manifestVersionName = manifestPayload['versionName'] as String? ?? '';
+      final String? sha256Hex = manifestPayload['sha256'] as String?;
+      if (manifestAppId != appId || manifestVersion <= 0 || packageUrl.isEmpty) {
+        return failed(manifestVersion);
+      }
+      // 2. 版本闸:已装 ≥ 清单版 = noupdate(照 Android syncMiniProgram)。
+      final Map<String, Object?>? local = await installed(appId);
+      final int localVersion = (local?['versionCode'] as num?)?.toInt() ?? -1;
+      if (manifestVersion <= localVersion) {
+        return <String, Object?>{
+          'outcome': 'noupdate',
+          'versionCode': localVersion < 0 ? manifestVersion : localVersion,
+          'versionName': (local?['versionName'] as String?) ?? manifestVersionName,
+        };
+      }
+      // 3. 下载(经反代/隧道,http 走 Dart 不受 ATS 限制)。
+      final http.Response packageRes =
+          await http.get(Uri.parse(packageUrl)).timeout(const Duration(seconds: 60));
+      if (packageRes.statusCode != 200) {
+        return failed(manifestVersion);
+      }
+      final Uint8List packageBytes = packageRes.bodyBytes;
+      // 4. sha256(清单带才验,语义同 kit preparePackage)。
+      if (sha256Hex != null && sha256Hex.isNotEmpty) {
+        final String actual = sha256.convert(packageBytes).toString();
+        if (actual.toLowerCase() != sha256Hex.toLowerCase()) {
+            return failed(manifestVersion);
+        }
+      }
+      // 5. 注入 config.json 重打包(货架 wanqi 包根没有 config.json,kit 的
+      // installLocalPackage 要求包根自带;内容与 kit writeConfig 同形状)。
+      final Archive archive = ZipDecoder().decodeBytes(packageBytes);
+      final Archive prepared = Archive();
+      for (final ArchiveFile file in archive.files) {
+        if (!file.isFile) continue;
+        prepared.addFile(ArchiveFile.bytes(file.name, file.content));
+      }
+      prepared.addFile(ArchiveFile.bytes('config.json', utf8.encode(jsonEncode(<String, Object?>{
+        'appId': appId,
+        'name': name,
+        'path': manifestPath,
+        'versionCode': manifestVersion,
+        'versionName': manifestVersionName,
+      }))));
+      final List<int> preparedBytes = ZipEncoder().encode(prepared);
+      // 6. 落盘 → 原生安装。
+      final Directory tempDir = await Directory.systemTemp.createTemp('dimina-shelf');
+      final String packagePath = '${tempDir.path}/$appId-$manifestVersion.zip';
+      await File(packagePath).writeAsBytes(preparedBytes, flush: true);
+      final Map<String, Object?>? result = await _channel
+          .invokeMapMethod<String, Object?>('install', <String, Object?>{
+        'appId': appId,
+        'packagePath': packagePath,
+      });
+      try {
+        Directory(tempDir.path).deleteSync(recursive: true);
+      } catch (_) {
+        // 临时目录清理失败可忽略(系统会回收)。
+      }
+      if (result == null) return null;
+      return <String, Object?>{
+        'outcome': result['outcome'] as String? ?? 'failed',
+        'versionCode': (result['versionCode'] as num?)?.toInt() ?? manifestVersion,
+        'versionName': (result['versionName'] as String?) ?? manifestVersionName,
+      };
+    } on PlatformException {
+      // 老原生无 'install' → null → 调用方按 failed 处理。
+      return null;
+    } catch (_) {
+      return failed();
     }
   }
 }
