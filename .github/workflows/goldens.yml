@@ -84,12 +84,16 @@ jobs:
           if not paths or paths == ['test']:
               # Only golden-bearing test files: the full suite OOM-kills on the
               # runner (runtime_logs_test) and non-golden failures must not
-              # block re-rendering anyway. matchesGoldenFile is the only golden
-              # API in this repo.
+              # block re-rendering anyway. Golden tests either call
+              # matchesGoldenFile inline or pump through shell/golden_harness,
+              # so match both signatures (plus literal goldens/ paths); this
+              # over-collect is harmless under --update-goldens.
               root = pathlib.Path('test')
+              patterns = ('matchesGoldenFile', 'golden_harness', 'goldens/')
               paths = sorted(
                   str(p) for p in root.rglob('*_test.dart')
-                  if 'matchesGoldenFile' in p.read_text(encoding='utf-8', errors='ignore')
+                  if any(s in p.read_text(encoding='utf-8', errors='ignore')
+                         for s in patterns)
               )
               print(f'rendering {len(paths)} golden-bearing test files')
           sys.exit(subprocess.call(['flutter', 'test', '--no-pub', '--update-goldens',
