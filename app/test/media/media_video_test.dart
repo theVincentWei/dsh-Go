@@ -25,6 +25,7 @@ class _Files extends ArtifactFiles {
   final bool local;
   int reads = 0;
   int external = 0;
+  int shares = 0;
   @override
   bool get isLocal => local;
   @override
@@ -50,6 +51,11 @@ class _Files extends ArtifactFiles {
     void Function(double?)? onProgress,
   }) async {
     external++;
+  }
+
+  @override
+  Future<void> share(String sessionId, Artifact artifact, {void Function(double?)? onProgress}) async {
+    shares++;
   }
 }
 
@@ -352,14 +358,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('unsupported playback can retry or open original Host externally', (tester) async {
+  testWidgets('unsupported playback can retry or share via the original Host', (tester) async {
     final files = _Files();
     final video = _Video()..failOpen = true;
     await _pumpViewer(tester, files, video);
     expect(find.text(appL10n.mediaVideoCannotPlay), findsOneWidget);
-    await tester.tap(find.byTooltip(appL10n.mediaOpenElsewhere));
+    await tester.tap(find.byTooltip(appL10n.commonShare));
     await tester.pump();
-    expect(files.external, 1);
+    expect(files.shares, 1);
     video.failOpen = false;
     await tester.tap(find.text(appL10n.commonRetry));
     await tester.pump();

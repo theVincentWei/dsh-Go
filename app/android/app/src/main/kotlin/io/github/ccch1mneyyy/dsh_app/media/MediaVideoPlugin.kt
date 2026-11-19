@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.WindowManager
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -38,6 +39,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
     private var activity: Activity? = null
     private var foreground = false
     private var attached = false
+    private var keepScreenOn = false
     private var focusListener: AudioManager.OnAudioFocusChangeListener? = null
     private class Clip(val producer: TextureRegistry.SurfaceProducer, val player: MediaPlayer) {
         var prepared = false
@@ -94,9 +96,10 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                             if (!requestFocus()) { result.error("audio_focus", "audio focus unavailable", null); return }
                             clips.values.filter { it !== clip && it.prepared }.forEach { runCatching { it.player.pause() } }
                             clip.player.start()
+                            updateKeepScreenOn()
                             result.success(null)
                         }
-                        "pause" -> { clip.player.pause(); abandonFocus(); result.success(null) }
+                        "pause" -> { clip.player.pause(); abandonFocus(); updateKeepScreenOn(); result.success(null) }
                         "seek" -> {
                             val position = MediaVideos.seek(call.argument<Number>("positionMs")?.toLong() ?: 0, clip.player.duration)
                             if (Build.VERSION.SDK_INT >= 26) clip.player.seekTo(position.toLong(), MediaPlayer.SEEK_CLOSEST_SYNC) else clip.player.seekTo(position)
@@ -150,7 +153,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             })
             p.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build())
             p.setOnVideoSizeChangedListener { _, w, h -> if (clips[id] === clip && w > 0 && h > 0) surface.setSize(w, h) }
-            p.setOnCompletionListener { if (clips[id] === clip) abandonFocus() }
+            p.setOnCompletionListener { if (clips[id] === clip) { abandonFocus(); updateKeepScreenOn() } }
             p.setOnInfoListener { _, what, _ ->
                 if (clips[id] !== clip) return@setOnInfoListener false
                 when (what) {
@@ -210,8 +213,19 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
     private fun pauseAll() {
         clips.values.filter { it.prepared }.forEach { runCatching { it.player.pause() } }
         abandonFocus()
+        updateKeepScreenOn()
     }
     private fun closeAll() { clips.keys.toList().forEach { close(it) }; abandonFocus() }
+
+    /** 播放中屏幕常亮:窗口级 FLAG_KEEP_SCREEN_ON,前台有效、暂停即灭,不需要任何权限。 */
+    private fun updateKeepScreenOn() {
+        val on = clips.values.any { it.prepared && runCatching { it.player.isPlaying }.getOrDefault(false) }
+        if (on == keepScreenOn) return
+        keepScreenOn = on
+        val window = activity?.window ?: return
+        if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
     private fun close(id: Long, code: String = "closed") {
         val clip = clips.remove(id) ?: return
         clip.timeout?.let(main::removeCallbacks)
@@ -220,6 +234,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
         runCatching { clip.player.release() }
         runCatching { clip.producer.release() }
         if (clips.isEmpty()) abandonFocus()
+        updateKeepScreenOn()
     }
 
     private fun poster(path: String?, result: MethodChannel.Result) {
