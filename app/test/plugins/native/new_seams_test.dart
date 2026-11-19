@@ -138,7 +138,7 @@ void main() {
       );
       await open(tester, row);
       final key = find.byKey(const ValueKey('plus-tool|p|stickers'));
-      final gallery = tester.getSize(find.widgetWithText(PlusTile, '相册'));
+      final gallery = tester.getSize(find.widgetWithText(PlusTile, '照片和视频'));
       expect(tester.getSize(key).width, moreOrLessEquals(gallery.width, epsilon: 40));
       await tester.tap(key);
       await tester.pumpAndSettle();
