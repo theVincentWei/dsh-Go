@@ -162,6 +162,16 @@ class VideoStreamServer {
     inner?.dispose();
   }
 
+  /// How far this stream's bytes have been fetched: `(frontier, total)`, or
+  /// null when the session is gone or its size is not known yet. The viewer
+  /// maps the byte frontier onto the timeline for the 缓冲条 (a linear
+  /// approximation — good enough for "下到哪了", not for frame seeking).
+  (int, int)? bufferedSnapshot(Uri url) {
+    final entry = _sessions[_tokenOf(url)];
+    if (entry == null) return null;
+    return entry.$2.bufferSnapshot();
+  }
+
   /// Closes the socket and every session. Tests only.
   @visibleForTesting
   Future<void> shutdown() async {
@@ -195,6 +205,7 @@ class VideoStreamServer {
     final response = request.response;
     try {
       final total = await inner.source.totalBytes();
+      inner.noteTotal(total);
       final range = _parseRange(request.headers.value(HttpHeaders.rangeHeader), total);
       if (range == null) {
         response.statusCode = HttpStatus.requestedRangeNotSatisfiable;
@@ -326,15 +337,33 @@ class _StreamSession {
   final Map<int, Future<Uint8List>> _inflight = {};
   int _cachedBytes = 0;
   int _prefetchedTo = -1;
+
+  /// Highest byte offset whose window has fully arrived, and the file size
+  /// once known. Together they answer "缓冲到哪了" without asking the player.
+  int _frontierBytes = 0;
+  int? _totalBytes;
   bool _disposed = false;
 
   bool get disposed => _disposed;
+
+  /// `(frontier, total)` or null before the size is known. The frontier never
+  /// shrinks on eviction: it reports what has been downloaded, not what is
+  /// still resident.
+  (int, int)? bufferSnapshot() {
+    final total = _totalBytes;
+    if (total == null || total <= 0) return null;
+    return (min(_frontierBytes, total), total);
+  }
+
+  void noteTotal(int total) => _totalBytes = total;
 
   void dispose() {
     _disposed = true;
     _inflight.clear();
     _windows.clear();
     _cachedBytes = 0;
+    _frontierBytes = 0;
+    _totalBytes = null;
   }
 
   Future<Uint8List> windowData(int index) {
@@ -353,6 +382,7 @@ class _StreamSession {
       if (!_disposed && data.isNotEmpty) {
         _windows[index] = data;
         _cachedBytes += data.length;
+        _frontierBytes = max(_frontierBytes, index * videoStreamWindowBytes + data.length);
         _evict();
       }
       return data;

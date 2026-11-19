@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/media/gallery.dart';
 import 'package:dsh_app/media/video.dart';
+import 'package:dsh_app/media/video_progress.dart';
 import 'package:dsh_app/media/video_stream_server.dart';
 import 'package:dsh_app/state/artifact_files.dart';
 import 'package:dsh_app/state/artifacts.dart';
@@ -13,6 +15,7 @@ import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _item = MediaItem(path: '/host/movie.mp4', mime: 'video/mp4');
 const _handle = MediaVideoHandle(texture: 17, width: 1920, height: 1080, durationMs: 5000);
@@ -60,6 +63,7 @@ class _Video extends MediaVideoChannel {
   bool playing = false;
   bool failOpen = false;
   Completer<MediaVideoHandle>? delayedOpen;
+  final trace = <String>[];
   @override
   Future<Uint8List?> poster(String path) async {
     posters++;
@@ -69,6 +73,7 @@ class _Video extends MediaVideoChannel {
   @override
   Future<MediaVideoHandle> open(String path) async {
     opens++;
+    trace.add('open');
     if (failOpen) throw PlatformException(code: 'unsupported');
     return delayedOpen == null ? _handle : delayedOpen!.future;
   }
@@ -76,26 +81,28 @@ class _Video extends MediaVideoChannel {
   @override
   Future<void> play(int texture) async {
     plays++;
-    // ignore: avoid_print
-    print('PROBE play#$plays at ${DateTime.now().microsecondsSinceEpoch % 10000000}');
+    trace.add('play');
     playing = true;
   }
 
   @override
   Future<void> pause(int texture) async {
     pauses++;
+    trace.add('pause');
     playing = false;
   }
 
   @override
   Future<void> close(int texture) async {
     closes++;
+    trace.add('close');
     playing = false;
   }
 
   @override
   Future<void> seek(int texture, int positionMs) async {
     position = positionMs;
+    trace.add('seek:$positionMs');
   }
 
   @override
@@ -109,8 +116,16 @@ class _StreamVideo extends _Video {
   bool failUrlOpen = false;
   Object? urlOpenError;
   final speeds = <double>[];
+  final frameUrls = <int>[];
+  final frames = <int>[];
+  // 1×1 PNG:预览卡要用真图片解码,垃圾字节会炸 Image.resource。
+  Uint8List? frameBytes = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  );
   @override
   bool get supportsUrlSource => true;
+  @override
+  bool get supportsFrameExtraction => true;
   @override
   Future<void> speed(int texture, double rate) async {
     speeds.add(rate);
@@ -118,6 +133,7 @@ class _StreamVideo extends _Video {
   @override
   Future<MediaVideoHandle> openUrl(String url) async {
     urlOpens++;
+    trace.add('openUrl');
     if (!url.startsWith('http://127.0.0.1:')) throw ArgumentError.value(url, 'url', 'expected the loopback proxy');
     if (failUrlOpen) throw urlOpenError ?? PlatformException(code: 'playback');
     return _handle;
@@ -126,6 +142,17 @@ class _StreamVideo extends _Video {
   Future<Uint8List?> posterUrl(String url) async {
     posterUrls++;
     return Uint8List.fromList([9, 8, 7]);
+  }
+  @override
+  Future<Uint8List?> frameUrl(String url, int timeMs) async {
+    if (!url.startsWith('http://127.0.0.1:')) throw ArgumentError.value(url, 'url', 'expected the loopback proxy');
+    frameUrls.add(timeMs);
+    return frameBytes;
+  }
+  @override
+  Future<Uint8List?> frame(String path, int timeMs) async {
+    frames.add(timeMs);
+    return frameBytes;
   }
 }
 
@@ -138,6 +165,12 @@ class _StreamServer extends VideoStreamServer {
   }
 }
 
+/// 缓冲条测试桩:代理会话已注册但字节前沿是假数据。
+class _BufferedServer extends _StreamServer {
+  @override
+  (int, int)? bufferedSnapshot(Uri url) => (512, 1024);
+}
+
 Future<void> _doubleTap(WidgetTester tester) async {
   await tester.tap(find.byType(Texture));
   await tester.pump(const Duration(milliseconds: 60));
@@ -145,7 +178,13 @@ Future<void> _doubleTap(WidgetTester tester) async {
   await tester.pump();
 }
 
-Future<void> _pumpViewer(WidgetTester tester, _Files files, _Video video, [VideoStreamServer? streams]) async {
+Future<void> _pumpViewer(
+  WidgetTester tester,
+  _Files files,
+  _Video video, [
+  VideoStreamServer? streams,
+  VideoProgressStore? progress,
+]) async {
   await tester.pumpWidget(
     MaterialApp(
       home: MediaVideoViewerPage(
@@ -155,6 +194,7 @@ Future<void> _pumpViewer(WidgetTester tester, _Files files, _Video video, [Video
         video: video,
         gallery: const MediaChannel(),
         streamServer: streams,
+        progressStore: progress,
       ),
     ),
   );
@@ -378,6 +418,37 @@ void main() {
     expect(calls.single.arguments, {'url': 'http://127.0.0.1:41235/v/abc/movie.mp4'});
   });
 
+  test('channel forwards frame requests with the exact arguments', () async {
+    const channel = MethodChannel('test/video-frame');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return Uint8List.fromList([7]);
+    });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null),
+    );
+    const video = MediaVideoChannel(channel);
+    expect(await video.frameUrl('http://127.0.0.1:41235/v/abc/movie.mp4', 1200), isNotNull);
+    expect(await video.frame('/phone/movie.mp4', 300), isNotNull);
+    expect(calls.map((c) => c.method), ['frameUrl', 'frame']);
+    expect(calls[0].arguments, {'url': 'http://127.0.0.1:41235/v/abc/movie.mp4', 'timeMs': 1200});
+    expect(calls[1].arguments, {'path': '/phone/movie.mp4', 'timeMs': 300});
+  });
+
+  test('channel rejects foreign URLs and relative paths for frames', () async {
+    const video = MediaVideoChannel();
+    for (final url in [
+      'https://127.0.0.1/v/t/a.mp4',
+      'http://192.168.1.5:8080/v/t.mp4',
+      'http://example.com/v/t/a.mp4',
+      'file:///tmp/a.mp4',
+    ]) {
+      expect(() => video.frameUrl(url, 100), throwsArgumentError);
+    }
+    expect(() => video.frame('relative.mp4', 100), throwsArgumentError);
+  });
+
   testWidgets('remote videos stream over the loopback proxy and download only on save', (tester) async {
     final files = _Files();
     final video = _StreamVideo();
@@ -491,6 +562,121 @@ void main() {
     await tester.pump();
     final expected = (dx / width * 120 * 1000).round().clamp(0, 5000);
     expect(video.position, expected, reason: 'drag preview target became the seek');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('dragging the video pulls a frame preview for the target time', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo();
+    await _pumpViewer(tester, files, video, _StreamServer());
+    final center = tester.getCenter(find.byType(Texture));
+    final gesture = await tester.startGesture(center);
+    // 第一步过 slop(只起 start),第二步才出 update:预览目标跟着移动走。
+    await gesture.moveBy(const Offset(kDragSlopDefault, 0));
+    await tester.pump();
+    await gesture.moveBy(const Offset(42, 0));
+    // 预览去抖 120ms 后才取帧;流式源走 loopback frameUrl。
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(video.frameUrls, isNotEmpty);
+    expect(video.frameUrls.last, 5000, reason: '时长夹紧到 5s');
+    expect(find.byType(Image), findsOneWidget, reason: '预览卡里是抽到的帧');
+    await gesture.up();
+    await tester.pump();
+    expect(video.position, 5000, reason: '松手才真正 seek');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('opening resumes from the saved position and says so', (tester) async {
+    final key = VideoProgressStore.keyFor(hostId: null, sessionId: 's1', path: _item.path);
+    SharedPreferences.setMockInitialValues({
+      videoProgressPrefsKey: jsonEncode({
+        key: {'positionMs': 2000, 'durationMs': 5000, 'updatedAt': 1700000000000},
+      }),
+    });
+    final video = _StreamVideo();
+    await _pumpViewer(tester, _Files(), video, _StreamServer());
+    // 测试环境生命周期不是 resumed,不会自动播;先定位再等着用户点播放。
+    expect(video.trace, ['openUrl', 'seek:2000']);
+    expect(find.text(appL10n.mediaVideoResumed(mediaVideoTime(2000))), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3, milliseconds: 100));
+    expect(find.text(appL10n.mediaVideoResumed(mediaVideoTime(2000))), findsNothing, reason: '徽标亮几秒就走');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('a nearly finished or changed video starts over', (tester) async {
+    final key = VideoProgressStore.keyFor(hostId: null, sessionId: 's1', path: _item.path);
+    SharedPreferences.setMockInitialValues({
+      videoProgressPrefsKey: jsonEncode({
+        key: {'positionMs': 4900, 'durationMs': 5000, 'updatedAt': 1700000000000},
+        '${key}x': {'positionMs': 2000, 'durationMs': 9999, 'updatedAt': 1700000000000},
+      }),
+    });
+    final video = _StreamVideo();
+    await _pumpViewer(tester, _Files(), video, _StreamServer());
+    expect(video.trace.where((step) => step.startsWith('seek:')), isEmpty, reason: '基本看完的不续');
+    expect(find.text(appL10n.mediaVideoResumed(mediaVideoTime(2000))), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('closing the viewer remembers the position', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    // resumed 生命周期才会起轮询:轮询把播放位置带进状态,存档才有得存。
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final video = _StreamVideo();
+    await _pumpViewer(tester, _Files(), video, _StreamServer());
+    video.position = 2000;
+    await tester.pump(const Duration(milliseconds: 450)); // 轮询带上最新位置
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+    final prefs = await SharedPreferences.getInstance();
+    final saved = jsonDecode(prefs.getString(videoProgressPrefsKey)!) as Map<String, Object?>;
+    final key = VideoProgressStore.keyFor(hostId: null, sessionId: 's1', path: _item.path);
+    expect(saved[key], isNotNull);
+    expect((saved[key]! as Map)['positionMs'], 2000);
+  });
+
+  testWidgets('finishing the video clears the remembered position', (tester) async {
+    final key = VideoProgressStore.keyFor(hostId: null, sessionId: 's1', path: _item.path);
+    SharedPreferences.setMockInitialValues({
+      videoProgressPrefsKey: jsonEncode({
+        key: {'positionMs': 2000, 'durationMs': 5000, 'updatedAt': 1700000000000},
+      }),
+    });
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final video = _StreamVideo();
+    await _pumpViewer(tester, _Files(), video, _StreamServer());
+    video.position = 4900; // ≥ 5s - 250ms:视为看完
+    await tester.pump(const Duration(milliseconds: 450));
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(videoProgressPrefsKey), isNull, reason: '看完清档,下次从头');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+  });
+
+  testWidgets('the seek bar paints the buffered frontier while streaming', (tester) async {
+    final video = _StreamVideo();
+    await _pumpViewer(tester, _Files(), video, _BufferedServer());
+    final shape = tester.widget<SliderTheme>(find.byType(SliderTheme)).data.trackShape;
+    expect((shape! as dynamic).buffered, closeTo(0.5, 0.001), reason: '512/1024 已缓冲');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('a local video shows a fully buffered bar', (tester) async {
+    final video = _Video();
+    await _pumpViewer(tester, _Files(local: true), video);
+    final shape = tester.widget<SliderTheme>(find.byType(SliderTheme)).data.trackShape;
+    expect((shape! as dynamic).buffered, 1.0);
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

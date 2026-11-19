@@ -23,9 +23,14 @@ class MediaVideosTest {
         assertEquals(0, MediaVideos.seek(100, -1))
     }
     @Test fun postersAreSmallAndPreserveAspectWithoutUpscaling() {
-        assertEquals(512 to 288, MediaVideos.posterSize(3840, 2160))
-        assertEquals(288 to 512, MediaVideos.posterSize(1080, 1920))
-        assertEquals(100 to 200, MediaVideos.posterSize(100, 200))
-        assertEquals(1 to 512, MediaVideos.posterSize(1, 4096))
+        assertEquals(512 to 288, MediaVideos.scaledSize(3840, 2160, MediaVideos.POSTER_MAX_DIM))
+        assertEquals(288 to 512, MediaVideos.scaledSize(1080, 1920, MediaVideos.POSTER_MAX_DIM))
+        assertEquals(100 to 200, MediaVideos.scaledSize(100, 200, MediaVideos.POSTER_MAX_DIM))
+        assertEquals(1 to 512, MediaVideos.scaledSize(1, 4096, MediaVideos.POSTER_MAX_DIM))
+    }
+    @Test fun dragPreviewFramesAreSmallerThanPosters() {
+        assertEquals(320 to 180, MediaVideos.scaledSize(3840, 2160, MediaVideos.PREVIEW_MAX_DIM))
+        assertEquals(180 to 320, MediaVideos.scaledSize(1080, 1920, MediaVideos.PREVIEW_MAX_DIM))
+        assertEquals(100 to 200, MediaVideos.scaledSize(100, 200, MediaVideos.PREVIEW_MAX_DIM))
     }
 }

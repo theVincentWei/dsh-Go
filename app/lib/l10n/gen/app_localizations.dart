@@ -19766,6 +19766,12 @@ abstract class L10n {
   /// **'视频保存失败，请重试。'**
   String get mediaVideoSaveFailed;
 
+  /// No description provided for @mediaVideoResumed.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次看到 {time}'**
+  String mediaVideoResumed(String time);
+
   /// No description provided for @mediaImageLoading.
   ///
   /// In zh, this message translates to:

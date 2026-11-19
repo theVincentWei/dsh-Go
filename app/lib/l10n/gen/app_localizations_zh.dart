@@ -10669,6 +10669,11 @@ class L10nZh extends L10n {
   String get mediaVideoSaveFailed => '视频保存失败，请重试。';
 
   @override
+  String mediaVideoResumed(String time) {
+    return '上次看到 $time';
+  }
+
+  @override
   String get mediaImageLoading => '正在加载图片';
 
   @override

@@ -3279,6 +3279,7 @@
   "mediaVideoPlay": "Play",
   "mediaVideoPause": "Pause",
   "mediaVideoSaveFailed": "Couldn’t save the video. Try again.",
+  "mediaVideoResumed": "Resumed at {time}",
   "mediaImageLoading": "Loading image",
   "mediaImageReload": "Reload image",
   "mediaImageReloadHint": "Reads the file again; does not generate again or incur generation charges",

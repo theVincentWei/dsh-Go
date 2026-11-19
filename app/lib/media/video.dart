@@ -20,6 +20,10 @@ class MediaVideoChannel {
   /// download-first path.
   bool get supportsUrlSource => !kIsWeb && Platform.isAndroid;
 
+  /// Whether this build can extract a frame at an arbitrary timestamp
+  /// (拖动进度条的画面预览). Android ships a retriever-based extractor.
+  bool get supportsFrameExtraction => !kIsWeb && Platform.isAndroid;
+
   // One decoder request at a time across channel instances. Queued requests
   // retain paths only, never decoded frames or full video buffers.
   static Future<void> _posterTail = Future<void>.value();
@@ -68,6 +72,22 @@ class MediaVideoChannel {
     return request;
   }
 
+  /// One preview frame at [timeMs] from a local materialized file
+  /// (拖动进度条的缩略图). Null when the decoder cannot answer — the
+  /// preview is decoration, never a gate. Serialized platform-side like
+  /// posters so a broken decoder cannot queue up workers.
+  Future<Uint8List?> frame(String path, int timeMs) {
+    _localPath(path);
+    return channel.invokeMethod<Uint8List>('frame', {'path': path, 'timeMs': timeMs});
+  }
+
+  /// The same extraction from a loopback streaming URL: only the ranges the
+  /// extractor asks for are pulled, the whole file is never downloaded.
+  Future<Uint8List?> frameUrl(String url, int timeMs) {
+    _loopbackUrl(url);
+    return channel.invokeMethod<Uint8List>('frameUrl', {'url': url, 'timeMs': timeMs});
+  }
+
   Future<void> play(int texture) => channel.invokeMethod<void>('play', {'texture': texture});
   Future<void> pause(int texture) => channel.invokeMethod<void>('pause', {'texture': texture});
   Future<void> seek(int texture, int positionMs) =>
@@ -84,6 +104,7 @@ class MediaVideoChannel {
       positionMs: (value['positionMs'] as num).toInt(),
       durationMs: (value['durationMs'] as num).toInt(),
       playing: value['playing'] == true,
+      buffering: value['buffering'] == true,
     );
   }
 
@@ -123,10 +144,19 @@ class MediaVideoHandle {
 }
 
 class MediaVideoState {
-  const MediaVideoState({required this.positionMs, required this.durationMs, required this.playing});
+  const MediaVideoState({
+    required this.positionMs,
+    required this.durationMs,
+    required this.playing,
+    this.buffering = false,
+  });
   final int positionMs;
   final int durationMs;
   final bool playing;
+
+  /// The platform player is waiting on more bytes (缓冲中): the UI shows a
+  /// spinner so a stall reads as buffering, not as a broken video.
+  final bool buffering;
 }
 
 final mediaVideoChannelProvider = Provider<MediaVideoChannel>((ref) => const MediaVideoChannel());

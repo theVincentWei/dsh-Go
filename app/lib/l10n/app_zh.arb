@@ -6402,6 +6402,14 @@
   "mediaVideoPlay": "播放",
   "mediaVideoPause": "暂停",
   "mediaVideoSaveFailed": "视频保存失败，请重试。",
+  "mediaVideoResumed": "上次看到 {time}",
+  "@mediaVideoResumed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "mediaImageLoading": "正在加载图片",
   "mediaImageReload": "重新加载",
   "mediaImageReloadHint": "只重新读取文件，不会重新生成或收费",
