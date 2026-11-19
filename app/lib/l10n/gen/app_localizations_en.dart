@@ -11248,6 +11248,23 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get model3dTitle => '3MF model preview';
+
+  @override
+  String get model3dLoading => 'Loading model…';
+
+  @override
+  String get model3dLoadFailed => 'Failed to load the model';
+
+  @override
+  String get model3dRetry => 'Retry';
+
+  @override
+  String model3dStats(int triangles, int parts) {
+    return '$triangles triangles · $parts parts';
+  }
+
+  @override
   String get modeSheetTitle => 'Mode';
 
   @override

@@ -1,0 +1,13 @@
+{
+  "model3dTitle": "3MF model preview",
+  "model3dLoading": "Loading model…",
+  "model3dLoadFailed": "Failed to load the model",
+  "model3dRetry": "Retry",
+  "model3dStats": "{triangles} triangles · {parts} parts",
+  "@model3dStats": {
+    "placeholders": {
+      "triangles": { "type": "int" },
+      "parts": { "type": "int" }
+    }
+  }
+}

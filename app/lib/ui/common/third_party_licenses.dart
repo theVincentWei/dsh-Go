@@ -61,6 +61,14 @@ void registerThirdPartyLicenses() {
     yield LicenseEntryWithLineBreaks(<String>[
       'Lodash',
     ], await rootBundle.loadString('assets/licenses/lodash-4.17.21-LICENSE.txt'));
+    // The model viewer's renderer, bundled under assets/model3d/ (see
+    // THIRD_PARTY_NOTICES.md); each licence verbatim.
+    yield LicenseEntryWithLineBreaks(<String>[
+      'three.js',
+    ], await rootBundle.loadString('assets/licenses/three-0.187.0-LICENSE.txt'));
+    yield LicenseEntryWithLineBreaks(<String>[
+      'fflate',
+    ], await rootBundle.loadString('assets/licenses/fflate-LICENSE.txt'));
     // The streaming recognizer's model, downloaded on demand (語音 › 实时识别).
     yield LicenseEntryWithLineBreaks(<String>[
       'Streaming Zipformer zh-en (sherpa-onnx)',
