@@ -87,7 +87,7 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
   bool _loading = true;
   bool _polling = false;
   bool _saving = false;
-  bool _external = false;
+  bool _sharing = false;
   bool _commanding = false;
   bool _streamExhausted = false;
   bool _streamedOpen = false;
@@ -582,23 +582,25 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
     }
   }
 
-  Future<void> _openExternal() async {
-    if (_external) return;
-    setState(() => _external = true);
+  /// 系统分享面板把视频发出去(和卡片上的分享同一入口):整文件先落地,
+  /// 是和保存到相册同级的显式下载。
+  Future<void> _share() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
       if (_handle case final handle?) {
         try {
           await widget.video.pause(handle.texture);
         } catch (_) {
-          /* External fallback must still work. */
+          /* Sharing must still work when the player is gone. */
         }
       }
-      await widget.files.open(widget.sessionId, _artifact);
+      await widget.files.share(widget.sessionId, _artifact);
     } catch (error) {
       if (mounted) messenger.showSnackBar(SnackBar(content: Text(artifactErrorText(error))));
     } finally {
-      if (mounted) setState(() => _external = false);
+      if (mounted) setState(() => _sharing = false);
     }
   }
 
@@ -785,11 +787,11 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
                             ),
                           ),
                           IconButton(
-                            tooltip: l10n.mediaOpenElsewhere,
-                            onPressed: _external || _loading ? null : _openExternal,
-                            icon: _external
+                            tooltip: l10n.commonShare,
+                            onPressed: _sharing || _loading ? null : _share,
+                            icon: _sharing
                                 ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                : const Icon(AppIcons.openWith),
+                                : const Icon(AppIcons.share),
                             color: Colors.white,
                           ),
                           IconButton(
