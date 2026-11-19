@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dsh_app/l10n/l10n.dart';
 import 'package:dsh_app/media/gallery.dart';
 import 'package:dsh_app/media/video.dart';
+import 'package:dsh_app/media/video_stream_server.dart';
 import 'package:dsh_app/state/artifact_files.dart';
 import 'package:dsh_app/state/artifacts.dart';
 import 'package:dsh_app/ui/chat/media/media_video_viewer.dart';
@@ -23,6 +24,8 @@ class _Files extends ArtifactFiles {
   int external = 0;
   @override
   bool get isLocal => local;
+  @override
+  bool get canFetch => true;
   @override
   Future<File> materialize(
     String sessionId,
@@ -73,6 +76,8 @@ class _Video extends MediaVideoChannel {
   @override
   Future<void> play(int texture) async {
     plays++;
+    // ignore: avoid_print
+    print('PROBE play#$plays at ${DateTime.now().microsecondsSinceEpoch % 10000000}');
     playing = true;
   }
 
@@ -98,7 +103,49 @@ class _Video extends MediaVideoChannel {
       MediaVideoState(positionMs: position, durationMs: 5000, playing: playing);
 }
 
-Future<void> _pumpViewer(WidgetTester tester, _Files files, _Video video) async {
+class _StreamVideo extends _Video {
+  int urlOpens = 0;
+  int posterUrls = 0;
+  bool failUrlOpen = false;
+  Object? urlOpenError;
+  final speeds = <double>[];
+  @override
+  bool get supportsUrlSource => true;
+  @override
+  Future<void> speed(int texture, double rate) async {
+    speeds.add(rate);
+  }
+  @override
+  Future<MediaVideoHandle> openUrl(String url) async {
+    urlOpens++;
+    if (!url.startsWith('http://127.0.0.1:')) throw ArgumentError.value(url, 'url', 'expected the loopback proxy');
+    if (failUrlOpen) throw urlOpenError ?? PlatformException(code: 'playback');
+    return _handle;
+  }
+  @override
+  Future<Uint8List?> posterUrl(String url) async {
+    posterUrls++;
+    return Uint8List.fromList([9, 8, 7]);
+  }
+}
+
+class _StreamServer extends VideoStreamServer {
+  int opens = 0;
+  @override
+  Future<VideoStreamSession> openStream({required VideoByteSource source}) async {
+    opens++;
+    return VideoStreamSession(this, Uri.parse('http://127.0.0.1:9/v/token$opens/movie.mp4'));
+  }
+}
+
+Future<void> _doubleTap(WidgetTester tester) async {
+  await tester.tap(find.byType(Texture));
+  await tester.pump(const Duration(milliseconds: 60));
+  await tester.tap(find.byType(Texture));
+  await tester.pump();
+}
+
+Future<void> _pumpViewer(WidgetTester tester, _Files files, _Video video, [VideoStreamServer? streams]) async {
   await tester.pumpWidget(
     MaterialApp(
       home: MediaVideoViewerPage(
@@ -107,6 +154,7 @@ Future<void> _pumpViewer(WidgetTester tester, _Files files, _Video video) async 
         files: files,
         video: video,
         gallery: const MediaChannel(),
+        streamServer: streams,
       ),
     ),
   );
@@ -150,10 +198,12 @@ void main() {
     await video.play(handle.texture);
     await video.seek(handle.texture, 1200);
     expect((await video.state(handle.texture)).positionMs, 1200);
+    await video.speed(handle.texture, 2.0);
     await video.pause(handle.texture);
     await video.close(handle.texture);
-    expect(calls.map((c) => c.method), ['open', 'play', 'seek', 'state', 'pause', 'close']);
+    expect(calls.map((c) => c.method), ['open', 'play', 'seek', 'state', 'speed', 'pause', 'close']);
     expect(calls[2].arguments, {'texture': 17, 'positionMs': 1200});
+    expect(calls[4].arguments, {'texture': 17, 'rate': 2.0});
   });
 
   test('remote scrolling never materializes or extracts a poster', () async {
@@ -267,7 +317,7 @@ void main() {
     final video = _Video()..failOpen = true;
     await _pumpViewer(tester, files, video);
     expect(find.text(appL10n.mediaVideoCannotPlay), findsOneWidget);
-    await tester.tap(find.text(appL10n.mediaOpenElsewhere));
+    await tester.tap(find.byTooltip(appL10n.mediaOpenElsewhere));
     await tester.pump();
     expect(files.external, 1);
     video.failOpen = false;
@@ -294,5 +344,155 @@ void main() {
     await tester.pump();
     expect(video.closes, 1);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+  });
+
+  test('channel rejects foreign URLs for playback and poster extraction', () async {
+    const video = MediaVideoChannel();
+    for (final url in [
+      'https://127.0.0.1/v/t/a.mp4',
+      'http://192.168.1.5:8080/v/t/a.mp4',
+      'http://example.com/v/t/a.mp4',
+      'file:///tmp/a.mp4',
+      'not a url',
+    ]) {
+      expect(() => video.openUrl(url), throwsArgumentError);
+      expect(() => video.posterUrl(url), throwsArgumentError);
+    }
+  });
+
+  test('channel forwards loopback openUrl to the platform', () async {
+    const channel = MethodChannel('test/video-url');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {'texture': 5, 'width': 640, 'height': 360, 'durationMs': 1200};
+    });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null),
+    );
+    const video = MediaVideoChannel(channel);
+    final handle = await video.openUrl('http://127.0.0.1:41235/v/abc/movie.mp4');
+    expect(handle.texture, 5);
+    expect(handle.aspectRatio, 640 / 360);
+    expect(calls.single.method, 'openUrl');
+    expect(calls.single.arguments, {'url': 'http://127.0.0.1:41235/v/abc/movie.mp4'});
+  });
+
+  testWidgets('remote videos stream over the loopback proxy and download only on save', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo();
+    final streams = _StreamServer();
+    await _pumpViewer(tester, files, video, streams);
+    expect(video.urlOpens, 1);
+    expect(streams.opens, 1);
+    expect(files.reads, 0, reason: 'streaming must not materialize the whole video');
+    expect(find.byType(Texture), findsOneWidget);
+    await tester.pump();
+    expect(video.posterUrls, 1, reason: 'the streamed open seeds the card poster');
+    // The top-right save is the only path that downloads the file.
+    await tester.tap(find.byIcon(AppIcons.save));
+    await tester.pump();
+    await tester.pump();
+    expect(files.reads, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    expect(video.closes, 1);
+  });
+
+  testWidgets('a failed stream falls back to downloading once', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo()
+      ..failUrlOpen = true
+      ..urlOpenError = PlatformException(code: 'playback');
+    await _pumpViewer(tester, files, video, _StreamServer());
+    expect(video.urlOpens, 1);
+    expect(files.reads, 1);
+    expect(video.opens, 1);
+    expect(find.byType(Texture), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('an unsupported source stops trying to stream on retry', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo()
+      ..failUrlOpen = true
+      ..urlOpenError = PlatformException(code: 'unsupported')
+      ..failOpen = true;
+    await _pumpViewer(tester, files, video, _StreamServer());
+    expect(video.urlOpens, 1);
+    expect(files.reads, 1);
+    expect(find.text(appL10n.mediaVideoCannotPlay), findsOneWidget);
+    video.failUrlOpen = false;
+    video.failOpen = false;
+    await tester.tap(find.text(appL10n.commonRetry));
+    await tester.pump();
+    await tester.pump();
+    expect(video.urlOpens, 1, reason: 'a refused source is refused downloaded too');
+    expect(files.reads, 1, reason: 'the downloaded copy is reused');
+    expect(video.opens, 2);
+    expect(find.byType(Texture), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+  testWidgets('double-tap toggles play and pause', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo();
+    await _pumpViewer(tester, files, video, _StreamServer());
+    await _doubleTap(tester);
+    expect(video.plays, 1);
+    await _doubleTap(tester);
+    expect(video.pauses, 1);
+    // 单击窗口 timer 泵过它,免得测试收尾报 pending timer。
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('long-press boosts playback speed back to normal on release', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo();
+    await _pumpViewer(tester, files, video, _StreamServer());
+    await _doubleTap(tester); // 播放中才倍速;暂停中长按不起播。
+    await tester.pump();
+    await tester.longPress(find.byType(Texture));
+    await tester.pump();
+    expect(video.speeds, [2.0, 1.0]);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('a single tap toggles the controls and never starts playback', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo();
+    await _pumpViewer(tester, files, video, _StreamServer());
+    expect(find.byIcon(AppIcons.save), findsOneWidget, reason: '控制层浮在画面上');
+    await tester.tap(find.byType(Texture));
+    await tester.pump();
+    expect(find.byIcon(AppIcons.save), findsNothing, reason: '单击隐藏控制层');
+    expect(video.plays, 0, reason: '单击绝不播放');
+    await tester.pump(const Duration(milliseconds: 350)); // 关掉单击窗口
+    await tester.tap(find.byType(Texture));
+    await tester.pump();
+    expect(find.byIcon(AppIcons.save), findsOneWidget, reason: '再单击显示控制层');
+    expect(video.plays, 0);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('horizontal drag previews and seeks the position', (tester) async {
+    final files = _Files();
+    final video = _StreamVideo();
+    await _pumpViewer(tester, files, video, _StreamServer());
+    final width = MediaQuery.sizeOf(tester.element(find.byType(Texture))).width;
+    final dx = (width * 0.1).round(); // 10% of the screen ≈ 12s; duration clamps to 5s.
+    await tester.drag(find.byType(Texture), Offset(dx.toDouble(), 0));
+    await tester.pump();
+    final expected = (dx / width * 120 * 1000).round().clamp(0, 5000);
+    expect(video.position, expected, reason: 'drag preview target became the seek');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 }

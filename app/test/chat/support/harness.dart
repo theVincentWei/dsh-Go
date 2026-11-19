@@ -492,7 +492,7 @@ class FakePicker implements AttachmentPicker {
   final calls = <String>[];
 
   @override
-  Future<List<DraftAttachment>> pickImages({required int limit}) async {
+  Future<List<DraftAttachment>> pickMedia({required int limit}) async {
     calls.add('images:$limit');
     return images.take(limit).toList();
   }

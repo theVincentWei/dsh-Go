@@ -123,7 +123,9 @@ String? attachmentBudgetProblem(int heldBytes, DraftAttachment a, {int limit = m
 
 /// The system pickers behind the composer's ＋ menu. Tests swap in a fake.
 abstract class AttachmentPicker {
-  Future<List<DraftAttachment>> pickImages({required int limit});
+  /// Photos and videos from the gallery; images are re-encoded, videos pass
+  /// through and ride the generic-file budget.
+  Future<List<DraftAttachment>> pickMedia({required int limit});
   Future<DraftAttachment?> takePhoto();
 
   /// [heldBytes] is what the tray already holds: the picker refuses to retain
@@ -143,13 +145,14 @@ class DeviceAttachmentPicker implements AttachmentPicker {
   static const _quality = 88;
 
   @override
-  Future<List<DraftAttachment>> pickImages({required int limit}) async {
-    final picked = await ImagePicker().pickMultiImage(
+  Future<List<DraftAttachment>> pickMedia({required int limit}) async {
+    // 相册入口一并收视频:图片照旧压边重编码,视频原样进托盘(走通用文件的
+    // 200 MB 预算)。免定位/EXIF 权限,选择器里图和视频都在。
+    final picked = await ImagePicker().pickMultipleMedia(
       maxWidth: _maxSide,
       maxHeight: _maxSide,
       imageQuality: _quality,
       limit: limit,
-      // No location/EXIF access needed: skips the media-location permission.
       requestFullMetadata: false,
     );
     return [for (final x in picked.take(limit)) DraftAttachment.sniff(x.name, await x.readAsBytes())];

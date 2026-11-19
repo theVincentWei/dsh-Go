@@ -28,7 +28,7 @@ void main() {
   setUpAll(loadTestFonts);
 
   for (final (label, source) in <(String, AttachSource?)>[
-    ('相册', AttachSource.gallery),
+    ('照片和视频', AttachSource.gallery),
     ('拍照', AttachSource.camera),
     ('文件', AttachSource.files),
     ('生成', null),

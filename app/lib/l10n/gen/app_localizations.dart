@@ -8117,7 +8117,7 @@ abstract class L10n {
   /// No description provided for @chatGallery.
   ///
   /// In zh, this message translates to:
-  /// **'相册'**
+  /// **'照片和视频'**
   String get chatGallery;
 
   /// No description provided for @chatTakePhoto.

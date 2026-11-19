@@ -74,7 +74,7 @@ void main() {
       await pumpGenerate(tester, plugin: MediaPluginState.absent);
       await tester.tap(find.bySemanticsLabel('添加图片或文件'));
       await pumpFrames(tester);
-      expect(find.text('相册'), findsOneWidget);
+      expect(find.text('照片和视频'), findsOneWidget);
       expect(find.text('生成'), findsNothing);
     });
 
@@ -410,7 +410,7 @@ void main() {
       await enterMode(tester);
       await tester.tap(find.bySemanticsLabel('添加图片或文件'));
       await pumpFrames(tester);
-      await tester.tap(find.text('相册'));
+      await tester.tap(find.text('照片和视频'));
       await pumpFrames(tester);
       await tester.enterText(find.byType(TextField), '换成油画');
       await tester.pump();
@@ -444,7 +444,7 @@ void main() {
       await pumpFrames(tester);
       await tester.tap(find.bySemanticsLabel('添加图片或文件'));
       await pumpFrames(tester);
-      await tester.tap(find.text('相册'));
+      await tester.tap(find.text('照片和视频'));
       await pumpFrames(tester);
       expect(find.text('首帧'), findsOneWidget);
       expect(find.text('尾帧'), findsOneWidget);

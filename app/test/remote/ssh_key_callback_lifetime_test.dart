@@ -33,7 +33,7 @@ class _PendingPicker implements AttachmentPicker {
   @override
   Future<PickedAttachments> pickFiles({int limit = maxAttachments, int heldBytes = 0}) => throw UnimplementedError();
   @override
-  Future<List<DraftAttachment>> pickImages({required int limit}) => throw UnimplementedError();
+  Future<List<DraftAttachment>> pickMedia({required int limit}) => throw UnimplementedError();
   @override
   Future<DraftAttachment?> takePhoto() => throw UnimplementedError();
 }

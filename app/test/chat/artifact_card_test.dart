@@ -13,6 +13,7 @@ import 'package:dsh_app/state/connection_state.dart';
 import 'package:dsh_app/state/download_tasks.dart';
 import 'package:dsh_app/state/hosts_state.dart';
 import 'package:dsh_app/ui/chat/artifact_preview.dart';
+import 'package:dsh_app/ui/chat/media/media_video_viewer.dart';
 import 'package:dsh_app/ui/chat/widgets/artifact_card.dart';
 import 'package:dsh_app/ui/chat/widgets/image_gallery.dart';
 import 'package:dsh_app/ui/share/share_card.dart';
@@ -501,14 +502,45 @@ void main() {
     await tester.pump();
 
     expect(find.text('正在下载… 25%'), findsOneWidget);
-    expect(
-      tester.widget<CircularProgressIndicator>(find.byType(CircularProgressIndicator)).value,
-      closeTo(0.25, 0.001),
-    );
+    // 下载中:行尾换成取消按钮,进度数字就在这一行字上。
+    expect(find.byTooltip('取消'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
 
     tasks.progress(key: 'k', received: 200);
     tasks.finish(key: 'k');
     await tester.pump();
     expect(find.textContaining('%'), findsNothing, reason: '任务出列后回落到类型 · 大小');
+  });
+
+  testWidgets('tapping a video opens the in-app streaming viewer, not a download', (tester) async {
+    usePhoneView(tester);
+    final android = _Android()..install(tester);
+    const video = MethodChannel('dsh/media_video');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(video, (call) async {
+      return switch (call.method) {
+        'open' => {'texture': 9, 'width': 640, 'height': 360, 'durationMs': 1200},
+        'state' => {'positionMs': 0, 'durationMs': 1200, 'playing': false},
+        _ => null,
+      };
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(video, null));
+    const mp4 = Artifact(path: '/root/workspace/out/clip.mp4', origin: ArtifactOrigin.written, turn: 1);
+    await tester.pumpWidget(_card([mp4]));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('clip.mp4'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MediaVideoViewerPage), findsOneWidget);
+    expect(android.methods, isNot(contains('open')), reason: '预览不落整文件');
+  });
+
+  testWidgets('a remote file stats its size once for the subtitle', (tester) async {
+    usePhoneView(tester);
+    final carrier = _RemoteCarrier(Uint8List.fromList([1, 2, 3]));
+    final connection = HostConnection(client: DshClient.withCarrier(carrier), label: '工作站', isLocal: false, hostId: 'h1');
+    const zip = Artifact(path: '/home/me/out/素材.zip', origin: ArtifactOrigin.delivered, turn: 1);
+    await tester.pumpWidget(_card([zip], connection: connection));
+    await tester.pumpAndSettle();
+    expect(carrier.calls.where((c) => c == 'workspaceFiles/stat').length, 1, reason: '一次 stat,不多拉');
+    expect(find.text('压缩包 · ZIP · 3 B'), findsOneWidget);
   });
 }

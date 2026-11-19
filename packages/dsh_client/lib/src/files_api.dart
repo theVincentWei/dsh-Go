@@ -46,6 +46,20 @@ class DshFileStat {
   final int? bytes;
 }
 
+/// One `workspaceFiles/readBytes` window answer.
+class DshFileWindow {
+  const DshFileWindow({required this.data, this.version, this.eof = false});
+
+  /// The bytes at the requested range, fewer only at the end of the file.
+  final Uint8List data;
+
+  /// Freshness token observed while reading; null when the Host omits it.
+  final String? version;
+
+  /// Whether the Host reported the end of the file inside this window.
+  final bool eof;
+}
+
 /// Byte window size for paged reads (the Host caps one window at 2 MiB).
 const int fileWindowBytes = 1024 * 1024;
 
@@ -235,6 +249,28 @@ extension DshFilesApi on DshClient {
     final builder = BytesBuilder(copy: false);
     await readFile(sessionId, path, onChunk: builder.add, maxBytes: maxBytes);
     return builder.takeBytes();
+  }
+
+  /// One byte window (`workspaceFiles/readBytes`): exactly the bytes at
+  /// [offset]…+[length], fewer only at the end of the file. Unlike [readFile]
+  /// this neither loops to the end nor follows the file's version; a caller
+  /// that spans several windows checks [DshFileWindow.version] itself.
+  Future<DshFileWindow> readWindow(
+    String sessionId,
+    String path, {
+    required int offset,
+    required int length,
+  }) async {
+    final value = asMapOrEmpty(
+      await rpc.call('workspaceFiles/readBytes', {
+        'workspaceFileScopeId': sessionId,
+        'path': path,
+        'options': {
+          'range': {'offset': offset, 'length': length},
+        },
+      }),
+    );
+    return DshFileWindow(data: _bytesOf(value['data']), version: asString(value['version']), eof: value['eof'] == true);
   }
 }
 

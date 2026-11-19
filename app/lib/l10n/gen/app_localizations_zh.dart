@@ -4383,7 +4383,7 @@ class L10nZh extends L10n {
   String get chatInterrupted => '已中断';
 
   @override
-  String get chatGallery => '相册';
+  String get chatGallery => '照片和视频';
 
   @override
   String get chatTakePhoto => '拍照';
