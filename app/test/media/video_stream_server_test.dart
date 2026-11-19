@@ -181,4 +181,24 @@ void main() {
     expect(response.headers.contentType?.mimeType, 'video/webm');
     await drain(response);
   });
+
+  test('the buffer snapshot reports the fetched frontier', () async {
+    final local = await server.openStream(source: _CountingSource(data));
+    expect(server.bufferedSnapshot(local.url), isNull, reason: '第一次服务前连大小都未知');
+    await drain(await get(local.url, range: 'bytes=0-999'));
+    final snapshot = server.bufferedSnapshot(local.url);
+    expect(snapshot, isNotNull);
+    final (frontier, total) = snapshot!;
+    expect(total, data.length);
+    expect(frontier, greaterThanOrEqualTo(1000));
+    expect(frontier, lessThanOrEqualTo(data.length));
+    // 预取会把前沿推到整段文件(本夹具 2MiB+17 在 12MiB 预取窗内)。
+    final deadline = DateTime.now().add(const Duration(seconds: 3));
+    while ((server.bufferedSnapshot(local.url)?.$1 ?? 0) < data.length && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    expect(server.bufferedSnapshot(local.url)?.$1, data.length, reason: '前沿不因缓存淘汰而回缩');
+    await local.close();
+    expect(server.bufferedSnapshot(local.url), isNull, reason: '会话收线后不再报缓冲');
+  });
 }

@@ -11226,6 +11226,11 @@ class L10nEn extends L10n {
   String get mediaVideoSaveFailed => 'Couldn’t save the video. Try again.';
 
   @override
+  String mediaVideoResumed(String time) {
+    return 'Resumed at $time';
+  }
+
+  @override
   String get mediaImageLoading => 'Loading image';
 
   @override

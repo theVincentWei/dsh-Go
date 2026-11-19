@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/l10n.dart';
 import '../../../media/gallery.dart';
 import '../../../media/video.dart';
+import '../../../media/video_progress.dart';
 import '../../../media/video_stream_server.dart';
 import '../../../state/artifact_files.dart';
 import '../../../state/artifacts.dart';
@@ -25,6 +26,7 @@ Future<void> openMediaVideoViewer(
   MediaItem item, {
   ArtifactFiles? sourceFiles,
   VideoStreamServer? streamServer,
+  VideoProgressStore? progressStore,
 }) {
   final files = sourceFiles ?? ref.read<ArtifactFiles>(artifactFilesProvider);
   final video = ref.read(mediaVideoChannelProvider);
@@ -39,6 +41,7 @@ Future<void> openMediaVideoViewer(
         video: video,
         gallery: gallery,
         streamServer: streamServer,
+        progressStore: progressStore,
       ),
     ),
   );
@@ -53,6 +56,7 @@ class MediaVideoViewerPage extends StatefulWidget {
     required this.video,
     required this.gallery,
     this.streamServer,
+    this.progressStore,
   });
   final String sessionId;
   final MediaItem item;
@@ -63,6 +67,9 @@ class MediaVideoViewerPage extends StatefulWidget {
   /// The loopback stream source; [VideoStreamServer.instance] unless a test
   /// injects its own.
   final VideoStreamServer? streamServer;
+
+  /// 上次播放到哪的存档;测试可注入自己的实例。
+  final VideoProgressStore? progressStore;
 
   @override
   State<MediaVideoViewerPage> createState() => _MediaVideoViewerPageState();
@@ -90,6 +97,24 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
   Timer? _tapTimer;
   int _generation = 0;
 
+  // 上次播放到哪:键按 主机+会话+路径,打开时读,关掉/暂停/后台时存。
+  late final VideoProgressStore _progressStore = widget.progressStore ?? VideoProgressStore();
+  String? _progressKey;
+  int? _lastSavedPositionMs;
+  DateTime _lastSaveAt = DateTime.now();
+
+  // 拖动进度条:目标毫秒与画面预览。预览帧按"秒"缓存,拖回去直接命中。
+  int? _barDragMs;
+  final Map<int, Uint8List> _frames = {};
+  int? _previewBucket;
+  int _previewSeq = 0;
+  Timer? _previewTimer;
+  bool _previewDead = false;
+
+  // 续播徽标:定位后亮 3 秒。
+  int _resumeMs = 0;
+  Timer? _badgeTimer;
+
   /// 横滑快进快退的一次手势:起点横坐标、基准播放位置、当前预览目标。
   int get _seekSpanMs => 120 * 1000; // 一个屏宽 ≈ 2 分钟,B 站量级。
 
@@ -107,6 +132,12 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final conn = widget.files.connection;
+    _progressKey = VideoProgressStore.keyFor(
+      hostId: conn?.hostId ?? conn?.label,
+      sessionId: widget.sessionId,
+      path: widget.item.path,
+    );
     unawaited(_load());
   }
 
@@ -154,6 +185,21 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
         _state = MediaVideoState(positionMs: 0, durationMs: handle.durationMs, playing: false);
         _loading = false;
       });
+      // 上次看到哪:接着看;基本看完的从头。平台不支持就当没存过。
+      final resumeMs = await _resumePosition(handle);
+      if (!mounted || generation != _generation || !identical(_handle, handle)) return;
+      if (resumeMs > 0) {
+        await widget.video.seek(handle.texture, resumeMs);
+        if (!mounted || generation != _generation || !identical(_handle, handle)) return;
+        setState(() {
+          _state = MediaVideoState(positionMs: resumeMs, durationMs: handle.durationMs, playing: false);
+          _resumeMs = resumeMs;
+        });
+        _badgeTimer?.cancel();
+        _badgeTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _resumeMs = 0);
+        });
+      }
       if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) await widget.video.play(handle.texture);
       if (!mounted || generation != _generation) return;
       await _poll();
@@ -245,6 +291,8 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
     // 文件从头续播。只兜一次,下载路径再失败就老实报错。
     if (playback && mounted && _streamedOpen && !_streamExhausted) {
       _streamExhausted = true;
+      // 断点接续:先记下当前进度,下载重开后从这里接着播。
+      unawaited(_saveProgress(force: true));
       setState(() {
         _handle = null;
         _state = null;
@@ -273,7 +321,10 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
     _polling = true;
     try {
       final state = await widget.video.state(handle.texture);
-      if (mounted && identical(_handle, handle)) setState(() => _state = state);
+      if (mounted && identical(_handle, handle)) {
+        setState(() => _state = state);
+        unawaited(_saveProgress());
+      }
     } catch (error) {
       if (mounted && identical(_handle, handle)) _fail(error, playback: true);
     } finally {
@@ -293,6 +344,123 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
     } finally {
       if (mounted) setState(() => _commanding = false);
     }
+    unawaited(_saveProgress(force: true));
+  }
+
+  /// 上次看到哪:文件换了一版(时长对不上)或基本看完的不续,其余接着播。
+  Future<int> _resumePosition(MediaVideoHandle handle) async {
+    final key = _progressKey;
+    if (key == null || handle.durationMs <= 0) return 0;
+    final VideoProgressEntry? entry;
+    try {
+      entry = await _progressStore.load(key);
+    } on Object {
+      return 0;
+    }
+    if (entry == null) return 0;
+    if ((entry.durationMs - handle.durationMs).abs() > handle.durationMs ~/ 10) return 0;
+    if (entry.positionMs < 1000 || entry.positionMs >= handle.durationMs - 1500) return 0;
+    return entry.positionMs;
+  }
+
+  /// 记住当前位置:播放中每 5 秒一笔,命令/暂停/后台/关页时立刻一笔。
+  /// 看完(或拖到结尾附近)就清掉,下次从头。
+  Future<void> _saveProgress({bool force = false, int? atMs}) async {
+    final key = _progressKey;
+    final state = _state;
+    if (key == null || state == null || state.durationMs <= 0) return;
+    final position = (atMs ?? state.positionMs).clamp(0, state.durationMs);
+    if (position <= 0) return;
+    if (position >= state.durationMs - 250) {
+      _lastSavedPositionMs = null;
+      try {
+        await _progressStore.clear(key);
+      } on Object {
+        /* 存档是增强,失败不打扰播放。 */
+      }
+      return;
+    }
+    if (!force && (position == _lastSavedPositionMs || DateTime.now().difference(_lastSaveAt) < const Duration(seconds: 5))) {
+      return;
+    }
+    _lastSaveAt = DateTime.now();
+    _lastSavedPositionMs = position;
+    try {
+      await _progressStore.save(key, positionMs: position, durationMs: state.durationMs);
+    } on Object {
+      /* 存档是增强,失败不打扰播放。 */
+    }
+  }
+
+  /// 缓冲到哪了:本地/已下载的整段都在;流式时映射代理的已取前沿
+  /// (字节→时间线性近似,够"下到哪了"用)。null 就不画缓冲段。
+  double? get _bufferedFraction {
+    final state = _state;
+    if (state == null || state.durationMs <= 0) return null;
+    if (_file != null) return 1.0;
+    final stream = _stream;
+    if (stream == null) return null;
+    final snapshot = stream.server.bufferedSnapshot(stream.url);
+    if (snapshot == null) return null;
+    final (frontier, total) = snapshot;
+    if (total <= 0) return null;
+    return (frontier / total).clamp(0.0, 1.0);
+  }
+
+  /// 拖动中的画面预览:120ms 去抖,只取一帧;缓存按秒桶,拖回去免费。
+  void _queuePreview(int ms) {
+    if (_previewDead || !widget.video.supportsFrameExtraction) return;
+    final duration = _state?.durationMs ?? 0;
+    if (duration <= 0) return;
+    final target = ms.clamp(0, duration);
+    final bucket = target ~/ 1000;
+    if (_previewBucket == bucket && _frames.containsKey(bucket)) return;
+    _previewTimer?.cancel();
+    _previewTimer = Timer(const Duration(milliseconds: 120), () => unawaited(_fetchPreview(target, bucket)));
+  }
+
+  Future<void> _fetchPreview(int ms, int bucket) async {
+    if (!mounted || _previewDead) return;
+    if (_frames[bucket] != null) {
+      setState(() => _previewBucket = bucket);
+      return;
+    }
+    final seq = ++_previewSeq;
+    final streamUrl = _streamedOpen ? _stream?.url.toString() : null;
+    final path = _file?.path;
+    final Uint8List? bytes;
+    try {
+      if (streamUrl != null) {
+        bytes = await widget.video.frameUrl(streamUrl, ms);
+      } else if (path != null) {
+        bytes = await widget.video.frame(path, ms);
+      } else {
+        return;
+      }
+    } on MissingPluginException {
+      _previewDead = true;
+      return;
+    } on Object {
+      return; // 预览是装饰,失败就保持时间胶囊。
+    }
+    if (!mounted || seq != _previewSeq) return;
+    if (bytes == null || bytes.isEmpty) return;
+    final frame = bytes;
+    setState(() {
+      while (_frames.length >= 24) {
+        _frames.remove(_frames.keys.first);
+      }
+      _frames[bucket] = frame;
+      _previewBucket = bucket;
+    });
+  }
+
+  void _clearPreview() {
+    _previewTimer?.cancel();
+    _previewTimer = null;
+    _previewSeq++;
+    if (_previewBucket == null) return;
+    setState(() => _previewBucket = null);
   }
 
   /// 长按倍速:按住 2×,松手回 1×。MediaPlayer 的 setPlaybackParams 在非零
@@ -353,9 +521,12 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
   void _dragStart(DragStartDetails details) {
     final state = _state;
     if (_handle == null || state == null || state.durationMs <= 0 || _drag != null) return;
-    setState(
-      () => _drag = _DragSeek(startDx: details.globalPosition.dx, baseMs: state.positionMs, targetMs: state.positionMs),
-    );
+    setState(() {
+      _drag = _DragSeek(startDx: details.globalPosition.dx, baseMs: state.positionMs, targetMs: state.positionMs);
+      // 进度条跟着手指预览走;松手才真正 seek。
+      _seeking = state.positionMs.toDouble();
+    });
+    _queuePreview(state.positionMs);
   }
 
   void _dragUpdate(DragUpdateDetails details) {
@@ -371,11 +542,13 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
       // 进度条跟着手指预览走;松手才真正 seek。
       _seeking = target.toDouble();
     });
+    _queuePreview(target);
   }
 
   void _dragEnd(DragEndDetails details) {
     final drag = _drag;
     if (drag == null) return;
+    _clearPreview();
     setState(() {
       _drag = null;
       _seeking = null;
@@ -387,6 +560,7 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
       _poller?.cancel();
+      unawaited(_saveProgress(force: true));
       final handle = _handle;
       if (handle != null) {
         unawaited(widget.video.pause(handle.texture).catchError((Object _) {}));
@@ -397,6 +571,7 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
               positionMs: previous.positionMs,
               durationMs: previous.durationMs,
               playing: false,
+              buffering: previous.buffering,
             ),
           );
         }
@@ -470,7 +645,10 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
     ++_generation;
     _poller?.cancel();
     _tapTimer?.cancel();
+    _previewTimer?.cancel();
+    _badgeTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_saveProgress(force: true));
     unawaited(_close(_handle));
     unawaited(_closeStream());
     super.dispose();
@@ -483,6 +661,13 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
     final state = _state;
     final duration = (state?.durationMs ?? 0).clamp(0, 1 << 53).toDouble();
     final position = (_seeking ?? state?.positionMs.toDouble() ?? 0).clamp(0.0, duration);
+    final buffered = _bufferedFraction;
+    // 拖动中的画面预览:横滑或拖进度条都出;帧没到先显示时间。
+    final previewMs = _drag?.targetMs ?? _barDragMs;
+    final previewBucket = previewMs == null ? null : previewMs ~/ 1000;
+    final Uint8List? previewBytes = previewBucket != null && _previewBucket == previewBucket
+        ? _frames[previewBucket]
+        : null;
     return Theme(
       data: Theme.of(context).copyWith(brightness: Brightness.dark, colorScheme: const ColorScheme.dark()),
       child: Scaffold(
@@ -533,19 +718,37 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
                               alignment: Alignment.center,
                               children: [
                                 AspectRatio(aspectRatio: handle.aspectRatio, child: Texture(textureId: handle.texture)),
-                                if (_speedBoosted) const _ViewerBadge(text: '»» 2×'),
-                                if (_drag != null)
-                                  _ViewerBadge(
-                                    text:
-                                        '${_drag!.targetMs >= _drag!.baseMs ? "»»" : "««"} '
-                                        '${mediaVideoTime(_drag!.targetMs)}',
+                                // 缓冲中:停住不动时能看出是在等数据,不是坏了。
+                                if (state?.buffering == true)
+                                  const SizedBox.square(
+                                    dimension: 28,
+                                    child: CircularProgressIndicator(strokeWidth: 3),
                                   ),
+                                if (_speedBoosted) const _ViewerBadge(text: '»» 2×'),
+                                if (_resumeMs > 0 && _drag == null && _barDragMs == null)
+                                  _ViewerBadge(text: l10n.mediaVideoResumed(mediaVideoTime(_resumeMs))),
                               ],
                             ),
                           ),
                         ),
                 ),
               ),
+              // 拖动预览卡:锚在目标进度对应的位置,悬在控制层上方。
+              if (previewMs != null && duration > 0)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: 76,
+                  child: Align(
+                    alignment: Alignment(((position / duration) * 2 - 1).clamp(-1.0, 1.0), 0),
+                    child: _SeekPreview(
+                      ms: previewMs,
+                      arrows: _drag != null,
+                      backward: _drag != null && _drag!.targetMs < _drag!.baseMs,
+                      bytes: previewBytes,
+                    ),
+                  ),
+                ),
               if (_controlsVisible)
                 Positioned(
                   top: 0,
@@ -639,14 +842,32 @@ class _MediaVideoViewerPageState extends State<MediaVideoViewerPage> with Widget
                             ),
                             Text(mediaVideoTime(position.toInt()), style: const TextStyle(color: Colors.white)),
                             Expanded(
-                              child: Slider(
-                                value: position,
-                                max: duration > 0 ? duration : 1,
-                                onChanged: _commanding ? null : (value) => setState(() => _seeking = value),
-                                onChangeEnd: (value) {
-                                  setState(() => _seeking = null);
-                                  unawaited(_command((texture) => widget.video.seek(texture, value.toInt())));
-                                },
+                              child: SliderTheme(
+                                // 缓冲段画在轨道里:看得见下到哪了。
+                                data: SliderTheme.of(
+                                  context,
+                                ).copyWith(trackShape: _BufferedSeekTrackShape(buffered: buffered ?? 0)),
+                                child: Slider(
+                                  value: position,
+                                  max: duration > 0 ? duration : 1,
+                                  onChanged: _commanding
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            _seeking = value;
+                                            _barDragMs = value.toInt();
+                                          });
+                                          _queuePreview(value.toInt());
+                                        },
+                                  onChangeEnd: (value) {
+                                    _clearPreview();
+                                    setState(() {
+                                      _seeking = null;
+                                      _barDragMs = null;
+                                    });
+                                    unawaited(_command((texture) => widget.video.seek(texture, value.toInt())));
+                                  },
+                                ),
                               ),
                             ),
                             Text(mediaVideoTime(duration.toInt()), style: const TextStyle(color: Colors.white)),
@@ -691,6 +912,97 @@ class _ViewerBadge extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 拖动时的画面预览卡:缩略图(抽到后)+时间,横滑时带 »»/«« 方向。
+class _SeekPreview extends StatelessWidget {
+  const _SeekPreview({required this.ms, required this.arrows, required this.backward, this.bytes});
+
+  final int ms;
+  final bool arrows;
+  final bool backward;
+  final Uint8List? bytes;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = this.bytes;
+    return DecoratedBox(
+      decoration: ShapeDecoration(color: Colors.black.withValues(alpha: 0.6), shape: Squircle.border(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (bytes != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.memory(bytes, width: 144, fit: BoxFit.contain, gaplessPlayback: true),
+                ),
+              ),
+            Text(
+              '${arrows ? (backward ? '«« ' : '»» ') : ''}${mediaVideoTime(ms)}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 进度条轨道:底轨 + 已缓冲段 + 已播段。缓冲前沿来自流式代理的窗口缓存
+/// (本地/整文件恒为满),让"下到哪了"看得见。
+class _BufferedSeekTrackShape extends RoundedRectSliderTrackShape {
+  const _BufferedSeekTrackShape({required this.buffered});
+
+  final double buffered;
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required TextDirection textDirection,
+    required Offset thumbCenter,
+    Offset? secondaryOffset,
+    bool isDiscrete = false,
+    bool isEnabled = false,
+    double additionalActiveTrackHeight = 2,
+  }) {
+    assert(textDirection == TextDirection.ltr, '视频播放器只支持 LTR 布局');
+    final trackRect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+    final radius = Radius.circular(trackRect.height / 2);
+    final paint = Paint();
+    paint.color = Colors.white.withValues(alpha: 0.24);
+    context.canvas.drawRRect(RRect.fromRectAndRadius(trackRect, radius), paint);
+    final bufferedRight = trackRect.left + trackRect.width * buffered.clamp(0.0, 1.0);
+    if (bufferedRight - trackRect.left > 1) {
+      paint.color = Colors.white.withValues(alpha: 0.45);
+      context.canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTRB(trackRect.left, trackRect.top, bufferedRight, trackRect.bottom), radius),
+        paint,
+      );
+    }
+    final activeRight = thumbCenter.dx.clamp(trackRect.left, trackRect.right);
+    paint.color = Colors.white;
+    context.canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTRB(trackRect.left, trackRect.top, activeRight, trackRect.bottom), radius),
+      paint,
     );
   }
 }

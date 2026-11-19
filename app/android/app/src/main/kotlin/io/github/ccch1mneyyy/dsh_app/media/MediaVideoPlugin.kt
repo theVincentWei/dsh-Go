@@ -43,6 +43,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
         var prepared = false
         var pending: MethodChannel.Result? = null
         var timeout: Runnable? = null
+        var buffering = false
     }
     private val lifecycle = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityResumed(a: Activity) { if (a === activity) foreground = true }
@@ -79,6 +80,8 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             "openUrl" -> openUrl(call.argument<String>("url"), result)
             "poster" -> poster(call.argument<String>("path"), result)
             "posterUrl" -> posterUrl(call.argument<String>("url"), result)
+            "frame" -> frame(call.argument<String>("path"), call.argument<Number>("timeMs")?.toLong() ?: 0L, result)
+            "frameUrl" -> frameUrl(call.argument<String>("url"), call.argument<Number>("timeMs")?.toLong() ?: 0L, result)
             else -> {
                 val id = call.argument<Number>("texture")?.toLong() ?: -1L
                 if (call.method == "close") { close(id); result.success(null); return }
@@ -106,7 +109,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                             }
                             result.success(null)
                         }
-                        "state" -> result.success(mapOf("positionMs" to clip.player.currentPosition, "durationMs" to clip.player.duration, "playing" to clip.player.isPlaying))
+                        "state" -> result.success(mapOf("positionMs" to clip.player.currentPosition, "durationMs" to clip.player.duration, "playing" to clip.player.isPlaying, "buffering" to clip.buffering))
                         else -> result.notImplemented()
                     }
                 } catch (_: Exception) { close(id); result.error("playback", "video playback failed", null) }
@@ -148,6 +151,14 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             p.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build())
             p.setOnVideoSizeChangedListener { _, w, h -> if (clips[id] === clip && w > 0 && h > 0) surface.setSize(w, h) }
             p.setOnCompletionListener { if (clips[id] === clip) abandonFocus() }
+            p.setOnInfoListener { _, what, _ ->
+                if (clips[id] !== clip) return@setOnInfoListener false
+                when (what) {
+                    MediaPlayer.MEDIA_INFO_BUFFERING_START -> clip.buffering = true
+                    MediaPlayer.MEDIA_INFO_BUFFERING_END -> clip.buffering = false
+                }
+                false
+            }
             p.setOnErrorListener { _, _, _ -> close(id, "playback"); true }
             p.setOnPreparedListener {
                 if (clips[id] !== clip) return@setOnPreparedListener
@@ -213,19 +224,30 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
 
     private fun poster(path: String?, result: MethodChannel.Result) {
         if (!MediaVideos.localFile(path)) { result.error("invalid", "a local video file is required", null); return }
-        extractPoster({ retriever -> FileInputStream(path!!).use { retriever.setDataSource(it.fd) } }, result)
+        extractFrame({ retriever -> FileInputStream(path!!).use { retriever.setDataSource(it.fd) } }, 0L, MediaVideos.POSTER_MAX_DIM, 80, result)
     }
 
     private fun posterUrl(url: String?, result: MethodChannel.Result) {
         if (!MediaVideos.loopbackUrl(url)) { result.error("invalid", "a loopback stream url is required", null); return }
-        extractPoster({ retriever -> retriever.setDataSource(url, HashMap<String, String>()) }, result)
+        extractFrame({ retriever -> retriever.setDataSource(url, HashMap<String, String>()) }, 0L, MediaVideos.POSTER_MAX_DIM, 80, result)
     }
 
-    private fun extractPoster(setSource: (MediaMetadataRetriever) -> Unit, result: MethodChannel.Result) {
+    /// 拖动进度条的画面预览:同海报一路的抽帧,任意时刻、更小的图。
+    private fun frame(path: String?, timeMs: Long, result: MethodChannel.Result) {
+        if (!MediaVideos.localFile(path)) { result.error("invalid", "a local video file is required", null); return }
+        extractFrame({ retriever -> FileInputStream(path!!).use { retriever.setDataSource(it.fd) } }, timeMs * 1000, MediaVideos.PREVIEW_MAX_DIM, 75, result)
+    }
+
+    private fun frameUrl(url: String?, timeMs: Long, result: MethodChannel.Result) {
+        if (!MediaVideos.loopbackUrl(url)) { result.error("invalid", "a loopback stream url is required", null); return }
+        extractFrame({ retriever -> retriever.setDataSource(url, HashMap<String, String>()) }, timeMs * 1000, MediaVideos.PREVIEW_MAX_DIM, 75, result)
+    }
+
+    private fun extractFrame(setSource: (MediaMetadataRetriever) -> Unit, timeUs: Long, maxDim: Int, quality: Int, result: MethodChannel.Result) {
         // A broken platform decoder must not accumulate workers when cards scroll.
         if (!probing.compareAndSet(false, true)) { result.success(null); return }
         var answered = false
-        val timeout = Runnable { if (!answered) { answered = true; result.error("timeout", "poster extraction timed out", null) } }
+        val timeout = Runnable { if (!answered) { answered = true; result.error("timeout", "frame extraction timed out", null) } }
         main.postDelayed(timeout, 10_000)
         posterWorker.execute {
             val bytes = runCatching {
@@ -236,15 +258,15 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                     val h = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
                     if (w <= 0 || h <= 0) return@runCatching null
                     // API 26 cannot request a scaled frame: avoid a large full-resolution
-                    // bitmap just for a scrolling card. Playback is still available.
+                    // bitmap just for a scrolling card or a drag preview. Playback is still available.
                     if (Build.VERSION.SDK_INT < 27 && w.toLong() * h > 4_000_000L) return@runCatching null
-                    val (pw, ph) = MediaVideos.posterSize(w, h)
-                    val frame = if (Build.VERSION.SDK_INT >= 27) retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, pw, ph) else retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    val (pw, ph) = MediaVideos.scaledSize(w, h, maxDim)
+                    val frame = if (Build.VERSION.SDK_INT >= 27) retriever.getScaledFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, pw, ph) else retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                     if (frame == null) return@runCatching null
                     try {
-                        val (sw, sh) = MediaVideos.posterSize(frame.width, frame.height)
+                        val (sw, sh) = MediaVideos.scaledSize(frame.width, frame.height, maxDim)
                         val scaled = if (sw == frame.width && sh == frame.height) frame else Bitmap.createScaledBitmap(frame, sw, sh, true)
-                        try { ByteArrayOutputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 80, it); it.toByteArray() } }
+                        try { ByteArrayOutputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, quality, it); it.toByteArray() } }
                         finally { if (scaled !== frame) scaled.recycle() }
                     } finally { frame.recycle() }
                 } finally { runCatching { retriever.release() } }
@@ -272,8 +294,13 @@ internal object MediaVideos {
     }
 
     fun seek(position: Long, duration: Int): Int = position.coerceIn(0L, maxOf(0, duration).toLong()).toInt()
-    fun posterSize(width: Int, height: Int): Pair<Int, Int> {
-        val scale = minOf(1.0, 512.0 / maxOf(1, width, height))
+
+    /// 卡片海报 / 拖动预览各自的最长边(像素)。预览小一档:屏幕上一闪而过。
+    const val POSTER_MAX_DIM = 512
+    const val PREVIEW_MAX_DIM = 320
+
+    fun scaledSize(width: Int, height: Int, maxDim: Int): Pair<Int, Int> {
+        val scale = minOf(1.0, maxDim.toDouble() / maxOf(1, width, height))
         return maxOf(1, (width * scale).toInt()) to maxOf(1, (height * scale).toInt())
     }
 }
