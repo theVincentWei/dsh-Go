@@ -160,6 +160,9 @@ flutter:
     - assets/licenses/unicode-15.0.txt
     - assets/licenses/jquery-3.7.1-LICENSE.txt
     - assets/licenses/lodash-4.17.21-LICENSE.txt
+    # Model viewer's vendored renderer licences (lib/ui/model3d).
+    - assets/licenses/three-0.187.0-LICENSE.txt
+    - assets/licenses/fflate-LICENSE.txt
     # Phone layout for the embedded DSH Web (see lib/ui/web/web_view_page.dart).
     - assets/web/
     # Whale-tail activity sprites (lib/ui/chat/widgets/whale_tail.dart),
@@ -188,6 +191,9 @@ flutter:
     # The star prompt's whale girl (lib/ui/star/star_prompt_dialog.dart), 576px WebP.
     - assets/star/
     - assets/islands/
+    # 3MF model preview (lib/ui/model3d): the bundled three.js viewer
+    # (viewer.html) plus the generated sample (tool/make_sample_3mf.py).
+    - assets/model3d/
     # 伙伴小屋's page (lib/ui/companion). Its Live2D runtime and models are a
     # separate download, see docs/design/companion.md.
     - assets/companion/

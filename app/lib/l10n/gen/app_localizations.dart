@@ -19796,6 +19796,36 @@ abstract class L10n {
   /// **'已保存 {count} 个文件到相册'**
   String mediaSavedFilesCount(int count);
 
+  /// No description provided for @model3dTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'3MF 模型预览'**
+  String get model3dTitle;
+
+  /// No description provided for @model3dLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加载模型…'**
+  String get model3dLoading;
+
+  /// No description provided for @model3dLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型加载失败'**
+  String get model3dLoadFailed;
+
+  /// No description provided for @model3dRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get model3dRetry;
+
+  /// No description provided for @model3dStats.
+  ///
+  /// In zh, this message translates to:
+  /// **'{triangles} 个三角形 · {parts} 个零件'**
+  String model3dStats(int triangles, int parts);
+
   /// No description provided for @modeSheetTitle.
   ///
   /// In zh, this message translates to:
