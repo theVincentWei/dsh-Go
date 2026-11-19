@@ -382,7 +382,7 @@
   "chatArtifactCopyPathOnly": "当前连接无法读取文件，只能复制路径",
   "chatReplying": "正在回复",
   "chatInterrupted": "已中断",
-  "chatGallery": "相册",
+  "chatGallery": "照片和视频",
   "chatTakePhoto": "拍照",
   "chatAddAttachment": "添加图片或文件",
   "chatRemoveAttachment": "移除「{name}」",

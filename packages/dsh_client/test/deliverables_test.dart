@@ -470,4 +470,35 @@ void main() {
       );
     });
   });
+
+  group('readWindow', () {
+    test('one RPC: the requested range with version and eof', () async {
+      final carrier = _BytesCarrier({
+        'workspaceFiles/readBytes': (args) {
+          final options = args['options'] as Map;
+          final range = options['range'] as Map;
+          expect(range['offset'], 2048);
+          expect(range['length'], 16);
+          expect(args['workspaceFileScopeId'], 's');
+          expect(args['path'], 'movie.mp4');
+          return {'data': base64Encode([for (var i = 0; i < 16; i++) i]), 'version': 'v7', 'eof': false};
+        },
+      });
+      final window = await DshClient.withCarrier(carrier).readWindow('s', 'movie.mp4', offset: 2048, length: 16);
+      expect(window.data, [for (var i = 0; i < 16; i++) i]);
+      expect(window.version, 'v7');
+      expect(window.eof, isFalse);
+      expect(carrier.calls.single.$1, 'workspaceFiles/readBytes');
+    });
+
+    test('a JSON byte array answer decodes; missing fields stay null or false', () async {
+      final carrier = _BytesCarrier({
+        'workspaceFiles/readBytes': (_) => {'data': [1, 2, 3], 'eof': true},
+      });
+      final window = await DshClient.withCarrier(carrier).readWindow('s', 'a', offset: 0, length: 3);
+      expect(window.data, [1, 2, 3]);
+      expect(window.eof, isTrue);
+      expect(window.version, isNull);
+    });
+  });
 }

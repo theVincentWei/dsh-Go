@@ -166,6 +166,37 @@ class ArtifactFiles {
     return future.whenComplete(() => _inFlight.remove(key));
   }
 
+  /// The cached remote copy when it matches the Host's current version —
+  /// checked with one stat, never a download. Null when absent or stale.
+  /// Streaming playback plays this copy outright instead of re-fetching.
+  Future<File?> cachedRemote(String sessionId, Artifact artifact, {DshFileStat? stat}) async {
+    final conn = connection;
+    if (conn == null || conn.isLocal || !conn.client.canReadFileBytes) return null;
+    final version = (stat ?? await conn.client.statFile(sessionId, artifact.path)).version;
+    final key = _fnv('${conn.hostId ?? conn.label}\n$sessionId\n${artifact.path}');
+    final dir = Directory('${(await _cacheRoot()).path}/artifacts/$key');
+    final target = File('${dir.path}/${_safeName(artifact.name)}');
+    final marker = File('${dir.path}/.version');
+    if (target.existsSync() && marker.existsSync() && marker.readAsStringSync() == version) {
+      return target;
+    }
+    return null;
+  }
+
+  /// The size of a REMOTE file with one stat RPC, for card subtitles. Local
+  /// files answer null: phone-local tiles already know their bytes up front
+  /// (`artifact.bytes`), and stat'ing them would double the resolveGuest
+  /// work every open does. Null when unknown — size is decorative, not a gate.
+  Future<int?> statBytes(String sessionId, Artifact artifact) async {
+    final conn = connection;
+    if (conn == null || conn.isLocal || !conn.client.canReadFileBytes) return null;
+    try {
+      return (await conn.client.statFile(sessionId, artifact.path)).bytes;
+    } on Object {
+      return null;
+    }
+  }
+
   Future<File> _materializeLocal(String sessionId, Artifact artifact) async {
     final host = await channel.resolveGuest(artifact.path);
     if (host == null) throw const ArtifactError('missing');
@@ -393,6 +424,17 @@ final artifactThumbnailProvider = FutureProvider.autoDispose.family<ImageProvide
   final (sessionId, path) = key;
   try {
     return await ref.watch(artifactFilesProvider).thumbnail(sessionId, path);
+  } catch (_) {
+    return null;
+  }
+});
+
+/// [ArtifactFiles.statBytes], cached per (session, path) while shown: one
+/// stat for a card's subtitle, refreshed each time the card rebuilds cold.
+final artifactSizeProvider = FutureProvider.autoDispose.family<int?, (String, String)>((ref, key) async {
+  final (sessionId, path) = key;
+  try {
+    return await ref.watch(artifactFilesProvider).statBytes(sessionId, Artifact(path: path, origin: ArtifactOrigin.linked, turn: 0));
   } catch (_) {
     return null;
   }

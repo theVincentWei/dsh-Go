@@ -8,6 +8,7 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -24,7 +25,7 @@ import java.io.FileInputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Local materialized videos only; intentionally separate from launch playback. */
+/** Local materialized videos and loopback stream URLs; separate from launch playback. */
 class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler {
     private lateinit var methods: MethodChannel
     private lateinit var textures: TextureRegistry
@@ -73,35 +74,57 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
     override fun onDetachedFromActivity() = onDetachedFromActivityForConfigChanges()
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method == "open") { open(call.argument<String>("path"), result); return }
-        if (call.method == "poster") { poster(call.argument<String>("path"), result); return }
-        val id = call.argument<Number>("texture")?.toLong() ?: -1L
-        if (call.method == "close") { close(id); result.success(null); return }
-        val clip = clips[id]
-        if (clip == null || !clip.prepared) { result.error("closed", "video is closed", null); return }
-        try {
-            when (call.method) {
-                "play" -> {
-                    if (!foreground) { result.error("background", "app is not in foreground", null); return }
-                    if (!requestFocus()) { result.error("audio_focus", "audio focus unavailable", null); return }
-                    clips.values.filter { it !== clip && it.prepared }.forEach { runCatching { it.player.pause() } }
-                    clip.player.start()
-                    result.success(null)
-                }
-                "pause" -> { clip.player.pause(); abandonFocus(); result.success(null) }
-                "seek" -> {
-                    val position = MediaVideos.seek(call.argument<Number>("positionMs")?.toLong() ?: 0, clip.player.duration)
-                    if (Build.VERSION.SDK_INT >= 26) clip.player.seekTo(position.toLong(), MediaPlayer.SEEK_CLOSEST_SYNC) else clip.player.seekTo(position)
-                    result.success(null)
-                }
-                "state" -> result.success(mapOf("positionMs" to clip.player.currentPosition, "durationMs" to clip.player.duration, "playing" to clip.player.isPlaying))
-                else -> result.notImplemented()
+        when (call.method) {
+            "open" -> openFile(call.argument<String>("path"), result)
+            "openUrl" -> openUrl(call.argument<String>("url"), result)
+            "poster" -> poster(call.argument<String>("path"), result)
+            "posterUrl" -> posterUrl(call.argument<String>("url"), result)
+            else -> {
+                val id = call.argument<Number>("texture")?.toLong() ?: -1L
+                if (call.method == "close") { close(id); result.success(null); return }
+                val clip = clips[id]
+                if (clip == null || !clip.prepared) { result.error("closed", "video is closed", null); return }
+                try {
+                    when (call.method) {
+                        "play" -> {
+                            if (!foreground) { result.error("background", "app is not in foreground", null); return }
+                            if (!requestFocus()) { result.error("audio_focus", "audio focus unavailable", null); return }
+                            clips.values.filter { it !== clip && it.prepared }.forEach { runCatching { it.player.pause() } }
+                            clip.player.start()
+                            result.success(null)
+                        }
+                        "pause" -> { clip.player.pause(); abandonFocus(); result.success(null) }
+                        "seek" -> {
+                            val position = MediaVideos.seek(call.argument<Number>("positionMs")?.toLong() ?: 0, clip.player.duration)
+                            if (Build.VERSION.SDK_INT >= 26) clip.player.seekTo(position.toLong(), MediaPlayer.SEEK_CLOSEST_SYNC) else clip.player.seekTo(position)
+                            result.success(null)
+                        }
+                        "speed" -> {
+                            val rate = call.argument<Number>("rate")?.toFloat() ?: 1f
+                            if (Build.VERSION.SDK_INT >= 23) {
+                                clip.player.playbackParams = clip.player.playbackParams.setSpeed(rate)
+                            }
+                            result.success(null)
+                        }
+                        "state" -> result.success(mapOf("positionMs" to clip.player.currentPosition, "durationMs" to clip.player.duration, "playing" to clip.player.isPlaying))
+                        else -> result.notImplemented()
+                    }
+                } catch (_: Exception) { close(id); result.error("playback", "video playback failed", null) }
             }
-        } catch (_: Exception) { close(id); result.error("playback", "video playback failed", null) }
+        }
     }
 
-    private fun open(path: String?, result: MethodChannel.Result) {
+    private fun openFile(path: String?, result: MethodChannel.Result) {
         if (!MediaVideos.localFile(path)) { result.error("invalid", "a local video file is required", null); return }
+        startSession({ player -> FileInputStream(path!!).use { player.setDataSource(it.fd) } }, result)
+    }
+
+    private fun openUrl(url: String?, result: MethodChannel.Result) {
+        if (!MediaVideos.loopbackUrl(url)) { result.error("invalid", "a loopback stream url is required", null); return }
+        startSession({ player -> player.setDataSource(url) }, result)
+    }
+
+    private fun startSession(setSource: (MediaPlayer) -> Unit, result: MethodChannel.Result) {
         closeAll()
         var producer: TextureRegistry.SurfaceProducer? = null
         var player: MediaPlayer? = null
@@ -136,7 +159,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                 clip.pending = null
                 pending?.success(mapOf("texture" to id, "width" to it.videoWidth, "height" to it.videoHeight, "durationMs" to it.duration))
             }
-            FileInputStream(path!!).use { p.setDataSource(it.fd) }
+            setSource(p)
             p.setSurface(surface.surface)
             p.prepareAsync()
         } catch (_: Exception) {
@@ -148,6 +171,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             }
         }
     }
+
     private fun requestFocus(): Boolean {
         if (focusListener != null) return true
         val listener = object : AudioManager.OnAudioFocusChangeListener {
@@ -189,6 +213,15 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
 
     private fun poster(path: String?, result: MethodChannel.Result) {
         if (!MediaVideos.localFile(path)) { result.error("invalid", "a local video file is required", null); return }
+        extractPoster({ retriever -> FileInputStream(path!!).use { retriever.setDataSource(it.fd) } }, result)
+    }
+
+    private fun posterUrl(url: String?, result: MethodChannel.Result) {
+        if (!MediaVideos.loopbackUrl(url)) { result.error("invalid", "a loopback stream url is required", null); return }
+        extractPoster({ retriever -> retriever.setDataSource(url, HashMap<String, String>()) }, result)
+    }
+
+    private fun extractPoster(setSource: (MediaMetadataRetriever) -> Unit, result: MethodChannel.Result) {
         // A broken platform decoder must not accumulate workers when cards scroll.
         if (!probing.compareAndSet(false, true)) { result.success(null); return }
         var answered = false
@@ -198,7 +231,7 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             val bytes = runCatching {
                 val retriever = MediaMetadataRetriever()
                 try {
-                    FileInputStream(path!!).use { retriever.setDataSource(it.fd) }
+                    setSource(retriever)
                     val w = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
                     val h = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
                     if (w <= 0 || h <= 0) return@runCatching null
@@ -227,6 +260,17 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
 
 internal object MediaVideos {
     fun localFile(path: String?): Boolean = path != null && File(path).isAbsolute && File(path).isFile
+
+    /** Only the app's own loopback stream server may be handed to the player. */
+    private val LOOPBACK_HOSTS = setOf("localhost", "127.0.0.1", "[::1]", "::1", "[0:0:0:0:0:0:0:1]")
+    fun loopbackUrl(url: String?): Boolean {
+        if (url.isNullOrEmpty()) return false
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
+        if ((uri.scheme ?: "").lowercase() != "http") return false
+        val host = (uri.host ?: return false).lowercase()
+        return host in LOOPBACK_HOSTS
+    }
+
     fun seek(position: Long, duration: Int): Int = position.coerceIn(0L, maxOf(0, duration).toLong()).toInt()
     fun posterSize(width: Int, height: Int): Pair<Int, Int> {
         val scale = minOf(1.0, 512.0 / maxOf(1, width, height))

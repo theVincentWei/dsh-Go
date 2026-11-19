@@ -4632,7 +4632,7 @@ class L10nEn extends L10n {
   String get chatInterrupted => 'Interrupted';
 
   @override
-  String get chatGallery => 'Photos';
+  String get chatGallery => 'Photos & videos';
 
   @override
   String get chatTakePhoto => 'Take photo';

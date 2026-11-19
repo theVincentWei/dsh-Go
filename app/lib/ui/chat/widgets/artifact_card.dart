@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:dsh_client/dsh_client.dart' show MediaItem;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,7 @@ import '../../share/share_entry.dart' show shareArtifact;
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 import '../artifact_preview.dart';
+import '../media/media_video_viewer.dart';
 import '../../common/expand_reveal.dart';
 import 'change_card.dart' show copyPath;
 import 'chat_card.dart';
@@ -180,6 +182,14 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
       } else {
         _report(note);
       }
+    } on ArtifactCancelled {
+      // 用户主动取消:不算失败,静默收尾,下一行字恢复原样。
+      if (mounted) {
+        setState(() {
+          _busy = null;
+          _progress = null;
+        });
+      }
     } catch (e) {
       _report(artifactErrorText(e), failed: true);
     }
@@ -209,6 +219,20 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
 
   void _tap() {
     final files = ref.read(artifactFilesProvider);
+    if (_artifact.kind == ArtifactKind.video) {
+      // 视频:App 内流式预览(边下边播,不需要先把整个文件落到手机);
+      // ⋯ 菜单里的打开/存下载才是显式下载。
+      unawaited(
+        openMediaVideoViewer(
+          context,
+          ref,
+          widget.sessionId,
+          MediaItem(path: _artifact.path, mime: _artifact.mimeType),
+          sourceFiles: files,
+        ),
+      );
+      return;
+    }
     if (!artifactPreviewable(_artifact, officeToPdf: files.canConvertOffice)) {
       _open();
       return;
@@ -276,9 +300,12 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
       null =>
         _note ??
             artifact.description ??
-            [artifact.typeLabel, if (artifact.bytes case final b?) formatBytes(b)].join(' · '),
+            [artifact.typeLabel, if (_tileSize case final b?) formatBytes(b)].join(' · '),
     };
   }
+
+  /// 行上的大小字样:交付声明自带就用,缺了懒 stat 一次(远端交付常不带)。
+  int? get _tileSize => _artifact.bytes ?? ref.watch(artifactSizeProvider((widget.sessionId, _artifact.path))).value;
 
   @override
   Widget build(BuildContext context) {
@@ -345,7 +372,15 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
               ),
               SizedBox.square(
                 dimension: 40,
-                child: busy
+                child: download != null
+                    ? IconButton(
+                        tooltip: l10n.commonCancel,
+                        iconSize: 20,
+                        color: dsh.textTertiary,
+                        icon: const Icon(AppIcons.close),
+                        onPressed: download.cancel,
+                      )
+                    : busy
                     ? Center(
                         child: SizedBox.square(
                           dimension: 18,

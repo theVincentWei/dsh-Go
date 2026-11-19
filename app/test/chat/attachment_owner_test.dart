@@ -35,7 +35,7 @@ class _PendingPicker extends FakePicker {
   }
 
   @override
-  Future<List<DraftAttachment>> pickImages({required int limit}) {
+  Future<List<DraftAttachment>> pickMedia({required int limit}) {
     calls.add('images:$limit');
     return result.future;
   }
@@ -350,7 +350,7 @@ void main() {
     });
   }
 
-  for (final source in ['文件', '相册', '拍照']) {
+  for (final source in ['文件', '照片和视频', '拍照']) {
     testWidgets('the current $source selection still reaches the current draft', (tester) async {
       final rig = _Rig();
       await rig.pump(tester);

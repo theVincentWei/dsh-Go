@@ -224,7 +224,7 @@ void main() {
     await tester.tap(find.text('附件'));
     await pumpFrames(tester);
     expect(find.text('文件'), findsNothing);
-    final album = find.ancestor(of: find.text('相册'), matching: find.byType(InkWell)).first;
+    final album = find.ancestor(of: find.text('照片和视频'), matching: find.byType(InkWell)).first;
     final camera = find.ancestor(of: find.text('拍照'), matching: find.byType(InkWell)).first;
     final left = tester.getRect(album);
     final right = tester.getRect(camera);

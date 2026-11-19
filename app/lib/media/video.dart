@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dsh_client/dsh_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,9 +10,15 @@ import '../state/artifact_files.dart';
 import '../state/artifacts.dart';
 
 /// No URL entry point: the caller must materialize through its captured Host.
+/// The one exception is a loopback [VideoStreamServer] URL, see [openUrl].
 class MediaVideoChannel {
   const MediaVideoChannel([this.channel = const MethodChannel('dsh/media_video')]);
   final MethodChannel channel;
+
+  /// Whether this build's platform player accepts loopback stream URLs at
+  /// all. Android ships a URL-aware player; other platforms keep the
+  /// download-first path.
+  bool get supportsUrlSource => !kIsWeb && Platform.isAndroid;
 
   // One decoder request at a time across channel instances. Queued requests
   // retain paths only, never decoded frames or full video buffers.
@@ -19,19 +26,44 @@ class MediaVideoChannel {
 
   Future<MediaVideoHandle> open(String path) async {
     _localPath(path);
-    final value = await channel.invokeMapMethod<String, dynamic>('open', {'path': path});
+    return _fromOpen(await channel.invokeMapMethod<String, dynamic>('open', {'path': path}));
+  }
+
+  /// Opens a video from a loopback streaming URL (`http://127.0.0.1:…`, as
+  /// produced by [VideoStreamServer]). The player pulls HTTP ranges; the
+  /// server translates them into Host byte windows.
+  Future<MediaVideoHandle> openUrl(String url) async {
+    _loopbackUrl(url);
+    return _fromOpen(await channel.invokeMapMethod<String, dynamic>('openUrl', {'url': url}));
+  }
+
+  static MediaVideoHandle _fromOpen(Object? value) {
     if (value == null) throw PlatformException(code: 'unsupported');
-    return MediaVideoHandle(
-      texture: (value['texture'] as num).toInt(),
-      width: (value['width'] as num).toInt(),
-      height: (value['height'] as num).toInt(),
-      durationMs: (value['durationMs'] as num).toInt(),
-    );
+    if (value case {'texture': final num texture, 'width': final num width, 'height': final num height, 'durationMs': final num duration}) {
+      return MediaVideoHandle(
+        texture: texture.toInt(),
+        width: width.toInt(),
+        height: height.toInt(),
+        durationMs: duration.toInt(),
+      );
+    }
+    throw PlatformException(code: 'unsupported');
   }
 
   Future<Uint8List?> poster(String path) {
     _localPath(path);
-    final request = _posterTail.then((_) => channel.invokeMethod<Uint8List>('poster', {'path': path}));
+    return _poster('poster', {'path': path});
+  }
+
+  /// The same extraction for a loopback streaming URL, so a streamed video
+  /// seeds its card poster without the whole file being downloaded.
+  Future<Uint8List?> posterUrl(String url) {
+    _loopbackUrl(url);
+    return _poster('posterUrl', {'url': url});
+  }
+
+  Future<Uint8List?> _poster(String method, Map<String, Object?> arguments) {
+    final request = _posterTail.then((_) => channel.invokeMethod<Uint8List>(method, arguments));
     _posterTail = request.then<void>((_) {}, onError: (Object _, StackTrace _) {});
     return request;
   }
@@ -40,6 +72,10 @@ class MediaVideoChannel {
   Future<void> pause(int texture) => channel.invokeMethod<void>('pause', {'texture': texture});
   Future<void> seek(int texture, int positionMs) =>
       channel.invokeMethod<void>('seek', {'texture': texture, 'positionMs': positionMs});
+
+  /// Temporary playback rate (长按倍速). 1.0 restores normal speed.
+  Future<void> speed(int texture, double rate) =>
+      channel.invokeMethod<void>('speed', {'texture': texture, 'rate': rate});
   Future<void> close(int texture) => channel.invokeMethod<void>('close', {'texture': texture});
   Future<MediaVideoState> state(int texture) async {
     final value = await channel.invokeMapMethod<String, dynamic>('state', {'texture': texture});
@@ -56,10 +92,29 @@ class MediaVideoChannel {
       throw ArgumentError.value(path, 'path', 'Expected an absolute local materialized file');
     }
   }
+
+  static void _loopbackUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.scheme != 'http' || !_isLoopback(uri.host)) {
+      throw ArgumentError.value(url, 'url', 'Expected a loopback streaming URL');
+    }
+  }
+
+  static bool _isLoopback(String host) {
+    final lowered = host.toLowerCase();
+    if (lowered == 'localhost' || lowered == '127.0.0.1' || lowered == '[::1]' || lowered == '::1') return true;
+    final address = InternetAddress.tryParse(host);
+    return address != null && address.isLoopback;
+  }
 }
 
 class MediaVideoHandle {
-  const MediaVideoHandle({required this.texture, required this.width, required this.height, required this.durationMs});
+  const MediaVideoHandle({
+    required this.texture,
+    required this.width,
+    required this.height,
+    required this.durationMs,
+  });
   final int texture;
   final int width;
   final int height;
@@ -117,6 +172,35 @@ Future<ImageProvider?> cacheMediaVideoThumbnail(
       return bytes == null || bytes.isEmpty ? null : MemoryImage(bytes);
     } catch (_) {
       // Optional decoration: a failed poster never prevents playback or retries.
+      return null;
+    }
+  }();
+  cache[key] = future;
+  future.then((value) {
+    if (value == null && identical(cache[key], future)) cache.remove(key);
+  });
+  return future;
+}
+
+/// After a streamed open, seed the card's poster straight from the loopback
+/// stream — no download, only the few ranges the extractor asks for.
+Future<ImageProvider?> cacheStreamedVideoPoster(
+  ArtifactFiles files,
+  MediaVideoChannel video,
+  String sessionId,
+  MediaItem item,
+  String url,
+) {
+  final cache = _posters[files] ??= {};
+  final key = (sessionId, item.path);
+  if (cache[key] case final existing?) return existing;
+  if (cache.length >= 24) cache.remove(cache.keys.first);
+  final future = () async {
+    try {
+      final bytes = await video.posterUrl(url);
+      return bytes == null || bytes.isEmpty ? null : MemoryImage(bytes);
+    } catch (_) {
+      // Optional decoration: a failed poster never prevents playback.
       return null;
     }
   }();

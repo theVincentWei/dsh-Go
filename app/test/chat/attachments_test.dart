@@ -61,13 +61,13 @@ void main() {
   });
 
   group('composer', () {
-    testWidgets('＋ offers 相册 / 拍照 / 文件, and a picked file waits in the tray', (tester) async {
+    testWidgets('＋ offers 照片和视频 / 拍照 / 文件, and a picked file waits in the tray', (tester) async {
       final harness = ChatHarness(session: 's1')..picker.files = [textFile('notes.md')];
       await pumpScreen(tester, harness);
 
       await tester.tap(find.bySemanticsLabel('添加图片或文件'));
       await pumpFrames(tester);
-      expect(find.text('相册'), findsOneWidget);
+      expect(find.text('照片和视频'), findsOneWidget);
       expect(find.text('拍照'), findsOneWidget);
       expect(find.text('文件'), findsOneWidget);
 
@@ -82,7 +82,7 @@ void main() {
     testWidgets('an attachment alone can be sent, and the tray empties', (tester) async {
       final harness = ChatHarness(session: 's1')..picker.images = [DraftAttachment.sniff('cat.png', tinyPng)];
       await pumpScreen(tester, harness);
-      await attachFrom(tester, '相册');
+      await attachFrom(tester, '照片和视频');
       expect(harness.picker.calls, ['images:$maxAttachments']);
 
       await tester.tap(find.byIcon(AppIcons.send));
@@ -150,7 +150,7 @@ void main() {
       await pumpScreen(tester, harness);
       await tester.tap(find.bySemanticsLabel('添加图片或文件'));
       await pumpFrames(tester);
-      expect(find.text('相册'), findsNothing);
+      expect(find.text('照片和视频'), findsNothing);
     });
   });
 

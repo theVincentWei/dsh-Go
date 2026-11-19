@@ -185,7 +185,7 @@
   "chatArtifactCopyPathOnly": "This connection can’t read files. You can copy the path.",
   "chatReplying": "Replying",
   "chatInterrupted": "Interrupted",
-  "chatGallery": "Photos",
+  "chatGallery": "Photos & videos",
   "chatTakePhoto": "Take photo",
   "chatAddAttachment": "Add image or file",
   "chatRemoveAttachment": "Remove “{name}”",
