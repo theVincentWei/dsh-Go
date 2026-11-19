@@ -37,6 +37,12 @@ final _links = [
   _link('A000000004', '旧的排查记录', expires: DateTime(2026, 10, 20, 9), ttl: HostedTtl.week),
 ];
 
+/// 30 天清理跟着页面的钉死时钟走,固定日期的夹具永不漂移。
+class _PinnedLinksController extends HostedLinksController {
+  @override
+  DateTime now() => _now;
+}
+
 Future<(FakeHost, MemoryStore)> _pump(
   WidgetTester tester, {
   List<HostedLink>? links,
@@ -54,6 +60,7 @@ Future<(FakeHost, MemoryStore)> _pump(
       HostedLinksPage(clock: () => _now),
       brightness: brightness,
       overrides: [
+        hostedLinksProvider.overrideWith(_PinnedLinksController.new),
         hostedLinkStoreProvider.overrideWithValue(store),
         hostedShareClientProvider.overrideWithValue(
           HostedShareClient(client: host.client, origin: 'https://go.example'),

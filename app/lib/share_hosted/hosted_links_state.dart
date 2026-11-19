@@ -83,6 +83,10 @@ class HostedLinksController extends Notifier<HostedLinksState> {
   /// Expired links stay listed (as 已过期) this long, then drop off.
   static const keepExpired = Duration(days: 30);
 
+  /// 注入点:测试钉住它,30 天清理跟着测试时钟走(否则固定日期的夹具会在
+  /// 过期满 30 天的那天被真实时钟清掉,行消失——2026-11-19 实爆)。
+  DateTime now() => DateTime.now();
+
   final _timers = <String, Timer>{};
   late Future<void> _ready;
   bool _canSave = false;
@@ -113,7 +117,7 @@ class HostedLinksController extends Notifier<HostedLinksState> {
     }
     if (!ref.mounted) return;
     _canSave = true;
-    final cutoff = DateTime.now().subtract(keepExpired);
+    final cutoff = now().subtract(keepExpired);
     final links = [
       for (final l in saved)
         if (l.expiresAt == null || l.expiresAt!.isAfter(cutoff)) l,
