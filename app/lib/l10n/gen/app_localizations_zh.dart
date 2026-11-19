@@ -10686,6 +10686,23 @@ class L10nZh extends L10n {
   }
 
   @override
+  String get model3dTitle => '3MF 模型预览';
+
+  @override
+  String get model3dLoading => '正在加载模型…';
+
+  @override
+  String get model3dLoadFailed => '模型加载失败';
+
+  @override
+  String get model3dRetry => '重试';
+
+  @override
+  String model3dStats(int triangles, int parts) {
+    return '$triangles 个三角形 · $parts 个零件';
+  }
+
+  @override
   String get modeSheetTitle => '模式';
 
   @override

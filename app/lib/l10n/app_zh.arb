@@ -6414,6 +6414,21 @@
       }
     }
   },
+  "model3dTitle": "3MF 模型预览",
+  "model3dLoading": "正在加载模型…",
+  "model3dLoadFailed": "模型加载失败",
+  "model3dRetry": "重试",
+  "model3dStats": "{triangles} 个三角形 · {parts} 个零件",
+  "@model3dStats": {
+    "placeholders": {
+      "triangles": {
+        "type": "int"
+      },
+      "parts": {
+        "type": "int"
+      }
+    }
+  },
   "modeSheetTitle": "模式",
   "modeKeyTooltip": "切换模式",
   "modeWork": "工作",

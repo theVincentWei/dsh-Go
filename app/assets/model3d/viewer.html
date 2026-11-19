@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+  3MF model viewer for the embedded WebView (lib/ui/model3d/), route A:
+  three.js + the official ThreeMFLoader, fully bundled (no CDN, works offline).
+  Reports load state back to Dart through the `ModelViewer` JavaScript channel:
+    {"event":"ready"}
+    {"event":"loaded","triangles":N,"parts":M}
+    {"event":"error","message":"…"}
+  Loads ./sample.3mf by default; Dart can switch models with
+  loadModel('<path relative to this file>') after `ready` (the Dart side
+  converts Flutter asset paths to viewer-relative ones before calling).
+  Vendored code: three.js r187 (three.module.js + three.core.js),
+  OrbitControls.js, 3MFLoader.js, fflate.module.js — see
+  THIRD_PARTY_NOTICES.md and assets/licenses/.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #101014; }
+  #c { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+</style>
+<script type="importmap">
+  { "imports": { "three": "./three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './OrbitControls.js';
+import { ThreeMFLoader } from './3MFLoader.js';
+
+function post(msg) {
+  try { ModelViewer.postMessage(JSON.stringify(msg)); } catch (_) { /* standalone in a browser */ }
+}
+window.onerror = (message) => post({ event: 'error', message: String(message) });
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+} catch (e) {
+  post({ event: 'error', message: 'WebGL 不可用: ' + e.message });
+  throw e;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x101014);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x33353d, 1.15));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(1, 1.6, 1.2);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x88aaff, 0.5);
+fill.position.set(-1.2, 0.8, -1);
+scene.add(fill);
+
+const grid = new THREE.GridHelper(200, 20, 0x3a3d46, 0x24262e);
+scene.add(grid);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+let modelGroup = null;
+
+function disposeModel() {
+  if (!modelGroup) return;
+  modelGroup.traverse((o) => {
+    if (o.isMesh) {
+      o.geometry.dispose();
+      for (const m of [].concat(o.material)) m.dispose();
+    }
+  });
+  scene.remove(modelGroup);
+  modelGroup = null;
+}
+
+function fit(object) {
+  // 3MF is Z-up in millimetres; the scene is Y-up.
+  object.rotation.x = -Math.PI / 2;
+  const group = new THREE.Group();
+  group.add(object);
+
+  let triangles = 0;
+  let parts = 0;
+  group.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    parts += 1;
+    const g = o.geometry;
+    triangles += (g.index ? g.index.count : g.attributes.position.count) / 3;
+    if (!g.attributes.normal) g.computeVertexNormals();
+  });
+
+  const box = new THREE.Box3().setFromObject(group);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z) || 1;
+
+  // Center on the origin, then rest the model on the grid.
+  group.position.set(-center.x, -box.min.y, -center.z);
+  scene.add(group);
+  modelGroup = group;
+
+  grid.scale.setScalar((maxDim * 2.2) / 200);
+
+  const dist = (maxDim / 2) / Math.tan((camera.fov * Math.PI) / 360) * 1.6;
+  camera.position.set(dist * 0.7, size.y * 0.9 + dist * 0.45, dist);
+  controls.target.set(0, size.y * 0.35, 0);
+  controls.update();
+
+  return { triangles: Math.round(triangles), parts };
+}
+
+function loadModel(url) {
+  disposeModel();
+  new ThreeMFLoader().load(url, (object) => {
+    try {
+      const stats = fit(object);
+      post({ event: 'loaded', ...stats });
+    } catch (e) {
+      post({ event: 'error', message: '解析成功但布置失败: ' + e.message });
+    }
+  }, undefined, (e) => {
+    post({ event: 'error', message: '3MF 加载失败: ' + (e && e.message ? e.message : url) });
+  });
+}
+window.loadModel = loadModel;
+
+post({ event: 'ready' });
+loadModel(new URLSearchParams(location.search).get('model') || './sample.3mf');
+
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
