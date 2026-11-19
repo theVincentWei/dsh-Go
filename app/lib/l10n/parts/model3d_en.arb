@@ -1,5 +1,5 @@
 {
-  "model3dTitle": "3MF model preview",
+  "model3dTitle": "3D model preview",
   "model3dLoading": "Loading model…",
   "model3dLoadFailed": "Failed to load the model",
   "model3dRetry": "Retry",

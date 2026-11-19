@@ -281,12 +281,14 @@ Libraries.dev metal-fx, translated to Flutter GLSL.
 | 项目 | three.js 0.187.0（r187），https://github.com/mrdoob/three.js （npm 包 `three@0.187.0`） |
 | 版权人 | Copyright © 2010-2026 three.js authors |
 | 许可 | MIT（包内 `LICENSE` 原文） |
-| 用途 | 3MF 模型预览（`app/lib/ui/model3d/`）的 WebView 渲染器，随 APK 打包、离线可用 |
+| 用途 | 3MF/GLB 模型预览（`app/lib/ui/model3d/`）的 WebView 渲染器，随 APK 打包、离线可用 |
 
 - `app/assets/model3d/three.module.js`、`three.core.js`：包内 `build/` 原样，SHA256 `104f56145899722094556490d787aae0617cc2fc3382f31df02d724ea1aee341` / `613e370f76638fdef83926642bf256dc9615684922de1ce1f63a8583e5d78578`
 - `app/assets/model3d/OrbitControls.js`：包内 `examples/jsm/controls/` 原样，SHA256 `e7fca2fe9e7670a828af9b28084669a5909445b7f36f1f26cee9bf8f2961c32c`
 - `app/assets/model3d/BufferGeometryUtils.js`：包内 `examples/jsm/utils/` 原样（3MFLoader 依赖），SHA256 `7bda2a8ba836b2bcf67cb938d4b9e1bb5d1b1bc616817103ed858c0b58296ce7`
 - `app/assets/model3d/3MFLoader.js`：包内 `examples/jsm/loaders/3MFLoader.js`，仅把 fflate 与 BufferGeometryUtils 的相对导入改到拍平后的 `./`，SHA256 `510cb53caf61030cc228d062dfc0e103bc4bbc1d6395a19b170a6c90317035bd`
+- `app/assets/model3d/GLTFLoader.js`：包内 `examples/jsm/loaders/GLTFLoader.js`，仅把 BufferGeometryUtils 与 SkeletonUtils 的相对导入改到拍平后的 `./`（unpkg CDN 的 `three@0.187.0`，2026-11-19 下载），SHA256 `bea30a75eb0e71c2834f50cd771de6b4a0d41fd492f444bacac462566b999a99`
+- `app/assets/model3d/SkeletonUtils.js`：包内 `examples/jsm/utils/` 原样（GLTFLoader 依赖，同一 unpkg 包，2026-11-19 下载），SHA256 `b1632a703206c3d830de9fcbe515696770d04b71a15ee6b50afa6d2c3298c86f`
 - `app/assets/licenses/three-0.187.0-LICENSE.txt`：包内 `LICENSE` 原样，SHA256 `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc`
 - 来源：npm 镜像 registry.npmmirror.com 的 `three-0.187.0.tgz`（2026-11-19 下载）
 
@@ -302,6 +304,18 @@ Libraries.dev metal-fx, translated to Flutter GLSL.
 - `app/assets/model3d/fflate.module.js`：three 包内 `examples/jsm/libs/fflate.module.js` 原样（three 自带的内嵌版本，不单独走 npm 依赖），SHA256 `4ab9828cf361a8009b71094ea251e076168de20f72eaa1e745da8aba88c725ac`
 - `app/assets/licenses/fflate-LICENSE.txt`：上游 `fflate@0.8.2` 包内 `LICENSE` 原文，SHA256 `805f6cb28bb8b6d3a0badd83c93bccd9671fa01a3b4b92b7042b0743325ac243`
 - 来源：`three-0.187.0.tgz` 与 npm 镜像 registry.npmmirror.com 的 `fflate-0.8.2.tgz`（2026-11-19 下载）
+
+### Khronos「Fox」glTF 示例模型（CC0 1.0）
+
+| 项 | 内容 |
+|---|---|
+| 项目 | Khronos glTF-Sample-Assets「Fox」（作者 PixelMannen），https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Fox |
+| 版权人 | PixelMannen，CC0 1.0 公共领域贡献（无需署名） |
+| 许可 | CC0 1.0，https://creativecommons.org/publicdomain/zero/1.0/ |
+| 用途 | GLB 模型预览（`app/lib/ui/model3d/`）的内置样例：含贴图、Y-up，随 APK 打包 |
+
+- `app/assets/model3d/sample.glb`：上游 `Models/Fox/glTF-Binary/Fox.glb` 原样，SHA256 `d97044e701822bac5a62696459b27d7b375aada5de8574ed4362edbba94771f7`
+- 来源：GitHub `KhronosGroup/glTF-Sample-Assets` main 分支 raw（2026-11-19 下载）
 
 ### DiceBear Critters（CC0 1.0）
 

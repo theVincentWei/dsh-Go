@@ -6422,7 +6422,7 @@
       }
     }
   },
-  "model3dTitle": "3MF 模型预览",
+  "model3dTitle": "3D 模型预览",
   "model3dLoading": "正在加载模型…",
   "model3dLoadFailed": "模型加载失败",
   "model3dRetry": "重试",
