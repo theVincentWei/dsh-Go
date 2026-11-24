@@ -158,12 +158,13 @@ class PetPack(
     /**
      * Physical pixels per logical (art) pixel for [size] at [density] — the app's rule
      * (`pet_sprite.dart`'s petScale / petDevicePixels), so the out-of-app pet is as big as the
-     * one on the chat page (docs/design/pets.md §2.10). Every pack — pixel art and hi-res art
-     * alike — snaps [k] to a whole number of physical pixels and keeps the three sizes apart
-     * ([devicePixels]), so pets of one tier are exactly as tall as each other on any device;
-     * the `pixelArt` flag only picks the sampling filter, never the size.
+     * one on the chat page (docs/design/pets.md §2.10). Pixel art snaps [k] to a whole number
+     * of physical pixels and keeps the three sizes apart ([devicePixels]); hi-res art draws at
+     * the target body height — the overlay window composes cells and bitmap scales together,
+     * and the ladder path for hi-res art is under investigation (两个并排实例的悬浮窗渲染问题).
      */
-    fun screenScale(size: PetSize, density: Float): Float = devicePixels(size, density).toFloat()
+    fun screenScale(size: PetSize, density: Float): Float =
+        if (pixelArt) devicePixels(size, density).toFloat() else size.dp * density / contentBox.h
 
     /**
      * Whole physical pixels per art pixel for [size]: `round(dp × density ÷ body)`, then small /

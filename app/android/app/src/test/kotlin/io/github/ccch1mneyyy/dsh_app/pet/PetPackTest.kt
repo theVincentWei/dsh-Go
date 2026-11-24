@@ -172,10 +172,9 @@ class PetPackTest {
         )
         assertFalse(hiRes.crisp)
         assertEquals(4f, hiRes.screenScale(PetSize.MEDIUM, 2.625f))
-        // A smooth (non-pixel-art) pack lands on the same ladder — same tier, same
-        // size as its pixel-art siblings; the flag only picks the sampling filter.
+        // A smooth (non-pixel-art) pack draws at the target body height instead.
         val smooth = PetPack.parse(json.replace("\"pixelArt\": true", "\"pixelArt\": false"))
-        assertEquals(2f, smooth.screenScale(PetSize.MEDIUM, 2.625f))
+        assertEquals(30 * 2.625f / 49, smooth.screenScale(PetSize.MEDIUM, 2.625f), 1e-4f)
         assertEquals(22f, PetSize.SMALL.dp)
         assertEquals(30f, PetSize.MEDIUM.dp)
         assertEquals(40f, PetSize.LARGE.dp)
