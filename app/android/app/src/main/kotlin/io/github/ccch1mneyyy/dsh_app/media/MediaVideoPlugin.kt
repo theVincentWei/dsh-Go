@@ -41,8 +41,10 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
     private var attached = false
     private var keepScreenOn = false
     private var focusListener: AudioManager.OnAudioFocusChangeListener? = null
+    /** 纯音频(没有视频轨)也走这个播放器:画面交给 App 侧的音频形态渲染。 */
     private class Clip(val producer: TextureRegistry.SurfaceProducer, val player: MediaPlayer) {
         var prepared = false
+        var audioOnly = false
         var pending: MethodChannel.Result? = null
         var timeout: Runnable? = null
         var buffering = false
@@ -165,13 +167,25 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             p.setOnErrorListener { _, _, _ -> close(id, "playback"); true }
             p.setOnPreparedListener {
                 if (clips[id] !== clip) return@setOnPreparedListener
-                if (it.videoWidth <= 0 || it.videoHeight <= 0) { close(id, "unsupported"); return@setOnPreparedListener }
+                // 没有视频轨=纯音频:照常 prepared,宽高报 0,App 侧走音频形态;
+                // 纹理不会来帧,也不再据此拒播。
+                val audioOnly = it.videoWidth <= 0 || it.videoHeight <= 0
+                if (audioOnly && it.duration <= 0) { close(id, "unsupported"); return@setOnPreparedListener }
                 clip.prepared = true
-                surface.setSize(it.videoWidth, it.videoHeight)
+                clip.audioOnly = audioOnly
+                if (!audioOnly) surface.setSize(it.videoWidth, it.videoHeight)
                 clip.timeout?.let(main::removeCallbacks)
                 val pending = clip.pending
                 clip.pending = null
-                pending?.success(mapOf("texture" to id, "width" to it.videoWidth, "height" to it.videoHeight, "durationMs" to it.duration))
+                pending?.success(
+                    mapOf(
+                        "texture" to id,
+                        "width" to it.videoWidth,
+                        "height" to it.videoHeight,
+                        "durationMs" to it.duration,
+                        "audioOnly" to audioOnly,
+                    )
+                )
             }
             setSource(p)
             p.setSurface(surface.surface)
@@ -217,9 +231,11 @@ class MediaVideoPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
     }
     private fun closeAll() { clips.keys.toList().forEach { close(it) }; abandonFocus() }
 
-    /** 播放中屏幕常亮:窗口级 FLAG_KEEP_SCREEN_ON,前台有效、暂停即灭,不需要任何权限。 */
+    /** 播放中屏幕常亮:窗口级 FLAG_KEEP_SCREEN_ON,前台有效、暂停即灭,不需要任何权限。纯音频不锁屏。 */
     private fun updateKeepScreenOn() {
-        val on = clips.values.any { it.prepared && runCatching { it.player.isPlaying }.getOrDefault(false) }
+        val on = clips.values.any { clip ->
+            !clip.audioOnly && clip.prepared && runCatching { clip.player.isPlaying }.getOrDefault(false)
+        }
         if (on == keepScreenOn) return
         keepScreenOn = on
         val window = activity?.window ?: return

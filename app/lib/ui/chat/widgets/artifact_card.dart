@@ -219,9 +219,9 @@ class _ArtifactTileState extends ConsumerState<ArtifactTile> {
 
   void _tap() {
     final files = ref.read(artifactFilesProvider);
-    if (_artifact.kind == ArtifactKind.video) {
-      // 视频:App 内流式预览(边下边播,不需要先把整个文件落到手机);
-      // ⋯ 菜单里的打开/存下载才是显式下载。
+    if (_artifact.kind == ArtifactKind.video || _artifact.kind == ArtifactKind.audio) {
+      // 音频/视频:App 内流式预览(边下边播,不需要先把整个文件落到手机),
+      // 和视频共用同一个播放器;⋯ 菜单里的打开/存下载才是显式下载。
       unawaited(
         openMediaVideoViewer(
           context,

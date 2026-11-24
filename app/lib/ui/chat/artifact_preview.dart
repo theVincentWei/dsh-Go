@@ -1,8 +1,9 @@
 // In-app previews of chat artifacts and workspace files: text and code page by
 // page with syntax colours, Markdown rendered (front matter as fields), images
 // and vector drawings (SVG) zoomable, PDFs and the Office documents the Host
-// converts as natively rendered pages, CSV / TSV / XLSX as tables. The preview
-// follows its file (`workspaceFiles/changes`) and reloads when it changes.
+// converts as natively rendered pages, CSV / TSV / XLSX as tables, and audio /
+// video handed to the one in-app player. The preview follows its file
+// (`workspaceFiles/changes`) and reloads when it changes.
 // Anything else opens in an Android app.
 
 import 'dart:async';
@@ -16,8 +17,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/l10n.dart';
-import '../../media/gallery.dart' show GallerySaveException, imageProviderBytes;
+import '../../media/gallery.dart' show GallerySaveException, imageProviderBytes, mediaChannelProvider;
 import '../../media/svg.dart' show SvgRasterException, isSvgPath, rasterizeSvg;
+import '../../media/video.dart' show mediaVideoChannelProvider;
+import 'media/media_video_viewer.dart' show MediaVideoViewerPage;
 import '../../state/artifact_files.dart';
 import '../../state/artifacts.dart';
 import '../../state/sheet_files.dart';
@@ -83,6 +86,9 @@ enum PreviewMode {
   markdown,
   text,
 
+  /// Audio / video: played by the in-app player (音频视频归一,同一播放器).
+  player,
+
   /// Opened in another app instead.
   unsupported,
 }
@@ -99,6 +105,7 @@ PreviewMode previewModeOf(String path, {bool officeToPdf = false}) {
   return switch (artifactKindOf(path)) {
     ArtifactKind.image => PreviewMode.image,
     ArtifactKind.pdf => PreviewMode.pdf,
+    ArtifactKind.audio || ArtifactKind.video => PreviewMode.player,
     ArtifactKind.markdown => PreviewMode.markdown,
     ArtifactKind.text || ArtifactKind.web || ArtifactKind.other => PreviewMode.text,
     _ => PreviewMode.unsupported,
@@ -495,6 +502,9 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
     final Widget body;
     if (_gone) {
       body = PreviewNotice(icon: AppIcons.delete, title: l10n.viewArtifactMissing);
+    } else if (mode == PreviewMode.player) {
+      // 音频/视频:直接交给应用内的那一个播放器(不开外部 App)。
+      body = _PlayerRoute(sessionId: widget.sessionId, artifact: _artifact);
     } else {
       body = switch (mode) {
         PreviewMode.pdf || PreviewMode.office => _PdfPreview(
@@ -1849,6 +1859,48 @@ class _PdfPageState extends State<_PdfPage> {
           );
         },
       ),
+    );
+  }
+}
+
+/// 音频/视频的预览落点:进来就把整页替换成应用内的那一个播放器
+/// (音频视频归一,不再跳外部 App)。这一页只是替换瞬间的一帧。
+class _PlayerRoute extends ConsumerStatefulWidget {
+  const _PlayerRoute({required this.sessionId, required this.artifact});
+
+  final String sessionId;
+  final Artifact artifact;
+
+  @override
+  ConsumerState<_PlayerRoute> createState() => _PlayerRouteState();
+}
+
+class _PlayerRouteState extends ConsumerState<_PlayerRoute> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final files = ref.read(artifactFilesProvider);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => MediaVideoViewerPage(
+            sessionId: widget.sessionId,
+            item: MediaItem(path: widget.artifact.path, mime: widget.artifact.mimeType),
+            files: files,
+            video: ref.read(mediaVideoChannelProvider),
+            gallery: ref.read(mediaChannelProvider),
+          ),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox.square(dimension: 26, child: CircularProgressIndicator(strokeWidth: 2.5)),
     );
   }
 }

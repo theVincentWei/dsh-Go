@@ -18,7 +18,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _item = MediaItem(path: '/host/movie.mp4', mime: 'video/mp4');
+const _audioItem = MediaItem(path: '/host/voice.mp3', mime: 'audio/mpeg');
 const _handle = MediaVideoHandle(texture: 17, width: 1920, height: 1080, durationMs: 5000);
+const _audioHandle = MediaVideoHandle(texture: 18, width: 0, height: 0, durationMs: 5000, audioOnly: true);
 
 class _Files extends ArtifactFiles {
   _Files({this.local = false}) : super(connection: null, channel: const FilesChannel());
@@ -69,7 +71,23 @@ class _Video extends MediaVideoChannel {
   bool playing = false;
   bool failOpen = false;
   Completer<MediaVideoHandle>? delayedOpen;
+
+  /// 打开成功时返回的句柄;音频测试换成 audioOnly 句柄。
+  MediaVideoHandle opening = _handle;
   final trace = <String>[];
+  // 1×1 PNG:预览卡要用真图片解码,垃圾字节会炸 Image.resource。
+  Uint8List? frameBytes = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  );
+  final frames = <int>[];
+  bool supportsFrameExtractionOverride = false;
+  @override
+  bool get supportsFrameExtraction => supportsFrameExtractionOverride;
+  @override
+  Future<Uint8List?> frame(String path, int timeMs) async {
+    frames.add(timeMs);
+    return frameBytes;
+  }
   @override
   Future<Uint8List?> poster(String path) async {
     posters++;
@@ -81,7 +99,7 @@ class _Video extends MediaVideoChannel {
     opens++;
     trace.add('open');
     if (failOpen) throw PlatformException(code: 'unsupported');
-    return delayedOpen == null ? _handle : delayedOpen!.future;
+    return delayedOpen == null ? opening : delayedOpen!.future;
   }
 
   @override
@@ -123,15 +141,10 @@ class _StreamVideo extends _Video {
   Object? urlOpenError;
   final speeds = <double>[];
   final frameUrls = <int>[];
-  final frames = <int>[];
-  // 1×1 PNG:预览卡要用真图片解码,垃圾字节会炸 Image.resource。
-  Uint8List? frameBytes = base64Decode(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  );
   @override
   bool get supportsUrlSource => true;
   @override
-  bool get supportsFrameExtraction => true;
+  bool get supportsFrameExtraction => supportsFrameExtractionOverride = true;
   @override
   Future<void> speed(int texture, double rate) async {
     speeds.add(rate);
@@ -153,11 +166,6 @@ class _StreamVideo extends _Video {
   Future<Uint8List?> frameUrl(String url, int timeMs) async {
     if (!url.startsWith('http://127.0.0.1:')) throw ArgumentError.value(url, 'url', 'expected the loopback proxy');
     frameUrls.add(timeMs);
-    return frameBytes;
-  }
-  @override
-  Future<Uint8List?> frame(String path, int timeMs) async {
-    frames.add(timeMs);
     return frameBytes;
   }
 }
@@ -190,12 +198,13 @@ Future<void> _pumpViewer(
   _Video video, [
   VideoStreamServer? streams,
   VideoProgressStore? progress,
+  MediaItem item = _item,
 ]) async {
   await tester.pumpWidget(
     MaterialApp(
       home: MediaVideoViewerPage(
         sessionId: 's1',
-        item: _item,
+        item: item,
         files: files,
         video: video,
         gallery: const MediaChannel(),
@@ -687,4 +696,43 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
+
+  testWidgets('audio-only files play in the same viewer without a texture', (tester) async {
+    final files = _Files();
+    final video = _Video()..opening = _audioHandle;
+    await _pumpViewer(tester, files, video, null, null, _audioItem);
+    expect(find.byType(Texture), findsNothing, reason: '纯音频没有画面层');
+    expect(find.byIcon(AppIcons.audio), findsOneWidget, reason: '音频形态给音符艺术位');
+    expect(find.byType(Slider), findsOneWidget, reason: '同一条进度条');
+    expect(find.byTooltip(appL10n.chatSaveToDownloads), findsOneWidget, reason: '音频存下载,不存相册');
+    // 双击照常播放/暂停。
+    await _doubleTapAudio(tester);
+    expect(video.plays, 1);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('audio-only drag seeks without pulling frame previews', (tester) async {
+    final files = _Files();
+    final video = _Video()
+      ..opening = _audioHandle
+      ..supportsFrameExtractionOverride = true;
+    await _pumpViewer(tester, files, video, null, null, _audioItem);
+    final width = MediaQuery.sizeOf(tester.element(find.byIcon(AppIcons.audio))).width;
+    await tester.drag(find.byIcon(AppIcons.audio), Offset(width * 0.2, 0));
+    await tester.pump();
+    expect(video.frames, isEmpty, reason: '音频没有帧可抽');
+    expect(video.position, 5000, reason: '拖动照常 seek(时长夹紧 5s)');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+}
+
+Future<void> _doubleTapAudio(WidgetTester tester) async {
+  await tester.tap(find.byIcon(AppIcons.audio));
+  await tester.pump(const Duration(milliseconds: 60));
+  await tester.tap(find.byIcon(AppIcons.audio));
+  await tester.pump();
 }

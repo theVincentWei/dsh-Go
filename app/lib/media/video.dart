@@ -43,12 +43,15 @@ class MediaVideoChannel {
 
   static MediaVideoHandle _fromOpen(Object? value) {
     if (value == null) throw PlatformException(code: 'unsupported');
-    if (value case {'texture': final num texture, 'width': final num width, 'height': final num height, 'durationMs': final num duration}) {
+    if (value case {'texture': final num texture, 'durationMs': final num duration}) {
+      final width = (value['width'] as num?)?.toInt() ?? 0;
+      final height = (value['height'] as num?)?.toInt() ?? 0;
       return MediaVideoHandle(
         texture: texture.toInt(),
-        width: width.toInt(),
-        height: height.toInt(),
+        width: width,
+        height: height,
         durationMs: duration.toInt(),
+        audioOnly: value['audioOnly'] == true || (width <= 0 || height <= 0),
       );
     }
     throw PlatformException(code: 'unsupported');
@@ -135,11 +138,15 @@ class MediaVideoHandle {
     required this.width,
     required this.height,
     required this.durationMs,
+    this.audioOnly = false,
   });
   final int texture;
   final int width;
   final int height;
   final int durationMs;
+
+  /// 没有视频轨(纯音频):画面层走音频形态,不渲染纹理、不锁屏。
+  final bool audioOnly;
   double get aspectRatio => width > 0 && height > 0 ? width / height : 16 / 9;
 }
 

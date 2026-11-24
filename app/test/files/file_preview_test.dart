@@ -203,7 +203,12 @@ void main() {
     expect(previewModeOf('main.dart'), PreviewMode.text);
     expect(previewModeOf('Makefile'), PreviewMode.text);
     expect(previewModeOf('a.zip'), PreviewMode.unsupported);
-    expect(previewModeOf('a.mp4'), PreviewMode.unsupported);
+    expect(previewModeOf('a.mp4'), PreviewMode.player, reason: '音视频归一:走应用内播放器');
+    expect(previewModeOf('a.mov'), PreviewMode.player);
+    expect(previewModeOf('a.mp3'), PreviewMode.player);
+    expect(previewModeOf('a.wav'), PreviewMode.player);
+    expect(previewModeOf('a.flac'), PreviewMode.player);
+    expect(previewModeOf('a.m4a'), PreviewMode.player);
     expect(isTextLikePath('lib/main.dart'), isTrue);
     expect(isTextLikePath('LICENSE'), isTrue);
     expect(isTextLikePath('blob.bin'), isFalse);
