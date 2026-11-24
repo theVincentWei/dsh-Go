@@ -2881,6 +2881,9 @@ class L10nZh extends L10n {
   String get botsPetPonkan => '匠匠';
 
   @override
+  String get botsPetAnya => '阿尼亚';
+
+  @override
   String get botsPetNone => '不显示';
 
   @override

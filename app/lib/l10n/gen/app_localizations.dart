@@ -5342,6 +5342,12 @@ abstract class L10n {
   /// **'匠匠'**
   String get botsPetPonkan;
 
+  /// No description provided for @botsPetAnya.
+  ///
+  /// In zh, this message translates to:
+  /// **'阿尼亚'**
+  String get botsPetAnya;
+
   /// No description provided for @botsPetNone.
   ///
   /// In zh, this message translates to:
