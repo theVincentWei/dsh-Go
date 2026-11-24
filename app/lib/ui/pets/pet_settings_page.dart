@@ -65,7 +65,8 @@ class _PetSettingsPageState extends ConsumerState<PetSettingsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _autoUpdate());
   }
 
-  /// 进页拉起一次工坊宠物包自动更新：有更新或出错才打扰，安静跳过不打扰。
+  /// 进页拉起一次宠物包自动更新(工坊 + 家端 AppHub 两源):有更新或出错
+  /// 才打扰,安静跳过不打扰。
   Future<void> _autoUpdate() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -73,8 +74,8 @@ class _PetSettingsPageState extends ConsumerState<PetSettingsPage> {
       final result = await run();
       if (result == null || result.quiet) return;
       if (!mounted) return;
-      if (result.updated.isNotEmpty) {
-        messenger.showSnackBar(SnackBar(content: Text(appL10n.botsPetWorkshopAutoUpdated(result.updated.length))));
+      if (result.updatedCount > 0) {
+        messenger.showSnackBar(SnackBar(content: Text(appL10n.botsPetWorkshopAutoUpdated(result.updatedCount))));
       } else {
         messenger.showSnackBar(SnackBar(content: Text(appL10n.botsPetWorkshopAutoUpdateFailed)));
       }
