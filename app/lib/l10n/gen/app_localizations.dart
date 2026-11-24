@@ -3608,6 +3608,12 @@ abstract class L10n {
   /// **'子代理'**
   String get botsSubagents;
 
+  /// No description provided for @botsTeamAndSubagents.
+  ///
+  /// In zh, this message translates to:
+  /// **'团队与子代理'**
+  String get botsTeamAndSubagents;
+
   /// No description provided for @botsNoSubagents.
   ///
   /// In zh, this message translates to:
@@ -19805,7 +19811,7 @@ abstract class L10n {
   /// No description provided for @model3dTitle.
   ///
   /// In zh, this message translates to:
-  /// **'3MF 模型预览'**
+  /// **'3D 模型预览'**
   String get model3dTitle;
 
   /// No description provided for @model3dLoading.

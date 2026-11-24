@@ -1914,6 +1914,9 @@ class L10nZh extends L10n {
   String get botsSubagents => '子代理';
 
   @override
+  String get botsTeamAndSubagents => '团队与子代理';
+
+  @override
   String get botsNoSubagents => '没有派出子代理';
 
   @override

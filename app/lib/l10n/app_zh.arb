@@ -1151,6 +1151,7 @@
     }
   },
   "botsSubagents": "子代理",
+  "botsTeamAndSubagents": "团队与子代理",
   "botsNoSubagents": "没有派出子代理",
   "botsOpenChatFirst": "先打开一个对话",
   "botsTeamReadFailed": "没能读到团队",

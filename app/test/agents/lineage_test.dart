@@ -11,8 +11,10 @@ import 'package:dsh_app/state/notify_state.dart' show FlagController, chatPageOn
 import 'package:dsh_app/state/sessions_state.dart';
 import 'package:dsh_app/state/workspace_state.dart';
 import 'package:dsh_app/ui/agents/agent_widgets.dart';
+import 'package:dsh_app/ui/agents/agents_chooser.dart';
 import 'package:dsh_app/ui/agents/header_agents.dart';
 import 'package:dsh_app/ui/agents/lineage_sheet.dart';
+import 'package:dsh_app/ui/agents/team_page.dart';
 import 'package:dsh_app/ui/chat/chat_header.dart';
 import 'package:dsh_app/ui/chat/chat_screen.dart';
 import 'package:dsh_app/ui/chat/empty_state.dart';
@@ -51,9 +53,9 @@ ChatState _childChat() => ChatState(
   items: [user(1, '审查 lib/auth 下的改动，结果用 send_message 发回上级对话。'), assistant(2, '改动没问题：提交中禁用按钮，`finally` 里复位。建议补一个连点测试。')],
 );
 
-List<Override> _overrides(ChatHarness harness) => [
+List<Override> _overrides(ChatHarness harness, {Map<String, SessionSummary>? sessions, TeamSnapshot? team}) => [
   ...harness.overrides,
-  ...agentsOverrides(sampleAgentSessions()),
+  ...agentsOverrides(sessions ?? sampleAgentSessions(), team: team),
   // The chat page mounts as the home route here, so its 「正在看」 flag flips
   // true inside the first build — legal on the phone (the page is always
   // pushed, current only after the transition) but pinned by Riverpod's
@@ -70,10 +72,16 @@ Future<ProviderContainer> _pumpChat(
   WidgetTester tester,
   String session, {
   Brightness brightness = Brightness.light,
+  Map<String, SessionSummary>? sessions,
+  TeamSnapshot? team,
 }) async {
   usePhoneView(tester);
   await tester.pumpWidget(
-    testApp(const ChatScreen(), brightness: brightness, overrides: _overrides(_harness(session))),
+    testApp(
+      const ChatScreen(),
+      brightness: brightness,
+      overrides: _overrides(_harness(session), sessions: sessions, team: team),
+    ),
   );
   await pumpFrames(tester, 6);
   return ProviderScope.containerOf(tester.element(find.byType(ChatScreen)));
@@ -182,6 +190,41 @@ void main() {
       await pumpFrames(tester, 8);
       expect(find.byType(LineageSheet), findsNothing);
       expect(container.read(currentSessionProvider), reviewerId);
+    });
+
+    testWidgets('a team beside plain subagents: the capsule offers both', (tester) async {
+      final container = await _pumpChat(
+        tester,
+        parentId,
+        sessions: sampleAgentSessions(withTeam: true),
+        team: sampleTeam(),
+      );
+      final key = find.byType(HeaderAgentsKey);
+      // The capsule wears the team: two members, not the three children.
+      expect(find.descendant(of: key, matching: find.text('2')), findsOneWidget);
+      await tester.tap(key);
+      await pumpFrames(tester, 8);
+      expect(find.byType(AgentsChooserSheet), findsOneWidget);
+      expect(find.text('智能体团队，2 位成员'), findsOneWidget);
+      // 查 CI 日志 is no team member: it is the one plain subagent.
+      expect(find.text('1 个子代理'), findsOneWidget);
+      // The subagent row opens the lineage sheet, not the team page.
+      await tester.tap(find.text('1 个子代理'));
+      await pumpFrames(tester, 8);
+      expect(find.byType(AgentsChooserSheet), findsNothing);
+      expect(find.byType(LineageSheet), findsOneWidget);
+      expect(find.byType(TeamPage), findsNothing);
+      expect(container.read(currentSessionProvider), parentId);
+    });
+
+    testWidgets('the chooser’s team row opens the team page', (tester) async {
+      await _pumpChat(tester, parentId, sessions: sampleAgentSessions(withTeam: true), team: sampleTeam());
+      await tester.tap(find.byType(HeaderAgentsKey));
+      await pumpFrames(tester, 8);
+      await tester.tap(find.text('智能体团队，2 位成员'));
+      await pumpFrames(tester, 8);
+      expect(find.byType(AgentsChooserSheet), findsNothing);
+      expect(find.byType(TeamPage), findsOneWidget);
     });
 
     testWidgets('a child: plain back key, named by its task, no model chip', (tester) async {

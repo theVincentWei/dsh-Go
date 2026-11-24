@@ -128,6 +128,19 @@ void main() {
       expect(mate.leadId, parentId);
     });
 
+    test('a team: plain subagents are counted beside the members', () {
+      final container = _container(sampleAgentSessions(withTeam: true));
+      final agents = container.read(headerAgentsProvider(parentId));
+      // The lineage holds both teammates and 查 CI 日志; only the latter is
+      // plain (it failed, it does not run).
+      expect(agents.children, 3);
+      expect(agents.plainChildren, 1);
+      expect(agents.plainRunning, 0);
+      // Without a team every child is plain.
+      final plain = _container(sampleAgentSessions()).read(headerAgentsProvider(parentId));
+      expect(plain.plainChildren, plain.children);
+    });
+
     test('nothing to show for an unknown or lonely conversation', () {
       final container = _container(sampleAgentSessions());
       expect(container.read(headerAgentsProvider('other')).isEmpty, isTrue);
