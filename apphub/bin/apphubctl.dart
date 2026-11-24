@@ -21,6 +21,8 @@ apphubctl — AppHub CLI
   apphubctl publish-pet <zip> [--name 名]
                     (petId/version read from the zip's pack.json)
   apphubctl pets
+  apphubctl withdraw-pet --app <petId>
+                    (take a pack off the catalog; versions/zips stay)
   apphubctl list
   apphubctl rollback --app <id>
   apphubctl tools --app <id> --file tools.json
@@ -81,6 +83,14 @@ Future<void> main(List<String> args) async {
         await _list(server, key);
       case 'pets':
         await _print(await http.get(Uri.parse('$server/api/v1/pets')));
+      case 'withdraw-pet':
+        final String? app = parsed['app'] as String?;
+        if (app == null || app.isEmpty) {
+          stderr.writeln('withdraw-pet needs --app <petId>');
+          exitCode = 64;
+          return;
+        }
+        await _post(server, key, '/api/v1/pets/$app/withdraw');
       case 'rollback':
         await _post(server, key, '/api/v1/apps/${parsed['app']}/rollback');
       case 'tools':
