@@ -360,14 +360,8 @@ class PetPreview extends StatelessWidget {
       ),
     );
     if (pack == null) return Stack(children: [perch]);
-    // As big as on the chat page at 标准 (whole device pixels per art pixel),
-    // a step smaller if the body would not fit over the capsule.
-    var k = petDevicePixels(pack, PetSize.medium, dpr);
-    final room = perchTop - 4;
-    while (k > 1 && (pack.baseline - pack.contentBox.top) * k / dpr > room) {
-      k--;
-    }
-    final s = k / dpr;
+    // Exactly as big as on the chat page at 标准 (docs/design/pets.md §2.10).
+    final s = PetSize.medium.bodyHeight / pack.contentBox.height;
     final left = side / 2 - ((pack.contentBox.left + pack.contentBox.right) / 2) * s;
     final top = perchTop - pack.baseline * s;
     return Stack(

@@ -1,11 +1,10 @@
 // Plays one pet animation: each frame for its own `ms`, cells cut from the
-// sheet's grid and put back at their `box` on the canvas; pixel art is sampled
-// nearest-neighbour at a whole number of device pixels per art pixel, so every
-// art pixel is equally wide and edges stay hard. The cell-cutting follows the
-// whale tail (whale_tail.dart).
+// sheet's grid and put back at their `box` on the canvas; every pack renders
+// its contentBox at exactly the tier's body height (docs/design/pets.md
+// §2.10), sampled linearly so fractional scales stay smooth. The cell-cutting
+// follows the whale tail (whale_tail.dart).
 
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
@@ -15,27 +14,12 @@ import '../../pets/pet_sheets.dart';
 import '../../pets/pet_state.dart';
 import '../theme/motion.dart';
 
-/// Device pixels per art pixel for [size]: whole numbers, one apart at
-/// least, so the three sizes always differ.
-int petDevicePixels(PetPack pack, PetSize size, double devicePixelRatio) {
-  int k(PetSize s) => math.max(1, (s.bodyHeight * devicePixelRatio / pack.contentBox.height).round());
-  final small = k(PetSize.small);
-  final medium = math.max(small + 1, k(PetSize.medium));
-  final large = math.max(medium + 1, k(PetSize.large));
-  return switch (size) {
-    PetSize.small => small,
-    PetSize.medium => medium,
-    PetSize.large => large,
-  };
-}
-
-/// Logical pixels per art pixel: the ladder lands every pack — pixel art and
-/// hi-res art alike — on the same whole-device-pixels-per-art-pixel size, so
-/// pets of one tier are exactly as tall as each other on any device. The
-/// `pixelArt` flag only picks the sampling filter (nearest keeps pixel-art
-/// blocks crisp, linear keeps hi-res art smooth), never the size.
+/// Logical pixels per art pixel: every pack — pixel art and hi-res art alike —
+/// scales its contentBox to exactly the tier's body height on every device.
+/// `pixelArt` does not affect size at all; sampling is linear so fractional
+/// scales stay smooth (docs/design/pets.md §2.10).
 double petScale(PetPack pack, PetSize size, double devicePixelRatio) =>
-    petDevicePixels(pack, size, devicePixelRatio) / devicePixelRatio;
+    size.bodyHeight / pack.contentBox.height;
 
 /// One animation of [pack], as big as the canvas × [scale].
 ///
@@ -334,7 +318,7 @@ class _SpritePainter extends CustomPainter {
       dst,
       Paint()
         ..isAntiAlias = false
-        ..filterQuality = pack.pixelArt ? FilterQuality.none : FilterQuality.medium,
+        ..filterQuality = FilterQuality.medium,
     );
     if (flip) canvas.restore();
   }

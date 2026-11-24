@@ -320,19 +320,10 @@ PetLayerState petLayer(WidgetTester tester) => tester.state<PetLayerState>(find.
 /// The pet's canvas on screen.
 Rect petCanvas(WidgetTester tester) => tester.getRect(find.byKey(const ValueKey('pet-body')));
 
-/// Logical px per art px at [size] on the test view.
+/// Logical px per art px at [size] on the test view — the exact-dp rule
+/// (docs/design/pets.md §2.10): the contentBox lands on the tier's body height.
 double petScaleOn(WidgetTester tester, PetPack pack, [PetSize size = PetSize.medium]) {
-  final dpr = tester.view.devicePixelRatio;
-  int k(PetSize s) => (s.bodyHeight * dpr / pack.contentBox.height).round().clamp(1, 1 << 20);
-  final small = k(PetSize.small);
-  final medium = [small + 1, k(PetSize.medium)].reduce((a, b) => a > b ? a : b);
-  final large = [medium + 1, k(PetSize.large)].reduce((a, b) => a > b ? a : b);
-  return switch (size) {
-        PetSize.small => small,
-        PetSize.medium => medium,
-        PetSize.large => large,
-      } /
-      dpr;
+  return size.bodyHeight / pack.contentBox.height;
 }
 
 /// A local conversation target.

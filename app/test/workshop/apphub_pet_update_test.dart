@@ -96,6 +96,32 @@ void main() {
     expect(record['sha256'], crypto.sha256.convert(bytes).toString());
   });
 
+  test('the home server hands out loopback package URLs — rebuilt on the app base', () async {
+    // 生产形态:家端把 packageUrl 发成自己的回环地址(127.0.0.1:7610),手机上
+    // 该地址指向手机自身,下载必然失败。修复 = 环回包地址重解析到 AppHub base。
+    const loopbackBase = 'http://127.0.0.1:7610';
+    final bytes = packZip('loop-cat', '1.0.0');
+    // 包文件与目录都按 base 提供(手机经 base 到达家端),目录行却发环回地址。
+    http = _FakeHttp({
+      Uri.parse('$base/api/v1/pets'): utf8.encode(jsonEncode(<String, Object?>{'pets': [
+            <String, Object?>{
+              'petId': 'loop-cat',
+              'name': '家里的loop-cat',
+              'version': '1.0.0',
+              'versionCode': 1,
+              'packageUrl': '$loopbackBase/packages/pet-loop-cat-1.zip',
+              'sha256': crypto.sha256.convert(bytes).toString(),
+              'sizeBytes': bytes.length,
+            },
+          ]})),
+      Uri.parse('$base/packages/pet-loop-cat-1.zip'): bytes,
+    });
+    final result = await runAppHubPetAutoUpdate(pets: pets, base: base, http: http);
+    expect(result.updated, ['loop-cat']);
+    expect(result.errors, isEmpty);
+    expect((await pets.load('user-loop-cat')).id, 'user-loop-cat');
+  });
+
   test('the same release skips; a newer version replaces; an older one is kept', () async {
     serve({'home-cat': packZip('home-cat', '1.0.0')}, {'home-cat': '1.0.0'});
     await runAppHubPetAutoUpdate(pets: pets, base: base, http: http);

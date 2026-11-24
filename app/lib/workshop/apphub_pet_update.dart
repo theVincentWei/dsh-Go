@@ -191,7 +191,7 @@ Future<AppHubPetUpdateResult> runAppHubPetAutoUpdate({
       }
       // No record: the pack isn't managed by this source yet (first bring,
       // or installed from the workshop or by hand) — the home side wins.
-      await _installOne(pets, transport, entry, timeout);
+      await _installOne(pets, transport, base, entry, timeout);
       updated.add(entry.petId);
     } on PetImportException catch (error) {
       errors[identity] = error.problem.name;
@@ -207,6 +207,18 @@ Future<AppHubPetUpdateResult> runAppHubPetAutoUpdate({
 const AppHubPetUpdateResult _empty =
     AppHubPetUpdateResult(updated: <String>[], skipped: <String, String>{}, errors: <String, Object>{});
 
+/// The home server emits package URLs on its own bind address — often
+/// `127.0.0.1:port`, which on the phone points at the phone itself and can
+/// never download. The catalog came from [base], and the packages live on the
+/// same origin, so a loopback package URL is rebuilt there.
+Uri packageUrlOn(Uri base, AppHubPetEntry entry) {
+  const loopback = {'127.0.0.1', 'localhost', '::1'};
+  if (!loopback.contains(entry.packageUrl.host)) return entry.packageUrl;
+  return entry.packageUrl.query.isEmpty
+      ? base.replace(path: entry.packageUrl.path)
+      : base.replace(path: entry.packageUrl.path, query: entry.packageUrl.query);
+}
+
 /// Downloads the pack, verifies its digest and hands it to the ordinary
 /// install path — full schema-1 validation happens there, and
 /// [PetLibrary.install] with `replaceExisting: true` replaces any same-id
@@ -215,11 +227,12 @@ const AppHubPetUpdateResult _empty =
 Future<void> _installOne(
   PetLibrary pets,
   UpdateHttp transport,
+  Uri base,
   AppHubPetEntry entry,
   Duration timeout,
 ) async {
   final UpdateHttpResponse response =
-      await transport.get(entry.packageUrl, timeout: timeout);
+      await transport.get(packageUrlOn(base, entry), timeout: timeout);
   if (response.status != 200) {
     throw WorkshopException('workshop_download_failed');
   }

@@ -790,11 +790,10 @@ class CompanionPixelWhale extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pack = ref.watch(petPackProvider('whale-girl')).value;
-    final dpr = MediaQuery.devicePixelRatioOf(context);
     if (pack == null) return SizedBox(height: bodyHeight);
-    // Whole device pixels per art pixel, or pixel art goes soft.
-    final k = math.max(1, (bodyHeight * dpr / pack.contentBox.height).round());
-    final scale = k / dpr;
+    // The contentBox lands on exactly [bodyHeight]; linear sampling keeps
+    // fractional scales smooth.
+    final scale = bodyHeight / pack.contentBox.height;
     return SizedBox(
       width: pack.canvas.width * scale,
       height: pack.canvas.height * scale,
