@@ -7,8 +7,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:args/args.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 
 const String _usage = '''
 apphubctl — AppHub CLI
@@ -16,6 +18,9 @@ apphubctl — AppHub CLI
   apphubctl publish <zip> --app <id> --name <name> [--path <p>]
                     [--version-code N] [--version-name V] [--icon <key>]
                     [--tools tools.json]
+  apphubctl publish-pet <zip> [--name 名]
+                    (petId/version read from the zip's pack.json)
+  apphubctl pets
   apphubctl list
   apphubctl rollback --app <id>
   apphubctl tools --app <id> --file tools.json
@@ -65,8 +70,17 @@ Future<void> main(List<String> args) async {
           return;
         }
         await _publish(parsed, server, key);
+      case 'publish-pet':
+        if (parsed.rest.isEmpty) {
+          stderr.writeln('publish-pet needs a zip path');
+          exitCode = 64;
+          return;
+        }
+        await _publishPet(parsed, server, key);
       case 'list':
         await _list(server, key);
+      case 'pets':
+        await _print(await http.get(Uri.parse('$server/api/v1/pets')));
       case 'rollback':
         await _post(server, key, '/api/v1/apps/${parsed['app']}/rollback');
       case 'tools':
@@ -141,6 +155,66 @@ Future<void> _publish(ArgResults parsed, String server, String key) async {
 
 Future<void> _list(String server, String key) async =>
     _print(await http.get(Uri.parse('$server/api/v1/apps'), headers: _headers(key)));
+
+/// `apphubctl publish-pet <zip> [--name 名]` — publish a pet pack. The petId
+/// and version come from the zip's own pack.json (top level or one top
+/// folder, exactly one candidate — the same rule the phone enforces); the
+/// server re-checks them, so a wrong petId is a clean 400, not a corrupt row.
+Future<void> _publishPet(ArgResults parsed, String server, String key) async {
+  final String zipPath = parsed.rest.first;
+  final Uint8List bytes = await File(zipPath).readAsBytes();
+  final Archive archive;
+  try {
+    archive = ZipDecoder().decodeBytes(bytes, verify: true);
+  } catch (_) {
+    stderr.writeln('$zipPath is not a zip');
+    exitCode = 64;
+    return;
+  }
+  ArchiveFile? packEntry;
+  for (final ArchiveFile file in archive.files) {
+    if (!file.isFile || p.basename(file.name) != 'pack.json') continue;
+    final String dir = p.dirname(file.name);
+    if (dir != '.' && dir != '') packEntry = null;
+    if (packEntry != null) {
+      stderr.writeln('zip has more than one pack.json candidate');
+      exitCode = 64;
+      return;
+    }
+    packEntry = file;
+  }
+  if (packEntry == null) {
+    stderr.writeln('zip has no top-level pack.json');
+    exitCode = 64;
+    return;
+  }
+  final Object? pack;
+  try {
+    pack = jsonDecode(utf8.decode(Uint8List.fromList(packEntry.content as List<int>)));
+  } catch (_) {
+    stderr.writeln('pack.json is not JSON');
+    exitCode = 64;
+    return;
+  }
+  if (pack is! Map<String, Object?> || pack['id'] is! String) {
+    stderr.writeln('pack.json has no string id');
+    exitCode = 64;
+    return;
+  }
+  final String petId = pack['id'] as String;
+  final String? nameOverride = parsed['name'] as String?;
+  final http.Response response = await http.post(
+    Uri.parse('$server/api/v1/pets/$petId/versions'),
+    headers: <String, String>{
+      ..._headers(key),
+      'content-type': 'application/zip',
+      if (nameOverride != null && nameOverride.isNotEmpty)
+        'x-pet-name-b64': base64Encode(utf8.encode(nameOverride)),
+    },
+    body: bytes,
+  );
+  await _print(response);
+}
 
 Future<void> _tools(ArgResults parsed, String server, String key) async {
   final String? file = parsed['file'] as String?;
