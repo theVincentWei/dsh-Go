@@ -1,0 +1,962 @@
+{
+  "schema": 1,
+  "id": "anya-forger",
+  "name": "阿尼亚",
+  "author": "vinvent wei",
+  "license": "个人使用:粉丝同人像素化,Z-Image-Turbo 生成",
+  "source": "214 mfluxible z-image-turbo 纯t2i逐特征锁句(Q版二头身硬锁) + B路单姿势程序拼装 2026-11-24",
+  "pixelArt": true,
+  "scale": 2,
+  "canvas": {
+    "w": 64,
+    "h": 100
+  },
+  "anchor": {
+    "x": 30,
+    "baseline": 96
+  },
+  "contentBox": {
+    "x": 16,
+    "y": 49,
+    "w": 28,
+    "h": 47
+  },
+  "hitBoxes": {
+    "default": {
+      "x": 18,
+      "y": 57,
+      "w": 25,
+      "h": 38
+    },
+    "wide": {
+      "x": 13,
+      "y": 47,
+      "w": 34,
+      "h": 50
+    },
+    "sleeping": {
+      "x": 0,
+      "y": 43,
+      "w": 62,
+      "h": 53
+    },
+    "byAnim": {
+      "react-drag": {
+        "x": 11,
+        "y": 44,
+        "w": 39,
+        "h": 52
+      }
+    },
+    "wideAnims": [
+      "notification",
+      "carrying",
+      "coding",
+      "sweeping",
+      "juggling",
+      "love",
+      "roam",
+      "waking",
+      "typing",
+      "react-drag",
+      "working"
+    ],
+    "sleepingAnims": [
+      "sleeping"
+    ]
+  },
+  "animations": {
+    "idle": {
+      "sheet": "idle.png",
+      "frameW": 56,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 16,
+        "y": 49,
+        "w": 28,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 2120,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 640
+        },
+        {
+          "i": 1,
+          "ms": 240
+        },
+        {
+          "i": 2,
+          "ms": 180
+        },
+        {
+          "i": 3,
+          "ms": 640
+        },
+        {
+          "i": 4,
+          "ms": 240
+        },
+        {
+          "i": 5,
+          "ms": 180
+        }
+      ]
+    },
+    "thinking": {
+      "sheet": "thinking.png",
+      "frameW": 68,
+      "frameH": 126,
+      "cols": 6,
+      "box": {
+        "x": 13,
+        "y": 33,
+        "w": 34,
+        "h": 63
+      },
+      "loop": true,
+      "ms": 1800,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 300
+        },
+        {
+          "i": 1,
+          "ms": 300
+        },
+        {
+          "i": 2,
+          "ms": 300
+        },
+        {
+          "i": 3,
+          "ms": 300
+        },
+        {
+          "i": 4,
+          "ms": 300
+        },
+        {
+          "i": 5,
+          "ms": 300
+        }
+      ]
+    },
+    "typing": {
+      "sheet": "typing.png",
+      "frameW": 72,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 12,
+        "y": 49,
+        "w": 36,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1200,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 200
+        },
+        {
+          "i": 1,
+          "ms": 200
+        },
+        {
+          "i": 2,
+          "ms": 200
+        },
+        {
+          "i": 3,
+          "ms": 200
+        },
+        {
+          "i": 4,
+          "ms": 200
+        },
+        {
+          "i": 5,
+          "ms": 200
+        }
+      ]
+    },
+    "coding": {
+      "sheet": "coding.png",
+      "frameW": 74,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 12,
+        "y": 49,
+        "w": 37,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1200,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 200
+        },
+        {
+          "i": 1,
+          "ms": 200
+        },
+        {
+          "i": 2,
+          "ms": 200
+        },
+        {
+          "i": 3,
+          "ms": 200
+        },
+        {
+          "i": 4,
+          "ms": 200
+        },
+        {
+          "i": 5,
+          "ms": 200
+        }
+      ]
+    },
+    "review": {
+      "sheet": "review.png",
+      "frameW": 64,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 14,
+        "y": 49,
+        "w": 32,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1440,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 240
+        },
+        {
+          "i": 1,
+          "ms": 240
+        },
+        {
+          "i": 2,
+          "ms": 240
+        },
+        {
+          "i": 3,
+          "ms": 240
+        },
+        {
+          "i": 4,
+          "ms": 240
+        },
+        {
+          "i": 5,
+          "ms": 240
+        }
+      ]
+    },
+    "juggling": {
+      "sheet": "juggling.png",
+      "frameW": 80,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 10,
+        "y": 49,
+        "w": 40,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1080,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 180
+        },
+        {
+          "i": 1,
+          "ms": 180
+        },
+        {
+          "i": 2,
+          "ms": 180
+        },
+        {
+          "i": 3,
+          "ms": 180
+        },
+        {
+          "i": 4,
+          "ms": 180
+        },
+        {
+          "i": 5,
+          "ms": 180
+        }
+      ]
+    },
+    "error": {
+      "sheet": "error.png",
+      "frameW": 68,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 13,
+        "y": 49,
+        "w": 34,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1800,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 300
+        },
+        {
+          "i": 1,
+          "ms": 300
+        },
+        {
+          "i": 2,
+          "ms": 300
+        },
+        {
+          "i": 3,
+          "ms": 300
+        },
+        {
+          "i": 4,
+          "ms": 300
+        },
+        {
+          "i": 5,
+          "ms": 300
+        }
+      ]
+    },
+    "attention": {
+      "sheet": "attention.png",
+      "frameW": 64,
+      "frameH": 98,
+      "cols": 6,
+      "box": {
+        "x": 14,
+        "y": 47,
+        "w": 32,
+        "h": 49
+      },
+      "loop": true,
+      "ms": 1340,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 260
+        },
+        {
+          "i": 1,
+          "ms": 260
+        },
+        {
+          "i": 2,
+          "ms": 260
+        },
+        {
+          "i": 3,
+          "ms": 240
+        },
+        {
+          "i": 4,
+          "ms": 180
+        },
+        {
+          "i": 5,
+          "ms": 140
+        }
+      ]
+    },
+    "notification": {
+      "sheet": "notification.png",
+      "frameW": 60,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 15,
+        "y": 49,
+        "w": 30,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1440,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 240
+        },
+        {
+          "i": 1,
+          "ms": 240
+        },
+        {
+          "i": 2,
+          "ms": 240
+        },
+        {
+          "i": 3,
+          "ms": 240
+        },
+        {
+          "i": 4,
+          "ms": 240
+        },
+        {
+          "i": 5,
+          "ms": 240
+        }
+      ]
+    },
+    "sweeping": {
+      "sheet": "sweeping.png",
+      "frameW": 68,
+      "frameH": 96,
+      "cols": 6,
+      "box": {
+        "x": 13,
+        "y": 48,
+        "w": 34,
+        "h": 48
+      },
+      "loop": true,
+      "ms": 1320,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 220
+        },
+        {
+          "i": 1,
+          "ms": 220
+        },
+        {
+          "i": 2,
+          "ms": 220
+        },
+        {
+          "i": 3,
+          "ms": 220
+        },
+        {
+          "i": 4,
+          "ms": 220
+        },
+        {
+          "i": 5,
+          "ms": 220
+        }
+      ]
+    },
+    "carrying": {
+      "sheet": "carrying.png",
+      "frameW": 44,
+      "frameH": 96,
+      "cols": 6,
+      "box": {
+        "x": 19,
+        "y": 48,
+        "w": 22,
+        "h": 48
+      },
+      "loop": true,
+      "ms": 1320,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 220
+        },
+        {
+          "i": 1,
+          "ms": 220
+        },
+        {
+          "i": 2,
+          "ms": 220
+        },
+        {
+          "i": 3,
+          "ms": 220
+        },
+        {
+          "i": 4,
+          "ms": 220
+        },
+        {
+          "i": 5,
+          "ms": 220
+        }
+      ]
+    },
+    "sleeping": {
+      "sheet": "sleeping.png",
+      "frameW": 124,
+      "frameH": 106,
+      "cols": 6,
+      "box": {
+        "x": 0,
+        "y": 43,
+        "w": 62,
+        "h": 53
+      },
+      "loop": true,
+      "ms": 3600,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 600
+        },
+        {
+          "i": 1,
+          "ms": 600
+        },
+        {
+          "i": 2,
+          "ms": 600
+        },
+        {
+          "i": 3,
+          "ms": 600
+        },
+        {
+          "i": 4,
+          "ms": 600
+        },
+        {
+          "i": 5,
+          "ms": 600
+        }
+      ]
+    },
+    "waking": {
+      "sheet": "waking.png",
+      "frameW": 54,
+      "frameH": 96,
+      "cols": 6,
+      "box": {
+        "x": 17,
+        "y": 48,
+        "w": 27,
+        "h": 48
+      },
+      "loop": true,
+      "ms": 1320,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 220
+        },
+        {
+          "i": 1,
+          "ms": 220
+        },
+        {
+          "i": 2,
+          "ms": 220
+        },
+        {
+          "i": 3,
+          "ms": 220
+        },
+        {
+          "i": 4,
+          "ms": 220
+        },
+        {
+          "i": 5,
+          "ms": 220
+        }
+      ]
+    },
+    "roam": {
+      "sheet": "roam.png",
+      "frameW": 52,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 17,
+        "y": 49,
+        "w": 26,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 900,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 150
+        },
+        {
+          "i": 1,
+          "ms": 150
+        },
+        {
+          "i": 2,
+          "ms": 150
+        },
+        {
+          "i": 3,
+          "ms": 150
+        },
+        {
+          "i": 4,
+          "ms": 150
+        },
+        {
+          "i": 5,
+          "ms": 150
+        }
+      ]
+    },
+    "love": {
+      "sheet": "love.png",
+      "frameW": 70,
+      "frameH": 94,
+      "cols": 6,
+      "box": {
+        "x": 13,
+        "y": 49,
+        "w": 35,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 1560,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 260
+        },
+        {
+          "i": 1,
+          "ms": 260
+        },
+        {
+          "i": 2,
+          "ms": 260
+        },
+        {
+          "i": 3,
+          "ms": 260
+        },
+        {
+          "i": 4,
+          "ms": 260
+        },
+        {
+          "i": 5,
+          "ms": 260
+        }
+      ]
+    },
+    "ambient-butterfly": {
+      "sheet": "ambient-butterfly.png",
+      "frameW": 56,
+      "frameH": 96,
+      "cols": 6,
+      "box": {
+        "x": 16,
+        "y": 48,
+        "w": 28,
+        "h": 48
+      },
+      "loop": true,
+      "ms": 1920,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 320
+        },
+        {
+          "i": 1,
+          "ms": 320
+        },
+        {
+          "i": 2,
+          "ms": 320
+        },
+        {
+          "i": 3,
+          "ms": 320
+        },
+        {
+          "i": 4,
+          "ms": 320
+        },
+        {
+          "i": 5,
+          "ms": 320
+        }
+      ]
+    },
+    "ambient-sparkle": {
+      "sheet": "ambient-sparkle.png",
+      "frameW": 62,
+      "frameH": 96,
+      "cols": 6,
+      "box": {
+        "x": 15,
+        "y": 48,
+        "w": 31,
+        "h": 48
+      },
+      "loop": true,
+      "ms": 1800,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 300
+        },
+        {
+          "i": 1,
+          "ms": 300
+        },
+        {
+          "i": 2,
+          "ms": 300
+        },
+        {
+          "i": 3,
+          "ms": 300
+        },
+        {
+          "i": 4,
+          "ms": 300
+        },
+        {
+          "i": 5,
+          "ms": 300
+        }
+      ]
+    },
+    "react-left": {
+      "sheet": "react-left.png",
+      "frameW": 52,
+      "frameH": 94,
+      "cols": 2,
+      "box": {
+        "x": 17,
+        "y": 49,
+        "w": 26,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 600,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 300
+        },
+        {
+          "i": 1,
+          "ms": 300
+        }
+      ]
+    },
+    "react-right": {
+      "sheet": "react-right.png",
+      "frameW": 52,
+      "frameH": 94,
+      "cols": 2,
+      "box": {
+        "x": 17,
+        "y": 49,
+        "w": 26,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 600,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 300
+        },
+        {
+          "i": 1,
+          "ms": 300
+        }
+      ]
+    },
+    "react-tickle": {
+      "sheet": "react-tickle.png",
+      "frameW": 54,
+      "frameH": 94,
+      "cols": 2,
+      "box": {
+        "x": 17,
+        "y": 49,
+        "w": 27,
+        "h": 47
+      },
+      "loop": true,
+      "ms": 440,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 220
+        },
+        {
+          "i": 1,
+          "ms": 220
+        }
+      ]
+    },
+    "react-drag": {
+      "sheet": "react-drag.png",
+      "frameW": 70,
+      "frameH": 96,
+      "cols": 2,
+      "box": {
+        "x": 13,
+        "y": 48,
+        "w": 35,
+        "h": 48
+      },
+      "loop": true,
+      "ms": 480,
+      "frames": [
+        {
+          "i": 0,
+          "ms": 240
+        },
+        {
+          "i": 1,
+          "ms": 240
+        }
+      ]
+    }
+  },
+  "idlePool": {
+    "everyMs": {
+      "mean": 60000,
+      "min": 25000,
+      "max": 180000
+    },
+    "anims": [
+      {
+        "anim": "love",
+        "ms": 1560,
+        "weight": 2
+      },
+      {
+        "anim": "ambient-butterfly",
+        "ms": 1920,
+        "weight": 3
+      },
+      {
+        "anim": "ambient-sparkle",
+        "ms": 1800,
+        "weight": 3
+      }
+    ]
+  },
+  "states": {
+    "idle": [
+      "idle"
+    ],
+    "thinking": [
+      "thinking"
+    ],
+    "working": [
+      "typing"
+    ],
+    "juggling": [
+      "juggling"
+    ],
+    "error": [
+      "error"
+    ],
+    "attention": [
+      "attention"
+    ],
+    "notification": [
+      "notification"
+    ],
+    "sweeping": [
+      "sweeping"
+    ],
+    "carrying": [
+      "carrying"
+    ],
+    "sleeping": [
+      "sleeping"
+    ],
+    "waking": [
+      "waking"
+    ],
+    "roam": [
+      "roam"
+    ]
+  },
+  "bonus": {},
+  "tiers": {
+    "working": [
+      {
+        "min": 3,
+        "anim": "review"
+      },
+      {
+        "min": 2,
+        "anim": "coding"
+      },
+      {
+        "min": 1,
+        "anim": "typing"
+      }
+    ],
+    "juggling": [
+      {
+        "min": 1,
+        "anim": "juggling"
+      }
+    ]
+  },
+  "timings": {
+    "minDisplay": {
+      "attention": 5200,
+      "error": 4800,
+      "sweeping": 5600,
+      "notification": 3200,
+      "carrying": 3200,
+      "working": 1000,
+      "thinking": 1000
+    },
+    "autoReturn": {
+      "attention": 5200,
+      "error": 4800,
+      "sweeping": 300000,
+      "carrying": 3200
+    },
+    "wakeMs": 1500
+  },
+  "reactions": {
+    "tapLeft": "love",
+    "tapRight": "love",
+    "tickle": "react-tickle",
+    "drag": "react-drag"
+  },
+  "roam": {
+    "anim": "roam",
+    "faces": "right"
+  },
+  "sleep": {
+    "afterMs": 60000
+  }
+}
