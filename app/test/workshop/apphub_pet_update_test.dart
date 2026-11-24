@@ -79,7 +79,10 @@ void main() {
   }
 
   test('first pass installs a pack the phone never had and records it', () async {
-    serve({'home-cat': packZip('home-cat', '1.0.0')}, {'home-cat': '1.0.0'});
+    // Zip entries carry timestamps: build the zip once and reuse the same
+    // bytes everywhere, so digests are comparable.
+    final bytes = packZip('home-cat', '1.0.0');
+    serve({'home-cat': bytes}, {'home-cat': '1.0.0'});
     final result = await runAppHubPetAutoUpdate(pets: pets, base: base, http: http);
     expect(result.updated, ['home-cat']);
     expect(result.quiet, isFalse);
@@ -90,8 +93,7 @@ void main() {
             as Map<String, Object?>;
     expect(record['petId'], 'home-cat');
     expect(record['version'], '1.0.0');
-    expect(record['sha256'],
-        crypto.sha256.convert(packZip('home-cat', '1.0.0')).toString());
+    expect(record['sha256'], crypto.sha256.convert(bytes).toString());
   });
 
   test('the same release skips; a newer version replaces; an older one is kept', () async {
@@ -197,5 +199,14 @@ void main() {
     final result = await runAppHubPetAutoUpdate(pets: pets, base: base, http: http);
     expect(result.quiet, isTrue);
     expect((await pets.load('user-home-cat')).id, 'user-home-cat');
+  });
+
+  test('an id the APK ships built-in is skipped, not shadowed by the home side', () async {
+    serve({'home-cat': packZip('home-cat', '1.0.0')}, {'home-cat': '1.0.0'});
+    final result = await runAppHubPetAutoUpdate(
+        pets: pets, base: base, http: http, skipPetIds: {'home-cat'});
+    expect(result.updated, isEmpty);
+    expect(result.skipped['pet/home-cat'], 'apphub_builtin');
+    expect(await pets.list(), isEmpty);
   });
 }

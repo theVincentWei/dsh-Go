@@ -128,6 +128,10 @@ Future<void> _writeRecord(Directory petDir, AppHubPetEntry entry) async {
 /// Runs one pass. [base] is the AppHub base the rest of the app already uses
 /// (`appHubBase` — loopback, LAN IP or the SSH tunnel forward). [http] is the
 /// shared update transport seam; the pass owns no timer and no retry.
+/// [skipPetIds] are ids the APK ships built-in (assets/pets/): those belong
+/// to the app store update channel, the home side never shadows them
+/// (2026-11-24 用户拍板), so a same-id home release is skipped with the
+/// `apphub_builtin` reason instead of installing a duplicate.
 ///
 /// Every catalog-level failure (unreachable, non-200, bad JSON) resolves to a
 /// quiet empty result: the home server being away is normal, not an error to
@@ -136,6 +140,7 @@ Future<AppHubPetUpdateResult> runAppHubPetAutoUpdate({
   required PetLibrary pets,
   required Uri base,
   UpdateHttp? http,
+  Set<String> skipPetIds = const <String>{},
   Duration timeout = const Duration(seconds: 15),
 }) async {
   final UpdateHttp transport = http ?? IoUpdateHttp();
@@ -162,6 +167,11 @@ Future<AppHubPetUpdateResult> runAppHubPetAutoUpdate({
 
   for (final AppHubPetEntry entry in catalog) {
     final String identity = 'pet/${entry.petId}';
+    if (skipPetIds.contains(entry.petId)) {
+      // APK ships this one; the home release never shadows the built-in.
+      skipped[identity] = 'apphub_builtin';
+      continue;
+    }
     try {
       final String folderId = '$userPetPrefix${entry.petId}';
       final Directory petDir = await pets.folder(folderId);

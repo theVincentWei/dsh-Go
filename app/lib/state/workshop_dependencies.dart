@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -117,6 +118,23 @@ class PetAutoUpdateOutcome {
   bool get quiet => updatedCount == 0 && !hasErrors;
 }
 
+/// APK 内置宠物的 id 集(`assets/pets/<id>/pack.json`):家端源不遮蔽它们
+/// (2026-11-24 拍板,内置走应用商店更新通道)。列举失败回空集——那样新发
+/// 宠物照常装,只是不再跳过同名内置,可容忍。
+Future<Set<String>> _builtinPetIds() async {
+  try {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final assets = manifest.listAssets();
+    final pattern = RegExp(r'^assets/pets/([^/]+)/pack\.json$');
+    return <String>{
+      for (final asset in assets)
+        if (pattern.firstMatch(asset) case final RegExpMatch match) match.group(1)!,
+    };
+  } on Object {
+    return const <String>{};
+  }
+}
+
 /// 宠物包自动更新:冷启动 (app.dart) 与宠物设置页各拉起一次,不设定时器。
 /// 工坊源(上游创意工坊)与 AppHub 源(家端)各跑一遍:
 ///   - 工坊:没有工坊、偏好未加载或开关关闭时跳过;工坊自身的异常不吞,
@@ -138,7 +156,9 @@ final workshopPetAutoUpdateProvider = Provider<Future<PetAutoUpdateOutcome?> Fun
           repository: repository, installed: await repository.installed());
     }
     final AppHubPetUpdateResult hub = await runAppHubPetAutoUpdate(
-        pets: ref.read(petLibraryProvider), base: Uri.parse(appHubBase));
+        pets: ref.read(petLibraryProvider),
+        base: Uri.parse(appHubBase),
+        skipPetIds: await _builtinPetIds());
     return PetAutoUpdateOutcome(
       updatedCount: (workshop?.updated ?? const <WorkshopInstalled>[]).length +
           hub.updated.length,
