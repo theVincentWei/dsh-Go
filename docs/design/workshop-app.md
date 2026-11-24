@@ -58,6 +58,15 @@ Companion 槽位的列表读取将预期的收据、存储和恢复错误经既�
 
 工坊伙伴包只有 character，必须先有本机钉死摘要的 runtime；缺失返回 `workshop_runtime_missing`，本层不自动下载。来自工坊的角色经现有安装器及完整性门；原有的本地导入仍保留其调用方式。
 
+### 自动更新(工坊源与 AppHub 家端源)
+
+两个宠物源在冷启动与宠物设置页各跑一次(无定时器,与 8e763c768 的工坊自动更新同档),共用「宠物自动更新」开关;结果合计后设置页只提示更新了几只。
+
+- **工坊源**(`runWorkshopAutoUpdate`):只管本部署工坊装的包(收据 `origin` 匹配才处理),目录版本比较后 `replaceExisting: true` 静默替换;工坊自身异常按旧约定抛给调用方。
+- **AppHub 家端源**(`runAppHubPetAutoUpdate`,2026-11-24):目录来自引擎主机 AppHub 的 `GET /api/v1/pets`(`appHubBase` 通道)。语义是**家端主权**——家端目录里有什么,手机上就该是什么:手机没有的装上,已装的按 `WorkshopVersion` 比较换新,包括创意工坊或手工导入装的同 id 宠物(`workshopOrigin` 强制 https,AppHub 的 http 进不了收据体系,所以覆盖不走收据围栏);家端把一只撤下后手机上仍留着(不远程卸载),直到用户自己删。每只装过的宠物目录里留 `.apphub-pet.json`(schema、petId、version、versionCode、sha256):目录行 sha 相同直接跳过,免重复下载;下载先验 sha256 再走 `PetLibrary.install` 的完整 schema-1 校验。AppHub 不在家(连不上、非 200、坏 JSON)整体静默——这是常态不是故障。
+
+server 侧见 AppHub 的 `pets_market.dart`:发布走 `POST /api/v1/pets/<petId>/versions`(zip 里 pack.json 的 id 必须等于 petId),包行带 sha256;同版本不同字节拒绝(与安装侧 `workshop_version_rewritten` 同语义)。
+
 ### 本机诊断分类与移除结果
 
 `workshopPackageValidationCodes` 是公开的 `const Set<String>`，分类的是经过既有映射的包格式、内容、路径、尺寸和兼容性诊断。调用方只在明确的本机诊断载体上使用 `.contains(code)`，例如已装行的本机 issue；不能凭相同字符串鉴别来源，也不能混用远端 `unavailable`。未列出的码继续走原 fallback。收据、存储、缺 runtime、导出目标、预览和目录可用性问题仍分别处理。

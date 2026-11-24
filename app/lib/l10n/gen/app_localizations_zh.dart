@@ -2884,6 +2884,9 @@ class L10nZh extends L10n {
   String get botsPetPonkan => '匠匠';
 
   @override
+  String get botsPetAnya => '阿尼亚';
+
+  @override
   String get botsPetNone => '不显示';
 
   @override
@@ -10694,7 +10697,7 @@ class L10nZh extends L10n {
   }
 
   @override
-  String get model3dTitle => '3MF 模型预览';
+  String get model3dTitle => '3D 模型预览';
 
   @override
   String get model3dLoading => '正在加载模型…';

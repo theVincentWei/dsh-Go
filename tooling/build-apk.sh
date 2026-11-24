@@ -15,6 +15,8 @@
 #   --release | --debug | --profile  default --release
 #   -t, --target FILE                Dart entry point, relative to app/
 #   -n, --build-number N             use 2..2100000000 instead of the build minute (never lower than installed)
+#   --slim                           no-engine package: skip the runtime gate, package nothing
+#                                    from runtime/ (the phone pulls the engine from its home host)
 #   --build-name X.Y.Z               version name instead of app/pubspec.yaml's
 #   --keep-daemon                    leave the Gradle daemon running afterwards
 #   --beta                           embed the beta channel token (internal builds only)
@@ -39,7 +41,7 @@ source "$ROOT/tooling/companion_pack.sh"
 usage() { sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 die() { echo "build-apk: $*" >&2; exit 1; }
 
-flavor=arm64 mode=release target='' code='' name='' dry=0 keep_daemon=0 want_beta=0
+flavor=arm64 mode=release target='' code='' name='' dry=0 keep_daemon=0 want_beta=0 slim=0
 extra=()
 while (($#)); do
   case "$1" in
@@ -55,6 +57,10 @@ while (($#)); do
     --keep-daemon) keep_daemon=1; shift ;;
     --beta) want_beta=1; shift ;;
     --dry-run) dry=1; shift ;;
+    # 无引擎 slim 包(2026-11-19 用户拍板的默认形态):runtime/out 不参与打包,
+    # 跳过引擎资产门。显式 opt-in —— gate 的本意是拦「想要引擎却打出废包」,
+    # 不是禁止无引擎形态;手机端连上家里主机后由主机供给引擎。
+    --slim) slim=1; shift ;;
     -h | --help) usage; exit 0 ;;
     --) shift; extra=("$@"); break ;;
     *) usage >&2; die "unknown option: $1" ;;
@@ -152,8 +158,9 @@ if ((dry)); then
 fi
 
 # Check every selected flavor before starting any build or writing build config.
-# Debug/profile may intentionally exercise UI without a bundled runtime.
-if [[ $mode == release ]]; then
+# Debug/profile may intentionally exercise UI without a bundled runtime; so does
+# an explicit --slim build.
+if [[ $mode == release && $slim == 0 ]]; then
   python3 -I "$ROOT/tooling/check_runtime_bundle.py" "${flavors[@]}"
 fi
 
@@ -205,9 +212,10 @@ if ((beta)); then
 fi
 
 # libtawcroot.so for the opt-in tawcroot launch method, from the pinned tawc commit.
-# Release builds must carry it; other builds go on without it (the option shows unavailable).
+# Release builds must carry it; other builds (and --slim) go on without it
+# (the option shows unavailable).
 if ! python3 -I "$ROOT/runtime/tawcroot/build.py"; then
-  [[ $mode == release ]] && die "tawcroot: libtawcroot.so did not build"
+  [[ $mode == release && $slim == 0 ]] && die "tawcroot: libtawcroot.so did not build"
   rm -rf "$ROOT/runtime/out-tawcroot" # never package an older build's library
   echo "build-apk: building without libtawcroot.so; the tawcroot launch option will be unavailable" >&2
 fi

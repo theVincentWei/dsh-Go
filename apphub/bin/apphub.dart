@@ -16,6 +16,7 @@ import 'package:apphub/gateway.dart';
 import 'package:apphub/market.dart';
 import 'package:apphub/notices.dart';
 import 'package:apphub/obs.dart';
+import 'package:apphub/pets_market.dart';
 import 'package:apphub/store.dart';
 
 Future<void> main(List<String> args) async {
@@ -39,6 +40,7 @@ Future<void> main(List<String> args) async {
 
   final Store store = Store(db);
   final Market market = Market(cfg, db, store);
+  final PetMarket pets = PetMarket(cfg, db, store);
   final Gateway gateway = Gateway(cfg, db, store);
   final Obs obs = Obs(cfg);
   final Notices notices = Notices(cfg, db);
@@ -47,6 +49,7 @@ Future<void> main(List<String> args) async {
 
   final shelf.Handler handler = shelf.Cascade(statusCodes: <int>[404])
       .add(market.router.call)
+      .add(pets.router.call)
       .add(gateway.adminRouter.call)
       .add(obs.router.call)
       .add(notices.router.call)

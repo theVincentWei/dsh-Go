@@ -8,8 +8,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../l10n/l10n.dart';
 import '../theme/app_icons.dart';
 
-/// Interactive 3MF preview, route A: a WebView running the bundled three.js
-/// viewer (`assets/model3d/viewer.html`, official ThreeMFLoader), talking to
+/// Interactive 3MF/GLB preview, route A: a WebView running the bundled
+/// three.js viewer (`assets/model3d/viewer.html`, official ThreeMFLoader and
+/// GLTFLoader — the loader is picked from the file extension), talking to
 /// Dart through the `ModelViewer` JavaScript channel.
 ///
 /// The viewer assets are served over a loopback-only HTTP server instead of
@@ -25,15 +26,16 @@ class Model3mfViewerPage extends StatefulWidget {
   const Model3mfViewerPage({super.key, this.assetPath = sampleAssetPath, this.title});
 
   static const sampleAssetPath = 'assets/model3d/sample.3mf';
+  static const sampleGlbAssetPath = 'assets/model3d/sample.glb';
   static const viewerAssetPath = 'assets/model3d/viewer.html';
   static const _assetDir = 'assets/model3d';
 
-  /// Flutter asset to load once the viewer reports ready. The bundled loader
-  /// parses 3MF (zip container); other formats would need their own three.js
-  /// loaders vendored into `assets/model3d/`. [assetPath] is a Flutter asset
-  /// path (`assets/...`); it is converted to a path relative to viewer.html
-  /// before being handed to the viewer's `loadModel` (which fetches relative
-  /// to its own URL).
+  /// Flutter asset to load once the viewer reports ready. viewer.html picks
+  /// the bundled three.js loader from the extension: `.3mf` -> ThreeMFLoader,
+  /// `.glb`/`.gltf` -> GLTFLoader (both vendored into `assets/model3d/`).
+  /// [assetPath] is a Flutter asset path (`assets/...`); it is converted to a
+  /// path relative to viewer.html before being handed to the viewer's
+  /// `loadModel` (which fetches relative to its own URL).
   final String assetPath;
   final String? title;
 
@@ -85,8 +87,7 @@ class _Model3mfViewerPageState extends State<Model3mfViewerPage> {
       }
       _assetServer = server;
       server.listen(_serveAsset, onError: (_) {});
-      await _controller
-          .loadRequest(Uri.parse('http://127.0.0.1:${server.port}/viewer.html'));
+      await _controller.loadRequest(Uri.parse('http://127.0.0.1:${server.port}/viewer.html'));
     } on SocketException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -106,8 +107,7 @@ class _Model3mfViewerPageState extends State<Model3mfViewerPage> {
     final asset = '${Model3mfViewerPage._assetDir}/${path.substring(1)}';
     try {
       final data = await rootBundle.load(asset);
-      request.response.headers.contentType =
-          ContentType(_mimePrimary(asset), _mimeSubtype(asset), charset: null);
+      request.response.headers.contentType = ContentType(_mimePrimary(asset), _mimeSubtype(asset), charset: null);
       request.response.add(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
       await request.response.close();
     } on FlutterError {
@@ -121,18 +121,18 @@ class _Model3mfViewerPageState extends State<Model3mfViewerPage> {
   }
 
   String _mimePrimary(String path) => switch (path.substring(path.lastIndexOf('.') + 1)) {
-        'html' => 'text',
-        'js' => 'text',
-        'json' => 'application',
-        _ => 'application',
-      };
+    'html' => 'text',
+    'js' => 'text',
+    'json' => 'application',
+    _ => 'application',
+  };
 
   String _mimeSubtype(String path) => switch (path.substring(path.lastIndexOf('.') + 1)) {
-        'html' => 'html',
-        'js' => 'javascript',
-        'json' => 'json',
-        _ => 'octet-stream',
-      };
+    'html' => 'html',
+    'js' => 'javascript',
+    'json' => 'json',
+    _ => 'octet-stream',
+  };
 
   void _onViewerMessage(JavaScriptMessage message) {
     Map<String, Object?> map;
@@ -232,11 +232,7 @@ class _Model3mfViewerPageState extends State<Model3mfViewerPage> {
                     Text(l10n.model3dLoadFailed, style: Theme.of(context).textTheme.titleMedium),
                     if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                      Text(_errorMessage!, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
                     ],
                     const SizedBox(height: 16),
                     FilledButton.tonal(onPressed: _retry, child: Text(l10n.model3dRetry)),

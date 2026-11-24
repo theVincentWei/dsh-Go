@@ -5348,6 +5348,12 @@ abstract class L10n {
   /// **'匠匠'**
   String get botsPetPonkan;
 
+  /// No description provided for @botsPetAnya.
+  ///
+  /// In zh, this message translates to:
+  /// **'阿尼亚'**
+  String get botsPetAnya;
+
   /// No description provided for @botsPetNone.
   ///
   /// In zh, this message translates to:
@@ -19811,7 +19817,7 @@ abstract class L10n {
   /// No description provided for @model3dTitle.
   ///
   /// In zh, this message translates to:
-  /// **'3MF 模型预览'**
+  /// **'3D 模型预览'**
   String get model3dTitle;
 
   /// No description provided for @model3dLoading.

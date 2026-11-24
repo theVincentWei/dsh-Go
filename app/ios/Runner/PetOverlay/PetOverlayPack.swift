@@ -188,7 +188,6 @@ struct PetOverlayPack {
   /// Exact PetSprite size rule, in physical output pixels. The system may
   /// scale the finished video in its PiP window; that final scale is not ours.
   func artScale(size: PetOverlaySize, deviceScale: Double) -> Double {
-    guard pixelArt else { return size.bodyHeight * deviceScale / contentBox.height }
     func pixels(_ size: PetOverlaySize) -> Double {
       max(1, (size.bodyHeight * deviceScale / contentBox.height).rounded())
     }

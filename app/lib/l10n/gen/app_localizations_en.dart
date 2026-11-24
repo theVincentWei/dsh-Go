@@ -3057,6 +3057,9 @@ class L10nEn extends L10n {
   String get botsPetPonkan => 'Jiangjiang';
 
   @override
+  String get botsPetAnya => 'Anya';
+
+  @override
   String get botsPetNone => 'None';
 
   @override
@@ -11251,7 +11254,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get model3dTitle => '3MF model preview';
+  String get model3dTitle => '3D model preview';
 
   @override
   String get model3dLoading => 'Loading model…';

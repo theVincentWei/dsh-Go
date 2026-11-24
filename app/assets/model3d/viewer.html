@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <!--
-  3MF model viewer for the embedded WebView (lib/ui/model3d/), route A:
-  three.js + the official ThreeMFLoader, fully bundled (no CDN, works offline).
+  3MF/GLB model viewer for the embedded WebView (lib/ui/model3d/), route A:
+  three.js + the official ThreeMFLoader and GLTFLoader, fully bundled
+  (no CDN, works offline). The loader is picked from the file extension:
+  .3mf -> ThreeMFLoader (Z-up millimetres, rotated onto the Y-up scene),
+  .glb/.gltf -> GLTFLoader (Y-up by spec, loaded as-is).
   Reports load state back to Dart through the `ModelViewer` JavaScript channel:
     {"event":"ready"}
     {"event":"loaded","triangles":N,"parts":M}
@@ -10,7 +13,8 @@
   loadModel('<path relative to this file>') after `ready` (the Dart side
   converts Flutter asset paths to viewer-relative ones before calling).
   Vendored code: three.js r187 (three.module.js + three.core.js),
-  OrbitControls.js, 3MFLoader.js, fflate.module.js — see
+  OrbitControls.js, 3MFLoader.js, GLTFLoader.js, SkeletonUtils.js,
+  BufferGeometryUtils.js, fflate.module.js — see
   THIRD_PARTY_NOTICES.md and assets/licenses/.
 -->
 <html>
@@ -31,9 +35,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from './OrbitControls.js';
 import { ThreeMFLoader } from './3MFLoader.js';
+import { GLTFLoader } from './GLTFLoader.js';
 
 function post(msg) {
-  try { ModelViewer.postMessage(JSON.stringify(msg)); } catch (_) { /* standalone in a browser */ }
+  try { ModelViewer.postMessage(JSON.stringify(msg)); } catch (_) { console.log('[model-viewer]', JSON.stringify(msg)); }
 }
 window.onerror = (message) => post({ event: 'error', message: String(message) });
 
@@ -87,9 +92,10 @@ function disposeModel() {
   modelGroup = null;
 }
 
-function fit(object) {
-  // 3MF is Z-up in millimetres; the scene is Y-up.
-  object.rotation.x = -Math.PI / 2;
+function fit(object, zUp) {
+  // 3MF is Z-up in millimetres and needs the quarter-turn onto the Y-up
+  // scene; glTF is Y-up by spec and is loaded as-is.
+  if (zUp) object.rotation.x = -Math.PI / 2;
   const group = new THREE.Group();
   group.add(object);
 
@@ -125,15 +131,20 @@ function fit(object) {
 
 function loadModel(url) {
   disposeModel();
-  new ThreeMFLoader().load(url, (object) => {
+  // Pick the loader from the extension: 3MF (Z-up) vs glTF (Y-up, with the
+  // model under gltf.scene). Unknown extensions fall back to GLTFLoader.
+  const is3mf = url.split('?')[0].toLowerCase().endsWith('.3mf');
+  const loader = is3mf ? new ThreeMFLoader() : new GLTFLoader();
+  loader.load(url, (result) => {
+    const object = is3mf ? result : (result.scene || result);
     try {
-      const stats = fit(object);
+      const stats = fit(object, is3mf);
       post({ event: 'loaded', ...stats });
     } catch (e) {
       post({ event: 'error', message: '解析成功但布置失败: ' + e.message });
     }
   }, undefined, (e) => {
-    post({ event: 'error', message: '3MF 加载失败: ' + (e && e.message ? e.message : url) });
+    post({ event: 'error', message: '模型加载失败: ' + (e && e.message ? e.message : url) });
   });
 }
 window.loadModel = loadModel;

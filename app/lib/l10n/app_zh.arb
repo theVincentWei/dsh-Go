@@ -1803,6 +1803,7 @@
   "botsPetDeepy": "Deepy 小鲸鱼",
   "botsPetWhaleGirl": "鲸娘",
   "botsPetPonkan": "匠匠",
+  "botsPetAnya": "阿尼亚",
   "botsPetNone": "不显示",
   "botsPets": "宠物",
   "botsPetSource": "来自 DSH-TUI",
@@ -6423,7 +6424,7 @@
       }
     }
   },
-  "model3dTitle": "3MF 模型预览",
+  "model3dTitle": "3D 模型预览",
   "model3dLoading": "正在加载模型…",
   "model3dLoadFailed": "模型加载失败",
   "model3dRetry": "重试",
