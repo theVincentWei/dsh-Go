@@ -158,15 +158,13 @@ SessionSummary _session(String id, String title, DateTime at, {bool running = fa
   projections: SessionProjections(1, {'title': title}),
 );
 
-/// Today / yesterday / earlier, anchored to today's midnight so grouping is stable.
-/// Noon on the latest Saturday: the drawer groups by calendar week (今天 /
+/// Noon on Saturday 2026-11-14: the drawer groups by calendar week (今天 /
 /// 昨天 / 本周 / 更早), so goldens pin the day it thinks it is and the sample
 /// dates hang off the same day; any weekday the tests run on looks the same.
-final DateTime sampleNow = () {
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  return today.subtract(Duration(days: (today.weekday - DateTime.saturday) % 7)).add(const Duration(hours: 12));
-}();
+/// The Saturday is FIXED, not anchored to today: a real-now anchor burned the
+/// recording day's date into the month-day labels, and the remote chat tab
+/// goldens failed the moment CI ran on a later day (the 时间炸弹).
+final DateTime sampleNow = DateTime(2026, 11, 14, 12);
 
 List<SessionSummary> sampleSessions() {
   final midnight = DateTime(sampleNow.year, sampleNow.month, sampleNow.day);
