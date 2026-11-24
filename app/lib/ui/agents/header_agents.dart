@@ -19,6 +19,7 @@ import '../common/status_dot.dart';
 import '../shell/page_frame.dart' show GlassIconButton;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
+import 'agents_chooser.dart';
 import 'lineage_sheet.dart';
 import 'team_page.dart';
 
@@ -162,8 +163,26 @@ class HeaderAgentsKey extends StatelessWidget {
         ],
       ),
     );
-    void open() {
-      if (team != null) {
+    Future<void> open() async {
+      if (team == null) {
+        showLineageSheet(context, sessionId: sessionId);
+        return;
+      }
+      // A team and plain subagents side by side: one capsule can only wear
+      // one face, so offer both. With no plain subagents the team page is
+      // the only place to go, as before.
+      if (agents.plainChildren == 0) {
+        Navigator.of(context).push(TeamPage.route(sessionId: sessionId));
+        return;
+      }
+      final choice = await showAgentsChooser(
+        context,
+        teamCount: team.teammates.length,
+        plainCount: agents.plainChildren,
+        plainRunning: agents.plainRunning,
+      );
+      if (choice == null || !context.mounted) return;
+      if (choice == AgentsChoice.team) {
         Navigator.of(context).push(TeamPage.route(sessionId: sessionId));
       } else {
         showLineageSheet(context, sessionId: sessionId);

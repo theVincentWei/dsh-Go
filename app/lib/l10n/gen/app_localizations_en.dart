@@ -2038,6 +2038,9 @@ class L10nEn extends L10n {
   String get botsSubagents => 'Subagents';
 
   @override
+  String get botsTeamAndSubagents => 'Team and subagents';
+
+  @override
   String get botsNoSubagents => 'No subagents sent';
 
   @override

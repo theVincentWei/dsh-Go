@@ -215,7 +215,15 @@ final subagentParentProvider = Provider.autoDispose.family<SubagentParent?, Stri
 
 /// What the chat header shows for the current conversation.
 class HeaderAgents {
-  const HeaderAgents({this.parent, this.children = 0, this.running = 0, this.team, this.leadId});
+  const HeaderAgents({
+    this.parent,
+    this.children = 0,
+    this.running = 0,
+    this.plainChildren = 0,
+    this.plainRunning = 0,
+    this.team,
+    this.leadId,
+  });
 
   /// Set in a subagent conversation: the breadcrumb back.
   final SubagentParent? parent;
@@ -223,6 +231,11 @@ class HeaderAgents {
   /// Direct children and how many of them run.
   final int children;
   final int running;
+
+  /// Children that are not team members (one-shot/plain subagents) and how
+  /// many of them run: the lineage's own share when a team takes the header.
+  final int plainChildren;
+  final int plainRunning;
 
   /// The Lead's team when the Agent Teams bundle is on.
   final TeamSnapshot? team;
@@ -240,6 +253,8 @@ class HeaderAgents {
       other.parent?.parentTitle == parent?.parentTitle &&
       other.children == children &&
       other.running == running &&
+      other.plainChildren == plainChildren &&
+      other.plainRunning == plainRunning &&
       other.leadId == leadId &&
       other.team?.teammates.length == team?.teammates.length &&
       (other.team == null) == (team == null);
@@ -251,6 +266,8 @@ class HeaderAgents {
     parent?.parentTitle,
     children,
     running,
+    plainChildren,
+    plainRunning,
     leadId,
     team?.teammates.length,
     team == null,
@@ -266,10 +283,19 @@ final headerAgentsProvider = Provider.autoDispose.family<HeaderAgents, String>((
   // Lead's.
   final leadId = parent?.address.parentSessionId ?? sessionId;
   final team = sessions[leadId]?.projections.agentTeam;
+  // The lineage mixes teammates with plain subagents; the plain counts split
+  // them apart so the header can offer both views without double counting.
+  final memberIds = team == null ? const <String>{} : {for (final m in team.members) m.id};
+  final plain = [
+    for (final child in children)
+      if (!memberIds.contains(child.id)) child,
+  ];
   return HeaderAgents(
     parent: parent,
     children: children.length,
     running: children.where((c) => c.running).length,
+    plainChildren: plain.length,
+    plainRunning: plain.where((c) => c.running).length,
     team: team,
     leadId: team == null ? null : leadId,
   );
@@ -496,10 +522,7 @@ final teamMessagesProvider = FutureProvider.autoDispose.family<TeamMessagesSnaps
       }(),
   ]);
   out.sort((a, b) => b.time.compareTo(a.time));
-  return TeamMessagesSnapshot(
-    messages: List.unmodifiable(out),
-    unreadableMembers: Set.unmodifiable(unreadable),
-  );
+  return TeamMessagesSnapshot(messages: List.unmodifiable(out), unreadableMembers: Set.unmodifiable(unreadable));
 });
 
 // -----------------------------------------------------------------------------

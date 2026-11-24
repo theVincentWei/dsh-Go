@@ -586,6 +586,7 @@
   "botsAgentTeam": "Agent team",
   "botsSubagentRunningCount": "{count, plural, =1{1 subagent} other{{count} subagents}}, {running, plural, =1{1 running} other{{running} running}}",
   "botsSubagents": "Subagents",
+  "botsTeamAndSubagents": "Team and subagents",
   "botsNoSubagents": "No subagents sent",
   "botsOpenChatFirst": "Open a chat first",
   "botsTeamReadFailed": "Couldn’t load the team",
