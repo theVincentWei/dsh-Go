@@ -38,7 +38,7 @@ Future<void> voiceReady(WidgetTester tester, bool Function() complete, String la
       await settle(tester);
       return;
     }
-  } while (elapsed.elapsed < const Duration(seconds: 5));
+  } while (elapsed.elapsed < const Duration(seconds: 20));
   fail('Voice settings did not reach $label');
 }
 
@@ -51,7 +51,7 @@ bool refreshEnabled() => find
 
 class RealVoiceHttp extends HttpOverrides {}
 
-void voiceTest(String description, WidgetTesterCallback callback, {Object? skip}) {
+void voiceTest(String description, WidgetTesterCallback callback, {bool? skip}) {
   testWidgets(
     description,
     (tester) => HttpOverrides.runWithHttpOverrides(() => callback(tester), RealVoiceHttp()),
@@ -166,18 +166,7 @@ void main() {
         await tester.pumpWidget(const SizedBox.shrink());
         client.connection.close(force: true);
         await tester.pump();
-      },
-      skip: mode == 'plugin-restart' && Platform.environment['GITHUB_ACTIONS'] == 'true'
-          // CI runner only: after pluginChanged() the refresh get-settings
-          // request reaches the harness (probe: reqs=2 reads=1) but its
-          // response future never completes, so _controller.loading stays
-          // true and the refresh IconButton stays disabled for the whole
-          // 20s window — with 5ms and 200ms runAsync windows alike. Passes
-          // on macOS: single file, and plugins-dir at --concurrency=4.
-          // Follow-up: root-cause the runner-side localhost HTTP hang
-          // (instrumented copy lives in branch voice-probe2).
-          ? 'plugin-restart refresh hangs on the CI runner'
-          : null,
+      });
     }
   }
 
@@ -223,26 +212,13 @@ void main() {
       if (mode == 'plugin-restart') {
         final reads = server.requests.where((request) => request['action'] == 'get-settings').length;
         carrier.pluginChanged();
-        final probe = Stopwatch()..start();
-        var probed = false;
-        do {
-          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-          await tester.pump(const Duration(milliseconds: 50));
-          final reqs = server.requests.where((request) => request['action'] == 'get-settings').length;
-          if (!probed && probe.elapsed > const Duration(seconds: 6)) {
-            // ignore: avoid_print
-            print('PROBE plugin-restart: reqs=$reqs reads=$reads refresh=${refreshEnabled()}');
-            probed = true;
-          }
-          if (reqs > reads && refreshEnabled()) {
-            await settle(tester);
-            break;
-          }
-        } while (probe.elapsed < const Duration(seconds: 20));
-        if (!(server.requests.where((request) => request['action'] == 'get-settings').length > reads &&
-            refreshEnabled())) {
-          fail('Voice settings did not reach plugin-change refresh');
-        }
+        await voiceReady(
+          tester,
+          () =>
+              server.requests.where((request) => request['action'] == 'get-settings').length > reads &&
+              refreshEnabled(),
+          'plugin-change refresh',
+        );
       } else {
         container.read(selectedVoiceHost.notifier).state = mode == 'loading-with-old-data'
             // Model Riverpod retaining prior data during a pending host rebuild.
