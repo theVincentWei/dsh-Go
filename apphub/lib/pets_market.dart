@@ -87,7 +87,8 @@ class PetMarket {
       ..get('/api/v1/pets', _catalog)
       ..get('/api/v1/pets/<petId|[^/]+>/manifest.json', _manifest)
       ..get('/api/v1/pets/<petId|[^/]+>/versions', _versions)
-      ..post('/api/v1/pets/<petId|[^/]+>/versions', _publish);
+      ..post('/api/v1/pets/<petId|[^/]+>/versions', _publish)
+      ..post('/api/v1/pets/<petId|[^/]+>/withdraw', _withdraw);
     return router;
   }
 
@@ -278,6 +279,28 @@ class PetMarket {
       'versionCode': versionCode,
       'sha256': sha256hex,
       'sizeBytes': bytes.length,
+    });
+  }
+
+  /// POST /api/v1/pets/<petId>/withdraw — take a pack off the catalog. The
+  /// market row goes; version rows and zips stay, so a later re-publish
+  /// continues the same versionCode sequence (the phone-side version floor
+  /// survives). The phone needs no call for this: a pet absent from the
+  /// catalog is never installed, and one already installed is left alone
+  /// (the update loop is catalog-driven; remote delete stays out of scope).
+  Future<shelf.Response> _withdraw(shelf.Request request, String petId) async {
+    if (!_publisher(request)) return _json(<String, Object?>{'error': 'unauthorized'}, 401);
+    if (!isValidPetId(petId)) return _json(<String, Object?>{'error': 'invalid petId'}, 400);
+    final rows = await db.q('SELECT 1 FROM apps WHERE app_id = ?', [_appId(petId)]);
+    if (rows.isEmpty) return _json(<String, Object?>{'error': 'no such pet'}, 404);
+    final latest = await store.latestVersion(_appId(petId));
+    await store.withdrawApp(_appId(petId));
+    await store.addEvent(_appId(petId), 'pet_withdraw', 'v${latest?['version_code']}');
+    await db.audit('publisher', 'withdraw-pet', 'pet/$petId (latest v${latest?['version_code']})');
+    return _json(<String, Object?>{
+      'petId': petId,
+      'withdrawn': true,
+      'latestVersionCode': latest?['version_code'],
     });
   }
 }
