@@ -310,7 +310,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(c.read(petPrefsProvider).packId, noPetId);
       expect(find.text('安静模式'), findsNothing);
-      expect(find.byType(PetPreview), findsNWidgets(3));
+      expect(find.byType(PetPreview), findsNWidgets(2));
     });
   });
 }
