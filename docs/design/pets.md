@@ -189,8 +189,7 @@
   | 大 | 40dp |
 
   身体高度取 `contentBox.h`。
-- 缩放倍数 `k` 的定义是：每个美术像素占多少个**物理像素**。像素画包要求 `k` 为整数：先算 `max(1, round(目标dp × devicePixelRatio ÷ contentBox.h))`，再让小、标准、大**至少各差 1**（`medium = max(small + 1, …)`，`large = max(medium + 1, …)`）。不加这一步的话，dpr 2.75 的手机上 22/30/40dp 会同时落成 1/2/2，三档分不出大小，悬浮窗还会比 App 内小一档。
-- 非像素画包（`pixelArt: false`）的 `k` 不限整数：`k = 目标dp × devicePixelRatio ÷ contentBox.h`。
+- 缩放倍数 `k` 的定义是：每个美术像素占多少个**物理像素**。**所有包**（像素画与高清插画 alike）都把 `k` 取整：先算 `max(1, round(目标dp × devicePixelRatio ÷ contentBox.h))`，再让小、标准、大**至少各差 1**（`medium = max(small + 1, …)`，`large = max(medium + 1, …)`）。不加这一步的话，dpr 2.75 的手机上 22/30/40dp 会同时落成 1/2/2，三档分不出大小，悬浮窗还会比 App 内小一档。同一档位下所有宠物因此**严格同高**（公式相等，不是近似）；`pixelArt` 只决定采样滤镜（像素画=最近邻保持方块锐利，高清插画=线性平滑），**不影响尺寸**。整数倍落档会让实际 dp 偏离名义值（如 dpr 2.75 标准档 47 身高落在 34.2dp），这是像素网格量化的固有代价，全包一致。
 - 宠物的左上角和脚线都对齐到物理像素。
 - 悬浮窗和 App 内用同一档位，也就是同一套 `k`：App 内是 `pet_sprite.dart` 的 `petDevicePixels`，悬浮窗是 Kotlin `PetPack.devicePixels`，两边各有一份逐值对齐的单测（`pet_pixel_test.dart`、`PetPackTest.kt`）。
 

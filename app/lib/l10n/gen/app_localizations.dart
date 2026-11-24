@@ -19811,7 +19811,7 @@ abstract class L10n {
   /// No description provided for @model3dTitle.
   ///
   /// In zh, this message translates to:
-  /// **'3MF 模型预览'**
+  /// **'3D 模型预览'**
   String get model3dTitle;
 
   /// No description provided for @model3dLoading.

@@ -91,9 +91,6 @@ class PetPicker extends ConsumerStatefulWidget {
   /// The capsule the preview pet stands on: its top at this share of the side.
   static const perchAt = 0.74;
 
-  /// The preview pet's body height, as a share of the side.
-  static const bodyShare = 0.34;
-
   /// Previews in a row.
   static const perRow = 3;
 
@@ -370,7 +367,7 @@ class PetPreview extends StatelessWidget {
     while (k > 1 && (pack.baseline - pack.contentBox.top) * k / dpr > room) {
       k--;
     }
-    final s = pack.pixelArt ? k / dpr : side * PetPicker.bodyShare / pack.contentBox.height;
+    final s = k / dpr;
     final left = side / 2 - ((pack.contentBox.left + pack.contentBox.right) / 2) * s;
     final top = perchTop - pack.baseline * s;
     return Stack(

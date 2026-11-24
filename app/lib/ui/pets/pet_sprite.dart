@@ -29,11 +29,13 @@ int petDevicePixels(PetPack pack, PetSize size, double devicePixelRatio) {
   };
 }
 
-/// Logical pixels per art pixel: whole device pixels for pixel art, the
-/// target body height otherwise.
-double petScale(PetPack pack, PetSize size, double devicePixelRatio) => pack.pixelArt
-    ? petDevicePixels(pack, size, devicePixelRatio) / devicePixelRatio
-    : size.bodyHeight / pack.contentBox.height;
+/// Logical pixels per art pixel: the ladder lands every pack — pixel art and
+/// hi-res art alike — on the same whole-device-pixels-per-art-pixel size, so
+/// pets of one tier are exactly as tall as each other on any device. The
+/// `pixelArt` flag only picks the sampling filter (nearest keeps pixel-art
+/// blocks crisp, linear keeps hi-res art smooth), never the size.
+double petScale(PetPack pack, PetSize size, double devicePixelRatio) =>
+    petDevicePixels(pack, size, devicePixelRatio) / devicePixelRatio;
 
 /// One animation of [pack], as big as the canvas × [scale].
 ///
