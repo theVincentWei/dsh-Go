@@ -105,7 +105,7 @@ internal class PetView(context: Context, private val listener: Listener) : Frame
 
     fun setSprites(loaded: PetSprites.Loaded?) {
         sprites = loaded
-        paint.isFilterBitmap = loaded?.pack?.crisp == false
+        paint.isFilterBitmap = loaded?.crisp == false
         anim = null
         cell = -1
         frame = loaded?.frames?.rest ?: FramePx(0, 0, 0, 0)

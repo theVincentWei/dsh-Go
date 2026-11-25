@@ -42,6 +42,8 @@ internal class PetSprites(
         private val source: (String) -> InputStream?,
         private val worker: Executor,
     ) {
+        /** Pixel art whole at this scale draws unfiltered; fractional scales filter. */
+        val crisp: Boolean = pack.crisp(screenScale)
         /** The window at rest, while held and around each animation, in physical pixels. */
         private val spriteFrames = PetFrames.of(pack, window, screenScale)
         // Main-thread overlay geometry only; portraits keep using the sprite pack.

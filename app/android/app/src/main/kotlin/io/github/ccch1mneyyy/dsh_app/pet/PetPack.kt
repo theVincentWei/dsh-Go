@@ -1,6 +1,8 @@
 package io.github.ccch1mneyyy.dsh_app.pet
 
 import io.github.ccch1mneyyy.dsh_app.phone.Json
+import kotlin.math.abs
+import kotlin.math.round
 import kotlin.math.roundToInt
 
 /** One frame: which cell of the sheet, and for how long. */
@@ -10,7 +12,7 @@ data class PetFrame(val cell: Int, val ms: Int)
 enum class PetSize(val dp: Float) {
     SMALL(22f),
     MEDIUM(30f),
-    LARGE(40f);
+    LARGE(52f);
 
     companion object {
         /** The channel's name (`small` / `medium` / `large`); anything else reads as medium. */
@@ -152,36 +154,18 @@ class PetPack(
      */
     fun windowBox(): PetBox = wideBox?.union(primary(IDLE, 0).box) ?: unionBox(usedAnimations(skipStates = setOf("roam")))
 
-    /** Pixel art kept at 1×: drawn at a whole number of physical pixels per art pixel, unfiltered. */
-    val crisp: Boolean get() = pixelArt && scale == 1
-
     /**
-     * Physical pixels per logical (art) pixel for [size] at [density] — the app's rule
-     * (`pet_sprite.dart`'s petScale / petDevicePixels), so the out-of-app pet is as big as the
-     * one on the chat page (docs/design/pets.md §2.10). Pixel art snaps [k] to a whole number
-     * of physical pixels and keeps the three sizes apart ([devicePixels]); hi-res art draws at
-     * the target body height — the overlay window composes cells and bitmap scales together,
-     * and the ladder path for hi-res art is under investigation (两个并排实例的悬浮窗渲染问题).
+     * Physical pixels per art pixel for [size] at [density] — the app's rule
+     * (`pet_sprite.dart`'s petScale), so the out-of-app pet is as big as the
+     * one on the chat page (docs/design/pets.md §2.10). Every pack, every end:
+     * exact dp (2026-11-25 unification — the integer ladder rounded same-tier
+     * pets to different sizes per dpr and is gone; fractional scales filter).
      */
-    fun screenScale(size: PetSize, density: Float): Float =
-        if (pixelArt) devicePixels(size, density).toFloat() else size.dp * density / contentBox.h
+    fun screenScale(size: PetSize, density: Float): Float = size.dp * density / contentBox.h
 
-    /**
-     * Whole physical pixels per art pixel for [size]: `round(dp × density ÷ body)`, then small /
-     * medium / large at least one apart — on a 2.75× phone 22/30/40 dp over a 49 px body round to
-     * 1/2/2, and two of the three sizes would otherwise draw alike.
-     */
-    fun devicePixels(size: PetSize, density: Float): Int {
-        fun at(s: PetSize): Int = (s.dp.toDouble() * density / contentBox.h).roundToInt().coerceAtLeast(1)
-        val small = at(PetSize.SMALL)
-        val medium = maxOf(small + 1, at(PetSize.MEDIUM))
-        val large = maxOf(medium + 1, at(PetSize.LARGE))
-        return when (size) {
-            PetSize.SMALL -> small
-            PetSize.MEDIUM -> medium
-            PetSize.LARGE -> large
-        }
-    }
+    /** Pixel art at a whole device-pixel-per-art-pixel scale draws unfiltered; fractional filters. */
+    fun crisp(screenScale: Float): Boolean =
+        pixelArt && abs(screenScale - round(screenScale)) < 0.02f
 
     companion object {
         const val IDLE = "idle"

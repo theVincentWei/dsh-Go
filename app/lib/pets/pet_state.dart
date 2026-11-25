@@ -41,12 +41,13 @@ enum PetSize {
     large => appL10n.stateSizeLarge,
   };
 
-  /// Target height of the pet's body (its pack's `contentBox`), dp. The
-  /// drawn size snaps to a whole number of device pixels per art pixel.
+  /// Target height of the pet's body (its pack's `contentBox`), dp, drawn at
+  /// exact dp on every pack and every end (fractional scales sample linearly).
+  /// 大档 52：站姿对齐躺姿观感（2026-11-25 用户定案，40 偏小只有 6.4mm）。
   double get bodyHeight => switch (this) {
     small => 22,
     medium => 30,
-    large => 40,
+    large => 52,
   };
 
   static PetSize fromName(String? name) => values.asNameMap()[name] ?? medium;
