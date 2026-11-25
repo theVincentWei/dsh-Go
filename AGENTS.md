@@ -44,6 +44,13 @@ CI（`.github/workflows/ci.yml`）在 PR 上跑通用检查和改动涉及的部
 - 收到外部 PR：关闭它并回复"暂不接受外部 PR，请改用 issue 提供建议"。入口检查（`.github/workflows/pr-gate.yml`）会自动关闭外部 PR；人工按同一政策处理，不要"先合并再说"。
 - 不要因为某个 issue 有了实现，就自动把实现包装成 PR 合入。
 
+### 合入必须走 PR（main 受保护，2026-11-25 起）
+
+- `main` 受分支保护：required check=`CI OK` 且 `enforce_admins` 开启——**任何人（含维护者与 Agent）直推 `main` 都会被拒**，先推分支再开 PR。
+- 合入路径固定：功能分支 → 开**内部 PR** → `CI OK` 全绿 → 合并 PR。本地 merge 完没走 PR = 没有合入。
+- 金图回录同规矩：临时分支派发 goldens.yml（paths 按改动面收窄）渲染，渲染分支再开 PR 合入；workflow 的 token 直推 `main` 会被 GH006 拦。
+- 绿的判定只认 `CI OK` job；gh 不可用时用维护者凭据走 GitHub API（匿名请求会被共享 IP 限流）。
+
 ### 源码、生成物与运行时补丁
 
 - 不手改生成物：`app/build/`、`.dart_tool/`、生成的 l10n 产物等；改输入后运行对应生成器。
@@ -77,7 +84,7 @@ CI（`.github/workflows/ci.yml`）在 PR 上跑通用检查和改动涉及的部
 ### 工作树流程（功能开发的固定入口）
 
 - 开工一律 `sh tooling/wt new <名字>`：从 main 最新提交拉 `feat/<名字>` 分支 + 新工作树（`~/Code/dsh-go-<名字>`）。禁止从非 main 分支叠新分支；禁止在主工作树里直接改功能代码。开工前按「Git 安全」先拉平基线。
-- 用户说「合入」就在功能工作树里跑 `sh tooling/wt done`：merge 进 main 并**当场删除工作树与分支**；不要手工 merge 后留树。
+- 用户说「合入」就在功能工作树里跑 `sh tooling/wt done`：推送分支并开内部 PR（gh 可用就自动开，否则给出 compare 链接）；**不本地 merge、不删树**。CI 绿后在 PR 上合并，再 `sh tooling/wt rm <分支>` 清树（post-merge 钩子也会兜底清理已并入的树）。
 - 弃案用 `sh tooling/wt rm <分支>`，盘点用 `sh tooling/wt ls`。
 - 兜底：post-merge 钩子自动清理「已并入 main 且无未提交改动」的工作树；换机器/新 clone 后先跑 `sh tooling/cleanup-merged-worktrees.sh --install`（钩子+常驻脚本副本一起装，旧检出的工作树里 merge 也能触发）。
 

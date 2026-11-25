@@ -2,13 +2,13 @@
 # 工作树流程的唯一入口(固定流程约定见 AGENTS.md「工作树流程」):
 #
 #   tooling/wt new <名字>        # 开工:从 main 最新提交拉 feat/<名字> 分支+新工作树
-#   tooling/wt done              # 合入:在功能工作树里跑,merge 进 main 并当场删树删分支
+#   tooling/wt done              # 合入:在功能工作树里跑,推分支+开内部 PR(CI 绿后在 PR 上合并,再 wt rm 清树)
 #   tooling/wt rm <分支|路径> [--force]   # 弃案:不合入直接删工作树+分支
 #   tooling/wt ls                # 盘点:每棵树的分支/是否已并入/是否有未提交改动
 #
 # 新工作树目录 = $DSH_WT_ROOT(默认 ~/Code)/dsh-go-<短名>。
 # 与 post-merge 钩子(tooling/cleanup-merged-worktrees.sh --install)的关系:
-# 本命令管标准路径;钩子兜底清理「在主工作树手工 merge 后漏删」的树。
+# 本命令管标准路径;钩子兜底清理「PR 合并后漏删」的树。main 受保护(required check CI OK+enforce_admins),直推会被拒,合入只能走 PR。
 
 set -u
 
@@ -36,6 +36,15 @@ branch_of() {
 }
 
 short_of() { printf '%s' "${1##*/}"; }
+
+repo_slug() {
+  url=$(git remote get-url origin 2>/dev/null) || return 1
+  case "$url" in
+    git@github.com:*) printf '%s' "${url#git@github.com:}" | sed 's/\.git$//' ;;
+    https://github.com/*|ssh://git@github.com/*) printf '%s' "${url#*github.com/}" | sed 's/\.git$//' ;;
+    *) return 1 ;;
+  esac
+}
 
 cmd_new() {
   [ $# -ge 1 ] || die "用法: tooling/wt new <名字>"
@@ -78,24 +87,21 @@ $dirty"
   main_dirty=$(git -C "$mw" status --porcelain --untracked-files=no | head -8)
   [ -z "$main_dirty" ] || die "主工作树($mw)有未提交改动,先处理再合入:
 $main_dirty"
-  untracked=$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')
-  say "合入 $branch → $MAIN_BRANCH (--no-ff) ..."
-  if ! git -C "$mw" merge --no-ff --no-edit "$branch"; then
-    git -C "$mw" merge --abort 2>/dev/null
-    die "合并冲突,已回滚主工作树。需手工处理: cd $mw && git merge --no-ff $branch"
+  slug=$(repo_slug) || die "解析不出 origin 的 GitHub 仓库,手工开 PR"
+  say "推送 $branch → origin ..."
+  git push -u origin "$branch" || die "推送失败,解决后再跑 tooling/wt done"
+  compare="https://github.com/$slug/compare/$MAIN_BRANCH...$branch"
+  if command -v gh >/dev/null 2>&1; then
+    say "开内部 PR ..."
+    gh pr create --base "$MAIN_BRANCH" --head "$branch" --fill ||
+      die "gh 开 PR 失败,手工开: $compare"
+    gh pr view --json url -q .url 2>/dev/null
+  else
+    say "gh 不可用,手工开 PR: $compare"
   fi
-  if ! git -C "$mw" worktree remove "$wt" 2>/dev/null; then
-    git -C "$mw" worktree remove --force "$wt" ||
-      die "合入已完成,但删工作树失败,请手工: git worktree remove --force $wt"
-  fi
-  if ! git -C "$mw" branch -d "$branch" >/dev/null 2>&1; then
-    die "工作树已删,但分支 $branch 删除失败(手工: git branch -d $branch)"
-  fi
-  head=$(git -C "$mw" rev-parse --short HEAD)
-  say "已合入并清理: $branch(未跟踪文件 $untracked 个随树删除)"
-  say "$MAIN_BRANCH 现在: $mw @$head"
+  say "PR 已开:等 CI OK 全绿后在 PR 上合并(别直推 $MAIN_BRANCH,会被拒)。"
+  say "合并后回本树清理: sh tooling/wt rm $branch"
 }
-
 cmd_rm() {
   need_repo
   [ $# -ge 1 ] || die "用法: tooling/wt rm <分支|路径> [--force]"

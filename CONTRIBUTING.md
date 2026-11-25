@@ -96,6 +96,8 @@ node sdk/plugin-kit/scripts/sync-skill.mjs --check
 
 ## 提交 PR
 
+`main` 受分支保护（required check `CI OK` + `enforce_admins`）：直接 push 会被拒，维护者也不例外；一切改动先开 PR，CI 全绿后在 PR 上合并。
+
 填写默认 PR 模板，用中文或英文均可：
 
 1. 问题是什么，为什么需要改，以及改后的行为。

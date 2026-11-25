@@ -96,6 +96,8 @@ Online checks, deployments and publishing scripts under `services/` and `infra/`
 
 ## Open a PR
 
+`main` is branch-protected (required check `CI OK` + `enforce_admins`): direct pushes are rejected, maintainers included. Open a PR first and merge it after CI is green.
+
 Complete the default PR template in Chinese or English:
 
 1. The problem, why the change is needed and the resulting behavior.
