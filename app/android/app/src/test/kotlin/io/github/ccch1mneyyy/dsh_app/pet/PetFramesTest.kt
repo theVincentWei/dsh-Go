@@ -193,12 +193,12 @@ class PetFramesTest {
     @Test fun girlHeldGrowsLeftAndUp() {
         val p = shipped("whale-girl")
         val drag = p.reaction("drag")!!
-        assertEquals(PetBox(10f, 12f, 54f, 49f), p.windowBox())
+        assertEquals(PetBox(10f, 12f, 54f, 54f), p.windowBox())
         // Crisp: 2 px per art px. drag reaches 5 art px left and 2 up of the rest frame.
         val f = frames(p)
-        assertEquals(FramePx(0, 0, 108, 98), f.rest)
+        assertEquals(FramePx(0, 0, 108, 108), f.rest)
         assertEquals(FramePx(-10, -4, 108, 98), f.cell(drag))
-        assertEquals(FramePx(-10, -4, 108, 98), f.held)
+        assertEquals(FramePx(-10, -4, 108, 108), f.held)
     }
 
     /**
@@ -217,7 +217,7 @@ class PetFramesTest {
         assertEquals(FramePx(-28, -72, 176, 128), drawn("deepy-whale", deepy.primary("juggling", 2), d))
         val girl = shipped("whale-girl")
         val g = frames(girl)
-        assertEquals(FramePx(0, 0, 108, 98), g.rest)
+        assertEquals(FramePx(0, 0, 108, 108), g.rest)
         // thinking: 22 px (11 art px) up and 6 right; conducting 22 up, 20 left, 8 right; music 4 left, 2 up.
         assertEquals(FramePx(4, -22, 114, 98), drawn("whale-girl", girl.primary("thinking", 0), g))
         assertEquals(FramePx(-20, -22, 116, 98), drawn("whale-girl", girl.primary("juggling", 2), g))
@@ -261,16 +261,16 @@ class PetFramesTest {
         val p = shipped("whale-girl")
         val f = frames(p)
         // typing: what it shows above her head reaches 8 art px up, and nothing reaches past rest elsewhere.
-        assertEquals(FramePx(0, -16, 108, 98), f.grown["typing"])
-        assertEquals(FramePx(-10, -12, 108, 98), f.grown["happy"])
-        assertEquals(FramePx(-2, -2, 108, 98), f.grown["waking"])
+        assertEquals(FramePx(0, -16, 108, 108), f.grown["typing"])
+        assertEquals(FramePx(-10, -12, 108, 108), f.grown["happy"])
+        assertEquals(FramePx(-2, -2, 108, 108), f.grown["waking"])
         // thinking: 11 art px up and 3 right; conducting 11 up, 10 left and 4 right; carrying only left.
-        assertEquals(FramePx(0, -22, 114, 98), f.grown["thinking"])
-        assertEquals(FramePx(-20, -22, 116, 98), f.grown["conducting"])
-        assertEquals(FramePx(-20, 0, 108, 98), f.grown["carrying"])
+        assertEquals(FramePx(0, -22, 114, 108), f.grown["thinking"])
+        assertEquals(FramePx(-20, -22, 116, 108), f.grown["conducting"])
+        assertEquals(FramePx(-20, 0, 108, 108), f.grown["carrying"])
         // The attention extras, not just happy.
-        assertEquals(FramePx(-6, -2, 108, 98), f.grown["smile-hearts"])
-        assertEquals(FramePx(-20, -22, 116, 98), f.reach)
+        assertEquals(FramePx(-6, -2, 108, 108), f.grown["smile-hearts"])
+        assertEquals(FramePx(-20, -22, 116, 108), f.reach)
     }
 
     /** Every k on several screens: idle whole at rest, the drag pose whole while held, every other animation in its frame. */

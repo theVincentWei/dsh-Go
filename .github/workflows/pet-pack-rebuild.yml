@@ -1,0 +1,46 @@
+name: Rebuild pet packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      packs:
+        description: 'Packs to rebuild (space-separated)'
+        type: string
+        default: 'whale-girl deepy-whale'
+
+permissions:
+  contents: read
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Python deps (pinned, same as ci.yml)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q Pillow==13.0.0 numpy==2.4.0
+      - name: Rebuild packs from pet_src
+        run: |
+          cd app/tool
+          for p in ${{ inputs.packs }}; do
+            "$RUNNER_TEMP/venv/bin/python" make_pet_pack.py --only "$p"
+          done
+      - name: Collect changed files
+        run: |
+          git status --porcelain > /tmp/changed.txt
+          rm -rf /tmp/rebuilt && mkdir -p /tmp/rebuilt
+          cut -c4- /tmp/changed.txt | while read -r f; do
+            [ -f "$f" ] && mkdir -p "/tmp/rebuilt/$(dirname "$f")" && cp "$f" "/tmp/rebuilt/$f"
+          done
+          cp /tmp/changed.txt /tmp/rebuilt/changed-files.txt
+      - name: Upload rebuilt files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pet-pack-rebuild
+          path: /tmp/rebuilt
+          retention-days: 14

@@ -12,10 +12,10 @@
   "contentBox": {"x": 12, "y": 12, "w": 52, "h": 49},
   "hitBoxes": {
     "default": {"x": 13, "y": 12, "w": 50, "h": 48},
-    "wide": {"x": 10, "y": 12, "w": 53, "h": 48},
+    "wide": {"x": 10, "y": 12, "w": 53, "h": 54},
     "sleeping": {"x": 12, "y": 12, "w": 51, "h": 49},
-    "byAnim": {"swim": {"x": 2, "y": 12, "w": 66, "h": 54}},
-    "wideAnims": ["typing"],
+    "byAnim": {},
+    "wideAnims": ["typing", "swim"],
     "sleepingAnims": ["sleeping"]
   },
   "animations": {
@@ -191,10 +191,10 @@
     },
     "swim": {
       "sheet": "swim.png",
-      "frameW": 66,
-      "frameH": 55,
+      "frameW": 50,
+      "frameH": 42,
       "cols": 8,
-      "box": {"x": 2, "y": 11, "w": 66, "h": 55},
+      "box": {"x": 10, "y": 24, "w": 50, "h": 42},
       "loop": true,
       "ms": 1200,
       "frames": [{"i": 0, "ms": 150}, {"i": 1, "ms": 150}, {"i": 2, "ms": 150}, {"i": 3, "ms": 150}, {"i": 4, "ms": 150}, {"i": 5, "ms": 150}, {"i": 6, "ms": 150}, {"i": 7, "ms": 150}]
