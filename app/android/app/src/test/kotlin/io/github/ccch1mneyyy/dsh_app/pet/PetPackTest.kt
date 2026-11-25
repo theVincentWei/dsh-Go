@@ -40,7 +40,8 @@ class PetPackTest {
         assertEquals("whale-girl", p.id)
         assertEquals("鲸娘", p.name)
         assertTrue(p.pixelArt)
-        assertTrue(p.crisp)
+        assertTrue(p.crisp(2f))
+        assertFalse(p.crisp(1.837f))
         assertEquals(1, p.scale)
         assertEquals(PetBox(12f, 12f, 52f, 49f), p.contentBox)
         assertEquals(2100L, p.animations.getValue("idle").totalMs)
@@ -151,62 +152,44 @@ class PetPackTest {
 
     @Test fun screenScaleMatchesTheAppForEverySize() {
         val p = PetPack.parse(json)
-        // The app's petDevicePixels (pet_sprite.dart, and pet_pixel_test.dart's ratio list): whole
-        // physical px per art px, 22/30/40 dp over a 49 px body, the three sizes at least one apart.
-        val expected = mapOf(
-            2.0f to listOf(1, 2, 3),
-            2.625f to listOf(1, 2, 3),
-            2.75f to listOf(1, 2, 3),
-            3.0f to listOf(1, 2, 3),
-            3.5f to listOf(2, 3, 4),
-        )
-        for ((density, ks) in expected) {
-            assertEquals("at $density", ks.map { it.toFloat() }, PetSize.values().map { p.screenScale(it, density) })
+        // The app's petScale (pet_sprite.dart): exact dp on every pack — dp × density ÷ body,
+        // 22/30/52 dp over a 49 px body, no ladder, no rounding.
+        for (density in listOf(2.0f, 2.625f, 2.75f, 3.0f, 3.5f)) {
+            val expected = PetSize.values().map { it.dp * density / 49f }
+            assertEquals("at $density", expected, PetSize.values().map { p.screenScale(it, density) })
         }
-        // A high-ratio pack is still pixel art: always whole.
+        // A high-ratio pack follows the same rule (fractional scale filters).
         val hiRes = PetPack.parse(
             """{"schema": 1, "id": "deepy-whale", "pixelArt": true, "scale": 5, "canvas": {"w": 52, "h": 52},
                 "contentBox": {"x": 12, "y": 26, "w": 36, "h": 22},
                 "animations": {"idle": {"sheet": "idle.png", "frameW": 180, "frameH": 120, "cols": 21,
                   "box": {"x": 12, "y": 26, "w": 36, "h": 24}, "frames": [{"i": 0, "ms": 50}]}}}""",
         )
-        assertFalse(hiRes.crisp)
-        assertEquals(4f, hiRes.screenScale(PetSize.MEDIUM, 2.625f))
-        // A smooth (non-pixel-art) pack draws at the target body height instead.
+        val mediumK = 30 * 2.625f / 22
+        assertFalse(hiRes.crisp(mediumK))
+        assertEquals(mediumK, hiRes.screenScale(PetSize.MEDIUM, 2.625f), 1e-4f)
+        assertTrue(hiRes.crisp(4f))
+        // A smooth (non-pixel-art) pack draws at the target body height too.
         val smooth = PetPack.parse(json.replace("\"pixelArt\": true", "\"pixelArt\": false"))
         assertEquals(30 * 2.625f / 49, smooth.screenScale(PetSize.MEDIUM, 2.625f), 1e-4f)
         assertEquals(22f, PetSize.SMALL.dp)
         assertEquals(30f, PetSize.MEDIUM.dp)
-        assertEquals(40f, PetSize.LARGE.dp)
+        assertEquals(52f, PetSize.LARGE.dp)
         assertEquals(PetSize.MEDIUM, PetSize.fromName(null))
         assertEquals(PetSize.LARGE, PetSize.fromName("large"))
         assertEquals(PetSize.SMALL, PetSize.fromName("small"))
         assertEquals(PetSize.MEDIUM, PetSize.fromName("medium"))
     }
 
-    /** The same table as `pet_pixel_test.dart` (the app) and `test/pets/pet_pixel_test.dart`: a drift on either side is caught. */
+    /** The same rule as `pet_pixel_test.dart` (the app) and `test/pets/pet_pixel_test.dart`: exact dp everywhere. */
     @Test fun screenScaleMatchesTheAppForTheShippedPacks() {
         val packs = shipped()
-        val expected = mapOf(
-            "whale-girl" to mapOf(
-                2.0f to listOf(1, 2, 3),
-                2.625f to listOf(1, 2, 3),
-                2.75f to listOf(1, 2, 3),
-                3.0f to listOf(1, 2, 3),
-                3.5f to listOf(2, 3, 4),
-            ),
-            "deepy-whale" to mapOf(
-                2.0f to listOf(2, 3, 4),
-                2.625f to listOf(3, 4, 5),
-                2.75f to listOf(3, 4, 5),
-                3.0f to listOf(3, 4, 5),
-                3.5f to listOf(4, 5, 6),
-            ),
-        )
-        for ((id, byDensity) in expected) {
+        val densities = listOf(2.0f, 2.625f, 2.75f, 3.0f, 3.5f)
+        for (id in listOf("whale-girl", "deepy-whale")) {
             val p = packs.getValue(id)
-            for ((density, ks) in byDensity) {
-                assertEquals("$id at $density", ks.map { it.toFloat() }, PetSize.values().map { p.screenScale(it, density) })
+            for (density in densities) {
+                val expected = PetSize.values().map { it.dp * density / p.contentBox.h }
+                assertEquals("$id at $density", expected, PetSize.values().map { p.screenScale(it, density) })
             }
         }
     }

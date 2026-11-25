@@ -69,20 +69,21 @@ class PetBubbleTest {
     /** The owner's case: mid-jump, the whale is under the bubble's bottom edge, not behind it. */
     @Test fun duringHappyTheBubbleBottomIsAboveThePicture() {
         val p = shipped("deepy-whale")
-        val f = PetFrames.of(p, p.windowBox(), p.screenScale(PetSize.MEDIUM, 2.75f))
+        // A whole k: this test pins the bubble-vs-jump geometry, not the fractional-scale rounding.
+        val f = PetFrames.of(p, p.windowBox(), 4f)
         val rest = EdgeSnap.position(Dock.DEFAULT, f.reach, area, margin)
         val happy = p.animations.getValue("happy")
         val idle = p.primary(PetPack.IDLE, 0)
         val overHappy = place(f, rest, Side.RIGHT, happy)
         val overIdle = place(f, rest, Side.RIGHT, idle)
         // The jump reaches 21 art px above the body (y 5 against 26), k physical px each.
-        val jump = 21 * p.devicePixels(PetSize.MEDIUM, 2.75f)
-        assertEquals(f.body.top - jump, f.art(happy).top)
+        val jump = 21 * 4f
+        assertEquals(f.body.top - jump, f.art(happy).top.toFloat())
         assertTrue(overHappy.rect.bottom <= f.art(happy).at(rest).top)
         assertTrue(overHappy.rect.bottom < f.body.at(rest).top)
         // Idle: where it always was, just over the body. Happy: as much higher as the jump.
         assertEquals(f.body.at(rest).top - gap, overIdle.rect.bottom)
-        assertEquals(jump, overIdle.pos.y - overHappy.pos.y)
+        assertEquals(jump, (overIdle.pos.y - overHappy.pos.y).toFloat())
         assertEquals(overIdle.pos.x, overHappy.pos.x)
         // Every visible pixel of happy lies inside its cell, so none is behind the bubble.
         assertFalse(overHappy.rect.intersects(f.cell(happy).at(rest)))

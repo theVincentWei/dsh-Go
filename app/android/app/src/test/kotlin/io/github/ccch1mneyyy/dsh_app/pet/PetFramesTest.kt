@@ -120,8 +120,11 @@ class PetFramesTest {
         }
     }
 
-    private fun frames(p: PetPack, size: String = "medium", density: Float = 2.75f) =
-        PetFrames.of(p, p.windowBox(), p.screenScale(PetSize.fromName(size), density))
+    /** Frame geometry is k-agnostic: drive it with whole k (deepy 4, girl 2 — what the
+     *  expectations below were written against). The size rule itself — exact dp — is pinned
+     *  in PetPackTest and pet_pixel_test.dart. */
+    private fun frames(p: PetPack, k: Float = if (p.id == "whale-girl") 2f else 4f) =
+        PetFrames.of(p, p.windowBox(), k)
 
     /** What the out-of-app pet may show, but the drag pose (held): every state's, tier's, bonus, idle action and reaction; not roam's. */
     private fun shownAnims(p: PetPack) =
@@ -190,12 +193,12 @@ class PetFramesTest {
     @Test fun girlHeldGrowsLeftAndUp() {
         val p = shipped("whale-girl")
         val drag = p.reaction("drag")!!
-        assertEquals(PetBox(10f, 12f, 54f, 49f), p.windowBox())
+        assertEquals(PetBox(10f, 12f, 54f, 54f), p.windowBox())
         // Crisp: 2 px per art px. drag reaches 5 art px left and 2 up of the rest frame.
         val f = frames(p)
-        assertEquals(FramePx(0, 0, 108, 98), f.rest)
+        assertEquals(FramePx(0, 0, 108, 108), f.rest)
         assertEquals(FramePx(-10, -4, 108, 98), f.cell(drag))
-        assertEquals(FramePx(-10, -4, 108, 98), f.held)
+        assertEquals(FramePx(-10, -4, 108, 108), f.held)
     }
 
     /**
@@ -214,7 +217,7 @@ class PetFramesTest {
         assertEquals(FramePx(-28, -72, 176, 128), drawn("deepy-whale", deepy.primary("juggling", 2), d))
         val girl = shipped("whale-girl")
         val g = frames(girl)
-        assertEquals(FramePx(0, 0, 108, 98), g.rest)
+        assertEquals(FramePx(0, 0, 108, 108), g.rest)
         // thinking: 22 px (11 art px) up and 6 right; conducting 22 up, 20 left, 8 right; music 4 left, 2 up.
         assertEquals(FramePx(4, -22, 114, 98), drawn("whale-girl", girl.primary("thinking", 0), g))
         assertEquals(FramePx(-20, -22, 116, 98), drawn("whale-girl", girl.primary("juggling", 2), g))
@@ -258,37 +261,35 @@ class PetFramesTest {
         val p = shipped("whale-girl")
         val f = frames(p)
         // typing: what it shows above her head reaches 8 art px up, and nothing reaches past rest elsewhere.
-        assertEquals(FramePx(0, -16, 108, 98), f.grown["typing"])
-        assertEquals(FramePx(-10, -12, 108, 98), f.grown["happy"])
-        assertEquals(FramePx(-2, -2, 108, 98), f.grown["waking"])
+        assertEquals(FramePx(0, -16, 108, 108), f.grown["typing"])
+        assertEquals(FramePx(-10, -12, 108, 108), f.grown["happy"])
+        assertEquals(FramePx(-2, -2, 108, 108), f.grown["waking"])
         // thinking: 11 art px up and 3 right; conducting 11 up, 10 left and 4 right; carrying only left.
-        assertEquals(FramePx(0, -22, 114, 98), f.grown["thinking"])
-        assertEquals(FramePx(-20, -22, 116, 98), f.grown["conducting"])
-        assertEquals(FramePx(-20, 0, 108, 98), f.grown["carrying"])
+        assertEquals(FramePx(0, -22, 114, 108), f.grown["thinking"])
+        assertEquals(FramePx(-20, -22, 116, 108), f.grown["conducting"])
+        assertEquals(FramePx(-20, 0, 108, 108), f.grown["carrying"])
         // The attention extras, not just happy.
-        assertEquals(FramePx(-6, -2, 108, 98), f.grown["smile-hearts"])
-        assertEquals(FramePx(-20, -22, 116, 98), f.reach)
+        assertEquals(FramePx(-6, -2, 108, 108), f.grown["smile-hearts"])
+        assertEquals(FramePx(-20, -22, 116, 108), f.reach)
     }
 
-    /** Every size on several screens: idle whole at rest, the drag pose whole while held, every other animation in its frame. */
+    /** Every k on several screens: idle whole at rest, the drag pose whole while held, every other animation in its frame. */
     @Test fun everyFrameHoldsItsCell() {
         for (id in packs) {
             val p = shipped(id)
-            for (size in listOf("small", "medium", "large")) {
-                for (density in listOf(1.5f, 2f, 2.625f, 2.75f, 3f, 3.5f)) {
-                    val f = frames(p, size, density)
-                    val where = "$id $size @$density"
-                    assertTrue("$where idle", f.rest.contains(f.cell(p.primary(PetPack.IDLE, 0))))
-                    assertTrue("$where drag", f.held.contains(f.cell(p.reaction("drag")!!)))
-                    assertTrue("$where rest ⊂ held", f.held.contains(f.rest))
-                    for (a in shownAnims(p)) {
-                        val g = f.frameFor(a, holding = false)
-                        assertEquals("$where ${a.name}", f.rest.union(f.cell(a)), g)
-                        assertTrue("$where ${a.name} ⊂ reach", f.reach.contains(g))
-                    }
-                    assertEquals(where, 0, f.rest.left)
-                    assertEquals(where, 0, f.rest.top)
+            for (k in listOf(1f, 1.5f, 2f, 3f, 4f, 5f)) {
+                val f = frames(p, k)
+                val where = "$id @$k"
+                assertTrue("$where idle", f.rest.contains(f.cell(p.primary(PetPack.IDLE, 0))))
+                assertTrue("$where drag", f.held.contains(f.cell(p.reaction("drag")!!)))
+                assertTrue("$where rest ⊂ held", f.held.contains(f.rest))
+                for (a in shownAnims(p)) {
+                    val g = f.frameFor(a, holding = false)
+                    assertEquals("$where ${a.name}", f.rest.union(f.cell(a)), g)
+                    assertTrue("$where ${a.name} ⊂ reach", f.reach.contains(g))
                 }
+                assertEquals(where, 0, f.rest.left)
+                assertEquals(where, 0, f.rest.top)
             }
         }
     }
@@ -320,14 +321,14 @@ class PetFramesTest {
         // 上游几何红线只约束上游自带的两包;万器像素包画法不同,parse 过即可。
         for (id in packs.filter { it == "deepy-whale" || it == "whale-girl" }) {
             val p = shipped(id)
-            for (size in listOf("small", "medium", "large")) for (density in listOf(2f, 2.75f, 3.5f)) {
-                val f = frames(p, size, density)
-                val k = ceil(f.k.toDouble()).toInt()
+            for (k in listOf(1f, 2f, 3f, 4f)) {
+                val f = frames(p, k)
+                val ceilK = ceil(f.k.toDouble()).toInt()
                 for (a in shownAnims(p) + p.reaction("drag")!!) {
                     val held = a.name == p.reaction("drag")?.name
                     val g = f.frameFor(a, holding = false)
                     val d = drawn(id, a, f)
-                    val where = "$id $size @$density ${a.name}: drawn $d, frame $g, rest ${f.rest}"
+                    val where = "$id @$k ${a.name}: drawn $d, frame $g, rest ${f.rest}"
                     assertTrue("$where (cell)", f.cell(a).contains(d))
                     assertTrue("$where (window)", g.contains(d))
                     assertTrue("$where (bubble's picture)", f.art(a).contains(d))
@@ -339,10 +340,10 @@ class PetFramesTest {
                     // Grown exactly when the art would be cut at rest.
                     assertEquals("$where (grown iff cut)", !f.rest.contains(d), a.name in f.grown)
                     // Per side: as at rest unless the art reaches past it there, and then no further than the art.
-                    if (g.left < 0) assertTrue("$where left", d.left < 0 && d.left - g.left <= k) else assertEquals(where, 0, g.left)
-                    if (g.top < 0) assertTrue("$where top", d.top < 0 && d.top - g.top <= k) else assertEquals(where, 0, g.top)
-                    if (g.right > f.rest.right) assertTrue("$where right", d.right > f.rest.right && g.right - d.right <= k) else assertEquals(where, f.rest.right, g.right)
-                    if (g.bottom > f.rest.bottom) assertTrue("$where bottom", d.bottom > f.rest.bottom && g.bottom - d.bottom <= k) else assertEquals(where, f.rest.bottom, g.bottom)
+                    if (g.left < 0) assertTrue("$where left", d.left < 0 && d.left - g.left <= ceilK) else assertEquals(where, 0, g.left)
+                    if (g.top < 0) assertTrue("$where top", d.top < 0 && d.top - g.top <= ceilK) else assertEquals(where, 0, g.top)
+                    if (g.right > f.rest.right) assertTrue("$where right", d.right > f.rest.right && g.right - d.right <= ceilK) else assertEquals(where, f.rest.right, g.right)
+                    if (g.bottom > f.rest.bottom) assertTrue("$where bottom", d.bottom > f.rest.bottom && g.bottom - d.bottom <= ceilK) else assertEquals(where, f.rest.bottom, g.bottom)
                 }
             }
         }
@@ -355,17 +356,15 @@ class PetFramesTest {
     @Test fun touchesCountOnTheBodyOnly() {
         for (id in packs) {
             val p = shipped(id)
-            for (size in listOf("small", "medium", "large")) {
-                val f = frames(p, size)
-                for (a in shownAnims(p) + p.reaction("drag")!!) {
-                    val hit = f.hit(a)
-                    val where = "$id $size ${a.name}: hit $hit"
-                    assertTrue("$where ⊇ rest", hit.contains(f.rest))
-                    assertTrue("$where ⊂ window", f.frameFor(a, holding = false).contains(hit))
-                    assertEquals(where, f.rest.union(f.place(p.hitBoxFor(a))), hit)
-                }
-                assertEquals(f.rest, f.hit(null))
+            val f = frames(p)
+            for (a in shownAnims(p) + p.reaction("drag")!!) {
+                val hit = f.hit(a)
+                val where = "$id ${a.name}: hit $hit"
+                assertTrue("$where ⊇ rest", hit.contains(f.rest))
+                assertTrue("$where ⊂ window", f.frameFor(a, holding = false).contains(hit))
+                assertEquals(where, f.rest.union(f.place(p.hitBoxFor(a))), hit)
             }
+            assertEquals(f.rest, f.hit(null))
         }
         val p = shipped("deepy-whale")
         val f = frames(p)
@@ -444,24 +443,22 @@ class PetFramesTest {
         val landscape = SafeArea(2400, 1080, left = 96, top = 0, right = 0, bottom = 63)
         for (id in packs) {
             val p = shipped(id)
-            for (size in listOf("small", "medium", "large")) {
-                val f = frames(p, size, 2.75f)
-                for (area in listOf(portrait, landscape)) {
-                    val m = 22
-                    for (side in Side.values()) for (y in listOf(0f, 0.37f, 1f)) {
-                        val dock = Dock(side, y)
-                        val rest = EdgeSnap.position(dock, f.reach, area, m)
-                        for (frame in listOf(f.rest) + f.grown.values) {
-                            val w = PetFrames.windowAt(rest, frame)
-                            val where = "$id $size $dock $area: $frame at $w"
-                            assertTrue(where, w.x >= area.left + m && w.x + frame.width <= area.screenW - area.right - m)
-                            assertTrue(where, w.y >= area.top + m && w.y + frame.height <= area.screenH - area.bottom - m)
-                        }
-                        // Released where it docked: the same dock back.
-                        val again = EdgeSnap.dockFor(rest, f.rest.width, f.reach, area, m)
-                        assertEquals(dock.side, again.side)
-                        assertEquals(y, again.yFraction, 0.01f)
+            val f = frames(p)
+            for (area in listOf(portrait, landscape)) {
+                val m = 22
+                for (side in Side.values()) for (y in listOf(0f, 0.37f, 1f)) {
+                    val dock = Dock(side, y)
+                    val rest = EdgeSnap.position(dock, f.reach, area, m)
+                    for (frame in listOf(f.rest) + f.grown.values) {
+                        val w = PetFrames.windowAt(rest, frame)
+                        val where = "$id $dock $area: $frame at $w"
+                        assertTrue(where, w.x >= area.left + m && w.x + frame.width <= area.screenW - area.right - m)
+                        assertTrue(where, w.y >= area.top + m && w.y + frame.height <= area.screenH - area.bottom - m)
                     }
+                    // Released where it docked: the same dock back.
+                    val again = EdgeSnap.dockFor(rest, f.rest.width, f.reach, area, m)
+                    assertEquals(dock.side, again.side)
+                    assertEquals(y, again.yFraction, 0.01f)
                 }
             }
         }

@@ -42,7 +42,7 @@ enum PetOverlaySize: String {
     switch self {
     case .small: return 22
     case .medium: return 30
-    case .large: return 40
+    case .large: return 52
     }
   }
 }
