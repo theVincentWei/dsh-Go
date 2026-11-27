@@ -48,6 +48,9 @@
   "viewArtifactConverting": "正在转换为 PDF 预览…",
   "viewArtifactImageFailed": "无法显示这张图片",
   "viewArtifactPhoneOpen": "用手机上的应用打开",
+  "viewWebRenderFailed": "无法渲染这个网页",
+  "viewWebSource": "源码",
+  "viewWebRender": "渲染",
   "viewArtifactPdfFailed": "无法打开这个 PDF，试试用其他应用打开",
   "viewArtifactPages": "共 {count} 页",
   "@viewArtifactPages": {

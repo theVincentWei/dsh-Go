@@ -23685,6 +23685,15 @@ class L10nZh extends L10n {
   String get viewArtifactPhoneOpen => '用手机上的应用打开';
 
   @override
+  String get viewWebRenderFailed => '无法渲染这个网页';
+
+  @override
+  String get viewWebSource => '源码';
+
+  @override
+  String get viewWebRender => '渲染';
+
+  @override
   String get viewArtifactPdfFailed => '无法打开这个 PDF，试试用其他应用打开';
 
   @override
