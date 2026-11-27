@@ -1,12 +1,9 @@
 import 'package:dsh_app/state/artifacts.dart';
 import 'package:dsh_app/ui/chat/artifact_preview.dart';
-import 'package:dsh_app/ui/chat/render/code_block.dart';
 import 'package:dsh_app/ui/chat/widgets/artifact_card.dart';
-import 'package:dsh_app/ui/session/workspace_files.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../files/support/files_harness.dart';
 import 'support/harness.dart';
 
 void main() {
@@ -28,20 +25,25 @@ void main() {
         );
         await tester.tap(find.text('open menu'));
         await tester.pumpAndSettle();
-        expect(find.text('预览'), extension == 'docx' && converts ? findsOneWidget : findsNothing);
+        // HTML renders in-app now; the docx needs the Host's converter.
+        expect(
+          find.text('预览'),
+          switch (extension) {
+            'html' => findsOneWidget,
+            'docx' => converts ? findsOneWidget : findsNothing,
+            _ => findsNothing,
+          },
+        );
         expect(find.text('用其他应用打开'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }
   }
 
-  testWidgets('opening HTML as a workspace preview displays source code', (tester) async {
-    const source = '<h1>Preview contract</h1><script>throw new Error("must stay text")</script>';
-    final workspace = sampleWorkspace()..write('page.html', source);
-    await tester.pumpWidget(filesApp(FilePreviewPage(sessionId: 's1', path: '${workspace.root}/page.html'), workspace));
-    await pumpFrames(tester, 8);
-    expect(previewModeOf('page.html'), PreviewMode.text);
-    expect(tester.widget<CodeBlock>(find.byType(CodeBlock)).code, contains(source));
-    expect(tester.takeException(), isNull);
+  test('html previews render (web mode); mhtml stays source text', () {
+    expect(previewModeOf('page.html'), PreviewMode.web);
+    expect(previewModeOf('page.htm'), PreviewMode.web);
+    expect(previewModeOf('page.mhtml'), PreviewMode.text);
+    expect(previewModeOf('notes.txt'), PreviewMode.text);
   });
 }

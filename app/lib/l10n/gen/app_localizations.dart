@@ -43334,6 +43334,24 @@ abstract class L10n {
   /// **'用手机上的应用打开'**
   String get viewArtifactPhoneOpen;
 
+  /// No description provided for @viewWebRenderFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法渲染这个网页'**
+  String get viewWebRenderFailed;
+
+  /// No description provided for @viewWebSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'源码'**
+  String get viewWebSource;
+
+  /// No description provided for @viewWebRender.
+  ///
+  /// In zh, this message translates to:
+  /// **'渲染'**
+  String get viewWebRender;
+
   /// No description provided for @viewArtifactPdfFailed.
   ///
   /// In zh, this message translates to:

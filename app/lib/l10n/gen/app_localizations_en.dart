@@ -24928,6 +24928,15 @@ class L10nEn extends L10n {
   String get viewArtifactPhoneOpen => 'Open in an app on this phone';
 
   @override
+  String get viewWebRenderFailed => 'Can’t render this page';
+
+  @override
+  String get viewWebSource => 'Source';
+
+  @override
+  String get viewWebRender => 'Render';
+
+  @override
   String get viewArtifactPdfFailed => 'Can’t open this PDF. Try another app.';
 
   @override

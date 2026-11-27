@@ -36,6 +36,7 @@ import '../theme/theme.dart';
 import 'render/code_block.dart';
 import 'render/markdown_body.dart';
 import 'render/markdown_image.dart' show MarkdownImageScope;
+import 'web_preview.dart' show HtmlPreview;
 import 'widgets/artifact_card.dart' show ArtifactAction, showArtifactMenu;
 import 'widgets/change_card.dart' show copyPath;
 import 'widgets/image_actions.dart' show GallerySaveButton;
@@ -86,6 +87,9 @@ enum PreviewMode {
   markdown,
   text,
 
+  /// HTML(不含 mhtml):回环服务器取来工作区文件,WebView 渲染。
+  web,
+
   /// Audio / video: played by the in-app player (音频视频归一,同一播放器).
   player,
 
@@ -99,6 +103,7 @@ PreviewMode previewModeOf(String path, {bool officeToPdf = false}) {
   final ext = _extensionOf(path);
   if (ext == 'xlsx' || ext == 'xlsm') return PreviewMode.workbook;
   if (ext == 'csv' || ext == 'tsv') return PreviewMode.table;
+  if (ext == 'html' || ext == 'htm') return PreviewMode.web;
   if (isOfficePath(path)) {
     return officeToPdf ? PreviewMode.office : PreviewMode.unsupported;
   }
@@ -137,16 +142,11 @@ bool isTextLikePath(String path) {
   return languageForPath(path) != null;
 }
 
-/// App 里能直接预览的:位图、PDF、Markdown、文本与代码、CSV / TSV / XLSX;
-/// [officeToPdf](Host 能转换)时还有 Office 文档(转成 PDF 再看)。
+/// App 里能直接预览的:位图、PDF、Markdown、文本与代码、CSV / TSV / XLSX、
+/// HTML(渲染);[officeToPdf](Host 能转换)时还有 Office 文档(转成 PDF 再看)。
 bool artifactPreviewable(Artifact artifact, {bool officeToPdf = false}) {
   final mode = previewModeOf(artifact.path, officeToPdf: officeToPdf);
   if (mode == PreviewMode.unsupported) return false;
-  // A web page made for the user reads better in an app that renders it than
-  // as its source.
-  if (artifact.kind == ArtifactKind.web) {
-    return false;
-  }
   if (mode == PreviewMode.text && artifact.kind == ArtifactKind.other) {
     return isTextLikePath(artifact.path);
   }
@@ -285,6 +285,9 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
   /// XLSX this phone could not read: the Host's PDF of it instead.
   bool _asPdf = false;
 
+  /// HTML shown as its source instead of rendered.
+  bool _asSource = false;
+
   StreamSubscription<DshWorkspaceWatchFrame>? _watch;
   Timer? _debounce;
   bool _ready = false;
@@ -330,6 +333,7 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
       _gone = false;
       _asText = false;
       _asPdf = false;
+      _asSource = false;
       _busy = false;
     });
     _follow();
@@ -407,6 +411,22 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
     GlassIconButton(icon: AppIcons.more, tooltip: context.l10n.viewArtifactMore, onPressed: _busy ? null : _menu),
   ];
 
+  /// HTML 的 源码 ⇄ 渲染 切换,放在常规操作前面;其余文件没有这一键。
+  List<Widget> _frameActions(PreviewMode mode) => [
+    if (_isHtmlPath(_artifact.path))
+      GlassIconButton(
+        icon: mode == PreviewMode.web ? AppIcons.code : AppIcons.web,
+        tooltip: mode == PreviewMode.web ? context.l10n.viewWebSource : context.l10n.viewWebRender,
+        onPressed: () => setState(() => _asSource = !_asSource),
+      ),
+    ..._actions,
+  ];
+
+  bool _isHtmlPath(String path) {
+    final ext = _extensionOf(path);
+    return ext == 'html' || ext == 'htm';
+  }
+
   VoidCallback? get _openElsewhere => _busy ? null : () => _act(ArtifactAction.open);
 
   /// The folder the file is in: relative to the workspace when it is in it
@@ -435,6 +455,7 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
     var mode = previewModeOf(_artifact.path, officeToPdf: convert);
     if (mode == PreviewMode.table && _asText) mode = PreviewMode.text;
     if (mode == PreviewMode.workbook && _asPdf) mode = PreviewMode.office;
+    if (mode == PreviewMode.web && _asSource) mode = PreviewMode.text;
 
     if (mode == PreviewMode.image && (!_gone || _images.length > 1)) {
       final artifact = _artifact;
@@ -495,7 +516,7 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
         revision: _revision,
         gone: _gone,
         where: _where(),
-        actions: _actions,
+        actions: _frameActions(mode),
         onOpen: _openElsewhere,
       );
     }
@@ -507,6 +528,12 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
       body = _PlayerRoute(sessionId: widget.sessionId, artifact: _artifact);
     } else {
       body = switch (mode) {
+        PreviewMode.web => HtmlPreview(
+          sessionId: widget.sessionId,
+          artifact: _artifact,
+          revision: _revision,
+          onOpen: _openElsewhere,
+        ),
         PreviewMode.pdf || PreviewMode.office => _PdfPreview(
           key: ValueKey(mode),
           sessionId: widget.sessionId,
@@ -546,7 +573,7 @@ class _ArtifactPreviewPageState extends ConsumerState<ArtifactPreviewPage> {
       title: _artifact.name,
       metaIsPath: _artifact.description == null,
       meta: [_artifact.description ?? _where(), if (_artifact.bytes != null) formatBytes(_artifact.bytes!)].join(' · '),
-      actions: _actions,
+      actions: _frameActions(mode),
       child: body,
     );
   }
