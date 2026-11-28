@@ -3858,6 +3858,9 @@ class L10nZh extends L10n {
   String get chatReadOriginalImageFailed => '读取原图失败，请重试';
 
   @override
+  String get chatMiniAppBadge => '小程序';
+
+  @override
   String get chatRegenerateFailed => '重新回答失败';
 
   @override

@@ -21,7 +21,8 @@
 //
 // Reserved hosts: `share` (分享码, lib/share_code), `forum` (community login,
 // e.g. `dshgo://forum/auth?payload=…`), `open` (a page of the app,
-// links/page_links.dart), and the share host's own name for
+// links/page_links.dart), `mini` (a mini program's page, links/mini_links.dart),
+// and the share host's own name for
 // hosted conversation links (`dshgo://go.dshtui.com/c/…`, the same as its
 // https links; registered by [LinkHost] itself, lib/ui/share_hosted/) and
 // the official market's plugin pages (`dshgo://go.dshtui.com/p/…`,
@@ -51,6 +52,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/sessions_state.dart' show currentSessionProvider;
 import '../ui/share_hosted/hosted_link_host.dart' show registerHostedLinks;
 import 'page_links.dart' show pageLinkResolverProvider, registerPageLinks;
+import 'mini_links.dart' show registerMiniLinks;
 import 'plugin_links.dart' show registerPluginLinks;
 
 import '../l10n/l10n.dart';
@@ -347,6 +349,7 @@ class _LinkHostState extends ConsumerState<LinkHost> {
   late final VoidCallback _offHosted;
   late final VoidCallback _offPlugins;
   late final VoidCallback _offPages;
+  late final VoidCallback _offMinis;
 
   @override
   void initState() {
@@ -362,6 +365,8 @@ class _LinkHostState extends ConsumerState<LinkHost> {
       session: () => ref.read(currentSessionProvider),
       page: ref.read(pageLinkResolverProvider),
     );
+    // `dshgo://mini/<appId>?path=…`: into a mini program's page.
+    _offMinis = registerMiniLinks(_router);
     // After the first frame: the home route is laid out before a sheet opens.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _router.attach(context, toast: _toast);
@@ -378,6 +383,7 @@ class _LinkHostState extends ConsumerState<LinkHost> {
     _offHosted();
     _offPlugins();
     _offPages();
+    _offMinis();
     _router.detach(context);
     super.dispose();
   }

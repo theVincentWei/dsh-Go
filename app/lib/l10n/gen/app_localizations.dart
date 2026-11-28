@@ -7172,6 +7172,12 @@ abstract class L10n {
   /// **'读取原图失败，请重试'**
   String get chatReadOriginalImageFailed;
 
+  /// No description provided for @chatMiniAppBadge.
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序'**
+  String get chatMiniAppBadge;
+
   /// No description provided for @chatRegenerateFailed.
   ///
   /// In zh, this message translates to:

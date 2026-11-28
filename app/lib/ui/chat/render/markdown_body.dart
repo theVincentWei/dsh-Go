@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../links/page_links.dart' show openReplyPageLink;
+import '../../../links/mini_links.dart' show openReplyMiniLink;
 import '../../../state/artifacts.dart';
 import '../../../state/table_tint_state.dart';
 import '../../../state/workspace_state.dart';
@@ -24,6 +25,7 @@ import 'code_block.dart';
 import 'markdown_blocks.dart';
 import 'markdown_image.dart';
 import 'markdown_math.dart';
+import 'mini_app_card.dart';
 import 'math_syntax.dart';
 import 'stream_repair.dart';
 import 'table_syntax.dart';
@@ -38,6 +40,7 @@ const _cursorSentinel = '\uE000';
 final Map<String, HtmlTag?> _htmlTags = {
   'details': const HtmlTag.block(MarkdownDisclosure.build),
   'summary': const HtmlTag.block(),
+  'miniapp': const HtmlTag.block(MiniAppCard.tag),
 };
 
 /// Inline patterns a part of the app lays over every [MarkdownBody] below it
@@ -244,6 +247,8 @@ class MarkdownBody extends StatefulWidget {
     if (!context.mounted) return;
     // `dshgo://open/<page>`: the guide's links to the app's own pages.
     if (openReplyPageLink(context, url)) return;
+    // `dshgo://mini/<appId>?path=…`: 小程序跳转(卡片同款)。
+    if (openReplyMiniLink(context, url)) return;
     final uri = linkToOpen(url);
     if (uri != null) {
       launchUrl(uri, mode: LaunchMode.externalApplication);
