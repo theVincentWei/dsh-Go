@@ -47,13 +47,17 @@ Future<void> pumpReply(
 void main() {
   const app = HubInstalledApp(appId: 'wx7c3e9d2a1b4f5e68', name: '记账本');
 
-  testWidgets('a miniapp tag renders the card with page name, app name and badge', (tester) async {
+  testWidgets('a miniapp tag renders the card with app name, badge and page subtitle', (tester) async {
     await pumpReply(tester, '看这里：\n$_tag', minis: [app]);
     expect(find.text('记一笔'), findsOneWidget);
     expect(find.text('记账本'), findsOneWidget);
     expect(find.text('小程序'), findsOneWidget);
     // 目录里没带图标:首字母瓦片兜底。
     expect(find.text('记'), findsOneWidget);
+    // 主行 = 应用名(带角标),副行 = 页名:应用名在页名上方。
+    final appRow = tester.getRect(find.text('记账本'));
+    final pageRow = tester.getRect(find.text('记一笔'));
+    expect(appRow.top, lessThan(pageRow.top));
   });
 
   testWidgets('an unknown app still shows the card (title first, no app line)', (tester) async {
