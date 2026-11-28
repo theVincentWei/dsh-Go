@@ -1,5 +1,5 @@
-// 回复里的小程序跳转卡片(`<miniapp …>`):图标 + 页名 + App名与「小程序」
-// 角标,整卡可点,按 mini_links.dart 的桌面同款配方拉起。
+// 回复里的小程序跳转卡片(`<miniapp …>`):图标 + 应用名与「小程序」角标
+// (主行)+ 页名副行,整卡可点,按 mini_links.dart 的桌面同款配方拉起。
 //
 // 旧版 App 不认识这个标签会原样显示文字;App 静默自动升级,升到即正常。
 
@@ -52,11 +52,11 @@ class MiniAppCard extends ConsumerWidget {
         ?.where((HubInstalledApp candidate) => candidate.appId == appId)
         .firstOrNull;
     final String appName = app?.name ?? '';
-    final String heading = switch ((title?.isNotEmpty ?? false, appName.isNotEmpty)) {
-      (true, _) => title!,
-      (false, true) => appName,
-      (false, false) => appId,
-    };
+    final bool hasTitle = title?.isNotEmpty ?? false;
+    // 主行 = 应用名(「小程序」角标跟着主行),副行 = 页名;应用不在目录时
+    // 主行落页名,再落 appId,此时没有副行。
+    final String heading = appName.isNotEmpty ? appName : (hasTitle ? title! : appId);
+    final String? sub = hasTitle && title != heading ? title : null;
 
     return Semantics(
       button: true,
@@ -88,31 +88,32 @@ class MiniAppCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      heading,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: style.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    SizedBox(height: fontSize * 0.15),
                     Row(
                       children: [
-                        if (appName.isNotEmpty)
-                          Flexible(
-                            child: Text(
-                              appName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: style.copyWith(
-                                fontSize: fontSize * 0.8,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
+                        Flexible(
+                          child: Text(
+                            heading,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: style.copyWith(fontWeight: FontWeight.w600),
                           ),
+                        ),
                         SizedBox(width: fontSize * 0.3),
                         _badge(context, style, fontSize),
                       ],
                     ),
+                    if (sub != null) ...[
+                      SizedBox(height: fontSize * 0.15),
+                      Text(
+                        sub,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: style.copyWith(
+                          fontSize: fontSize * 0.8,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
