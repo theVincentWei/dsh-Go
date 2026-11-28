@@ -148,7 +148,8 @@ def check_links(path: Path, guide: Path, ids: set[str]) -> list[str]:
         for target in LINK.findall(line):
             if target.startswith('dshgo://'):
                 page = re.fullmatch(r'dshgo://open/([a-z0-9-]+)', target)
-                if not page or page[1] not in ids:
+                mini = re.fullmatch(r'dshgo://mini/[A-Za-z0-9][A-Za-z0-9_.-]*(\?[^\s]*)?', target)
+                if (not page or page[1] not in ids) and not mini:
                     errors.append(f'{name}:{i + 1}: {target} is not a page link the app opens')
             elif not re.match(r'(https?|mailto):', target):
                 file = (path.parent / target.split('#')[0]).resolve()

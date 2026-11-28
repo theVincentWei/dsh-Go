@@ -28,9 +28,14 @@ import '../theme/theme.dart';
 
 /// 任意入口打开小程序（桌面图标/通知点击/市场详情）即消费该 app 的全部未读：
 /// 整批已读 + 撤掉通知栏里该 app 的系统通知（主流惯例：角标随打开消，§6.1）。
+/// 本体在 state 层（apphub_notices_state.consumeMiniAppNoticesBy），链接
+/// 路由（links/mini_links.dart）跳转的小程序同享「打开即消费」。
 void consumeMiniAppNotices(WidgetRef ref, String appId) {
-  ref.read(appHubNoticesProvider.notifier).consumeApp(appId);
-  unawaited(ref.read(notifyChannelProvider).cancelGroup('apphub|$appId'));
+  consumeMiniAppNoticesBy(
+    notices: ref.read(appHubNoticesProvider.notifier),
+    channel: ref.read(notifyChannelProvider),
+    appId: appId,
+  );
 }
 
 /// 点一条小程序通知：先回写已读，有 [MiniAppNotice.page] 就打开小程序页；

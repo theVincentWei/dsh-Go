@@ -4047,6 +4047,9 @@ class L10nEn extends L10n {
   String get chatReadOriginalImageFailed => 'Couldn’t read the original image. Try again.';
 
   @override
+  String get chatMiniAppBadge => 'Mini app';
+
+  @override
   String get chatRegenerateFailed => 'Couldn’t regenerate';
 
   @override

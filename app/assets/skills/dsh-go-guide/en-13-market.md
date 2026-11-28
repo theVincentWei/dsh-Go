@@ -39,4 +39,12 @@ Handy commands: `wanqi service status` for the health table, `wanqi service logs
 3. DSH Remote relay: install the market relay plugin on that host first, then reconnect.
 4. Connected but **Installed** is empty: install at least one package with `wanqi bundle install` on the host — the phone picks it up automatically.
 
+## Jumping to a mini program page from a chat
+
+A reply can carry a mini program jump card: a card with the app's icon and the page's name — tap it to open that page of that mini program (an app that isn't installed yet installs first, then opens). The plain-link form is tappable the same way.
+
+- The card points at a mini program in the **Installed** list; if the app doesn't exist or the host is offline, tapping says the link can't be opened.
+- The card markup (for troubleshooting): `<miniapp app="appId" title="page name" path="page path"></miniapp>`; the plain link is `dshgo://mini/appId?path=page path`.
+- Omitting `path` opens the mini program's home page; opening a mini program consumes its unread badge, just like tapping its desktop tile.
+
 See [Engine and remote hosts](03-engine-hosts.md) for choosing a connection, and [Plugins](08-plugins.md) for DSH plugins and the plugin market.

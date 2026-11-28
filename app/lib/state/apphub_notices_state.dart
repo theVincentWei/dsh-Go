@@ -21,6 +21,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../notify/apphub_base.dart' show appHubBase;
+import '../notify/notify_channel.dart' show NotifyChannel;
+
+/// 打开小程序后消费它的全部未读:整批已读 + 撤掉通知栏里该 app 的系统通知
+/// (主流惯例:角标随打开消,§6.1)。widget 界(通知中心/桌面/市场详情)与
+/// 链接路由界(links/mini_links.dart)共用这一份,所以只认两个依赖本体。
+void consumeMiniAppNoticesBy({
+  required AppHubNoticesController notices,
+  required NotifyChannel channel,
+  required String appId,
+}) {
+  notices.consumeApp(appId);
+  unawaited(channel.cancelGroup('apphub|$appId'));
+}
 
 /// 一条小程序通知（AppHub `notify_messages` 行）。
 ///
